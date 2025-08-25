@@ -14,6 +14,8 @@ export interface UserSelections {
   backendUrl: string;
   shallowThinker: string;
   deepThinker: string;
+  verboseLogging?: boolean;
+  logLevel?: 'debug' | 'info' | 'warn' | 'error' | 'critical';
 }
 
 export interface DepthOption {

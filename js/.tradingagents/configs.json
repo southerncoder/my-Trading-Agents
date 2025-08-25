@@ -1,0 +1,26 @@
+{
+  "version": "1.0.0",
+  "configs": {
+    "testrun": {
+      "name": "TestRUN",
+      "selections": {
+        "ticker": "MSFT",
+        "analysisDate": "2025-08-23",
+        "analysts": [
+          "market",
+          "social",
+          "news",
+          "fundamentals"
+        ],
+        "researchDepth": 1,
+        "llmProvider": "lm studio",
+        "backendUrl": "http://localhost:1234/v1",
+        "shallowThinker": "local-model",
+        "deepThinker": "local-model"
+      },
+      "createdAt": "2025-08-25T04:07:34.611Z",
+      "useCount": 2,
+      "lastUsed": "2025-08-25T04:10:53.600Z"
+    }
+  }
+}

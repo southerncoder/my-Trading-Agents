@@ -14,19 +14,162 @@ import { MessageBuffer } from './message-buffer.js';
 import { DisplaySystem } from './display.js';
 import { EnhancedTradingAgentsGraph } from '../graph/enhanced-trading-graph.js';
 import { DEFAULT_CONFIG } from '../config/default.js';
+import { ConfigManager } from './config-manager.js';
+import { ExportManager } from './export-manager.js';
+import { HistoricalAnalyzer } from './historical-analyzer.js';
+import { LoggingManager, configureVerboseLogging, logSystemInfo, createOperationTimer } from './logging-manager.js';
 import { mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
+import inquirer from 'inquirer';
 
 export class TradingAgentsCLI {
   private display: DisplaySystem;
   private messageBuffer: MessageBuffer;
+  private configManager: ConfigManager;
+  private exportManager: ExportManager;
+  private historicalAnalyzer: HistoricalAnalyzer;
 
   constructor() {
     this.display = new DisplaySystem();
     this.messageBuffer = new MessageBuffer();
+    this.configManager = new ConfigManager();
+    this.exportManager = new ExportManager();
+    this.historicalAnalyzer = new HistoricalAnalyzer();
+  }
+
+  public async showMainMenu(): Promise<void> {
+    this.display.displayWelcome();
+
+    const { action } = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'action',
+        message: 'What would you like to do?',
+        choices: [
+          { name: '🚀 Run New Analysis - Analyze a stock with LLM agents', value: 'analyze' },
+          { name: '📊 Historical Analysis - Review and analyze past results', value: 'historical' },
+          { name: '📤 Export Results - Export analysis data in various formats', value: 'export' },
+          { name: '⚙️  Manage Configurations - Save and load analysis configurations', value: 'config' },
+          { name: '🔧 Configure Verbose Logging - Set up detailed logging for debugging', value: 'logging' },
+          new inquirer.Separator(),
+          { name: '❌ Exit', value: 'exit' }
+        ],
+        pageSize: 10
+      }
+    ]);
+
+    switch (action) {
+      case 'analyze':
+        await this.runAnalysis();
+        break;
+      case 'historical':
+        await this.historicalAnalyzer.analyzeHistorical();
+        break;
+      case 'export':
+        await this.exportManager.exportResults();
+        break;
+      case 'config':
+        await this.configManager.manageConfigs();
+        break;
+      case 'logging':
+        await configureVerboseLogging(true);
+        break;
+      case 'exit':
+        console.log(chalk.green('👋 Thank you for using TradingAgents!'));
+        process.exit(0);
+        break;
+    }
+
+    // Return to main menu after action completes
+    console.log(chalk.gray('\nReturning to main menu...\n'));
+    await this.showMainMenu();
   }
 
   public async getUserSelections(): Promise<UserSelections> {
+    // First check if user wants to load a saved configuration
+    const { useConfig } = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'useConfig',
+        message: 'Configuration Options:',
+        choices: [
+          { name: '📋 Load Saved Configuration', value: 'load' },
+          { name: '🚀 Use Default Configuration (if available)', value: 'default' },
+          { name: '⚙️  Create New Configuration', value: 'new' }
+        ]
+      }
+    ]);
+
+    let selections: UserSelections | null = null;
+
+    if (useConfig === 'load') {
+      selections = await this.configManager.loadConfig();
+    } else if (useConfig === 'default') {
+      selections = await this.configManager.getDefaultConfig();
+      if (!selections) {
+        console.log(chalk.yellow('No default configuration found. Creating new configuration...'));
+      }
+    }
+
+    if (selections) {
+      // Show loaded configuration for confirmation
+      console.log(chalk.green('\n✓ Loaded configuration:'));
+      console.log(chalk.gray(`  Ticker: ${selections.ticker}`));
+      console.log(chalk.gray(`  Provider: ${selections.llmProvider}`));
+      console.log(chalk.gray(`  Analysts: ${selections.analysts.join(', ')}`));
+      
+      const { useLoaded } = await inquirer.prompt([
+        {
+          type: 'confirm',
+          name: 'useLoaded',
+          message: 'Use this configuration?',
+          default: true
+        }
+      ]);
+
+      if (useLoaded) {
+        // Update date to today by default, but allow user to change
+        const { updateDate } = await inquirer.prompt([
+          {
+            type: 'confirm',
+            name: 'updateDate',
+            message: 'Update analysis date to today?',
+            default: true
+          }
+        ]);
+
+        if (updateDate) {
+          selections.analysisDate = new Date().toISOString().split('T')[0]!;
+        }
+
+        // Allow ticker override
+        const { changeTicker } = await inquirer.prompt([
+          {
+            type: 'confirm',
+            name: 'changeTicker',
+            message: 'Change ticker symbol?',
+            default: false
+          }
+        ]);
+
+        if (changeTicker) {
+          this.display.createQuestionBox(
+            "Ticker Symbol", 
+            "Enter the ticker symbol to analyze", 
+            selections.ticker
+          );
+          selections.ticker = await getTicker();
+        }
+
+        return selections;
+      }
+    }
+
+    // Create new configuration interactively
+    return await this.createNewConfiguration();
+  }
+
+  private async createNewConfiguration(): Promise<UserSelections> {
     // Display ASCII art welcome message
     this.display.displayWelcome();
 
@@ -39,7 +182,7 @@ export class TradingAgentsCLI {
     const ticker = await getTicker();
 
     // Step 2: Analysis date
-    const defaultDate = new Date().toISOString().split('T')[0];
+    const defaultDate = new Date().toISOString().split('T')[0]!;
     this.display.createQuestionBox(
       "Step 2: Analysis Date",
       "Enter the analysis date (YYYY-MM-DD)",
@@ -77,7 +220,7 @@ export class TradingAgentsCLI {
     const shallowThinker = await selectShallowThinkingAgent(provider);
     const deepThinker = await selectDeepThinkingAgent(provider);
 
-    return {
+    const selections: UserSelections = {
       ticker,
       analysisDate,
       analysts,
@@ -87,12 +230,33 @@ export class TradingAgentsCLI {
       shallowThinker,
       deepThinker
     };
+
+    // Ask if user wants to save this configuration
+    const { saveConfig } = await inquirer.prompt([
+      {
+        type: 'confirm',
+        name: 'saveConfig',
+        message: 'Save this configuration for future use?',
+        default: true
+      }
+    ]);
+
+    if (saveConfig) {
+      await this.configManager.saveConfig(selections);
+    }
+
+    return selections;
   }
 
   public async runAnalysis(): Promise<void> {
+    const timer = createOperationTimer('runAnalysis');
+    
     try {
+      console.log(chalk.blue('\n🚀 Starting Trading Analysis...'));
+      
       // Get all user selections
       const selections = await this.getUserSelections();
+      logSystemInfo();
 
       // Create config with selected options
       const config = { ...DEFAULT_CONFIG };
@@ -131,22 +295,6 @@ export class TradingAgentsCLI {
       // Update agent status to in_progress for the first analyst
       const firstAnalyst = `${this.capitalizeFirst(selections.analysts[0]!)} Analyst`;
       this.messageBuffer.updateAgentStatus(firstAnalyst, "in_progress");
-
-      // Create initial state
-      const initialState = {
-        ticker: selections.ticker,
-        analysis_date: selections.analysisDate,
-        messages: [],
-        // Initialize other required state fields
-        market_report: '',
-        sentiment_report: '',
-        news_report: '',
-        fundamentals_report: '',
-        investment_debate_state: {},
-        trader_investment_plan: '',
-        risk_debate_state: {},
-        final_trade_decision: ''
-      };
 
       // Stream the analysis
       this.display.showInfo('Starting analysis workflow...');
@@ -190,8 +338,13 @@ export class TradingAgentsCLI {
         // Show final decision
         this.display.showSuccess(`Final trading decision: ${decision} (Confidence: ${analysisResult.confidence})`);
         this.display.showSuccess('Analysis completed successfully!');
+        
+        // Complete operation timer
+        const duration = timer();
+        console.log(chalk.green(`\n✅ Analysis completed in ${duration}ms`));
 
       } catch (error) {
+        timer(); // Complete timer on error
         this.display.stopLiveDisplay();
         this.display.showError(`Analysis failed: ${error instanceof Error ? error.message : String(error)}`);
         throw error;
@@ -482,7 +635,30 @@ export async function createCLI(): Promise<Command> {
   program
     .name('tradingagents')
     .description('TradingAgents CLI: Multi-Agents LLM Financial Trading Framework')
-    .version('1.0.0');
+    .version('1.0.0')
+    .option('-v, --verbose', 'Enable verbose logging output')
+    .option('-l, --log-level <level>', 'Set log level (debug, info, warn, error, critical)', 'info')
+    .option('--log-to-console', 'Show logs in console output (useful with debug level)')
+    .option('--no-file-logging', 'Disable file logging')
+    .hook('preAction', async (thisCommand) => {
+      const options = thisCommand.opts();
+      
+      // Configure verbose logging based on command line options
+      if (options.verbose || options.logLevel !== 'info') {
+        const loggingManager = LoggingManager.getInstance();
+        loggingManager.applyLoggingConfiguration({
+          verboseLogging: options.verbose || options.logLevel === 'debug',
+          logLevel: options.logLevel,
+          logToConsole: options.logToConsole || false,
+          enableFileLogging: options.fileLogging !== false
+        });
+
+        // Log system info if debug level
+        if (options.logLevel === 'debug') {
+          logSystemInfo();
+        }
+      }
+    });
 
   program
     .command('analyze')
@@ -492,7 +668,55 @@ export async function createCLI(): Promise<Command> {
       await cli.runAnalysis();
     });
 
+  program
+    .command('menu')
+    .description('Show interactive main menu with all options')
+    .action(async () => {
+      const cli = new TradingAgentsCLI();
+      await cli.showMainMenu();
+    });
+
+  program
+    .command('export')
+    .description('Export analysis results')
+    .action(async () => {
+      const exportManager = new ExportManager();
+      await exportManager.exportResults();
+    });
+
+  program
+    .command('historical')
+    .description('Analyze historical data and trends')
+    .action(async () => {
+      const analyzer = new HistoricalAnalyzer();
+      await analyzer.analyzeHistorical();
+    });
+
+  program
+    .command('config')
+    .description('Manage saved configurations')
+    .action(async () => {
+      const configManager = new ConfigManager();
+      await configManager.manageConfigs();
+    });
+
+  // Default action - show main menu
+  program.action(async () => {
+    const cli = new TradingAgentsCLI();
+    await cli.showMainMenu();
+  });
+
   return program;
 }
 
 // Export for direct usage
+
+// Main execution when run directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  createCLI().then(program => {
+    program.parse(process.argv);
+  }).catch(error => {
+    console.error('Failed to start CLI:', error);
+    process.exit(1);
+  });
+}

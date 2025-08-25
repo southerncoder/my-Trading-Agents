@@ -309,6 +309,21 @@ export class EnhancedLogger {
   }
 
   /**
+   * Set log level dynamically
+   */
+  public setLogLevel(level: LogLevel): void {
+    this.config.level = level;
+    this.winston.level = level;
+  }
+
+  /**
+   * Get current log level
+   */
+  public getLogLevel(): LogLevel {
+    return this.config.level;
+  }
+
+  /**
    * Utility methods
    */
   private severityToLevel(severity: ErrorSeverity): LogLevel {
@@ -416,4 +431,15 @@ export function logError(message: string, ...args: any[]): void {
 export function logWarn(message: string, ...args: any[]): void {
   const fullMessage = args.length > 0 ? `${message} ${args.map(String).join(' ')}` : message;
   logger.warn('system', 'legacy', 'console_warn', fullMessage);
+}
+
+/**
+ * Global log level management
+ */
+export function setGlobalLogLevel(level: LogLevel): void {
+  logger.setLogLevel(level);
+}
+
+export function getGlobalLogLevel(): LogLevel {
+  return logger.getLogLevel();
 }

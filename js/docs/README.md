@@ -152,6 +152,85 @@ The system supports multiple LLM providers and data sources:
 - SimFin (financial statements)
 - OpenAI (data analysis)
 
+## Interactive CLI System
+
+The Trading Agents framework includes a comprehensive command-line interface for interaction and debugging:
+
+### CLI Features
+- **Interactive Main Menu**: User-friendly navigation with multiple options
+- **Configuration Management**: Save, load, and manage analysis configurations
+- **Export System**: Multi-format result export (JSON, CSV, Markdown, HTML)
+- **Historical Analysis**: Trend analysis and comparative insights
+- **Real-time Progress**: Live progress tracking during analysis execution
+
+### Command Structure
+```bash
+# Core commands
+npm run cli                    # Interactive main menu
+npm run cli:analyze           # Direct analysis execution
+npm run cli:menu              # Show main menu
+npm run cli:export            # Export analysis results
+npm run cli:historical        # Historical data analysis
+npm run cli:config            # Configuration management
+
+# With compiled JavaScript
+node dist/cli/cli.js --help   # Show all options
+node dist/cli/cli.js menu     # Interactive menu
+node dist/cli/cli.js analyze  # Run analysis
+```
+
+### Verbose Logging System
+
+The CLI includes enterprise-grade verbose logging for debugging and monitoring:
+
+#### Command Line Options
+```bash
+# Basic verbose logging
+node dist/cli/cli.js --verbose [command]
+
+# Specific log levels (debug, info, warn, error, critical)
+node dist/cli/cli.js --log-level debug [command]
+
+# Console output control
+node dist/cli/cli.js --log-to-console [command]
+
+# File logging control
+node dist/cli/cli.js --no-file-logging [command]
+
+# Maximum verbosity
+node dist/cli/cli.js --verbose --log-level debug --log-to-console [command]
+```
+
+#### Logging Features
+- **5 Log Levels**: Debug, Info, Warn, Error, Critical with intelligent filtering
+- **Operation Timing**: Automatic performance monitoring with duration tracking
+- **Trace Correlation**: Unique trace IDs for request tracking across complex workflows
+- **Agent Activity Tracking**: Detailed monitoring of multi-agent interactions
+- **API Call Logging**: HTTP request/response monitoring in debug mode
+- **System Information**: Platform, memory, and runtime information
+- **Structured Output**: JSON structured logs with colorized console formatting
+
+#### Interactive Configuration
+Access verbose logging setup through the main menu "Configure Verbose Logging" option:
+- Step-by-step log level selection with descriptions
+- Real-time configuration with immediate feedback
+- File and console output customization
+- Security warnings for debug mode information disclosure
+
+### CLI Architecture
+```
+CLI System
+├── main.ts                   # CLI orchestration and command registration
+├── config-manager.ts         # Configuration persistence and management
+├── export-manager.ts         # Multi-format result export system
+├── historical-analyzer.ts    # Historical data analysis and trends
+├── logging-manager.ts        # Verbose logging configuration and control
+├── display.ts               # Terminal UI and progress visualization
+├── message-buffer.ts        # Real-time progress tracking
+├── utils.ts                 # User interaction and input utilities
+└── types.ts                 # CLI type definitions and interfaces
+```
+
 ## Development Guidelines
 
 ### Code Standards

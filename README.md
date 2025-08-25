@@ -12,6 +12,7 @@ A sophisticated multi-agent LLM-powered financial trading research framework tha
 - **Graph Orchestration:** Dual-mode execution (Traditional + LangGraph workflows)
 - **Agent System:** All agent types implemented and tested
 - **Interactive CLI:** Full command-line interface with progress tracking
+- **Verbose Logging:** Comprehensive debugging and monitoring capabilities with 5 log levels
 - **Memory & Learning:** Reflection and adaptation capabilities
 - **Multi-LLM Support:** OpenAI, Anthropic, Google, LM Studio providers
 - **Build System:** Production-ready development and build workflows
@@ -233,6 +234,43 @@ npm run cli
 # 5. Watch real-time progress
 # 6. View formatted results
 ```
+
+### 🔍 Verbose Logging & Debugging
+
+The CLI now includes comprehensive verbose logging capabilities for debugging and monitoring:
+
+```bash
+# Show all CLI options including verbose logging
+npm run cli -- --help
+
+# Enable verbose logging for any command
+npm run cli -- --verbose menu
+npm run cli -- --verbose analyze
+
+# Set specific log levels (debug, info, warn, error, critical)
+npm run cli -- --log-level debug menu
+npm run cli -- --log-level debug --log-to-console analyze
+
+# Disable file logging (console only)
+npm run cli -- --verbose --no-file-logging menu
+
+# Maximum verbosity for debugging
+npm run cli -- --verbose --log-level debug --log-to-console
+```
+
+**Verbose Logging Features:**
+- 🎯 **5 Log Levels**: debug, info, warn, error, critical with intelligent filtering
+- ⏱️ **Performance Monitoring**: Built-in operation timers and duration tracking
+- 🔗 **Trace Correlation**: Unique trace IDs for request tracking across workflows
+- 🤖 **Agent Activity Tracking**: Detailed multi-agent workflow monitoring
+- 🌐 **API Call Logging**: HTTP request/response monitoring in debug mode
+- 📊 **System Information**: Node.js version, platform, memory usage in debug mode
+- 🎨 **Structured Output**: JSON structured logs with colorized console output
+
+**Interactive Configuration:**
+- Access verbose logging setup through the main menu: "Configure Verbose Logging"
+- Step-by-step configuration with explanations for each log level
+- Real-time configuration changes with immediate feedback
 
 ### Configuration Customization
 
