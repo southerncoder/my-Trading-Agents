@@ -1,9 +1,15 @@
+# Python specific
 env/
 __pycache__/
+*.egg-info/
+
+# OS files
 .DS_Store
+
+# Data and results
 *.csv
-src/
 eval_results/
 eval_data/
-*.egg-info/
+
+# Environment variables
 .env
