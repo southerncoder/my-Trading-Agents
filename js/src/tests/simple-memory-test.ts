@@ -1,6 +1,6 @@
-import { enhancedConfigLoader } from '../config/enhanced-loader.js';
-import { FinancialSituationMemory } from '../agents/utils/memory.js';
-import { EmbeddingProviderFactory } from '../providers/memory-provider.js';
+import { enhancedConfigLoader } from '../config/enhanced-loader';
+import { FinancialSituationMemory } from '../agents/utils/memory';
+import { EmbeddingProviderFactory } from '../providers/memory-provider';
 
 /**
  * Simple test for memory provider selection

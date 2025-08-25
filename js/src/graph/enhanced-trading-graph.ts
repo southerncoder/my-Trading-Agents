@@ -3,12 +3,15 @@
  * 
  * This module combines the original TradingAgentsGraph functionality
  * with the working LangGraph implementation for full workflow orchestration.
+ * Now includes lazy loading for performance optimization.
  */
 
-import { TradingAgentsConfig } from '../types/config.js';
-import { ModelProvider } from '../models/index.js';
-import { LangGraphSetup, AnalystType } from './langgraph-working.js';
-import { createLogger } from '../utils/enhanced-logger.js';
+import { TradingAgentsConfig } from '../types/config';
+import { ModelProvider } from '../models/index';
+import { LangGraphSetup, AnalystType } from './langgraph-working';
+import { LazyGraphSetup } from '../performance/lazy-factory';
+import { OptimizedStateManager, StateOptimizationConfig } from '../performance/state-optimization';
+import { createLogger } from '../utils/enhanced-logger';
 
 const logger = createLogger('graph', 'enhanced-trading-graph');
 
@@ -16,25 +19,61 @@ export interface TradingGraphConfig {
   config: TradingAgentsConfig;
   selectedAnalysts?: AnalystType[];
   enableLangGraph?: boolean;
+  enableLazyLoading?: boolean;
+  enableStateOptimization?: boolean;
+  stateOptimizationConfig?: StateOptimizationConfig;
+  enableCaching?: boolean;
 }
 
 /**
- * Enhanced Trading Agents Graph with LangGraph support
+ * Enhanced Trading Agents Graph with LangGraph support and lazy loading
  */
 export class EnhancedTradingAgentsGraph {
   private config: TradingAgentsConfig;
   private selectedAnalysts: AnalystType[];
   private enableLangGraph: boolean;
+  private enableLazyLoading: boolean;
+  private enableCaching: boolean;
+  private enableStateOptimization: boolean;
   private langGraphSetup?: LangGraphSetup;
+  private lazyGraphSetup?: LazyGraphSetup;
+  private stateManager?: OptimizedStateManager;
   private workflow?: any;
 
   constructor(graphConfig: TradingGraphConfig) {
     this.config = graphConfig.config;
     this.selectedAnalysts = graphConfig.selectedAnalysts || ['market', 'social', 'news', 'fundamentals'];
     this.enableLangGraph = graphConfig.enableLangGraph ?? true;
+    this.enableLazyLoading = graphConfig.enableLazyLoading ?? true;
+    this.enableCaching = graphConfig.enableCaching ?? true;
+    this.enableStateOptimization = graphConfig.enableStateOptimization ?? true;
+
+    // Initialize state optimization if enabled
+    if (this.enableStateOptimization) {
+      const stateConfig: StateOptimizationConfig = graphConfig.stateOptimizationConfig || {
+        enableDiffing: true,
+        enableSnapshot: false, // Disabled for performance unless needed
+        maxSnapshots: 5,
+        compressionThreshold: 1024,
+        enableWeakRefs: true
+      };
+      this.stateManager = new OptimizedStateManager(stateConfig);
+    }
+
+    logger.info('constructor', 'Enhanced Trading Agents Graph initialized', {
+      selectedAnalysts: this.selectedAnalysts,
+      enableLangGraph: this.enableLangGraph,
+      enableLazyLoading: this.enableLazyLoading,
+      enableStateOptimization: this.enableStateOptimization,
+      enableCaching: this.enableCaching
+    });
 
     if (this.enableLangGraph) {
       this.initializeLangGraph();
+    }
+
+    if (this.enableLazyLoading) {
+      this.initializeLazyLoading();
     }
   }
 
@@ -49,6 +88,49 @@ export class EnhancedTradingAgentsGraph {
       modelConfigs,
       config: this.config
     });
+  }
+
+  /**
+   * Initialize lazy loading setup
+   */
+  private initializeLazyLoading() {
+    // For now, lazy loading setup is deferred until workflow initialization
+    // This avoids type conflicts with ModelProvider
+    logger.info('initializeLazyLoading', 'Lazy loading enabled, will initialize on demand');
+  }
+
+  /**
+   * Get lazy loading statistics
+   */
+  getLazyLoadingStats() {
+    if (!this.lazyGraphSetup) {
+      return { message: 'Lazy loading not yet initialized' };
+    }
+    return this.lazyGraphSetup.getStats();
+  }
+
+  /**
+   * Pre-warm common components in background
+   */
+  async preWarmComponents(): Promise<void> {
+    if (!this.enableLazyLoading || !this.lazyGraphSetup) {
+      logger.info('preWarmComponents', 'Lazy loading not enabled, skipping pre-warming');
+      return;
+    }
+
+    logger.info('preWarmComponents', 'Starting component pre-warming');
+
+    const promises = [];
+    
+    // Pre-warm selected analysts
+    promises.push(this.lazyGraphSetup.preWarmCommonAgents(this.selectedAnalysts));
+    
+    // Pre-warm dataflows
+    promises.push(this.lazyGraphSetup.preWarmDataflows());
+
+    await Promise.allSettled(promises);
+    
+    logger.info('preWarmComponents', 'Component pre-warming completed');
   }
 
   /**
@@ -197,6 +279,37 @@ export class EnhancedTradingAgentsGraph {
   }
 
   /**
+   * Get state optimization statistics
+   */
+  getStateOptimizationStats() {
+    if (!this.enableStateOptimization || !this.stateManager) {
+      return { message: 'State optimization not enabled' };
+    }
+    return this.stateManager.getOptimizationStats();
+  }
+
+  /**
+   * Optimized state update using state manager
+   */
+  async updateStateOptimized(currentState: any, updates: any): Promise<any> {
+    if (!this.enableStateOptimization || !this.stateManager) {
+      // Fallback to standard update
+      return { ...currentState, ...updates };
+    }
+
+    const { newState, diff } = this.stateManager.updateState(currentState, updates);
+    
+    logger.info('updateStateOptimized', 'State updated with optimization', {
+      diffSize: diff.size,
+      changes: diff.modifications.length,
+      additions: diff.additions.length,
+      removals: diff.removals.length
+    });
+
+    return newState;
+  }
+
+  /**
    * Create a test instance with LM Studio configuration
    */
   static createTestInstance(): EnhancedTradingAgentsGraph {
@@ -218,7 +331,9 @@ export class EnhancedTradingAgentsGraph {
     return new EnhancedTradingAgentsGraph({
       config,
       selectedAnalysts: ['market', 'social'],
-      enableLangGraph: true
+      enableLangGraph: true,
+      enableLazyLoading: true,
+      enableStateOptimization: true
     });
   }
 

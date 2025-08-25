@@ -1,0 +1,123 @@
+{
+  "detailed": {
+    "original": {
+      "info_1000": {
+        "duration": 212.86,
+        "memory": 1.17,
+        "opsPerSec": 4698
+      },
+      "info_5000": {
+        "duration": 672.28,
+        "memory": 16.33,
+        "opsPerSec": 7437
+      },
+      "info_10000": {
+        "duration": 1190.33,
+        "memory": 21.76,
+        "opsPerSec": 8401
+      },
+      "debug_1000": {
+        "duration": 180.74,
+        "memory": 7.75,
+        "opsPerSec": 5533
+      },
+      "debug_5000": {
+        "duration": 900.36,
+        "memory": 15.48,
+        "opsPerSec": 5553
+      },
+      "debug_10000": {
+        "duration": 1866.07,
+        "memory": 24.36,
+        "opsPerSec": 5359
+      }
+    },
+    "optimized": {
+      "info_1000": {
+        "duration": 61.71,
+        "memory": -4.9,
+        "opsPerSec": 16204
+      },
+      "info_5000": {
+        "duration": 56.41,
+        "memory": -0.09,
+        "opsPerSec": 88634
+      },
+      "info_10000": {
+        "duration": 60.38,
+        "memory": 7.1,
+        "opsPerSec": 165630
+      },
+      "debug_1000": {
+        "duration": 51.41,
+        "memory": -7.2,
+        "opsPerSec": 19453
+      },
+      "debug_5000": {
+        "duration": 56.59,
+        "memory": -3.41,
+        "opsPerSec": 88349
+      },
+      "debug_10000": {
+        "duration": 59.41,
+        "memory": 3.73,
+        "opsPerSec": 168319
+      }
+    },
+    "improvement": {
+      "info_1000": {
+        "duration": 71.01,
+        "memory": 519.05,
+        "speedup": 3.45
+      },
+      "info_5000": {
+        "duration": 91.61,
+        "memory": 100.56,
+        "speedup": 11.92
+      },
+      "info_10000": {
+        "duration": 94.93,
+        "memory": 67.35,
+        "speedup": 19.72
+      },
+      "debug_1000": {
+        "duration": 71.56,
+        "memory": 192.92,
+        "speedup": 3.52
+      },
+      "debug_5000": {
+        "duration": 93.71,
+        "memory": 122.06,
+        "speedup": 15.91
+      },
+      "debug_10000": {
+        "duration": 96.82,
+        "memory": 84.68,
+        "speedup": 31.41
+      }
+    }
+  },
+  "stress": {
+    "original": {
+      "duration": 6022.9,
+      "memory": 70.75
+    },
+    "optimized": {
+      "duration": 241.01,
+      "memory": -50.34
+    },
+    "improvement": {
+      "duration": 96,
+      "memory": 171.15,
+      "speedup": 24.99
+    }
+  },
+  "summary": {
+    "avgDurationImprovement": 86.60666666666667,
+    "avgSpeedup": 14.321666666666667,
+    "stressDurationImprovement": 96,
+    "stressSpeedup": 24.99,
+    "memoryImprovement": 171.15,
+    "toggleOverhead": 2557.8450146782343
+  }
+}

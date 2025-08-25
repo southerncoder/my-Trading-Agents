@@ -13,7 +13,7 @@ import {
   globalErrorManager,
   wrapWithErrorHandling,
   CircuitBreaker
-} from './error-handler.js';
+} from './error-handler';
 
 // ========================================
 // Enhanced Error Handling Wrappers

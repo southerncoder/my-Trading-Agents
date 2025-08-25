@@ -7,7 +7,7 @@
  * 3. Different providers are selected appropriately
  */
 
-import { EmbeddingProviderFactory } from '../providers/memory-provider.js';
+import { EmbeddingProviderFactory } from '../providers/memory-provider';
 
 interface AgentLLMConfig {
   provider: 'openai' | 'anthropic' | 'google' | 'lm_studio' | 'ollama' | 'openrouter';

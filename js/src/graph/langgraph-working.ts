@@ -5,9 +5,9 @@
  * based on successful runtime testing.
  */
 
-import { ModelProvider, ModelConfig } from '../models/index.js';
-import { TradingAgentsConfig } from '../types/config.js';
-import { AgentState } from '../types/agent-states.js';
+import { ModelProvider, ModelConfig } from '../models/index';
+import { TradingAgentsConfig } from '../types/config';
+import { AgentState } from '../types/agent-states';
 
 export type AnalystType = 'market' | 'social' | 'news' | 'fundamentals';
 

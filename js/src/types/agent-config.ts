@@ -1,4 +1,4 @@
-import { LLMProvider } from './config.js';
+import { LLMProvider } from './config';
 
 /**
  * Configuration for individual agent LLM settings

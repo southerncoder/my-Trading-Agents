@@ -12,14 +12,14 @@ import {
   createErrorContext,
   TradingAgentError,
   RecoveryStrategy 
-} from '../utils/error-handler.js';
-import { DEFAULT_CONFIG } from '../config/default.js';
+} from '../utils/error-handler';
+import { DEFAULT_CONFIG } from '../config/default';
 
 // Import existing data flow utilities
-import { FinnhubAPI } from '../dataflows/finnhub.js';
-import { YahooFinanceAPI } from '../dataflows/yahoo-finance.js';
-import { GoogleNewsAPI } from '../dataflows/google-news.js';
-import { RedditAPI } from '../dataflows/reddit.js';
+import { FinnhubAPI } from '../dataflows/finnhub';
+import { YahooFinanceAPI } from '../dataflows/yahoo-finance';
+import { GoogleNewsAPI } from '../dataflows/google-news';
+import { RedditAPI } from '../dataflows/reddit';
 
 // ========================================
 // Enhanced Finnhub API with Error Handling

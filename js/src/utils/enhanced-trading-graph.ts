@@ -5,20 +5,20 @@
  * the comprehensive error handling system throughout the workflow execution.
  */
 
-import { TradingAgentsGraph } from '../graph/trading-graph.js';
+import { TradingAgentsGraph } from '../graph/trading-graph';
 import {
   TradingAgentError,
   ErrorType,
   ErrorSeverity,
   createErrorContext,
   globalErrorManager
-} from './error-handler.js';
+} from './error-handler';
 import {
   EnhancedAgentWrapper,
   EnhancedDataFlowWrapper,
   EnhancedLLMProviderWrapper,
   createGracefulHandler
-} from './enhanced-error-integration.js';
+} from './enhanced-error-integration';
 
 /**
  * Enhanced Trading Graph with comprehensive error handling integration

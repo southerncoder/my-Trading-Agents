@@ -1,6 +1,6 @@
 import inquirer from 'inquirer';
 import chalk from 'chalk';
-import { createLogger, setGlobalLogLevel, getGlobalLogLevel } from '../utils/enhanced-logger.js';
+import { createLogger, setGlobalLogLevel, getGlobalLogLevel } from '../utils/enhanced-logger';
 
 const logger = createLogger('cli', 'logging-manager');
 

@@ -1,4 +1,4 @@
-import { MessageEntry, ToolCallEntry, AgentStatuses, ReportSections } from './types.js';
+import { MessageEntry, ToolCallEntry, AgentStatuses, ReportSections } from './types';
 
 export class MessageBuffer {
   private maxLength: number;

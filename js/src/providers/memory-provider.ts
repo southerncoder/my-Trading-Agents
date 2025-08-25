@@ -1,7 +1,7 @@
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
-import { LLMProvider } from '../types/config.js';
-import { AgentLLMConfig } from '../types/agent-config.js';
+import { LLMProvider } from '../types/config';
+import { AgentLLMConfig } from '../types/agent-config';
 
 /**
  * Abstract interface for memory/embedding providers

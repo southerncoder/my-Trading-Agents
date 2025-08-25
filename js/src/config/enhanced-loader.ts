@@ -5,9 +5,9 @@ import {
   AgentTypeConfigs,
   DEFAULT_AGENT_CONFIGS,
   AGENT_TYPE_TO_CONFIG_KEY
-} from '../types/agent-config.js';
-import { LLMProvider } from '../types/config.js';
-import { DEFAULT_CONFIG } from './default.js';
+} from '../types/agent-config';
+import { LLMProvider } from '../types/config';
+import { DEFAULT_CONFIG } from './default';
 
 /**
  * Enhanced configuration loader with per-agent LLM provider support

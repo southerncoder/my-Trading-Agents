@@ -1,5 +1,5 @@
-import { enhancedConfigLoader } from './enhanced-loader.js';
-import { TradingAgentsConfig } from '../types/config.js';
+import { enhancedConfigLoader } from './enhanced-loader';
+import { TradingAgentsConfig } from '../types/config';
 
 /**
  * Backward-compatible configuration loader

@@ -11,7 +11,7 @@
  * - Route agent execution based on current state
  */
 
-import { AgentState } from '../types/agent-states.js';
+import { AgentState } from '../types/agent-states';
 
 export interface ConditionalLogicConfig {
   maxDebateRounds: number;

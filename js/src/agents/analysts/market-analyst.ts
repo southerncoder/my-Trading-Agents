@@ -1,14 +1,16 @@
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { StructuredTool } from '@langchain/core/tools';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
-import { AbstractAgent } from '../base';
+import { AbstractAgent } from '../base/index';
 import { AgentState } from '../../types/agent-states';
+import { createLogger } from '../../utils/enhanced-logger';
 
 /**
  * Market Analyst Agent
  * Analyzes market data, technical indicators, and price movements
  */
 export class MarketAnalyst extends AbstractAgent {
+    private readonly logger = createLogger('agent', 'MarketAnalyst');
   constructor(llm: BaseChatModel, tools: StructuredTool[]) {
     super(
       'Market Analyst',
@@ -60,7 +62,8 @@ export class MarketAnalyst extends AbstractAgent {
         sender: this.name,
       };
     } catch (error) {
-      console.error(`Error in ${this.name}:`, error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      this.logger.error('process', `Error in ${this.name}: ${errorMsg}`);
       throw new Error(`${this.name} failed to process: ${error}`);
     }
   }

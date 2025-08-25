@@ -1,5 +1,5 @@
-import { MemoryProvider, EmbeddingProviderFactory } from '../../providers/memory-provider.js';
-import { AgentLLMConfig } from '../../types/agent-config.js';
+import { MemoryProvider, EmbeddingProviderFactory } from '../../providers/memory-provider';
+import { AgentLLMConfig } from '../../types/agent-config';
 
 /**
  * Interface for memory match results

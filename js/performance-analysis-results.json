@@ -1,0 +1,113 @@
+{
+  "baselinePerformance": {
+    "debug": {
+      "duration": 320.39,
+      "memoryDelta": 0.78,
+      "operationsPerSecond": 3121
+    },
+    "info": {
+      "duration": 169.49,
+      "memoryDelta": -1.62,
+      "operationsPerSecond": 5900
+    },
+    "warn": {
+      "duration": 80.45,
+      "memoryDelta": 5.17,
+      "operationsPerSecond": 12429
+    },
+    "error": {
+      "duration": 71.34,
+      "memoryDelta": -0.4,
+      "operationsPerSecond": 14017
+    },
+    "critical": {
+      "duration": 65.69,
+      "memoryDelta": 1.17,
+      "operationsPerSecond": 15223
+    }
+  },
+  "memoryUsage": {
+    "Small": {
+      "duration": 49.94,
+      "memoryDelta": 2.78,
+      "dataSize": 8
+    },
+    "Medium": {
+      "duration": 87.02,
+      "memoryDelta": 3.76,
+      "dataSize": 1008
+    },
+    "Large": {
+      "duration": 5910.7,
+      "memoryDelta": 30.47,
+      "dataSize": 70908
+    }
+  },
+  "scalabilityTests": {
+    "100": {
+      "duration": 13.45,
+      "memoryDelta": 0.6,
+      "operationsPerSecond": 7432,
+      "avgTimePerOperation": 0.13
+    },
+    "500": {
+      "duration": 70.93,
+      "memoryDelta": 2.99,
+      "operationsPerSecond": 7049,
+      "avgTimePerOperation": 0.14
+    },
+    "1000": {
+      "duration": 158.36,
+      "memoryDelta": 6.01,
+      "operationsPerSecond": 6315,
+      "avgTimePerOperation": 0.16
+    },
+    "5000": {
+      "duration": 572.82,
+      "memoryDelta": 2.23,
+      "operationsPerSecond": 8729,
+      "avgTimePerOperation": 0.11
+    },
+    "10000": {
+      "duration": 1126.41,
+      "memoryDelta": 14.89,
+      "operationsPerSecond": 8878,
+      "avgTimePerOperation": 0.11
+    }
+  },
+  "optimizationImpact": {
+    "disabled": {
+      "duration": 0.73,
+      "memoryDelta": 0.65
+    },
+    "enabled": {
+      "duration": 1025.23,
+      "memoryDelta": 19.59
+    },
+    "overhead": {
+      "duration": 1024.5,
+      "memoryDelta": 18.94,
+      "percentageOverhead": 140573.66
+    }
+  },
+  "recommendations": [
+    {
+      "priority": "HIGH",
+      "area": "Performance Overhead",
+      "issue": "Logging overhead is 140573.66% which may impact production performance",
+      "recommendation": "Consider lazy evaluation of log messages and caching optimizations"
+    },
+    {
+      "priority": "MEDIUM",
+      "area": "Memory Usage",
+      "issue": "Maximum memory growth of 30.47MB with large data objects",
+      "recommendation": "Implement metadata size limits and circular reference detection"
+    }
+  ],
+  "concurrentTest": {
+    "duration": 304.73,
+    "memoryDelta": -5.77,
+    "totalOperations": 1000,
+    "operationsPerSecond": 3282
+  }
+}

@@ -5,9 +5,9 @@
  * with the actual trading graph configuration
  */
 
-import { enhancedConfigLoader } from '../config/enhanced-loader.js';
-import { EmbeddingProviderFactory } from '../providers/memory-provider.js';
-import { FinancialSituationMemory } from '../agents/utils/memory.js';
+import { enhancedConfigLoader } from '../config/enhanced-loader';
+import { EmbeddingProviderFactory } from '../providers/memory-provider';
+import { FinancialSituationMemory } from '../agents/utils/memory';
 
 async function testTradingGraphMemoryIntegration() {
   console.log('🧪 Testing Trading Graph Memory Integration\n');

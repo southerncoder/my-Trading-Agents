@@ -5,8 +5,8 @@
  * based on their LLM configuration
  */
 
-import { EmbeddingProviderFactory } from '../providers/memory-provider.js';
-import { FinancialSituationMemory } from '../agents/utils/memory.js';
+import { EmbeddingProviderFactory } from '../providers/memory-provider';
+import { FinancialSituationMemory } from '../agents/utils/memory';
 
 // Simple agent configs for testing
 const testAgentConfigs = {

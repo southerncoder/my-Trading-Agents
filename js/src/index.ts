@@ -1,8 +1,8 @@
 import 'dotenv/config';
-import { DEFAULT_CONFIG, enhancedConfigLoader } from './config/index.js';
-import { Toolkit } from './dataflows/index.js';
-import { createInitialAgentState } from './agents/utils/index.js';
-import { createTradingAgentsGraph } from './graph/trading-graph.js';
+import { DEFAULT_CONFIG, enhancedConfigLoader } from './config/index';
+import { Toolkit } from './dataflows/index';
+import { createInitialAgentState } from './agents/utils/index';
+import { createTradingAgentsGraph } from './graph/trading-graph';
 
 // Re-export main classes and functions for library usage
 export { TradingAgentsGraph, createTradingAgentsGraph } from './graph/trading-graph';

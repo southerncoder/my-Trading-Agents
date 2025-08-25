@@ -1,14 +1,17 @@
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { StructuredTool } from '@langchain/core/tools';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
-import { AbstractAgent } from '../base';
+import { AbstractAgent } from '../base/index';
 import { AgentState } from '../../types/agent-states';
+import { createLogger } from '../../utils/enhanced-logger';
 
 /**
- * News Analyst Agent  
+ * News Analyst Agent
  * Analyzes news events and their market impact
  */
 export class NewsAnalyst extends AbstractAgent {
+  private readonly logger = createLogger('agent', 'NewsAnalyst');
+  
   constructor(llm: BaseChatModel, tools: StructuredTool[]) {
     super(
       'News Analyst',
@@ -60,7 +63,8 @@ export class NewsAnalyst extends AbstractAgent {
         sender: this.name,
       };
     } catch (error) {
-      console.error(`Error in ${this.name}:`, error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      this.logger.error('process', `Error in ${this.name}: ${errorMsg}`);
       throw new Error(`${this.name} failed to process: ${error}`);
     }
   }

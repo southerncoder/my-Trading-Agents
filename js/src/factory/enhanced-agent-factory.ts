@@ -1,21 +1,21 @@
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
-import { LLMProviderFactory } from '../providers/llm-factory.js';
-import { enhancedConfigLoader } from '../config/enhanced-loader.js';
-import { AgentLLMConfig } from '../types/agent-config.js';
+import { LLMProviderFactory } from '../providers/llm-factory';
+import { enhancedConfigLoader } from '../config/enhanced-loader';
+import { AgentLLMConfig } from '../types/agent-config';
 
 // Import available agent classes
-import { MarketAnalyst } from '../agents/analysts/market-analyst.js';
-import { NewsAnalyst } from '../agents/analysts/news-analyst.js';
-import { FundamentalsAnalyst } from '../agents/analysts/fundamentals-analyst.js';
-import { SocialAnalyst } from '../agents/analysts/social-analyst.js';
-import { BullResearcher } from '../agents/researchers/bull-researcher.js';
-import { BearResearcher } from '../agents/researchers/bear-researcher.js';
-import { ResearchManager } from '../agents/managers/research-manager.js';
-import { SafeAnalyst } from '../agents/risk-mgmt/safe-analyst.js';
-import { RiskyAnalyst } from '../agents/risk-mgmt/risky-analyst.js';
-import { NeutralAnalyst } from '../agents/risk-mgmt/neutral-analyst.js';
-import { PortfolioManager } from '../agents/risk-mgmt/portfolio-manager.js';
-import { Trader } from '../agents/trader/trader.js';
+import { MarketAnalyst } from '../agents/analysts/market-analyst';
+import { NewsAnalyst } from '../agents/analysts/news-analyst';
+import { FundamentalsAnalyst } from '../agents/analysts/fundamentals-analyst';
+import { SocialAnalyst } from '../agents/analysts/social-analyst';
+import { BullResearcher } from '../agents/researchers/bull-researcher';
+import { BearResearcher } from '../agents/researchers/bear-researcher';
+import { ResearchManager } from '../agents/managers/research-manager';
+import { SafeAnalyst } from '../agents/risk-mgmt/safe-analyst';
+import { RiskyAnalyst } from '../agents/risk-mgmt/risky-analyst';
+import { NeutralAnalyst } from '../agents/risk-mgmt/neutral-analyst';
+import { PortfolioManager } from '../agents/risk-mgmt/portfolio-manager';
+import { Trader } from '../agents/trader/trader';
 
 /**
  * Enhanced agent factory that creates agents with flexible LLM provider configurations

@@ -1,7 +1,7 @@
-import { enhancedConfigLoader } from '../config/enhanced-loader.js';
-import { EnhancedAgentFactory } from '../factory/enhanced-agent-factory.js';
-import { LLMProviderFactory } from '../providers/llm-factory.js';
-import { EmbeddingProviderFactory } from '../providers/memory-provider.js';
+import { enhancedConfigLoader } from '../config/enhanced-loader';
+import { EnhancedAgentFactory } from '../factory/enhanced-agent-factory';
+import { LLMProviderFactory } from '../providers/llm-factory';
+import { EmbeddingProviderFactory } from '../providers/memory-provider';
 
 /**
  * Test suite for the enhanced agent configuration system

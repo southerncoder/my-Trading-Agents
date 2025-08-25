@@ -2,7 +2,7 @@ import { existsSync, readFileSync, writeFileSync, readdirSync, statSync } from '
 import { join, basename } from 'path';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
-import { createLogger } from '../utils/enhanced-logger.js';
+import { createLogger } from '../utils/enhanced-logger';
 
 const logger = createLogger('cli', 'export-manager');
 

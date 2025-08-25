@@ -1,5 +1,5 @@
 import inquirer from 'inquirer';
-import { AnalystType, AnalystOption, DepthOption, LLMOption, ProviderOption } from './types.js';
+import { AnalystType, AnalystOption, DepthOption, LLMOption, ProviderOption } from './types';
 
 export const ANALYST_ORDER: AnalystOption[] = [
   { display: "Market Analyst", value: AnalystType.MARKET },

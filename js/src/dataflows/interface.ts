@@ -1,13 +1,13 @@
 import { TradingAgentsConfig } from '@/types/config';
 import { DataFlowToolkit } from '@/types/dataflows';
-import { YahooFinanceAPI } from './yahoo-finance.js';
-import { FinnhubAPI } from './finnhub.js';
-import { GoogleNewsAPI } from './google-news.js';
-import { RedditAPI } from './reddit.js';
-import { SimFinAPI } from './simfin.js';
-import { OpenAIDataAPI } from './openai-data.js';
-import { TechnicalIndicatorsAPI } from './technical-indicators.js';
-import { createLogger } from '../utils/enhanced-logger.js';
+import { YahooFinanceAPI } from './yahoo-finance';
+import { FinnhubAPI } from './finnhub';
+import { GoogleNewsAPI } from './google-news';
+import { RedditAPI } from './reddit';
+import { SimFinAPI } from './simfin';
+import { OpenAIDataAPI } from './openai-data';
+import { TechnicalIndicatorsAPI } from './technical-indicators';
+import { createLogger } from '../utils/enhanced-logger';
 
 const logger = createLogger('dataflow', 'interface');
 

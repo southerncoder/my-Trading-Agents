@@ -1,5 +1,5 @@
-import { performanceOptimizer } from './optimizer.js';
-import { HealthMonitor } from '../monitoring/health.js';
+import { performanceOptimizer } from './optimizer';
+import { HealthMonitor } from '../monitoring/health';
 
 interface LLMProvider {
   name: string;

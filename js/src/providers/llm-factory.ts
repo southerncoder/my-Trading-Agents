@@ -2,8 +2,8 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { ChatOpenAI } from '@langchain/openai';
 import { ChatAnthropic } from '@langchain/anthropic';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
-import { AgentLLMConfig } from '../types/agent-config.js';
-import { LLMProvider } from '../types/config.js';
+import { AgentLLMConfig } from '../types/agent-config';
+import { LLMProvider } from '../types/config';
 
 /**
  * Factory for creating LLM instances based on agent configuration

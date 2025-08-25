@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import ora, { Ora } from 'ora';
-import { MessageBuffer } from './message-buffer.js';
+import { MessageBuffer } from './message-buffer';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 

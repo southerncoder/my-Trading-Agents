@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import inquirer from 'inquirer';
-import { createLogger } from '../utils/enhanced-logger.js';
-import { AnalysisResult, ExportManager } from './export-manager.js';
+import { createLogger } from '../utils/enhanced-logger';
+import { AnalysisResult, ExportManager } from './export-manager';
 
 const logger = createLogger('cli', 'historical-analyzer');
 

@@ -8,16 +8,16 @@ import {
   selectLLMProvider, 
   selectShallowThinkingAgent, 
   selectDeepThinkingAgent 
-} from './utils.js';
-import { UserSelections, AnalystType } from './types.js';
-import { MessageBuffer } from './message-buffer.js';
-import { DisplaySystem } from './display.js';
-import { EnhancedTradingAgentsGraph } from '../graph/enhanced-trading-graph.js';
-import { DEFAULT_CONFIG } from '../config/default.js';
-import { ConfigManager } from './config-manager.js';
-import { ExportManager } from './export-manager.js';
-import { HistoricalAnalyzer } from './historical-analyzer.js';
-import { LoggingManager, configureVerboseLogging, logSystemInfo, createOperationTimer } from './logging-manager.js';
+} from './utils';
+import { UserSelections, AnalystType } from './types';
+import { MessageBuffer } from './message-buffer';
+import { DisplaySystem } from './display';
+import { EnhancedTradingAgentsGraph } from '../graph/enhanced-trading-graph';
+import { DEFAULT_CONFIG } from '../config/default';
+import { ConfigManager } from './config-manager';
+import { ExportManager } from './export-manager';
+import { HistoricalAnalyzer } from './historical-analyzer';
+import { LoggingManager, configureVerboseLogging, logSystemInfo, createOperationTimer } from './logging-manager';
 import { mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import inquirer from 'inquirer';

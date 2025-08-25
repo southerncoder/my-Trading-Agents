@@ -18,11 +18,11 @@ import { ChatOpenAI } from '@langchain/openai';
 import { ChatAnthropic } from '@langchain/anthropic';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 
-import { TradingAgentsConfig, createConfig } from '../config/index.js';
-import { enhancedConfigLoader } from '../config/enhanced-loader.js';
-import { Toolkit } from '../dataflows/interface.js';
-import { AgentState } from '../types/agent-states.js';
-import { FinancialSituationMemory } from '../agents/utils/memory.js';
+import { TradingAgentsConfig, createConfig } from '../config/index';
+import { enhancedConfigLoader } from '../config/enhanced-loader';
+import { Toolkit } from '../dataflows/interface';
+import { AgentState } from '../types/agent-states';
+import { FinancialSituationMemory } from '../agents/utils/memory';
 
 // Graph components
 import { ConditionalLogic, createConditionalLogic } from './conditional-logic';
@@ -30,7 +30,7 @@ import { Propagator, createPropagator } from './propagation';
 import { Reflector, createReflector } from './reflection';
 import { SignalProcessor, createSignalProcessor } from './signal-processing';
 import { GraphSetup, createGraphSetup, AgentNode } from './setup';
-import { createLogger } from '../utils/enhanced-logger.js';
+import { createLogger } from '../utils/enhanced-logger';
 
 export type LLMProvider = ChatOpenAI | ChatAnthropic | ChatGoogleGenerativeAI;
 
@@ -230,7 +230,7 @@ export class TradingAgentsGraph {
   }
 
   /**
-   * Execute the trading agents analysis workflow
+   * Execute the trading agents analysis workflow with optimized parallel execution
    */
   async propagate(companyName: string, tradeDate: string): Promise<ExecutionResult> {
     const startTime = Date.now();
@@ -242,9 +242,8 @@ export class TradingAgentsGraph {
       
       // Set up agents
       const agentNodes = this.graphSetup.setupAgents(this.selectedAnalysts);
-      const executionOrder = this.graphSetup.getExecutionOrder(this.selectedAnalysts);
 
-      // Execute workflow
+      // Execute workflow with parallel optimization
       let currentState = initialState;
       const agentsExecuted: string[] = [];
 
@@ -252,57 +251,17 @@ export class TradingAgentsGraph {
         this.logger.info('execute', `Starting trading analysis for ${companyName} on ${tradeDate}`, {
           company: companyName,
           tradeDate,
-          analystsCount: this.selectedAnalysts.length
-        });
-        this.logger.info('execute', `Execution order: ${executionOrder.join(' -> ')}`, {
-          executionOrder,
-          orderLength: executionOrder.length
+          analystsCount: this.selectedAnalysts.length,
+          optimizationMode: 'parallel'
         });
       }
 
-      // Execute agents sequentially (simplified approach for now)
-      for (const agentKey of executionOrder) {
-        const agentNode = agentNodes[agentKey];
-        if (!agentNode) {
-          this.logger.warn('execute', `Agent not found: ${agentKey}`, { 
-            agentKey, 
-            availableAgents: Object.keys(agentNodes) 
-          });
-          continue;
-        }
-
-        try {
-          if (this.debug) {
-            this.logger.info('execute', `Executing agent: ${agentNode.name}`, {
-              agentName: agentNode.name,
-              agentKey,
-              executionStep: agentsExecuted.length + 1
-            });
-          }
-
-          // Execute agent
-          const agentResult = await agentNode.agent.process(currentState);
-          
-          // Update state
-          currentState = this.propagator.updateState(currentState, agentResult);
-          agentsExecuted.push(agentNode.name);
-
-          if (this.debug) {
-            this.logger.info('execute', `Completed agent: ${agentNode.name}`, {
-              agentName: agentNode.name,
-              agentKey,
-              totalExecuted: agentsExecuted.length
-            });
-          }
-        } catch (error) {
-          this.logger.error('execute', `Error executing ${agentNode.name}`, {
-            agentName: agentNode.name,
-            agentKey,
-            error: error instanceof Error ? error.message : String(error)
-          });
-          // Continue with other agents on error
-        }
-      }
+      // Execute workflow in optimized phases
+      currentState = await this.executeWorkflowPhases(
+        currentState, 
+        agentNodes, 
+        agentsExecuted
+      );
 
       // Store current state for reflection
       this.currentState = currentState;
@@ -329,6 +288,255 @@ export class TradingAgentsGraph {
       });
       throw error;
     }
+  }
+
+  /**
+   * Execute workflow in optimized phases with parallel analyst execution
+   */
+  private async executeWorkflowPhases(
+    initialState: AgentState, 
+    agentNodes: Record<string, AgentNode>, 
+    agentsExecuted: string[]
+  ): Promise<AgentState> {
+    let currentState = initialState;
+
+    // Phase 1: Execute analysts in parallel (biggest performance gain)
+    const analystKeys = this.selectedAnalysts.filter(analyst => 
+      ['market', 'social', 'news', 'fundamentals'].includes(analyst)
+    );
+
+    if (analystKeys.length > 0) {
+      if (this.debug) {
+        this.logger.info('execute', `Phase 1: Executing ${analystKeys.length} analysts in parallel`, {
+          analysts: analystKeys,
+          phase: 'analysts_parallel'
+        });
+      }
+
+      const analystStartTime = Date.now();
+      currentState = await this.executeAnalystsInParallel(
+        currentState, 
+        agentNodes, 
+        analystKeys, 
+        agentsExecuted
+      );
+      const analystDuration = Date.now() - analystStartTime;
+
+      if (this.debug) {
+        this.logger.info('execute', `Phase 1 completed: Analysts executed in parallel`, {
+          duration: analystDuration,
+          analystsExecuted: analystKeys.length,
+          totalAgentsExecuted: agentsExecuted.length
+        });
+      }
+    }
+
+    // Phase 2: Execute research team sequentially (depends on analysts)
+    const researchKeys = ['bull_researcher', 'bear_researcher', 'research_manager'];
+    const researchStartTime = Date.now();
+    
+    if (this.debug) {
+      this.logger.info('execute', `Phase 2: Executing research team sequentially`, {
+        researchers: researchKeys,
+        phase: 'research_sequential'
+      });
+    }
+
+    currentState = await this.executeAgentsSequentially(
+      currentState, 
+      agentNodes, 
+      researchKeys, 
+      agentsExecuted
+    );
+
+    if (this.debug) {
+      const researchDuration = Date.now() - researchStartTime;
+      this.logger.info('execute', `Phase 2 completed: Research team executed`, {
+        duration: researchDuration,
+        researchersExecuted: researchKeys.length
+      });
+    }
+
+    // Phase 3: Execute trader (depends on research)
+    const traderKeys = ['trader'];
+    currentState = await this.executeAgentsSequentially(
+      currentState, 
+      agentNodes, 
+      traderKeys, 
+      agentsExecuted
+    );
+
+    // Phase 4: Execute risk management team sequentially (depends on trader)
+    const riskKeys = ['risky_analyst', 'safe_analyst', 'neutral_analyst', 'portfolio_manager'];
+    const riskStartTime = Date.now();
+    
+    if (this.debug) {
+      this.logger.info('execute', `Phase 4: Executing risk management team sequentially`, {
+        riskAnalysts: riskKeys,
+        phase: 'risk_sequential'
+      });
+    }
+
+    currentState = await this.executeAgentsSequentially(
+      currentState, 
+      agentNodes, 
+      riskKeys, 
+      agentsExecuted
+    );
+
+    if (this.debug) {
+      const riskDuration = Date.now() - riskStartTime;
+      this.logger.info('execute', `Phase 4 completed: Risk management team executed`, {
+        duration: riskDuration,
+        riskAnalystsExecuted: riskKeys.length,
+        totalWorkflowComplete: true
+      });
+    }
+
+    return currentState;
+  }
+
+  /**
+   * Execute analysts in parallel for maximum performance gain
+   */
+  private async executeAnalystsInParallel(
+    currentState: AgentState, 
+    agentNodes: Record<string, AgentNode>, 
+    analystKeys: string[], 
+    agentsExecuted: string[]
+  ): Promise<AgentState> {
+    // Create promises for all analyst executions
+    const analystPromises = analystKeys.map(async (agentKey) => {
+      const agentNode = agentNodes[agentKey];
+      if (!agentNode) {
+        this.logger.warn('execute', `Analyst not found: ${agentKey}`, { 
+          agentKey, 
+          availableAgents: Object.keys(agentNodes) 
+        });
+        return { agentKey, result: null, error: null };
+      }
+
+      try {
+        if (this.debug) {
+          this.logger.info('execute', `Starting parallel execution: ${agentNode.name}`, {
+            agentName: agentNode.name,
+            agentKey,
+            phase: 'parallel_analyst'
+          });
+        }
+
+        const agentResult = await agentNode.agent.process(currentState);
+
+        if (this.debug) {
+          this.logger.info('execute', `Completed parallel execution: ${agentNode.name}`, {
+            agentName: agentNode.name,
+            agentKey,
+            hasResult: !!agentResult
+          });
+        }
+
+        return { agentKey, result: agentResult, error: null, agentName: agentNode.name || agentKey };
+      } catch (error) {
+        this.logger.error('execute', `Error in parallel execution: ${agentNode.name}`, {
+          agentName: agentNode.name,
+          agentKey,
+          error: error instanceof Error ? error.message : String(error)
+        });
+        return { agentKey, result: null, error, agentName: agentNode.name || agentKey };
+      }
+    });
+
+    // Wait for all analysts to complete
+    const analystResults = await Promise.allSettled(analystPromises);
+    
+    // Process results and merge into state
+    let updatedState = currentState;
+    
+    for (const promiseResult of analystResults) {
+      if (promiseResult.status === 'fulfilled') {
+        const { agentKey, result, error, agentName } = promiseResult.value;
+        
+        if (result && !error && agentName) {
+          // Merge analyst result into state
+          updatedState = this.propagator.updateState(updatedState, result);
+          agentsExecuted.push(agentName);
+          
+          if (this.debug) {
+            this.logger.info('execute', `Merged parallel result: ${agentName}`, {
+              agentName,
+              agentKey,
+              totalExecuted: agentsExecuted.length
+            });
+          }
+        } else if (error) {
+          this.logger.warn('execute', `Skipping failed parallel agent: ${agentName}`, {
+            agentName,
+            agentKey,
+            error: error instanceof Error ? error.message : String(error)
+          });
+        }
+      } else {
+        this.logger.error('execute', `Promise rejection in parallel execution`, {
+          reason: promiseResult.reason instanceof Error ? promiseResult.reason.message : String(promiseResult.reason)
+        });
+      }
+    }
+
+    return updatedState;
+  }
+
+  /**
+   * Execute agents sequentially (for phases that require dependency order)
+   */
+  private async executeAgentsSequentially(
+    currentState: AgentState, 
+    agentNodes: Record<string, AgentNode>, 
+    agentKeys: string[], 
+    agentsExecuted: string[]
+  ): Promise<AgentState> {
+    let updatedState = currentState;
+
+    for (const agentKey of agentKeys) {
+      const agentNode = agentNodes[agentKey];
+      if (!agentNode) {
+        this.logger.warn('execute', `Agent not found: ${agentKey}`, { 
+          agentKey, 
+          availableAgents: Object.keys(agentNodes) 
+        });
+        continue;
+      }
+
+      try {
+        if (this.debug) {
+          this.logger.info('execute', `Executing sequential agent: ${agentNode.name}`, {
+            agentName: agentNode.name,
+            agentKey,
+            executionStep: agentsExecuted.length + 1
+          });
+        }
+
+        const agentResult = await agentNode.agent.process(updatedState);
+        updatedState = this.propagator.updateState(updatedState, agentResult);
+        agentsExecuted.push(agentNode.name);
+
+        if (this.debug) {
+          this.logger.info('execute', `Completed sequential agent: ${agentNode.name}`, {
+            agentName: agentNode.name,
+            agentKey,
+            totalExecuted: agentsExecuted.length
+          });
+        }
+      } catch (error) {
+        this.logger.error('execute', `Error executing sequential agent: ${agentNode.name}`, {
+          agentName: agentNode.name,
+          agentKey,
+          error: error instanceof Error ? error.message : String(error)
+        });
+        // Continue with other agents on error
+      }
+    }
+
+    return updatedState;
   }
 
   /**

@@ -1,15 +1,10 @@
 {
-  "ts-node": {
-    "require": ["tsconfig-paths/register"],
-    "compilerOptions": {
-      "module": "commonjs",
-      "allowSyntheticDefaultImports": true,
-      "esModuleInterop": true
-    }
-  },
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "module": "commonjs",
-    "moduleResolution": "node"
+    "noEmit": true,
+    "isolatedModules": true
+  },
+  "ts-node": {
+    "esm": true
   }
 }

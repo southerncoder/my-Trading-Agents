@@ -6,7 +6,7 @@
  */
 
 import winston from 'winston';
-import { TradingAgentError, ErrorSeverity } from './error-handler.js';
+import { TradingAgentError, ErrorSeverity } from './error-handler';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'critical';
 export type LogContext = 'agent' | 'dataflow' | 'graph' | 'cli' | 'test' | 'system';

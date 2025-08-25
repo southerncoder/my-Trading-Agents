@@ -1,7 +1,7 @@
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { StructuredTool } from '@langchain/core/tools';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
-import { AbstractAgent } from '../base';
+import { AbstractAgent } from '../base/index';
 import { AgentState } from '../../types/agent-states';
 
 /**

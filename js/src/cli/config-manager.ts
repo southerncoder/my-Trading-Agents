@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
-import { UserSelections } from './types.js';
+import { UserSelections } from './types';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
 

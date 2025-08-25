@@ -17,9 +17,9 @@ import { ChatOpenAI } from '@langchain/openai';
 import { ChatAnthropic } from '@langchain/anthropic';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { BaseMessage, HumanMessage, SystemMessage } from '@langchain/core/messages';
-import { AgentState } from '../types/agent-states.js';
-import { FinancialSituationMemory } from '../agents/utils/memory.js';
-import { createLogger } from '../utils/enhanced-logger.js';
+import { AgentState } from '../types/agent-states';
+import { FinancialSituationMemory } from '../agents/utils/memory';
+import { createLogger } from '../utils/enhanced-logger';
 
 export type LLMProvider = ChatOpenAI | ChatAnthropic | ChatGoogleGenerativeAI;
 
