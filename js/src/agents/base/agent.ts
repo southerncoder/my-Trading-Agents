@@ -1,4 +1,4 @@
-import { BaseMessage, HumanMessage, AIMessage } from '@langchain/core/messages';
+import { BaseMessage, AIMessage } from '@langchain/core/messages';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { StructuredTool } from '@langchain/core/tools';
 import { AgentState } from '../../types/agent-states';

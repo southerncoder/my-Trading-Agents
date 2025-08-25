@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { TradingAgentsConfig } from '@/types/config';
 
 /**
@@ -22,7 +21,6 @@ export class GoogleNewsAPI {
 
       // For now, return a placeholder - in production this would integrate with Google News API
       // or web scraping with proper rate limiting and respect for robots.txt
-      const formattedQuery = query.replace(' ', '+');
       
       // Placeholder news results
       const newsResults = [

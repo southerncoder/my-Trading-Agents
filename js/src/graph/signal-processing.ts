@@ -15,6 +15,7 @@ import { ChatOpenAI } from '@langchain/openai';
 import { ChatAnthropic } from '@langchain/anthropic';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { BaseMessage, HumanMessage, SystemMessage } from '@langchain/core/messages';
+import { createLogger } from '../utils/enhanced-logger.js';
 
 export type LLMProvider = ChatOpenAI | ChatAnthropic | ChatGoogleGenerativeAI;
 
@@ -24,6 +25,7 @@ export type LLMProvider = ChatOpenAI | ChatAnthropic | ChatGoogleGenerativeAI;
 export class SignalProcessor {
   private llm: LLMProvider;
   private systemPrompt: string;
+  private logger = createLogger('graph', 'signal-processor');
 
   constructor(llm: LLMProvider) {
     this.llm = llm;
@@ -43,7 +45,9 @@ export class SignalProcessor {
   async processSignal(fullSignal: string): Promise<string> {
     try {
       if (!fullSignal || fullSignal.trim().length === 0) {
-        console.warn('Empty signal provided to processor');
+        this.logger.warn('processSignal', 'Empty signal provided to processor', {
+          signalLength: fullSignal?.length || 0
+        });
         return 'HOLD';
       }
 
@@ -57,7 +61,10 @@ export class SignalProcessor {
       
       return decision;
     } catch (error) {
-      console.error('Error processing signal:', error);
+      this.logger.error('processSignal', 'Error processing signal', {
+        error: error instanceof Error ? error.message : String(error),
+        signalLength: fullSignal?.length || 0
+      });
       return 'HOLD'; // Default to HOLD on error
     }
   }
@@ -85,7 +92,11 @@ export class SignalProcessor {
     }
 
     // Default to HOLD if no clear decision is found
-    console.warn(`Could not extract clear decision from: "${rawDecision}", defaulting to HOLD`);
+    this.logger.warn('normalizeDecision', `Could not extract clear decision from: "${rawDecision}", defaulting to HOLD`, {
+      rawDecision,
+      cleanedDecision: cleaned,
+      defaultingTo: 'HOLD'
+    });
     return 'HOLD';
   }
 
@@ -194,7 +205,10 @@ export class SignalProcessor {
       // Default confidence based on signal strength
       return this.estimateConfidenceFromSignal(signal);
     } catch (error) {
-      console.warn('Error extracting confidence:', error);
+      this.logger.warn('extractConfidence', 'Error extracting confidence', {
+        error: error instanceof Error ? error.message : String(error),
+        signalLength: signal.length
+      });
       return 0.5; // Default neutral confidence
     }
   }

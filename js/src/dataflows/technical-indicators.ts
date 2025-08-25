@@ -1,5 +1,4 @@
 import { TradingAgentsConfig } from '@/types/config';
-import { TechnicalIndicator } from '@/types/dataflows';
 
 /**
  * Technical Indicators API for stock analysis
@@ -41,7 +40,7 @@ export class TechnicalIndicatorsAPI {
   /**
    * Get a specific technical indicator
    */
-  private async getIndicator(symbol: string, indicator: string, currDate: string, lookBackDays: number, online: boolean): Promise<string> {
+  private async getIndicator(symbol: string, indicator: string, currDate: string, lookBackDays: number, _online: boolean): Promise<string> {
     const descriptions = {
       'close_50_sma': '50 SMA: A medium-term trend indicator. Usage: Identify trend direction and serve as dynamic support/resistance. Tips: It lags price; combine with faster indicators for timely signals.',
       'close_200_sma': '200 SMA: A long-term trend benchmark. Usage: Confirm overall market trend and identify golden/death cross setups. Tips: It reacts slowly; best for strategic trend confirmation rather than frequent trading entries.',

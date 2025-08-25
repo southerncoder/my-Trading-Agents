@@ -1,12 +1,15 @@
 import { TradingAgentsConfig } from '@/types/config';
 import { DataFlowToolkit } from '@/types/dataflows';
-import { YahooFinanceAPI } from './yahoo-finance';
-import { FinnhubAPI } from './finnhub';
-import { GoogleNewsAPI } from './google-news';
-import { RedditAPI } from './reddit';
-import { SimFinAPI } from './simfin';
-import { OpenAIDataAPI } from './openai-data';
-import { TechnicalIndicatorsAPI } from './technical-indicators';
+import { YahooFinanceAPI } from './yahoo-finance.js';
+import { FinnhubAPI } from './finnhub.js';
+import { GoogleNewsAPI } from './google-news.js';
+import { RedditAPI } from './reddit.js';
+import { SimFinAPI } from './simfin.js';
+import { OpenAIDataAPI } from './openai-data.js';
+import { TechnicalIndicatorsAPI } from './technical-indicators.js';
+import { createLogger } from '../utils/enhanced-logger.js';
+
+const logger = createLogger('dataflow', 'interface');
 
 let globalConfig: TradingAgentsConfig | null = null;
 
@@ -52,7 +55,9 @@ export class Toolkit implements DataFlowToolkit {
     try {
       this.openaiData = new OpenAIDataAPI(config);
     } catch (error) {
-      console.warn('OpenAI API not available:', error instanceof Error ? error.message : error);
+      logger.warn('constructor', 'OpenAI API not available', { 
+        error: error instanceof Error ? error.message : String(error) 
+      });
       this.openaiData = null;
     }
     

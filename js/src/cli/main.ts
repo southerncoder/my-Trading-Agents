@@ -162,7 +162,7 @@ export class TradingAgentsCLI {
         this.handleAnalysisResult(analysisResult, selections, logFile, reportDir);
 
         // Process final signal if available
-        let decision = analysisResult.decision;
+        const decision = analysisResult.decision;
 
         // Update all agent statuses to completed
         for (const agent of Object.keys(this.messageBuffer.agentStatus)) {

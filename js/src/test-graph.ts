@@ -1,7 +1,7 @@
 /**
  * Simple test to verify the TradingAgentsGraph works end-to-end
  */
-import { TradingAgentsGraph, createTradingAgentsGraph } from './graph/trading-graph';
+import { createTradingAgentsGraph } from './graph/trading-graph';
 import { createConfig } from './config/index';
 
 async function testGraph() {

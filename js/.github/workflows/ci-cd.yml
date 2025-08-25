@@ -1,0 +1,185 @@
+name: Trading Agents CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [ published ]
+
+env:
+  NODE_VERSION: '20'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/trading-agents
+
+jobs:
+  # Lint and Test Job
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: 'js/package-lock.json'
+        
+    - name: Install dependencies
+      working-directory: ./js
+      run: npm ci
+      
+    - name: Run linting
+      working-directory: ./js
+      run: npm run lint || true  # Don't fail if linting not configured yet
+      
+    - name: Run type checking
+      working-directory: ./js
+      run: npm run build
+      
+    - name: Run tests
+      working-directory: ./js
+      run: npm test
+      
+    - name: Generate test coverage
+      working-directory: ./js
+      run: npm run test:coverage || true  # Don't fail if coverage not configured
+      
+    - name: Upload coverage to Codecov
+      if: success()
+      uses: codecov/codecov-action@v3
+      with:
+        directory: ./js
+        fail_ci_if_error: false
+
+  # Security Scan Job
+  security:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Run security audit
+      working-directory: ./js
+      run: npm audit --audit-level moderate
+      
+    - name: Run Snyk to check for vulnerabilities
+      uses: snyk/actions/node@master
+      continue-on-error: true
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        args: --project-name=trading-agents --file=js/package.json
+
+  # Build Docker Image Job
+  build:
+    runs-on: ubuntu-latest
+    needs: [test, security]
+    
+    permissions:
+      contents: read
+      packages: write
+      
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./js
+        file: ./js/Dockerfile
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        platforms: linux/amd64,linux/arm64
+
+  # Deploy Job (only on main branch)
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    environment: production
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Deploy to production
+      run: |
+        echo "Deployment would happen here"
+        echo "Consider using:"
+        echo "- AWS ECS/Fargate"
+        echo "- Kubernetes deployment"
+        echo "- Docker Swarm"
+        echo "- VM deployment with docker-compose"
+        
+    # Example for VM deployment
+    # - name: Deploy to server
+    #   uses: appleboy/ssh-action@v0.1.5
+    #   with:
+    #     host: ${{ secrets.HOST }}
+    #     username: ${{ secrets.USERNAME }}
+    #     key: ${{ secrets.KEY }}
+    #     script: |
+    #       cd /opt/trading-agents
+    #       git pull origin main
+    #       ./deploy.sh --version latest
+
+  # Notify Job
+  notify:
+    runs-on: ubuntu-latest
+    needs: [test, security, build, deploy]
+    if: always()
+    
+    steps:
+    - name: Notify Slack
+      if: success()
+      uses: 8398a7/action-slack@v3
+      with:
+        status: success
+        channel: '#trading-agents'
+        text: 'Trading Agents deployment successful! 🚀'
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        
+    - name: Notify on failure
+      if: failure()
+      uses: 8398a7/action-slack@v3
+      with:
+        status: failure
+        channel: '#trading-agents'
+        text: 'Trading Agents deployment failed! ❌'
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

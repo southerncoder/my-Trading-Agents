@@ -18,10 +18,11 @@ import { ChatOpenAI } from '@langchain/openai';
 import { ChatAnthropic } from '@langchain/anthropic';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 
-import { TradingAgentsConfig, createConfig } from '../config/index';
-import { Toolkit } from '../dataflows/interface';
-import { AgentState } from '../types/agent-states';
-import { FinancialSituationMemory } from '../agents/utils/memory';
+import { TradingAgentsConfig, createConfig } from '../config/index.js';
+import { enhancedConfigLoader } from '../config/enhanced-loader.js';
+import { Toolkit } from '../dataflows/interface.js';
+import { AgentState } from '../types/agent-states.js';
+import { FinancialSituationMemory } from '../agents/utils/memory.js';
 
 // Graph components
 import { ConditionalLogic, createConditionalLogic } from './conditional-logic';
@@ -29,6 +30,7 @@ import { Propagator, createPropagator } from './propagation';
 import { Reflector, createReflector } from './reflection';
 import { SignalProcessor, createSignalProcessor } from './signal-processing';
 import { GraphSetup, createGraphSetup, AgentNode } from './setup';
+import { createLogger } from '../utils/enhanced-logger.js';
 
 export type LLMProvider = ChatOpenAI | ChatAnthropic | ChatGoogleGenerativeAI;
 
@@ -52,6 +54,7 @@ export class TradingAgentsGraph {
   private debug: boolean;
   private config: TradingAgentsConfig;
   private selectedAnalysts: string[];
+  private logger = createLogger('graph', 'trading-graph');
 
   // LLM instances
   private deepThinkingLLM!: LLMProvider;
@@ -179,13 +182,21 @@ export class TradingAgentsGraph {
 
   /**
    * Initialize memory systems
+   * Uses agent-specific configurations for optimal memory provider selection
    */
   private initializeMemories(): void {
-    this.bullMemory = new FinancialSituationMemory('bull_memory', this.config);
-    this.bearMemory = new FinancialSituationMemory('bear_memory', this.config);
-    this.traderMemory = new FinancialSituationMemory('trader_memory', this.config);
-    this.investJudgeMemory = new FinancialSituationMemory('invest_judge_memory', this.config);
-    this.riskManagerMemory = new FinancialSituationMemory('risk_manager_memory', this.config);
+    // Use agent-specific configurations for memory systems
+    const bullConfig = enhancedConfigLoader.getAgentConfig('bull_researcher');
+    const bearConfig = enhancedConfigLoader.getAgentConfig('bear_researcher');
+    const traderConfig = enhancedConfigLoader.getAgentConfig('trader');
+    const portfolioManagerConfig = enhancedConfigLoader.getAgentConfig('portfolio_manager');
+    const riskManagerConfig = enhancedConfigLoader.getAgentConfig('portfolio_manager'); // Use portfolio manager for risk
+    
+    this.bullMemory = new FinancialSituationMemory('bull_memory', bullConfig);
+    this.bearMemory = new FinancialSituationMemory('bear_memory', bearConfig);
+    this.traderMemory = new FinancialSituationMemory('trader_memory', traderConfig);
+    this.investJudgeMemory = new FinancialSituationMemory('invest_judge_memory', portfolioManagerConfig);
+    this.riskManagerMemory = new FinancialSituationMemory('risk_manager_memory', riskManagerConfig);
   }
 
   /**
@@ -238,21 +249,35 @@ export class TradingAgentsGraph {
       const agentsExecuted: string[] = [];
 
       if (this.debug) {
-        console.log(`Starting trading analysis for ${companyName} on ${tradeDate}`);
-        console.log(`Execution order: ${executionOrder.join(' -> ')}`);
+        this.logger.info('execute', `Starting trading analysis for ${companyName} on ${tradeDate}`, {
+          company: companyName,
+          tradeDate,
+          analystsCount: this.selectedAnalysts.length
+        });
+        this.logger.info('execute', `Execution order: ${executionOrder.join(' -> ')}`, {
+          executionOrder,
+          orderLength: executionOrder.length
+        });
       }
 
       // Execute agents sequentially (simplified approach for now)
       for (const agentKey of executionOrder) {
         const agentNode = agentNodes[agentKey];
         if (!agentNode) {
-          console.warn(`Agent not found: ${agentKey}`);
+          this.logger.warn('execute', `Agent not found: ${agentKey}`, { 
+            agentKey, 
+            availableAgents: Object.keys(agentNodes) 
+          });
           continue;
         }
 
         try {
           if (this.debug) {
-            console.log(`Executing: ${agentNode.name}`);
+            this.logger.info('execute', `Executing agent: ${agentNode.name}`, {
+              agentName: agentNode.name,
+              agentKey,
+              executionStep: agentsExecuted.length + 1
+            });
           }
 
           // Execute agent
@@ -263,10 +288,18 @@ export class TradingAgentsGraph {
           agentsExecuted.push(agentNode.name);
 
           if (this.debug) {
-            console.log(`Completed: ${agentNode.name}`);
+            this.logger.info('execute', `Completed agent: ${agentNode.name}`, {
+              agentName: agentNode.name,
+              agentKey,
+              totalExecuted: agentsExecuted.length
+            });
           }
         } catch (error) {
-          console.error(`Error executing ${agentNode.name}:`, error);
+          this.logger.error('execute', `Error executing ${agentNode.name}`, {
+            agentName: agentNode.name,
+            agentKey,
+            error: error instanceof Error ? error.message : String(error)
+          });
           // Continue with other agents on error
         }
       }
@@ -290,7 +323,10 @@ export class TradingAgentsGraph {
       };
 
     } catch (error) {
-      console.error('Error during workflow execution:', error);
+      this.logger.error('execute', 'Error during workflow execution', {
+        error: error instanceof Error ? error.message : String(error),
+        company: companyName
+      });
       throw error;
     }
   }
@@ -312,10 +348,17 @@ export class TradingAgentsGraph {
       fs.writeFileSync(logFile, JSON.stringify(this.logStatesDict, null, 4));
 
       if (this.debug) {
-        console.log(`State logged to: ${logFile}`);
+        this.logger.info('logState', `State logged to: ${logFile}`, {
+          logFile,
+          tradeDate,
+          ticker: this.ticker
+        });
       }
     } catch (error) {
-      console.error('Error logging state:', error);
+      this.logger.error('logState', 'Error logging state', {
+        error: error instanceof Error ? error.message : String(error),
+        tradeDate
+      });
     }
   }
 
@@ -324,7 +367,9 @@ export class TradingAgentsGraph {
    */
   async reflectAndRemember(returnsLosses: number | string): Promise<void> {
     if (!this.currentState) {
-      console.warn('No current state available for reflection');
+      this.logger.warn('reflectAndRemember', 'No current state available for reflection', {
+        hasCurrentState: false
+      });
       return;
     }
 
@@ -338,10 +383,16 @@ export class TradingAgentsGraph {
       });
 
       if (this.debug) {
-        console.log('Reflection completed and memories updated');
+        this.logger.info('reflectAndRemember', 'Reflection completed and memories updated', {
+          returnsLosses,
+          hasState: !!this.currentState
+        });
       }
     } catch (error) {
-      console.error('Error during reflection:', error);
+      this.logger.error('reflectAndRemember', 'Error during reflection', {
+        error: error instanceof Error ? error.message : String(error),
+        returnsLosses
+      });
     }
   }
 
@@ -352,7 +403,10 @@ export class TradingAgentsGraph {
     try {
       return await this.signalProcessor.processSignal(fullSignal);
     } catch (error) {
-      console.error('Error processing signal:', error);
+      this.logger.error('processSignal', 'Error processing signal', {
+        error: error instanceof Error ? error.message : String(error),
+        signalLength: fullSignal.length
+      });
       return 'HOLD';
     }
   }
@@ -403,7 +457,10 @@ export class TradingAgentsGraph {
     // Clean up file handles if needed
     // Other cleanup tasks
     if (this.debug) {
-      console.log('TradingAgentsGraph cleanup completed');
+      this.logger.info('cleanup', 'TradingAgentsGraph cleanup completed', {
+        hasCurrentState: !!this.currentState,
+        ticker: this.ticker
+      });
     }
   }
 }

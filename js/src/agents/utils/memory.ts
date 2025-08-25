@@ -1,5 +1,5 @@
-import { OpenAI } from 'openai';
-import { TradingAgentsConfig } from '@/types/config';
+import { MemoryProvider, EmbeddingProviderFactory } from '../../providers/memory-provider.js';
+import { AgentLLMConfig } from '../../types/agent-config.js';
 
 /**
  * Interface for memory match results
@@ -12,13 +12,11 @@ export interface MemoryMatch {
 
 /**
  * Simple in-memory vector store for financial situations and advice
- * In production, this could be replaced with ChromaDB, Pinecone, or similar
+ * Uses abstracted memory providers to support multiple LLM backends
  */
 export class FinancialSituationMemory {
   private name: string;
-  private config: TradingAgentsConfig;
-  private client: OpenAI;
-  private embeddingModel: string;
+  private memoryProvider: MemoryProvider;
   private memories: Array<{
     id: string;
     situation: string;
@@ -26,45 +24,10 @@ export class FinancialSituationMemory {
     embedding: number[];
   }>;
 
-  constructor(name: string, config: TradingAgentsConfig) {
+  constructor(name: string, config: AgentLLMConfig) {
     this.name = name;
-    this.config = config;
     this.memories = [];
-    
-    // Determine embedding model based on backend
-    this.embeddingModel = config.backendUrl === 'http://localhost:11434/v1' 
-      ? 'nomic-embed-text' 
-      : 'text-embedding-3-small';
-
-    if (!config.openaiApiKey) {
-      throw new Error('OpenAI API key is required for memory system');
-    }
-
-    this.client = new OpenAI({
-      apiKey: config.openaiApiKey,
-      baseURL: config.backendUrl,
-    });
-  }
-
-  /**
-   * Get OpenAI embedding for a text
-   */
-  private async getEmbedding(text: string): Promise<number[]> {
-    try {
-      const response = await this.client.embeddings.create({
-        model: this.embeddingModel,
-        input: text,
-      });
-      
-      if (!response.data[0]?.embedding) {
-        throw new Error('Failed to get embedding from OpenAI');
-      }
-      
-      return response.data[0].embedding;
-    } catch (error) {
-      console.error('Error getting embedding:', error);
-      throw error;
-    }
+    this.memoryProvider = EmbeddingProviderFactory.createProvider(config);
   }
 
   /**
@@ -78,14 +41,20 @@ export class FinancialSituationMemory {
       if (!item) continue;
       
       const [situation, recommendation] = item;
-      const embedding = await this.getEmbedding(situation);
       
-      this.memories.push({
-        id: (startId + i).toString(),
-        situation,
-        recommendation,
-        embedding,
-      });
+      try {
+        const embedding = await this.memoryProvider.embedText(situation);
+        
+        this.memories.push({
+          id: (startId + i).toString(),
+          situation,
+          recommendation,
+          embedding,
+        });
+      } catch (error) {
+        // Skip this item if embedding fails, but continue with others
+        continue;
+      }
     }
   }
 
@@ -97,47 +66,26 @@ export class FinancialSituationMemory {
       return [];
     }
 
-    const queryEmbedding = await this.getEmbedding(currentSituation);
-    
-    // Calculate cosine similarity for each memory
-    const similarities = this.memories.map((memory) => {
-      const similarity = this.cosineSimilarity(queryEmbedding, memory.embedding);
-      return {
-        matchedSituation: memory.situation,
-        recommendation: memory.recommendation,
-        similarityScore: similarity,
-      };
-    });
-
-    // Sort by similarity score and return top n matches
-    similarities.sort((a, b) => b.similarityScore - a.similarityScore);
-    return similarities.slice(0, nMatches);
-  }
-
-  /**
-   * Calculate cosine similarity between two vectors
-   */
-  private cosineSimilarity(vecA: number[], vecB: number[]): number {
-    if (vecA.length !== vecB.length) {
-      throw new Error('Vectors must have the same length');
-    }
-
-    let dotProduct = 0;
-    let normA = 0;
-    let normB = 0;
-
-    for (let i = 0; i < vecA.length; i++) {
-      const a = vecA[i];
-      const b = vecB[i];
-      if (a === undefined || b === undefined) continue;
+    try {
+      const queryEmbedding = await this.memoryProvider.embedText(currentSituation);
       
-      dotProduct += a * b;
-      normA += a * a;
-      normB += b * b;
-    }
+      // Calculate similarity for each memory
+      const similarities = this.memories.map((memory) => {
+        const similarity = this.memoryProvider.calculateSimilarity(queryEmbedding, memory.embedding);
+        return {
+          matchedSituation: memory.situation,
+          recommendation: memory.recommendation,
+          similarityScore: similarity,
+        };
+      });
 
-    const magnitude = Math.sqrt(normA) * Math.sqrt(normB);
-    return magnitude === 0 ? 0 : dotProduct / magnitude;
+      // Sort by similarity score and return top n matches
+      similarities.sort((a, b) => b.similarityScore - a.similarityScore);
+      return similarities.slice(0, nMatches);
+    } catch (error) {
+      // Return empty array if embedding fails
+      return [];
+    }
   }
 
   /**
@@ -163,12 +111,30 @@ export class FinancialSituationMemory {
       recommendation: m.recommendation,
     }));
   }
+
+  /**
+   * Get memory provider information
+   */
+  getProviderInfo(): { name: string; provider: string; memoryCount: number } {
+    return {
+      name: this.name,
+      provider: this.memoryProvider.getProviderName(),
+      memoryCount: this.memories.length
+    };
+  }
+
+  /**
+   * Get the memory provider name
+   */
+  getProviderName(): string {
+    return this.memoryProvider.getProviderName();
+  }
 }
 
 /**
  * Factory function to create pre-populated financial memories
  */
-export async function createPrePopulatedMemory(name: string, config: TradingAgentsConfig): Promise<FinancialSituationMemory> {
+export async function createPrePopulatedMemory(name: string, config: AgentLLMConfig): Promise<FinancialSituationMemory> {
   const memory = new FinancialSituationMemory(name, config);
 
   // Add some example financial situations and advice

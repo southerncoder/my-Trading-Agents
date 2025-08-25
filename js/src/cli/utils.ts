@@ -201,7 +201,9 @@ export async function selectLLMProvider(): Promise<{ provider: string; url: stri
 }
 
 export async function selectShallowThinkingAgent(provider: string): Promise<string> {
-  const options = SHALLOW_AGENT_OPTIONS[provider.toLowerCase()] || [];
+  // Map display names to internal keys
+  const providerKey = provider.toLowerCase().replace(/\s+/g, '_');
+  const options = SHALLOW_AGENT_OPTIONS[providerKey] || [];
   
   if (options.length === 0) {
     throw new Error(`No shallow thinking options available for provider: ${provider}`);
@@ -223,7 +225,9 @@ export async function selectShallowThinkingAgent(provider: string): Promise<stri
 }
 
 export async function selectDeepThinkingAgent(provider: string): Promise<string> {
-  const options = DEEP_AGENT_OPTIONS[provider.toLowerCase()] || [];
+  // Map display names to internal keys
+  const providerKey = provider.toLowerCase().replace(/\s+/g, '_');
+  const options = DEEP_AGENT_OPTIONS[providerKey] || [];
   
   if (options.length === 0) {
     throw new Error(`No deep thinking options available for provider: ${provider}`);

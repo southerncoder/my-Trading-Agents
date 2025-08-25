@@ -2,7 +2,9 @@
  * Data flow interface types for Trading Agents
  */
 
-import { TradingAgentsConfig } from '@/types/config';
+/**
+ * Data flow types for the trading agents system
+ */
 
 export interface DataFlowConfig {
   dataDir: string;

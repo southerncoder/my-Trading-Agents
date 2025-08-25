@@ -1,6 +1,5 @@
 import axios from 'axios';
 import { TradingAgentsConfig } from '@/types/config';
-import { StockData } from '@/types/dataflows';
 
 /**
  * Yahoo Finance API wrapper for stock data

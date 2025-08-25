@@ -92,7 +92,7 @@ export class RedditAPI {
   /**
    * Fetch global posts from Reddit
    */
-  private async fetchGlobalPosts(startDate: string, lookBackDays: number, maxLimitPerDay: number): Promise<RedditPost[]> {
+  private async fetchGlobalPosts(_startDate: string, _lookBackDays: number, _maxLimitPerDay: number): Promise<RedditPost[]> {
     // Placeholder implementation
     // In production, this would use the Reddit API to fetch actual posts
     return [
@@ -111,7 +111,7 @@ export class RedditAPI {
   /**
    * Fetch company-specific posts from Reddit
    */
-  private async fetchCompanyPosts(ticker: string, startDate: string, lookBackDays: number, maxLimitPerDay: number): Promise<RedditPost[]> {
+  private async fetchCompanyPosts(ticker: string, _startDate: string, _lookBackDays: number, _maxLimitPerDay: number): Promise<RedditPost[]> {
     // Placeholder implementation
     // In production, this would search Reddit for posts related to the ticker
     return [

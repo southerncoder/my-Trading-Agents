@@ -1,0 +1,13 @@
+# Prettier ignore file
+dist/
+node_modules/
+*.min.js
+*.bundle.js
+package-lock.json
+coverage/
+.nyc_output/
+logs/
+*.log
+.env
+.env.*
+!.env.template

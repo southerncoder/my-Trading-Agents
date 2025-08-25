@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { createCLI } from './src/cli/main.js';
+import { createCLI } from './dist/cli/main.js';
 
 async function main() {
   try {

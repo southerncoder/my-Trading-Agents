@@ -19,6 +19,7 @@ import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { BaseMessage, HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { AgentState } from '../types/agent-states.js';
 import { FinancialSituationMemory } from '../agents/utils/memory.js';
+import { createLogger } from '../utils/enhanced-logger.js';
 
 export type LLMProvider = ChatOpenAI | ChatAnthropic | ChatGoogleGenerativeAI;
 
@@ -37,6 +38,7 @@ export interface ReflectionResult {
 export class Reflector {
   private llm: LLMProvider;
   private systemPrompt: string;
+  private logger = createLogger('graph', 'reflector');
 
   constructor(llm: LLMProvider) {
     this.llm = llm;
@@ -114,7 +116,11 @@ Adhere strictly to these instructions, and ensure your output is detailed, accur
       const response = await this.llm.invoke(messages);
       return response.content as string;
     } catch (error) {
-      console.error(`Error reflecting on ${componentType}:`, error);
+      this.logger.error('reflectOnComponent', `Error reflecting on ${componentType}`, {
+        componentType,
+        error: error instanceof Error ? error.message : String(error),
+        returnsLosses
+      });
       return `Unable to generate reflection for ${componentType}: ${error}`;
     }
   }
@@ -141,7 +147,10 @@ Adhere strictly to these instructions, and ensure your output is detailed, accur
     try {
       await bullMemory.addSituations([[situation, analysis]]);
     } catch (error) {
-      console.warn('Failed to update bull memory:', error);
+      this.logger.warn('reflectBullResearcher', 'Failed to update bull memory', {
+        error: error instanceof Error ? error.message : String(error),
+        situationLength: situation.length
+      });
     }
 
     return this.createReflectionResult('Bull Researcher', analysis);
@@ -169,7 +178,10 @@ Adhere strictly to these instructions, and ensure your output is detailed, accur
     try {
       await bearMemory.addSituations([[situation, analysis]]);
     } catch (error) {
-      console.warn('Failed to update bear memory:', error);
+      this.logger.warn('reflectBearResearcher', 'Failed to update bear memory', {
+        error: error instanceof Error ? error.message : String(error),
+        situationLength: situation.length
+      });
     }
 
     return this.createReflectionResult('Bear Researcher', analysis);
@@ -197,7 +209,10 @@ Adhere strictly to these instructions, and ensure your output is detailed, accur
     try {
       await traderMemory.addSituations([[situation, analysis]]);
     } catch (error) {
-      console.warn('Failed to update trader memory:', error);
+      this.logger.warn('reflectTrader', 'Failed to update trader memory', {
+        error: error instanceof Error ? error.message : String(error),
+        situationLength: situation.length
+      });
     }
 
     return this.createReflectionResult('Trader', analysis);
@@ -225,7 +240,10 @@ Adhere strictly to these instructions, and ensure your output is detailed, accur
     try {
       await investJudgeMemory.addSituations([[situation, analysis]]);
     } catch (error) {
-      console.warn('Failed to update investment judge memory:', error);
+      this.logger.warn('reflectInvestJudge', 'Failed to update investment judge memory', {
+        error: error instanceof Error ? error.message : String(error),
+        situationLength: situation.length
+      });
     }
 
     return this.createReflectionResult('Investment Judge', analysis);
@@ -253,7 +271,10 @@ Adhere strictly to these instructions, and ensure your output is detailed, accur
     try {
       await riskManagerMemory.addSituations([[situation, analysis]]);
     } catch (error) {
-      console.warn('Failed to update risk manager memory:', error);
+      this.logger.warn('reflectRiskManager', 'Failed to update risk manager memory', {
+        error: error instanceof Error ? error.message : String(error),
+        situationLength: situation.length
+      });
     }
 
     return this.createReflectionResult('Risk Manager', analysis);
@@ -299,7 +320,11 @@ Adhere strictly to these instructions, and ensure your output is detailed, accur
         riskReflection
       );
     } catch (error) {
-      console.error('Error during comprehensive reflection:', error);
+      this.logger.error('reflectAndRemember', 'Error during comprehensive reflection', {
+        error: error instanceof Error ? error.message : String(error),
+        returnsLosses,
+        hasState: !!currentState
+      });
     }
 
     return reflections;

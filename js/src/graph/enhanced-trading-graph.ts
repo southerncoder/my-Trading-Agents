@@ -6,9 +6,11 @@
  */
 
 import { TradingAgentsConfig } from '../types/config.js';
-import { AgentState } from '../types/agent-states.js';
 import { ModelProvider } from '../models/index.js';
 import { LangGraphSetup, AnalystType } from './langgraph-working.js';
+import { createLogger } from '../utils/enhanced-logger.js';
+
+const logger = createLogger('graph', 'enhanced-trading-graph');
 
 export interface TradingGraphConfig {
   config: TradingAgentsConfig;
@@ -58,11 +60,11 @@ export class EnhancedTradingAgentsGraph {
     }
 
     try {
-      console.log('Initializing trading workflow...');
+      logger.info('initializeWorkflow', 'Initializing trading workflow...');
       this.workflow = await this.langGraphSetup.createComprehensiveTradingWorkflow(this.selectedAnalysts);
-      console.log('✓ Trading workflow initialized successfully');
+      logger.info('initializeWorkflow', 'Trading workflow initialized successfully');
     } catch (error) {
-      console.error('Error initializing workflow:', error);
+      logger.error('initializeWorkflow', 'Error initializing workflow', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -80,7 +82,10 @@ export class EnhancedTradingAgentsGraph {
     }
 
     try {
-      console.log(`Executing trading analysis for ${companyOfInterest} on ${tradeDate}...`);
+      logger.info('execute', `Executing trading analysis for ${companyOfInterest} on ${tradeDate}...`, { 
+        company: companyOfInterest, 
+        tradeDate 
+      });
       
       const { HumanMessage } = await import('@langchain/core/messages');
       
@@ -92,10 +97,17 @@ export class EnhancedTradingAgentsGraph {
         messages: [initialMessage]
       });
 
-      console.log('✓ Trading analysis completed successfully');
+      logger.info('execute', 'Trading analysis completed successfully', { 
+        company: companyOfInterest,
+        resultType: typeof result 
+      });
       return { success: true, result };
     } catch (error) {
-      console.error('Error executing trading analysis:', error);
+      logger.error('execute', 'Error executing trading analysis', { 
+        company: companyOfInterest,
+        tradeDate,
+        error: error instanceof Error ? error.message : String(error) 
+      });
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Unknown error'
@@ -194,8 +206,8 @@ export class EnhancedTradingAgentsGraph {
       dataDir: './data',
       dataCacheDir: './cache',
       llmProvider: 'lm_studio',
-      deepThinkLlm: 'llama-3.2-3b-instruct',
-      quickThinkLlm: 'llama-3.2-3b-instruct',
+      deepThinkLlm: 'microsoft/phi-4-mini-reasoning',
+      quickThinkLlm: 'microsoft/phi-4-mini-reasoning',
       backendUrl: 'http://localhost:1234/v1',
       maxDebateRounds: 3,
       maxRiskDiscussRounds: 3,
@@ -215,42 +227,42 @@ export class EnhancedTradingAgentsGraph {
    */
   static async runIntegrationTest(): Promise<boolean> {
     try {
-      console.log('🚀 Running Enhanced Trading Agents Graph Integration Test...\n');
+      logger.info('runIntegrationTest', '🚀 Running Enhanced Trading Agents Graph Integration Test...');
 
       // Create test instance
       const graph = this.createTestInstance();
       
       // Test configuration
       const configInfo = graph.getConfigInfo();
-      console.log('Configuration:', configInfo);
-      console.log('✓ Configuration loaded successfully');
+      logger.info('runIntegrationTest', 'Configuration loaded successfully', { config: configInfo });
 
       // Test workflow initialization
       await graph.initializeWorkflow();
-      console.log('✓ Workflow initialized successfully');
+      logger.info('runIntegrationTest', 'Workflow initialized successfully');
 
       // Test workflow connectivity
       const testResult = await graph.testWorkflow();
       if (testResult.success) {
-        console.log('✓ Workflow connectivity test passed');
+        logger.info('runIntegrationTest', 'Workflow connectivity test passed');
       } else {
-        console.log('✗ Workflow connectivity test failed:', testResult.error);
+        logger.error('runIntegrationTest', 'Workflow connectivity test failed', { error: testResult.error });
         return false;
       }
 
       // Test full analysis
       const analysisResult = await graph.analyzeAndDecide('AAPL', '2025-08-24');
-      console.log('Analysis Result:', {
+      logger.info('runIntegrationTest', 'Full analysis test completed successfully', {
         decision: analysisResult.decision,
         confidence: analysisResult.confidence,
         reasoningCount: analysisResult.reasoning.length
       });
-      console.log('✓ Full analysis test completed successfully');
 
-      console.log('\n🎉 All Enhanced Trading Agents Graph tests passed!');
+      logger.info('runIntegrationTest', '🎉 All Enhanced Trading Agents Graph tests passed!');
       return true;
     } catch (error) {
-      console.error('\n❌ Enhanced Trading Agents Graph test failed:', error);
+      logger.error('runIntegrationTest', 'Enhanced Trading Agents Graph test failed', { 
+        error: error instanceof Error ? error.message : String(error) 
+      });
       return false;
     }
   }

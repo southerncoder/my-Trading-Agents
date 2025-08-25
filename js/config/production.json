@@ -1,0 +1,156 @@
+{
+  "production": {
+    "name": "Trading Agents Production",
+    "version": "1.0.0",
+    "environment": "production",
+    
+    "logging": {
+      "level": "info",
+      "format": "json",
+      "file": "/app/logs/trading-agents.log",
+      "maxFiles": "14d",
+      "maxSize": "50m",
+      "rotate": true
+    },
+    
+    "performance": {
+      "maxConcurrentRequests": 5,
+      "requestTimeout": 30000,
+      "retryAttempts": 3,
+      "retryDelay": 1000,
+      "cacheEnabled": true,
+      "cacheTTL": 300
+    },
+    
+    "rateLimit": {
+      "enabled": true,
+      "requests": 100,
+      "windowMs": 60000,
+      "skipSuccessfulRequests": true
+    },
+    
+    "security": {
+      "apiKeyRotation": true,
+      "encryptSensitiveData": true,
+      "inputValidation": true,
+      "sanitizeOutput": true
+    },
+    
+    "monitoring": {
+      "healthCheck": {
+        "enabled": true,
+        "interval": 30000,
+        "timeout": 5000
+      },
+      "metrics": {
+        "enabled": true,
+        "endpoint": "/metrics",
+        "includeSystemMetrics": true
+      },
+      "alerts": {
+        "errorThreshold": 5,
+        "responseTimeThreshold": 10000,
+        "memoryThreshold": 80
+      }
+    },
+    
+    "llm": {
+      "providers": {
+        "openai": {
+          "timeout": 30000,
+          "maxRetries": 3,
+          "rateLimit": 60
+        },
+        "anthropic": {
+          "timeout": 30000,
+          "maxRetries": 3,
+          "rateLimit": 50
+        },
+        "google": {
+          "timeout": 30000,
+          "maxRetries": 3,
+          "rateLimit": 60
+        },
+        "lm_studio": {
+          "timeout": 30000,
+          "maxRetries": 2,
+          "rateLimit": 30
+        }
+      },
+      "fallbackStrategy": "graceful_degradation",
+      "circuitBreaker": {
+        "enabled": true,
+        "failureThreshold": 5,
+        "timeout": 60000
+      }
+    },
+    
+    "dataProviders": {
+      "finnhub": {
+        "timeout": 15000,
+        "maxRetries": 3,
+        "rateLimit": 60
+      },
+      "yahooFinance": {
+        "timeout": 15000,
+        "maxRetries": 3,
+        "rateLimit": 100
+      },
+      "reddit": {
+        "timeout": 10000,
+        "maxRetries": 2,
+        "rateLimit": 60
+      },
+      "googleNews": {
+        "timeout": 10000,
+        "maxRetries": 2,
+        "rateLimit": 100
+      }
+    },
+    
+    "features": {
+      "webInterface": false,
+      "apiEndpoints": false,
+      "realTimeUpdates": false,
+      "historicalAnalysis": true,
+      "exportResults": true
+    }
+  },
+  
+  "staging": {
+    "name": "Trading Agents Staging",
+    "environment": "staging",
+    "logging": {
+      "level": "debug"
+    },
+    "performance": {
+      "maxConcurrentRequests": 3
+    },
+    "features": {
+      "webInterface": true,
+      "apiEndpoints": true
+    }
+  },
+  
+  "development": {
+    "name": "Trading Agents Development",
+    "environment": "development",
+    "logging": {
+      "level": "debug",
+      "format": "simple"
+    },
+    "performance": {
+      "maxConcurrentRequests": 2,
+      "cacheEnabled": false
+    },
+    "security": {
+      "apiKeyRotation": false,
+      "encryptSensitiveData": false
+    },
+    "features": {
+      "webInterface": true,
+      "apiEndpoints": true,
+      "realTimeUpdates": true
+    }
+  }
+}

@@ -1,6 +1,4 @@
 import { AgentState } from './agent-states';
-import { FinancialSituationMemory } from './memory';
-import { TradingAgentsConfig } from '@/types/config';
 
 /**
  * Common utilities for trading agents

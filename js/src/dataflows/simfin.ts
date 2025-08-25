@@ -77,7 +77,7 @@ export class SimFinAPI {
   /**
    * Fetch financial statement data
    */
-  private async fetchFinancialStatement(ticker: string, freq: 'annual' | 'quarterly', currDate: string, statementType: string): Promise<FinancialStatement | null> {
+  private async fetchFinancialStatement(ticker: string, _freq: 'annual' | 'quarterly', _currDate: string, _statementType: string): Promise<FinancialStatement | null> {
     // Placeholder implementation
     // In production, this would read from SimFin CSV files or API
     return {

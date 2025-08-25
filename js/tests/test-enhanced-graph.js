@@ -4,7 +4,7 @@
  * Test script for Enhanced Trading Agents Graph
  */
 
-const { EnhancedTradingAgentsGraph } = require('../dist/graph/enhanced-trading-graph');
+import { EnhancedTradingAgentsGraph } from '../dist/graph/enhanced-trading-graph.js';
 
 async function runTest() {
   try {
