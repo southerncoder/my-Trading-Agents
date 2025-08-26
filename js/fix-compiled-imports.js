@@ -5,8 +5,8 @@
  * This is required for ES modules to work properly in Node.js
  */
 
-import { readdir, readFile, writeFile } from 'fs/promises';
-import { join, dirname } from 'path';
+import { readdir, readFile, writeFile, stat } from 'fs/promises';
+import { join, dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -26,38 +26,80 @@ async function addJSExtensionsInDirectory(dir) {
   }
 }
 
+async function resolveImportPath(importPath, currentFilePath) {
+  const currentDir = dirname(currentFilePath);
+  const resolvedPath = resolve(currentDir, importPath);
+  
+  // Check if it's a directory import (should resolve to index.js)
+  try {
+    const stats = await stat(resolvedPath);
+    if (stats.isDirectory()) {
+      const indexPath = join(resolvedPath, 'index.js');
+      try {
+        await stat(indexPath);
+        return `${importPath}/index.js`;
+      } catch {
+        // No index.js found, fallback to .js extension
+        return `${importPath}.js`;
+      }
+    }
+  } catch {
+    // Path doesn't exist as directory, try as file
+  }
+  
+  // Check if the file exists with .js extension
+  try {
+    await stat(`${resolvedPath}.js`);
+    return `${importPath}.js`;
+  } catch {
+    // Return original path if we can't resolve it
+    return importPath;
+  }
+}
+
 async function addJSExtensionsInFile(filePath) {
   try {
     const content = await readFile(filePath, 'utf-8');
+    let fixedContent = content;
+    let hasChanges = false;
     
-    // Add .js extensions to relative imports that don't already have them
-    const fixedContent = content
-      .replace(/from\s+['"`](\.\.[^'"`]*?)['"`]/g, (match, path) => {
-        if (path.endsWith('.js') || path.includes('node_modules')) {
-          return match;
-        }
-        return match.replace(path, `${path}.js`);
-      })
-      .replace(/from\s+['"`](\.[^'"`]*?)['"`]/g, (match, path) => {
-        if (path.endsWith('.js') || path.includes('node_modules')) {
-          return match;
-        }
-        return match.replace(path, `${path}.js`);
-      })
-      .replace(/import\s*\(\s*['"`](\.\.[^'"`]*?)['"`]\s*\)/g, (match, path) => {
-        if (path.endsWith('.js')) {
-          return match;
-        }
-        return match.replace(path, `${path}.js`);
-      })
-      .replace(/import\s*\(\s*['"`](\.[^'"`]*?)['"`]\s*\)/g, (match, path) => {
-        if (path.endsWith('.js')) {
-          return match;
-        }
-        return match.replace(path, `${path}.js`);
-      });
+    // Process relative imports starting with ../ or ./
+    const importRegex = /from\s+['"`](\.\.?[^'"`]*?)['"`]/g;
+    let match;
     
-    if (content !== fixedContent) {
+    while ((match = importRegex.exec(content)) !== null) {
+      const originalPath = match[1];
+      
+      // Skip if already has extension or is node_modules
+      if (originalPath.endsWith('.js') || originalPath.includes('node_modules')) {
+        continue;
+      }
+      
+      const resolvedPath = await resolveImportPath(originalPath, filePath);
+      if (resolvedPath !== originalPath) {
+        fixedContent = fixedContent.replace(match[0], match[0].replace(originalPath, resolvedPath));
+        hasChanges = true;
+      }
+    }
+    
+    // Process dynamic imports
+    const dynamicImportRegex = /import\s*\(\s*['"`](\.\.?[^'"`]*?)['"`]\s*\)/g;
+    
+    while ((match = dynamicImportRegex.exec(content)) !== null) {
+      const originalPath = match[1];
+      
+      if (originalPath.endsWith('.js')) {
+        continue;
+      }
+      
+      const resolvedPath = await resolveImportPath(originalPath, filePath);
+      if (resolvedPath !== originalPath) {
+        fixedContent = fixedContent.replace(match[0], match[0].replace(originalPath, resolvedPath));
+        hasChanges = true;
+      }
+    }
+    
+    if (hasChanges) {
       await writeFile(filePath, fixedContent, 'utf-8');
       console.log(`Added .js extensions in: ${filePath}`);
     }
