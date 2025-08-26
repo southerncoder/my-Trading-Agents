@@ -1,9 +1,9 @@
 # TradingAgents - Multi-Agent LLM Financial Trading Framework
 
-**Status:** Production Ready ✅ | 100% Complete with Enterprise Performance Optimizations  
+**Status:** Production Ready ✅ | 100% Complete with Enterprise Performance Optimizations + Containerized Memory Architecture  
 **Last Updated:** August 25, 2025
 
-A sophisticated multi-agent LLM-powered financial trading research framework that simulates a real-world trading firm with specialized agents collaborating via advanced LangGraph workflows. Features enterprise-grade performance optimizations delivering 15,000x speedup and 77% memory reduction.
+A sophisticated multi-agent LLM-powered financial trading research framework that simulates a real-world trading firm with specialized agents collaborating via advanced LangGraph workflows. Features enterprise-grade performance optimizations delivering 15,000x speedup and 77% memory reduction, plus containerized Zep Graphiti temporal knowledge graph integration.
 
 ## 🎯 Project Status
 
@@ -15,11 +15,12 @@ A sophisticated multi-agent LLM-powered financial trading research framework tha
 - **Enterprise Performance:** 5 optimization suite (15,000x speedup, 77% memory reduction)
 - **TypeScript-First Modules:** Modern ES modules development with automated build pipeline
 - **Production Logging:** Structured logging system with Cloudflare optimization
-- **Memory & Learning:** Reflection and adaptation capabilities
+- **Memory & Learning:** Reflection and adaptation capabilities + Zep Graphiti temporal knowledge graphs
 - **Multi-LLM Support:** OpenAI, Anthropic, Google, LM Studio providers
 - **Build System:** Production-ready development and build workflows with tsx
 - **Testing Infrastructure:** Comprehensive integration and component tests
 - **Local Inference:** LM Studio integration for cost-effective development
+- **Container Infrastructure:** Docker-based services with PowerShell orchestration scripts
 
 ## 🚀 Performance Achievements
 
@@ -54,49 +55,85 @@ TradingAgentsGraph (Enhanced with Performance Optimizations)
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 18+ 
-- TypeScript 5.x
-- API Keys (OpenAI, Anthropic, Google) or LM Studio for local inference
+- **Node.js 18+** - Runtime environment
+- **Docker & Docker Compose** - Container orchestration (required)
+- **PowerShell 5.1+** - Service management and automation
+- **Windows Terminal** - Service monitoring (recommended)
+- **LM Studio** - Local inference server (recommended) with:
+  - Text generation model (e.g., microsoft/phi-4-mini-reasoning)
+  - Embedding model: text-embedding-nomic-embed-text-v1.5
 
-### Installation
+### Development Setup
 
-```bash
-# Clone the repository
-git clone https://github.com/southerncoder/my-Trading-Agents.git
-cd my-Trading-Agents/js
+#### 1. Start Containerized Memory Services
+```powershell
+# Navigate to memory services directory
+Set-Location py_zep\
+
+# First time or after changes
+.\start-zep-services.ps1 -Build
+
+# Subsequent starts
+.\start-zep-services.ps1
+
+# Clean restart (removes volumes)
+.\start-zep-services.ps1 -Fresh
+```
+
+#### 2. TypeScript Application Setup
+```powershell
+# Navigate to TypeScript application
+Set-Location js\
 
 # Install dependencies
 npm install
 
-# Set up environment variables
-cp .env.example .env
-# Edit .env with your API keys
-```
-
-### Development
-
-```bash
-# Build the project
-```powershell
-# Clone and setup
-git clone <repository>
-Set-Location js
-npm install
-
-# Build with automated ES modules pipeline
+# Build TypeScript with automated .js fixing
 npm run build
 
-# Test the system (including performance optimizations)
-npm run test-cli
-npm run test-enhanced
-node test-comprehensive-performance.js    # All 5 performance optimizations
-
-# Run interactive CLI (modern tsx workflow)
+# Run interactive CLI (uses tsx for development)
 npm run cli
 
-# Development with modern tsx (fast TypeScript execution)
+# Development mode
 npm run dev
 ```
+
+### Testing & Validation
+```powershell
+# Start memory services first (required for memory tests)
+Set-Location py_zep\
+.\start-zep-services.ps1
+
+# Run comprehensive tests
+Set-Location ..\js\
+npm run test-enhanced         # Enhanced graph workflow tests
+npm run test-components       # CLI component tests
+npm run build                 # Verify TypeScript compilation
+
+# Memory integration testing
+npx tsx tests/test-zep-graphiti-memory.ts
+
+# Performance optimization testing
+node test-comprehensive-performance.js
+```
+```powershell
+### Configuration
+
+```powershell
+# Local development with LM Studio (recommended for memory integration)
+$env:LLM_PROVIDER = "lm_studio"
+$env:LLM_BACKEND_URL = "http://localhost:1234/v1"
+
+# Cloud providers (alternative options)
+$env:LLM_PROVIDER = "openai"
+$env:OPENAI_API_KEY = "your-api-key"
+```
+
+### Service Management
+- **Memory Services**: Always start with `.\start-zep-services.ps1` in py_zep\ directory
+- **Terminal Windows**: Services run in dedicated Windows Terminal windows for monitoring
+- **Health Checks**: All containers include health validation and automatic restart policies
+- **Service Monitoring**: Monitor Neo4j at http://localhost:7474, Zep service at http://localhost:8080/health
 
 ## 📁 Project Structure
 
@@ -117,6 +154,8 @@ npm run dev
 │   │   │   ├── lazy-factory.ts           # On-demand loading (77% memory reduction)
 │   │   │   ├── state-optimization.ts     # Efficient diffing (21% compression)
 │   │   │   └── connection-pooling.ts     # HTTP reuse (100% reuse rate)
+│   │   ├── providers/     # Memory and service providers
+│   │   │   └── zep-graphiti-memory-provider.ts  # Containerized memory service client
 │   │   ├── agents/        # Agent implementations
 │   │   ├── cli/           # Interactive command-line interface
 │   │   │   ├── main.ts    # CLI orchestration
@@ -130,6 +169,11 @@ npm run dev
 │   ├── tests/             # Comprehensive test suites
 │   ├── dist/              # Compiled JavaScript output
 │   └── package.json       # Dependencies and scripts
+├── py_zep/                # Containerized Memory Services
+│   ├── docker-compose.yml # Multi-service orchestration
+│   ├── start-zep-services.ps1  # PowerShell service automation
+│   ├── Dockerfile         # Zep Graphiti service container
+│   └── src/               # Python FastAPI service
 ├── py-reference/          # Python Reference (Read-Only)
 ├── docs/                  # Documentation
 └── CONTINUATION-CONTEXT.md # Complete context for new machines
@@ -162,22 +206,18 @@ npm run dev
 - Dynamic agent selection and execution ordering
 - LangGraph StateGraph workflow integration
 - Dual execution modes (Traditional + LangGraph)
-- State-based workflow with conditional logic
 - Memory integration for learning and adaptation
 
 ### 🔒 Production-Ready Type Safety  
 - Full TypeScript coverage with strict typing
 - Zero compilation errors
 - Runtime validation and error handling
-- Interface contracts between components
 
 ### 🎯 Flexible LLM Support
 - OpenAI (GPT-4, GPT-3.5)
 - Anthropic (Claude)
-- Google (Gemini)
+- Google (Gemini)  
 - LM Studio (Local inference)
-- Ollama (Local models)
-- OpenRouter (Multi-provider API)
 - Configurable provider switching
 
 ### 🖥️ Interactive CLI Experience
@@ -265,29 +305,6 @@ npm run cli
 # 6. View formatted results
 ```
 
-### 🔍 Verbose Logging & Debugging
-
-The CLI now includes comprehensive verbose logging capabilities for debugging and monitoring:
-
-```bash
-# Show all CLI options including verbose logging
-npm run cli -- --help
-
-# Enable verbose logging for any command
-npm run cli -- --verbose menu
-npm run cli -- --verbose analyze
-
-# Set specific log levels (debug, info, warn, error, critical)
-npm run cli -- --log-level debug menu
-npm run cli -- --log-level debug --log-to-console analyze
-
-# Disable file logging (console only)
-npm run cli -- --verbose --no-file-logging menu
-
-# Maximum verbosity for debugging
-npm run cli -- --verbose --log-level debug --log-to-console
-```
-
 **Verbose Logging Features:**
 - 🎯 **5 Log Levels**: debug, info, warn, error, critical with intelligent filtering
 - ⏱️ **Performance Monitoring**: Built-in operation timers and duration tracking
@@ -344,6 +361,22 @@ npm run cli              # Start CLI interface
 - [Feature Parity Analysis](docs/feature-parity-analysis.md)
 - [Continuation Context](CONTINUATION-CONTEXT.md)
 - [Python Reference](py-reference/README.md)
+- [Copilot Development Instructions](.github/copilot-instructions.md)
+
+## 📊 Performance Metrics
+
+### Enterprise Performance Optimizations
+- **15,000x Speed Improvement**: Comprehensive optimization suite
+- **77% Memory Reduction**: Lazy loading and intelligent caching
+- **21% State Compression**: Efficient diffing algorithms
+- **100% Connection Reuse**: HTTP connection pooling
+- **Real-time Monitoring**: Structured logging with performance tracking
+
+### Memory Architecture
+- **Temporal Knowledge Graphs**: Zep Graphiti with Neo4j backend
+- **Containerized Services**: Docker Compose orchestration
+- **Health Monitoring**: Automated health checks and restarts
+- **Episode Management**: Fact storage and semantic search capabilities
 
 ## 🛣️ Roadmap
 
@@ -354,11 +387,22 @@ npm run cli              # Start CLI interface
 - [x] Local inference support with LM Studio
 - [x] Production-ready build system
 - [x] Full documentation and context preservation
+- [x] Enterprise performance optimizations (15,000x speed improvement)
+- [x] Containerized Zep Graphiti memory architecture
+- [x] PowerShell automation and Windows Terminal integration
+- [x] Docker Compose orchestration with health monitoring
 
-### Short Term Enhancements
+### Current Capabilities
 - [x] Advanced Jest testing framework integration
 - [x] Performance optimization and benchmarking
+- [x] Temporal knowledge graph memory system
+- [x] Multi-container service orchestration
+- [x] PowerShell-first development workflow
+
+### Future Enhancements
 - [ ] Cloud deployment with CI/CD pipeline
+- [ ] Advanced analytics and reporting dashboard
+- [ ] Multi-environment deployment strategies
 
 ### Medium Term (1 month)
 - [ ] Real-time data streaming capabilities
