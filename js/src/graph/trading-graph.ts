@@ -158,11 +158,11 @@ export class TradingAgentsGraph {
           throw new Error('Google API key is required for Google provider');
         }
         this.deepThinkingLLM = new ChatGoogleGenerativeAI({
-          modelName: this.config.deepThinkLlm,
+          model: this.config.deepThinkLlm,
           apiKey: this.config.googleApiKey
         });
         this.quickThinkingLLM = new ChatGoogleGenerativeAI({
-          modelName: this.config.quickThinkLlm,
+          model: this.config.quickThinkLlm,
           apiKey: this.config.googleApiKey
         });
         break;

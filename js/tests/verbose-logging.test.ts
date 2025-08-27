@@ -30,8 +30,9 @@ describe('Verbose Logging Integration Tests', () => {
     // Store original log level
     originalLogLevel = getGlobalLogLevel();
     
-    // Get fresh instance
+    // Get fresh instance and reset to defaults
     loggingManager = LoggingManager.getInstance();
+    loggingManager.resetToDefaults();
     
     // Spy on console methods
     consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
@@ -191,11 +192,12 @@ describe('Verbose Logging Integration Tests', () => {
   describe('Log Level Filtering', () => {
     it('should filter logs based on log level - info level', () => {
       loggingManager.setVerboseMode(true, 'info');
+      consoleLogSpy.mockClear(); // Clear configuration messages
       
       // This should log (info level)
       loggingManager.logOperationStart('info-operation');
       expect(consoleLogSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Starting: info-operation')
+        expect.stringContaining('🚀 Starting: info-operation')
       );
       
       // This should not log (debug level but current level is info)
@@ -206,6 +208,7 @@ describe('Verbose Logging Integration Tests', () => {
 
     it('should filter logs based on log level - warn level', () => {
       loggingManager.setVerboseMode(true, 'warn');
+      consoleLogSpy.mockClear(); // Clear configuration messages
       
       // Info operations should not log
       loggingManager.logOperationStart('info-operation');
@@ -218,6 +221,7 @@ describe('Verbose Logging Integration Tests', () => {
 
     it('should log everything in debug mode', () => {
       loggingManager.setVerboseMode(true, 'debug');
+      consoleLogSpy.mockClear(); // Clear configuration messages
       
       loggingManager.logOperationStart('debug-operation');
       loggingManager.logApiCall('/api/debug', 'GET', 200, 50);

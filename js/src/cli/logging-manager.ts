@@ -173,6 +173,31 @@ export class LoggingManager {
     this.applyLoggingConfiguration(this.currentOptions);
   }
 
+  /**
+   * Set verbose mode without console output (for testing)
+   */
+  public setVerboseModeQuiet(enabled: boolean, logLevel?: 'debug' | 'info' | 'warn' | 'error' | 'critical'): void {
+    this.currentOptions.verboseLogging = enabled;
+    if (logLevel) {
+      this.currentOptions.logLevel = logLevel;
+    }
+    // Set global log level without logging the configuration change
+    setGlobalLogLevel(this.currentOptions.logLevel);
+  }
+
+  /**
+   * Reset to default configuration (for testing)
+   */
+  public resetToDefaults(): void {
+    this.currentOptions = {
+      verboseLogging: false,
+      logLevel: 'info',
+      enableFileLogging: true,
+      logToConsole: true
+    };
+    setGlobalLogLevel('info');
+  }
+
   public isVerboseEnabled(): boolean {
     return this.currentOptions.verboseLogging;
   }
@@ -213,7 +238,17 @@ export class LoggingManager {
       if (this.currentOptions.logToConsole && ['debug', 'info'].includes(this.currentOptions.logLevel)) {
         console.log(chalk.blue(`\n🚀 Starting: ${operation}`));
         if (details && this.currentOptions.logLevel === 'debug') {
-          console.log(chalk.gray(`   Details: ${JSON.stringify(details, null, 2)}`));
+          try {
+            console.log(chalk.gray(`   Details: ${JSON.stringify(details, (key, value) => {
+              if (typeof value === 'object' && value !== null) {
+                if (value === details) return '[Circular]';
+                if (Object.prototype.hasOwnProperty.call(value, 'self') && value.self === value) return '[Circular]';
+              }
+              return value;
+            }, 2)}`));
+          } catch (error) {
+            console.log(chalk.gray(`   Details: [Serialization error: ${(error as Error).message}]`));
+          }
         }
       }
     }
