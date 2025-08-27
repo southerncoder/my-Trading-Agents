@@ -20,7 +20,7 @@ import { HistoricalAnalyzer } from './historical-analyzer';
 import { LoggingManager, configureVerboseLogging, logSystemInfo, createOperationTimer } from './logging-manager';
 import { mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
-import inquirer from 'inquirer';
+import { select, confirm, Separator } from '@inquirer/prompts';
 
 export class TradingAgentsCLI {
   private display: DisplaySystem;
@@ -40,23 +40,19 @@ export class TradingAgentsCLI {
   public async showMainMenu(): Promise<void> {
     this.display.displayWelcome();
 
-    const { action } = await inquirer.prompt([
-      {
-        type: 'list',
-        name: 'action',
-        message: 'What would you like to do?',
-        choices: [
-          { name: '🚀 Run New Analysis - Analyze a stock with LLM agents', value: 'analyze' },
-          { name: '📊 Historical Analysis - Review and analyze past results', value: 'historical' },
-          { name: '📤 Export Results - Export analysis data in various formats', value: 'export' },
-          { name: '⚙️  Manage Configurations - Save and load analysis configurations', value: 'config' },
-          { name: '🔧 Configure Verbose Logging - Set up detailed logging for debugging', value: 'logging' },
-          new inquirer.Separator(),
-          { name: '❌ Exit', value: 'exit' }
-        ],
-        pageSize: 10
-      }
-    ]);
+    const action = await select({
+      message: 'What would you like to do?',
+      choices: [
+        { name: '🚀 Run New Analysis - Analyze a stock with LLM agents', value: 'analyze' },
+        { name: '📊 Historical Analysis - Review and analyze past results', value: 'historical' },
+        { name: '📤 Export Results - Export analysis data in various formats', value: 'export' },
+        { name: '⚙️  Manage Configurations - Save and load analysis configurations', value: 'config' },
+        { name: '🔧 Configure Verbose Logging - Set up detailed logging for debugging', value: 'logging' },
+        new Separator(),
+        { name: '❌ Exit', value: 'exit' }
+      ],
+      pageSize: 10
+    });
 
     switch (action) {
       case 'analyze':
@@ -87,18 +83,14 @@ export class TradingAgentsCLI {
 
   public async getUserSelections(): Promise<UserSelections> {
     // First check if user wants to load a saved configuration
-    const { useConfig } = await inquirer.prompt([
-      {
-        type: 'list',
-        name: 'useConfig',
-        message: 'Configuration Options:',
-        choices: [
-          { name: '📋 Load Saved Configuration', value: 'load' },
-          { name: '🚀 Use Default Configuration (if available)', value: 'default' },
-          { name: '⚙️  Create New Configuration', value: 'new' }
-        ]
-      }
-    ]);
+    const useConfig = await select({
+      message: 'Configuration Options:',
+      choices: [
+        { name: '📋 Load Saved Configuration', value: 'load' },
+        { name: '🚀 Use Default Configuration (if available)', value: 'default' },
+        { name: '⚙️  Create New Configuration', value: 'new' }
+      ]
+    });
 
     let selections: UserSelections | null = null;
 
@@ -118,39 +110,27 @@ export class TradingAgentsCLI {
       console.log(chalk.gray(`  Provider: ${selections.llmProvider}`));
       console.log(chalk.gray(`  Analysts: ${selections.analysts.join(', ')}`));
       
-      const { useLoaded } = await inquirer.prompt([
-        {
-          type: 'confirm',
-          name: 'useLoaded',
-          message: 'Use this configuration?',
-          default: true
-        }
-      ]);
+      const useLoaded = await confirm({
+        message: 'Use this configuration?',
+        default: true
+      });
 
       if (useLoaded) {
         // Update date to today by default, but allow user to change
-        const { updateDate } = await inquirer.prompt([
-          {
-            type: 'confirm',
-            name: 'updateDate',
-            message: 'Update analysis date to today?',
-            default: true
-          }
-        ]);
+        const updateDate = await confirm({
+          message: 'Update analysis date to today?',
+          default: true
+        });
 
         if (updateDate) {
           selections.analysisDate = new Date().toISOString().split('T')[0]!;
         }
 
         // Allow ticker override
-        const { changeTicker } = await inquirer.prompt([
-          {
-            type: 'confirm',
-            name: 'changeTicker',
-            message: 'Change ticker symbol?',
-            default: false
-          }
-        ]);
+        const changeTicker = await confirm({
+          message: 'Change ticker symbol?',
+          default: false
+        });
 
         if (changeTicker) {
           this.display.createQuestionBox(
@@ -232,14 +212,10 @@ export class TradingAgentsCLI {
     };
 
     // Ask if user wants to save this configuration
-    const { saveConfig } = await inquirer.prompt([
-      {
-        type: 'confirm',
-        name: 'saveConfig',
-        message: 'Save this configuration for future use?',
-        default: true
-      }
-    ]);
+    const saveConfig = await confirm({
+      message: 'Save this configuration for future use?',
+      default: true
+    });
 
     if (saveConfig) {
       await this.configManager.saveConfig(selections);

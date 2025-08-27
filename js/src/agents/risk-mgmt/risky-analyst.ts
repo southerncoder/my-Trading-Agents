@@ -1,4 +1,5 @@
-import { HumanMessage, SystemMessage } from '@langchain/core/messages';
+
+import { logger } from '../../utils/enhanced-logger.js';import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { StructuredTool } from '@langchain/core/tools';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AbstractAgent } from '../base';
@@ -73,7 +74,11 @@ export class RiskyAnalyst extends AbstractAgent {
         sender: this.name,
       };
     } catch (error) {
-      console.error(`Error in ${this.name}:`, error);
+      logger.error('agent', this.name, 'execution', `Error in ${this.name}`, { 
+        error: error instanceof Error ? error.message : String(error),
+        agentName: this.name,
+        operation: 'processMessage'
+      });
       throw new Error(`${this.name} failed to process: ${error}`);
     }
   }

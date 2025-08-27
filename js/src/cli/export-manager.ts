@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync, readdirSync, statSync } from 'fs';
 import { join, basename } from 'path';
 import chalk from 'chalk';
-import inquirer from 'inquirer';
+import { input, select, checkbox, confirm } from '@inquirer/prompts';
 import { createLogger } from '../utils/enhanced-logger';
 
 const logger = createLogger('cli', 'export-manager');
@@ -59,20 +59,16 @@ export class ExportManager {
         return;
       }
 
-      const { exportPath } = await inquirer.prompt([
-        {
-          type: 'input',
-          name: 'exportPath',
-          message: 'Enter export file path:',
-          default: `tradingagents-export-${new Date().toISOString().split('T')[0]}.${options.format}`,
-          validate: (input: string) => {
-            if (input.trim().length === 0) {
-              return 'Please enter a valid file path.';
-            }
-            return true;
+      const exportPath = await input({
+        message: 'Enter export file path:',
+        default: `tradingagents-export-${new Date().toISOString().split('T')[0]}.${options.format}`,
+        validate: (input: string) => {
+          if (input.trim().length === 0) {
+            return 'Please enter a valid file path.';
           }
+          return true;
         }
-      ]);
+      });
 
       await this.performExport(filteredResults, options, exportPath);
       console.log(chalk.green(`✓ Successfully exported ${filteredResults.length} results to: ${exportPath}`));
@@ -247,91 +243,73 @@ export class ExportManager {
     const minDate = dates[0] || '';
     const maxDate = dates[dates.length - 1] || '';
 
-    const { format, includeReports, includeMetadata, useFilters } = await inquirer.prompt([
-      {
-        type: 'list',
-        name: 'format',
-        message: 'Select export format:',
-        choices: [
-          { name: 'JSON - Machine readable format', value: 'json' },
-          { name: 'CSV - Spreadsheet compatible', value: 'csv' },
-          { name: 'Markdown - Human readable', value: 'markdown' },
-          { name: 'HTML - Web format', value: 'html' }
-        ]
-      },
-      {
-        type: 'confirm',
-        name: 'includeReports',
-        message: 'Include detailed reports?',
-        default: true
-      },
-      {
-        type: 'confirm',
-        name: 'includeMetadata',
-        message: 'Include analysis metadata?',
-        default: true
-      },
-      {
-        type: 'confirm',
-        name: 'useFilters',
-        message: 'Apply filters to results?',
-        default: false
-      }
-    ]);
+    const format = await select({
+      message: 'Select export format:',
+      choices: [
+        { name: 'JSON - Machine readable format', value: 'json' },
+        { name: 'CSV - Spreadsheet compatible', value: 'csv' },
+        { name: 'Markdown - Human readable', value: 'markdown' },
+        { name: 'HTML - Web format', value: 'html' }
+      ]
+    }) as 'json' | 'csv' | 'markdown' | 'html';
+
+    const includeReports = await confirm({
+      message: 'Include detailed reports?',
+      default: true
+    });
+
+    const includeMetadata = await confirm({
+      message: 'Include analysis metadata?',
+      default: true
+    });
+
+    const useFilters = await confirm({
+      message: 'Apply filters to results?',
+      default: false
+    });
 
     let dateRange: { start: string; end: string } | undefined;
     let selectedTickers: string[] | undefined;
 
     if (useFilters) {
-      const filterOptions = await inquirer.prompt([
-        {
-          type: 'confirm',
-          name: 'filterByDate',
-          message: 'Filter by date range?',
-          default: false
-        },
-        {
-          type: 'confirm',
-          name: 'filterByTicker',
-          message: 'Filter by specific tickers?',
-          default: false
-        }
-      ]);
+      const filterByDate = await confirm({
+        message: 'Filter by date range?',
+        default: false
+      });
 
-      if (filterOptions.filterByDate) {
-        const dateFilter = await inquirer.prompt([
-          {
-            type: 'input',
-            name: 'startDate',
-            message: 'Start date (YYYY-MM-DD):',
-            default: minDate,
-            validate: (input: string) => /^\d{4}-\d{2}-\d{2}$/.test(input) || 'Please enter date in YYYY-MM-DD format'
-          },
-          {
-            type: 'input',
-            name: 'endDate',
-            message: 'End date (YYYY-MM-DD):',
-            default: maxDate,
-            validate: (input: string) => /^\d{4}-\d{2}-\d{2}$/.test(input) || 'Please enter date in YYYY-MM-DD format'
-          }
-        ]);
+      const filterByTicker = await confirm({
+        message: 'Filter by specific tickers?',
+        default: false
+      });
+
+      if (filterByDate) {
+        const startDate = await input({
+          message: 'Start date (YYYY-MM-DD):',
+          default: minDate,
+          validate: (input: string) => /^\d{4}-\d{2}-\d{2}$/.test(input) || 'Please enter date in YYYY-MM-DD format'
+        });
+
+        const endDate = await input({
+          message: 'End date (YYYY-MM-DD):',
+          default: maxDate,
+          validate: (input: string) => /^\d{4}-\d{2}-\d{2}$/.test(input) || 'Please enter date in YYYY-MM-DD format'
+        });
 
         dateRange = {
-          start: dateFilter.startDate,
-          end: dateFilter.endDate
+          start: startDate,
+          end: endDate
         };
       }
 
-      if (filterOptions.filterByTicker) {
-        const { tickerSelection } = await inquirer.prompt([
-          {
-            type: 'checkbox',
-            name: 'tickerSelection',
-            message: 'Select tickers to include:',
-            choices: tickers.map(ticker => ({ name: ticker, value: ticker })),
-            validate: (choices: string[]) => choices.length > 0 || 'Please select at least one ticker'
-          }
-        ]);
+      if (filterByTicker) {
+        const tickerSelection = await checkbox({
+          message: 'Select tickers to include:',
+          choices: tickers.map(ticker => ({ name: ticker, value: ticker }))
+        });
+
+        if (tickerSelection.length === 0) {
+          throw new Error('Please select at least one ticker');
+        }
 
         selectedTickers = tickerSelection;
       }

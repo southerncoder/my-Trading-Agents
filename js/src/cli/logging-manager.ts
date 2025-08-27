@@ -1,4 +1,4 @@
-import inquirer from 'inquirer';
+import { confirm, select } from '@inquirer/prompts';
 import chalk from 'chalk';
 import { createLogger, setGlobalLogLevel, getGlobalLogLevel } from '../utils/enhanced-logger';
 
@@ -67,50 +67,37 @@ export class LoggingManager {
     console.log(chalk.blue('\n🔧 Logging Configuration'));
     console.log(chalk.gray('Configure detailed logging for debugging and monitoring\n'));
 
-    const { enableVerbose } = await inquirer.prompt([
-      {
-        type: 'confirm',
-        name: 'enableVerbose',
-        message: 'Enable verbose logging for this session?',
-        default: false
-      }
-    ]);
+    const enableVerbose = await confirm({
+      message: 'Enable verbose logging for this session?',
+      default: false
+    });
 
-    let logLevel: 'debug' | 'info' | 'warn' | 'error' | 'critical' = 'info';
-    let enableFileLogging = true;
-    let logToConsole = true;
+    let logLevel: 'debug' | 'info' | 'warn' | 'error' | 'critical';
+    let enableFileLogging: boolean;
+    let logToConsole: boolean;
 
     if (enableVerbose) {
-      const verboseOptions = await inquirer.prompt([
-        {
-          type: 'list',
-          name: 'logLevel',
-          message: 'Select logging level:',
-          choices: LOG_LEVEL_OPTIONS.map(option => ({
-            name: option.name,
-            value: option.value,
-            short: option.value.toUpperCase()
-          })),
-          default: 'info'
-        },
-        {
-          type: 'confirm',
-          name: 'enableFileLogging',
-          message: 'Save logs to file?',
-          default: true
-        },
-        {
-          type: 'confirm',
-          name: 'logToConsole',
-          message: 'Show logs in console output?',
-          default: true,
-          when: (answers) => answers.logLevel === 'debug'
-        }
-      ]);
+      const logLevel = await select({
+        message: 'Select logging level:',
+        choices: LOG_LEVEL_OPTIONS.map(option => ({
+          name: option.name,
+          value: option.value
+        })),
+        default: 'info'
+      }) as 'debug' | 'info' | 'warn' | 'error' | 'critical';
 
-      logLevel = verboseOptions.logLevel;
-      enableFileLogging = verboseOptions.enableFileLogging;
-      logToConsole = verboseOptions.logToConsole ?? true;
+      const enableFileLogging = await confirm({
+        message: 'Save logs to file?',
+        default: true
+      });
+
+      let logToConsole = true;
+      if (logLevel === 'debug') {
+        logToConsole = await confirm({
+          message: 'Show logs in console output?',
+          default: true
+        });
+      }
 
       // Show configuration summary
       console.log(chalk.green('\n✓ Verbose logging configuration:'));
@@ -122,13 +109,17 @@ export class LoggingManager {
       if (selectedOption) {
         console.log(chalk.gray(`  Description: ${selectedOption.description}`));
       }
+    } else {
+      logLevel = 'info';
+      enableFileLogging = true;
+      logToConsole = true;
     }
 
     this.currentOptions = {
       verboseLogging: enableVerbose,
-      logLevel,
-      enableFileLogging,
-      logToConsole
+      logLevel: logLevel!,
+      enableFileLogging: enableFileLogging!,
+      logToConsole: logToConsole!
     };
 
     // Apply the logging configuration
