@@ -79,7 +79,20 @@ export class EnhancedLogger {
           let log = `${timestamp} [${level.toUpperCase()}] ${context}:${component}:${operation} - ${message}`;
           if (traceId) log += ` (trace: ${traceId})`;
           if (metadata && Object.keys(metadata).length > 0) {
-            log += ` | ${JSON.stringify(metadata)}`;
+            try {
+              const seen = new WeakSet();
+              log += ` | ${JSON.stringify(metadata, (key, value) => {
+                if (typeof value === 'object' && value !== null) {
+                  if (seen.has(value)) {
+                    return '[Circular]';
+                  }
+                  seen.add(value);
+                }
+                return value;
+              })}`;
+            } catch (error) {
+              log += ` | [Metadata serialization error: ${(error as Error).message}]`;
+            }
           }
           return log;
         })

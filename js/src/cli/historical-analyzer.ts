@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import inquirer from 'inquirer';
+import { input, select, checkbox, Separator } from '@inquirer/prompts';
 import { createLogger } from '../utils/enhanced-logger';
 import { AnalysisResult, ExportManager } from './export-manager';
 
@@ -56,22 +56,18 @@ export class HistoricalAnalyzer {
         return;
       }
 
-      const { analysisType } = await inquirer.prompt([
-        {
-          type: 'list',
-          name: 'analysisType',
-          message: 'Select analysis type:',
-          choices: [
-            { name: '📈 Overall Summary - High-level statistics', value: 'summary' },
-            { name: '📊 Ticker Performance - Individual ticker analysis', value: 'ticker' },
-            { name: '🔄 Trend Analysis - Decision patterns over time', value: 'trends' },
-            { name: '📋 Comparative Analysis - Compare multiple tickers', value: 'compare' },
-            { name: '📅 Time Period Analysis - Analyze specific date ranges', value: 'period' },
-            new inquirer.Separator(),
-            { name: '🔙 Back to main menu', value: 'back' }
-          ]
-        }
-      ]);
+      const analysisType = await select({
+        message: 'Select analysis type:',
+        choices: [
+          { name: '📈 Overall Summary - High-level statistics', value: 'summary' },
+          { name: '📊 Ticker Performance - Individual ticker analysis', value: 'ticker' },
+          { name: '🔄 Trend Analysis - Decision patterns over time', value: 'trends' },
+          { name: '📋 Comparative Analysis - Compare multiple tickers', value: 'compare' },
+          { name: '📅 Time Period Analysis - Analyze specific date ranges', value: 'period' },
+          new Separator(),
+          { name: '🔙 Back to main menu', value: 'back' }
+        ]
+      });
 
       switch (analysisType) {
         case 'summary':
@@ -239,17 +235,13 @@ export class HistoricalAnalyzer {
       return;
     }
 
-    const { selectedTicker } = await inquirer.prompt([
-      {
-        type: 'list',
-        name: 'selectedTicker',
-        message: 'Select ticker to analyze:',
-        choices: tickers.map(ticker => {
-          const count = results.filter(r => r.ticker === ticker).length;
-          return { name: `${ticker} (${count} analyses)`, value: ticker };
-        })
-      }
-    ]);
+    const selectedTicker = await select({
+      message: 'Select ticker to analyze:',
+      choices: tickers.map(ticker => {
+        const count = results.filter(r => r.ticker === ticker).length;
+        return { name: `${ticker} (${count} analyses)`, value: ticker };
+      })
+    });
 
     const tickerResults = results.filter(r => r.ticker === selectedTicker);
     const trendAnalysis = this.analyzeTrendForTicker(selectedTicker, tickerResults);
@@ -424,18 +416,17 @@ export class HistoricalAnalyzer {
       return;
     }
 
-    const { selectedTickers } = await inquirer.prompt([
-      {
-        type: 'checkbox',
-        name: 'selectedTickers',
-        message: 'Select tickers to compare:',
-        choices: tickers.map(ticker => {
-          const count = results.filter(r => r.ticker === ticker).length;
-          return { name: `${ticker} (${count} analyses)`, value: ticker };
-        }),
-        validate: (choices: string[]) => choices.length >= 2 || 'Please select at least 2 tickers'
-      }
-    ]);
+    const selectedTickers = await checkbox({
+      message: 'Select tickers to compare:',
+      choices: tickers.map(ticker => {
+        const count = results.filter(r => r.ticker === ticker).length;
+        return { name: `${ticker} (${count} analyses)`, value: ticker };
+      })
+    });
+
+    if (selectedTickers.length < 2) {
+      throw new Error('Please select at least 2 tickers');
+    }
 
     console.log(chalk.bold('\n🔄 Ticker Comparison'));
     console.log('='.repeat(50));
@@ -473,22 +464,17 @@ export class HistoricalAnalyzer {
     const minDate = dates[0] || '';
     const maxDate = dates[dates.length - 1] || '';
 
-    const { startDate, endDate } = await inquirer.prompt([
-      {
-        type: 'input',
-        name: 'startDate',
-        message: 'Start date (YYYY-MM-DD):',
-        default: minDate,
-        validate: (input: string) => /^\d{4}-\d{2}-\d{2}$/.test(input) || 'Please enter date in YYYY-MM-DD format'
-      },
-      {
-        type: 'input',
-        name: 'endDate',
-        message: 'End date (YYYY-MM-DD):',
-        default: maxDate,
-        validate: (input: string) => /^\d{4}-\d{2}-\d{2}$/.test(input) || 'Please enter date in YYYY-MM-DD format'
-      }
-    ]);
+    const startDate = await input({
+      message: 'Start date (YYYY-MM-DD):',
+      default: minDate,
+      validate: (input: string) => /^\d{4}-\d{2}-\d{2}$/.test(input) || 'Please enter date in YYYY-MM-DD format'
+    });
+
+    const endDate = await input({
+      message: 'End date (YYYY-MM-DD):',
+      default: maxDate,
+      validate: (input: string) => /^\d{4}-\d{2}-\d{2}$/.test(input) || 'Please enter date in YYYY-MM-DD format'
+    });
 
     const periodResults = results.filter(r => r.analysisDate >= startDate && r.analysisDate <= endDate);
     
@@ -518,18 +504,14 @@ export class HistoricalAnalyzer {
   }
 
   private async promptForActions(_results: AnalysisResult[], _analysisType: string, _context?: string): Promise<void> {
-    const { action } = await inquirer.prompt([
-      {
-        type: 'list',
-        name: 'action',
-        message: 'What would you like to do next?',
-        choices: [
-          { name: '📤 Export this analysis', value: 'export' },
-          { name: '🔄 Run another analysis', value: 'another' },
-          { name: '🔙 Back to main menu', value: 'back' }
-        ]
-      }
-    ]);
+    const action = await select({
+      message: 'What would you like to do next?',
+      choices: [
+        { name: '📤 Export this analysis', value: 'export' },
+        { name: '🔄 Run another analysis', value: 'another' },
+        { name: '🔙 Back to main menu', value: 'back' }
+      ]
+    });
 
     switch (action) {
       case 'export':

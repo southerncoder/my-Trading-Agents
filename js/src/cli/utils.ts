@@ -1,4 +1,4 @@
-import inquirer from 'inquirer';
+import { input, select, checkbox } from '@inquirer/prompts';
 import { AnalystType, AnalystOption, DepthOption, LLMOption, ProviderOption } from './types';
 
 export const ANALYST_ORDER: AnalystOption[] = [
@@ -92,109 +92,87 @@ export const DEEP_AGENT_OPTIONS: Record<string, LLMOption[]> = {
 };
 
 export async function getTicker(): Promise<string> {
-  const { ticker } = await inquirer.prompt([
-    {
-      type: 'input',
-      name: 'ticker',
-      message: 'Enter the ticker symbol to analyze:',
-      default: 'SPY',
-      validate: (input: string) => {
-        if (input.trim().length === 0) {
-          return 'Please enter a valid ticker symbol.';
-        }
-        return true;
+  const ticker = await input({
+    message: 'Enter the ticker symbol to analyze:',
+    default: 'SPY',
+    validate: (input: string) => {
+      if (input.trim().length === 0) {
+        return 'Please enter a valid ticker symbol.';
       }
+      return true;
     }
-  ]);
+  });
   
   return ticker.trim().toUpperCase();
 }
 
 export async function getAnalysisDate(): Promise<string> {
-  const defaultDate = new Date().toISOString().split('T')[0];
+  const defaultDate = new Date().toISOString().split('T')[0]!;
   
-  const { date } = await inquirer.prompt([
-    {
-      type: 'input',
-      name: 'date',
-      message: 'Enter the analysis date (YYYY-MM-DD):',
-      default: defaultDate,
-      validate: (input: string) => {
-        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-        if (!dateRegex.test(input)) {
-          return 'Please enter a valid date in YYYY-MM-DD format.';
+  const date = await input({
+    message: 'Enter the analysis date (YYYY-MM-DD):',
+    default: defaultDate,
+    validate: (input: string): string | boolean => {
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateRegex.test(input)) {
+        return 'Please enter a valid date in YYYY-MM-DD format.';
+      }
+      
+      try {
+        const date = new Date(input);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        if (date > today) {
+          return 'Analysis date cannot be in the future.';
         }
         
-        try {
-          const date = new Date(input);
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          
-          if (date > today) {
-            return 'Analysis date cannot be in the future.';
-          }
-          
-          return true;
-        } catch {
-          return 'Please enter a valid date in YYYY-MM-DD format.';
-        }
+        return true;
+      } catch {
+        return 'Please enter a valid date in YYYY-MM-DD format.';
       }
     }
-  ]);
+  });
   
   return date.trim();
 }
 
 export async function selectAnalysts(): Promise<AnalystType[]> {
-  const { analysts } = await inquirer.prompt([
-    {
-      type: 'checkbox',
-      name: 'analysts',
-      message: 'Select Your [Analysts Team]:',
-      choices: ANALYST_ORDER.map(option => ({
-        name: option.display,
-        value: option.value
-      })),
-      validate: (choices: AnalystType[]) => {
-        if (choices.length === 0) {
-          return 'You must select at least one analyst.';
-        }
-        return true;
-      }
-    }
-  ]);
+  const analysts = await checkbox({
+    message: 'Select Your [Analysts Team]:',
+    choices: ANALYST_ORDER.map(option => ({
+      name: option.display,
+      value: option.value
+    }))
+  });
+  
+  if (analysts.length === 0) {
+    throw new Error('You must select at least one analyst.');
+  }
   
   return analysts;
 }
 
 export async function selectResearchDepth(): Promise<number> {
-  const { depth } = await inquirer.prompt([
-    {
-      type: 'list',
-      name: 'depth',
-      message: 'Select Your [Research Depth]:',
-      choices: DEPTH_OPTIONS.map(option => ({
-        name: option.display,
-        value: option.value
-      }))
-    }
-  ]);
+  const depth = await select({
+    message: 'Select Your [Research Depth]:',
+    choices: DEPTH_OPTIONS.map(option => ({
+      name: option.display,
+      value: option.value
+    }))
+  });
   
   return depth;
 }
 
 export async function selectLLMProvider(): Promise<{ provider: string; url: string }> {
-  const { providerChoice } = await inquirer.prompt([
-    {
-      type: 'list',
-      name: 'providerChoice',
-      message: 'Select your LLM Provider:',
-      choices: PROVIDER_OPTIONS.map(option => ({
-        name: `${option.display} - ${option.url}`,
-        value: { provider: option.display, url: option.url }
-      }))
-    }
-  ]);
+  const providerChoice = await select({
+    message: 'Select your LLM Provider:',
+    choices: PROVIDER_OPTIONS.map(option => ({
+      name: `${option.display} - ${option.url}`,
+      value: { provider: option.display, url: option.url }
+    }))
+  });
   
   console.log(`You selected: ${providerChoice.provider}\tURL: ${providerChoice.url}`);
   return providerChoice;
@@ -209,17 +187,13 @@ export async function selectShallowThinkingAgent(provider: string): Promise<stri
     throw new Error(`No shallow thinking options available for provider: ${provider}`);
   }
   
-  const { agent } = await inquirer.prompt([
-    {
-      type: 'list',
-      name: 'agent',
-      message: 'Select Your [Quick-Thinking LLM Engine]:',
-      choices: options.map(option => ({
-        name: option.display,
-        value: option.value
-      }))
-    }
-  ]);
+  const agent = await select({
+    message: 'Select Your [Quick-Thinking LLM Engine]:',
+    choices: options.map(option => ({
+      name: option.display,
+      value: option.value
+    }))
+  });
   
   return agent;
 }
@@ -233,17 +207,13 @@ export async function selectDeepThinkingAgent(provider: string): Promise<string>
     throw new Error(`No deep thinking options available for provider: ${provider}`);
   }
   
-  const { agent } = await inquirer.prompt([
-    {
-      type: 'list',
-      name: 'agent',
-      message: 'Select Your [Deep-Thinking LLM Engine]:',
-      choices: options.map(option => ({
-        name: option.display,
-        value: option.value
-      }))
-    }
-  ]);
+  const agent = await select({
+    message: 'Select Your [Deep-Thinking LLM Engine]:',
+    choices: options.map(option => ({
+      name: option.display,
+      value: option.value
+    }))
+  });
   
   return agent;
 }

@@ -89,7 +89,7 @@ export class ModelProvider {
           throw new Error('API key required for Google provider');
         }
         model = new ChatGoogleGenerativeAI({
-          modelName: config.modelName,
+          model: config.modelName,
           apiKey: config.apiKey,
           temperature: config.temperature || 0.7,
           maxOutputTokens: config.maxTokens || 2048,

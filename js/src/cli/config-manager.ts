@@ -2,7 +2,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { UserSelections } from './types';
 import chalk from 'chalk';
-import inquirer from 'inquirer';
+import { input, select, confirm, Separator } from '@inquirer/prompts';
 
 export interface SavedConfig {
   name: string;
@@ -64,41 +64,35 @@ export class ConfigManager {
   }
 
   public async saveConfig(selections: UserSelections): Promise<void> {
-    const { name, description, setAsDefault } = await inquirer.prompt([
-      {
-        type: 'input',
-        name: 'name',
-        message: 'Enter a name for this configuration:',
-        validate: (input: string) => {
-          if (input.trim().length === 0) {
-            return 'Please enter a valid name.';
-          }
-          if (input.includes('/') || input.includes('\\')) {
-            return 'Name cannot contain path separators.';
-          }
-          return true;
+    const name = await input({
+      message: 'Enter a name for this configuration:',
+      validate: (input: string) => {
+        if (input.trim().length === 0) {
+          return 'Please enter a valid name.';
         }
-      },
-      {
-        type: 'input',
-        name: 'description',
-        message: 'Enter a description (optional):',
-        default: ''
-      },
-      {
-        type: 'confirm',
-        name: 'setAsDefault',
-        message: 'Set this as the default configuration?',
-        default: false
+        if (input.includes('/') || input.includes('\\')) {
+          return 'Name cannot contain path separators.';
+        }
+        return true;
       }
-    ]);
+    });
+
+    const description = await input({
+      message: 'Enter a description (optional):',
+      default: ''
+    }) || '';
+
+    const setAsDefault = await confirm({
+      message: 'Set this as the default configuration?',
+      default: false
+    });
 
     const configFile = this.loadConfigFile();
     const configKey = name.trim().toLowerCase().replace(/\s+/g, '-');
 
     const savedConfig: SavedConfig = {
       name: name.trim(),
-      description: description.trim() || undefined,
+      description: description.trim() || '',
       selections,
       createdAt: new Date().toISOString(),
       useCount: 0
@@ -130,7 +124,7 @@ export class ConfigManager {
     // Add option to create new config
     const choices = [
       { name: chalk.cyan('[ Create New Configuration ]'), value: '__new__' },
-      new inquirer.Separator('--- Saved Configurations ---'),
+      new Separator('--- Saved Configurations ---'),
       ...configKeys.map(key => {
         const config = configFile.configs[key]!;
         const isDefault = configFile.defaultConfig === key;
@@ -146,15 +140,11 @@ export class ConfigManager {
       })
     ];
 
-    const { selectedConfig } = await inquirer.prompt([
-      {
-        type: 'list',
-        name: 'selectedConfig',
-        message: 'Select a configuration:',
-        choices,
-        pageSize: 15
-      }
-    ]);
+    const selectedConfig = await select({
+      message: 'Select a configuration:',
+      choices,
+      pageSize: 15
+    });
 
     if (selectedConfig === '__new__') {
       return null;
@@ -181,22 +171,18 @@ export class ConfigManager {
       return;
     }
 
-    const { action } = await inquirer.prompt([
-      {
-        type: 'list',
-        name: 'action',
-        message: 'Configuration Management:',
-        choices: [
-          { name: 'List all configurations', value: 'list' },
-          { name: 'Delete a configuration', value: 'delete' },
-          { name: 'Set default configuration', value: 'setDefault' },
-          { name: 'Export configurations', value: 'export' },
-          { name: 'Import configurations', value: 'import' },
-          new inquirer.Separator(),
-          { name: 'Back to main menu', value: 'back' }
-        ]
-      }
-    ]);
+    const action = await select({
+      message: 'Configuration Management:',
+      choices: [
+        { name: 'List all configurations', value: 'list' },
+        { name: 'Delete a configuration', value: 'delete' },
+        { name: 'Set default configuration', value: 'setDefault' },
+        { name: 'Export configurations', value: 'export' },
+        { name: 'Import configurations', value: 'import' },
+        new Separator(),
+        { name: 'Back to main menu', value: 'back' }
+      ]
+    });
 
     switch (action) {
       case 'list':
@@ -245,28 +231,20 @@ export class ConfigManager {
   private async deleteConfig(configFile: ConfigFile): Promise<void> {
     const configKeys = Object.keys(configFile.configs);
     
-    const { configToDelete } = await inquirer.prompt([
-      {
-        type: 'list',
-        name: 'configToDelete',
-        message: 'Select configuration to delete:',
-        choices: configKeys.map(key => ({
-          name: configFile.configs[key]!.name,
-          value: key
-        }))
-      }
-    ]);
+    const configToDelete = await select({
+      message: 'Select configuration to delete:',
+      choices: configKeys.map(key => ({
+        name: configFile.configs[key]!.name,
+        value: key
+      }))
+    });
 
-    const { confirm } = await inquirer.prompt([
-      {
-        type: 'confirm',
-        name: 'confirm',
-        message: `Are you sure you want to delete "${configFile.configs[configToDelete]!.name}"?`,
-        default: false
-      }
-    ]);
+    const confirmDelete = await confirm({
+      message: `Are you sure you want to delete "${configFile.configs[configToDelete]!.name}"?`,
+      default: false
+    });
 
-    if (confirm) {
+    if (confirmDelete) {
       const configName = configFile.configs[configToDelete]!.name;
       delete configFile.configs[configToDelete];
       
@@ -291,14 +269,10 @@ export class ConfigManager {
       }))
     ];
 
-    const { defaultConfig } = await inquirer.prompt([
-      {
-        type: 'list',
-        name: 'defaultConfig',
-        message: 'Select default configuration:',
-        choices
-      }
-    ]);
+    const defaultConfig = await select({
+      message: 'Select default configuration:',
+      choices
+    });
 
     configFile.defaultConfig = defaultConfig || undefined;
     this.saveConfigFile(configFile);
@@ -311,14 +285,10 @@ export class ConfigManager {
   }
 
   private async exportConfigs(configFile: ConfigFile): Promise<void> {
-    const { exportPath } = await inquirer.prompt([
-      {
-        type: 'input',
-        name: 'exportPath',
-        message: 'Enter export file path:',
-        default: 'tradingagents-configs.json'
-      }
-    ]);
+    const exportPath = await input({
+      message: 'Enter export file path:',
+      default: 'tradingagents-configs.json'
+    });
 
     try {
       writeFileSync(exportPath, JSON.stringify(configFile, null, 2));
@@ -329,19 +299,15 @@ export class ConfigManager {
   }
 
   private async importConfigs(): Promise<void> {
-    const { importPath } = await inquirer.prompt([
-      {
-        type: 'input',
-        name: 'importPath',
-        message: 'Enter import file path:',
-        validate: (input: string) => {
-          if (!existsSync(input)) {
-            return 'File does not exist.';
-          }
-          return true;
+    const importPath = await input({
+      message: 'Enter import file path:',
+      validate: (input: string) => {
+        if (!existsSync(input)) {
+          return 'File does not exist.';
         }
+        return true;
       }
-    ]);
+    });
 
     try {
       const importedData = JSON.parse(readFileSync(importPath, 'utf-8'));

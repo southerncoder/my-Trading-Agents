@@ -8,6 +8,7 @@
 import { ModelProvider, ModelConfig } from '../models/index';
 import { TradingAgentsConfig } from '../types/config';
 import { AgentState } from '../types/agent-states';
+import { logger } from '../utils/enhanced-logger.js';
 
 export type AnalystType = 'market' | 'social' | 'news' | 'fundamentals';
 
@@ -82,7 +83,10 @@ export class LangGraphSetup {
 
       return workflow.compile();
     } catch (error) {
-      console.error('Error creating LangGraph workflow:', error);
+      logger.error('graph', 'LangGraphSetup', 'workflow_creation', 'Error creating LangGraph workflow', { 
+        error: error instanceof Error ? error.message : String(error),
+        operation: 'createTradingWorkflow'
+      });
       throw error;
     }
   }
@@ -175,7 +179,10 @@ export class LangGraphSetup {
 
       return workflow.compile();
     } catch (error) {
-      console.error('Error creating comprehensive workflow:', error);
+      logger.error('graph', 'LangGraphSetup', 'workflow_creation', 'Error creating comprehensive workflow', { 
+        error: error instanceof Error ? error.message : String(error),
+        operation: 'createComprehensiveTradingWorkflow'
+      });
       throw error;
     }
   }
@@ -226,7 +233,10 @@ export class LangGraphSetup {
       console.log('✓ Workflow test successful');
       return { success: true, result };
     } catch (error) {
-      console.error('✗ Workflow test failed:', error);
+      logger.error('graph', 'LangGraphSetup', 'workflow_test', '✗ Workflow test failed', { 
+        error: error instanceof Error ? error.message : String(error),
+        operation: 'testWorkflow'
+      });
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
@@ -295,7 +305,10 @@ export class LangGraphSetup {
       console.log('✓ LangGraph integration test completed');
       return true;
     } catch (error) {
-      console.error('✗ LangGraph integration test failed:', error);
+      logger.error('graph', 'LangGraphSetup', 'integration_test', '✗ LangGraph integration test failed', { 
+        error: error instanceof Error ? error.message : String(error),
+        operation: 'testLangGraphIntegration'
+      });
       return false;
     }
   }
