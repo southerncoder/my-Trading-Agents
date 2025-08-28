@@ -90,7 +90,7 @@ export class ZepGraphitiMemoryProvider {
   constructor(config: ZepGraphitiConfig, agentConfig: AgentLLMConfig) {
     this.config = {
       maxResults: 10,
-      serviceUrl: 'http://localhost:8080',
+      serviceUrl: 'http://localhost:8000',
       ...config
     };
     this.agentConfig = agentConfig;
@@ -108,13 +108,11 @@ export class ZepGraphitiMemoryProvider {
    */
   async testConnection(): Promise<boolean> {
     try {
-      const response = await fetch(`${this.serviceUrl}/health`);
-      const health = await response.json() as HealthResponse;
+      const response = await fetch(`${this.serviceUrl}/healthcheck`);
+      const health = await response.json() as { status: string };
       
       this.logger.info('testConnection', 'Health check completed', {
-        status: health.status,
-        graphiti_initialized: health.graphiti_initialized,
-        neo4j_connected: health.neo4j_connected
+        status: health.status
       });
       
       return health.status === 'healthy';
