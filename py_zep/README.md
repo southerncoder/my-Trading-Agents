@@ -6,7 +6,7 @@ This directory provides Docker orchestration for the official Zep Graphiti servi
 
 This setup uses **only official Docker images** from Zep AI:
 - `zepai/graphiti:latest` - Official Zep Graphiti REST API service
-- `neo4j:5.22.0` - Official Neo4j graph database
+- `neo4j:5.26.0` - Official Neo4j graph database
 
 ## Quick Start
 
@@ -95,7 +95,7 @@ ZEP_SERVICE_PORT=your-port
 
 3. Start Neo4j (required for Graphiti):
 ```bash
-docker run -p port:port -p port:port -e NEO4J_AUTH=username/password neo4j:5.22.0
+docker run -p port:port -p port:port -e NEO4J_AUTH=username/password neo4j:5.26.0
 ```
 
 4. Run the Zep Graphiti service:

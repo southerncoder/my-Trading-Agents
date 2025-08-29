@@ -54,7 +54,7 @@ Successfully replaced all custom/3rd party Zep Graphiti source code with officia
 ```yaml
 services:
   neo4j:
-    image: neo4j:5.22.0          # Official Neo4j image
+    image: neo4j:5.26.0          # Official Neo4j image
     ports: ["7474:7474", "7687:7687"]
     
   zep-graphiti:
