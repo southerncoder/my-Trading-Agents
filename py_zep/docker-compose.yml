@@ -2,13 +2,13 @@ version: '3.8'
 
 services:
   neo4j:
-    image: neo4j:5.22.0
+    image: neo4j:5.26.0  # Use minimum required version for Zep Graphiti compatibility
     container_name: trading-agents-neo4j
     ports:
       - "7474:7474"  # HTTP
       - "7687:7687"  # Bolt
     environment:
-      - NEO4J_AUTH=neo4j/password
+      - NEO4J_AUTH=${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD:-demo-password-change-me}
       - NEO4J_PLUGINS=["apoc"]
       - NEO4J_dbms_security_procedures_unrestricted=apoc.*
     volumes:
@@ -30,13 +30,14 @@ services:
       - "8000:8000"  # Standard Zep Graphiti REST API port
     environment:
       - NEO4J_URI=bolt://neo4j:7687
-      - NEO4J_USER=neo4j
-      - NEO4J_PASSWORD=password
-      - OPENAI_API_KEY=lm-studio
-      - OPENAI_BASE_URL=http://host.docker.internal:1234/v1
+      - NEO4J_USER=${NEO4J_USER:-neo4j}
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD:-demo-password-change-me}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-demo-key}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-http://host.docker.internal:1234/v1}
       # Additional Zep Graphiti configuration
-      - MODEL_NAME=microsoft/phi-4-mini-reasoning
-      - SMALL_MODEL_NAME=microsoft/phi-4-mini-reasoning
+      - MODEL_NAME=dolphin-2.9-llama3-8b
+      - SMALL_MODEL_NAME=dolphin-2.9-llama3-8b
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-text-embedding-nomic-embed-text-v1.5}
       - LLM_TEMPERATURE=0.1
       - SEMAPHORE_LIMIT=5
     depends_on:

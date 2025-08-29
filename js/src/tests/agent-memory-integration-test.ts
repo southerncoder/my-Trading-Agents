@@ -21,7 +21,7 @@ const testAgentConfigs = {
   'local_agent': {
     provider: 'lm_studio' as const,
     model: 'local-model',
-    baseUrl: 'http://localhost:1234/v1'
+    baseUrl: process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1'
   }
 };
 

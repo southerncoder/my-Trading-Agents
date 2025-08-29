@@ -44,7 +44,7 @@ async function testMemoryProviderSelection() {
       config: {
         provider: 'lm_studio',
         model: 'local-model',
-        baseUrl: 'http://localhost:1234/v1',
+        baseUrl: process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1',
       },
       expectation: 'Should use fallback (local provider)'
     },
@@ -53,7 +53,7 @@ async function testMemoryProviderSelection() {
       config: {
         provider: 'ollama',
         model: 'llama3.2',
-        baseUrl: 'http://localhost:11434',
+        baseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
       },
       expectation: 'Should use fallback (local provider)'
     }

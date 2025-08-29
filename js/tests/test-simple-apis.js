@@ -50,7 +50,7 @@ async function runSimpleAPITests() {
       llmProvider: 'lm_studio',
       deepThinkLlm: 'microsoft/phi-4-mini-reasoning',
       quickThinkLlm: 'microsoft/phi-4-mini-reasoning',
-      backendUrl: 'http://localhost:1234/v1',
+      backendUrl: process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1',
       onlineTools: false,
       maxRecurLimit: 3
     });

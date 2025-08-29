@@ -139,7 +139,7 @@ node test-comprehensive-performance.js
 ```powershell
 # Local development with LM Studio (recommended for memory integration)
 $env:LLM_PROVIDER = "lm_studio"
-$env:LLM_BACKEND_URL = "http://localhost:1234/v1"
+$env:LLM_BACKEND_URL = "http://your-lm-studio-host:port/v1"
 
 # Cloud providers (alternative options)
 $env:LLM_PROVIDER = "openai"

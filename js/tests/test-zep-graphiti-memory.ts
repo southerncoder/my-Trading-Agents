@@ -20,13 +20,13 @@ async function testZepGraphitiMemoryProvider() {
     temperature: 0.1,
     maxTokens: 4000,
     apiKey: 'lm-studio',
-    baseUrl: 'http://localhost:1234/v1'
+    baseUrl: process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1'
   };
 
   const zepConfig: ZepGraphitiConfig = {
     sessionId: 'test-trading-session',
     userId: 'test-trader',
-    serviceUrl: 'http://localhost:8080',
+    serviceUrl: process.env.ZEP_SERVICE_URL || 'http://localhost:8000',
     maxResults: 5
   };
 
@@ -126,7 +126,7 @@ async function testZepGraphitiMemoryProvider() {
   } catch (error) {
     console.error('\n❌ Test failed:', error);
     console.error('\nMake sure:');
-    console.error('1. The Python Zep service is running on http://localhost:8080');
+    console.error(`1. The Python Zep service is running on ${process.env.ZEP_SERVICE_URL || 'http://localhost:8000'}`);
     console.error('2. Neo4j database is accessible');
     console.error('3. All dependencies are installed\n');
     process.exit(1);

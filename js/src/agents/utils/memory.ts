@@ -51,7 +51,7 @@ export class FinancialSituationMemory {
           recommendation,
           embedding,
         });
-      } catch (error) {
+      } catch (_error) {
         // Skip this item if embedding fails, but continue with others
         continue;
       }
@@ -82,7 +82,7 @@ export class FinancialSituationMemory {
       // Sort by similarity score and return top n matches
       similarities.sort((a, b) => b.similarityScore - a.similarityScore);
       return similarities.slice(0, nMatches);
-    } catch (error) {
+    } catch (_error) {
       // Return empty array if embedding fails
       return [];
     }

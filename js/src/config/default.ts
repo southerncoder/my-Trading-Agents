@@ -15,7 +15,10 @@ export const DEFAULT_CONFIG: TradingAgentsConfig = {
   llmProvider: (process.env.LLM_PROVIDER as any) || 'openai',
   deepThinkLlm: process.env.DEEP_THINK_LLM || 'o1-mini',
   quickThinkLlm: process.env.QUICK_THINK_LLM || 'gpt-4o-mini',
-  backendUrl: process.env.LLM_BACKEND_URL || 'https://api.openai.com/v1',
+  backendUrl: process.env.LLM_BACKEND_URL || 
+    (process.env.LLM_PROVIDER === 'lm_studio' ? 
+      `http://${process.env.LM_STUDIO_HOST || 'localhost'}:1234/v1` : 
+      'https://api.openai.com/v1'),
 
   // Debate and discussion settings
   maxDebateRounds: parseInt(process.env.MAX_DEBATE_ROUNDS || '1'),

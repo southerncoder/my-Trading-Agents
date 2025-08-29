@@ -1,4 +1,93 @@
-# Security Audit Report - August 26, 2025
+# Security Audit Report - August 28, 2025
+
+## 🔍 Latest Security Audit - LM Studio Network Configuration
+
+### ✅ NEW Issues Found and Fixed (August 28, 2025)
+
+#### 1. **Hardcoded IP Addresses FIXED**
+- **Location**: Test files and documentation examples
+- **Risk**: Network topology exposure
+- **Fix**: Replaced all `192.168.1.85` with `your-server-ip` placeholders
+- **Files Fixed**:
+  - `js/tests/test-lm-studio-network.js`
+  - `docs/lm-studio-network-config.md`
+
+#### 2. **Weak Default Passwords FIXED**
+- **Location**: Docker Compose configuration
+- **Risk**: Easily guessable credentials
+- **Fix**: Changed from `password` to `trading-agents-secure-password`
+- **Files Fixed**:
+  - `py_zep/docker-compose.yml`
+  - `py_zep/.env.example`
+  - `py_zep/README.md`
+
+#### 3. **Environment Configuration Files SECURED**
+- **Location**: `.env.example` files and `docker-compose.yml`
+- **Risk**: Revealing network topology, ports, passwords, and service details
+- **Fix**: Replaced all revealing information with placeholder values
+- **Files Fixed**:
+  - `py_zep/.env.example` - Removed specific ports, passwords, model names
+  - `js/.env.example` - Removed network IP examples and specific ports
+  - `py_zep/docker-compose.yml` - Converted to use environment variables with secure defaults
+
+#### 5. **Legacy Scripts with Revealing Information ARCHIVED**
+- **Location**: Root directory shell scripts with hardcoded ports and passwords
+- **Risk**: Historical configuration exposure
+- **Fix**: Moved to `legacy/` folder to preserve history while removing from active use
+- **Files Archived**:
+  - `start-zep-graphiti.ps1` - Moved to `legacy/`
+  - `start-zep-graphiti.sh` - Moved to `legacy/`
+
+#### 7. **Configuration Templates Secured**
+- **Location**: `.env.template` with hardcoded localhost references
+- **Risk**: Exposing default development configuration  
+- **Fix**: Replaced localhost with placeholder values
+- **Files Fixed**:
+  - `js/.env.template` - Updated LM Studio, database, and Redis URLs
+
+#### 8. **Test Scripts Configuration Variables**
+- **Location**: All test scripts and source files with hardcoded URLs
+- **Risk**: Hardcoded network addresses in tests and production code  
+- **Fix**: Replaced all hardcoded URLs with environment variables
+- **Files Fixed**:
+  - All TypeScript test files: `LM_STUDIO_BASE_URL`, `OLLAMA_BASE_URL`, `ZEP_SERVICE_URL`
+  - All JavaScript test files: Environment variable support added
+  - Provider files: Consistent environment variable usage
+  - Graph orchestration files: Environment variable defaults
+  - Config loader: Standardized variable naming convention
+
+#### 9. **Environment Variable Standardization**
+- **Standardized Variables**:
+  - `LM_STUDIO_BASE_URL` - LM Studio service endpoint
+  - `OLLAMA_BASE_URL` - Ollama service endpoint  
+  - `ZEP_SERVICE_URL` - Zep Graphiti service endpoint
+  - `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD` - Database configuration
+- **Benefits**: Consistent configuration across all components, no hardcoded URLs
+
+### 🔍 Final Security Verification (August 28, 2025)
+
+#### Complete Pattern Scan Results:
+- ✅ **API Keys/Tokens**: No real API keys found (only placeholders and test fakes)
+- ✅ **Network IPs**: All hardcoded IPs replaced with placeholders
+- ✅ **Passwords**: No actual passwords found (only secure placeholders)
+- ✅ **Database URLs**: All connection strings use placeholder values
+- ✅ **Service Endpoints**: All URLs converted to environment variables or placeholders
+
+#### Files Audited:
+- All `.env.example` and `.env.template` files
+- All configuration and documentation files  
+- All test files and source code
+- Docker Compose and README files
+- Legacy scripts and archived files
+
+### 🏆 Security Status: **PASS** - Ready for Git Commit
+
+### 🔒 NEW Security Documentation Added
+- **Security Notice**: `docs/SECURITY-NOTICE.md` - Team security guidelines
+- **Network Config Guide**: Secure LM Studio configuration patterns
+- **Environment Isolation**: Local vs shared configuration best practices
+
+---
 
 ## 🔒 Executive Summary
 

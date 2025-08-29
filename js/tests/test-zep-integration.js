@@ -14,7 +14,7 @@ async function testZepGraphitiIntegration() {
     // Create memory provider with default configuration
     const config = {
       sessionId: 'test-session-' + Date.now(),
-      serviceUrl: 'http://localhost:8000'
+      serviceUrl: process.env.ZEP_SERVICE_URL || 'http://localhost:8000'
     };
 
     const agentConfig = {
@@ -52,7 +52,7 @@ async function testZepGraphitiIntegration() {
     console.error('\n❌ Integration test failed:', error.message);
     console.error('\n💡 Make sure the services are running:');
     console.error('   cd py_zep && docker-compose up -d');
-    console.error('   Then check: http://localhost:8000/docs');
+    console.error(`   Then check: ${process.env.ZEP_SERVICE_URL || 'http://localhost:8000'}/docs`);
     return false;
   }
 }

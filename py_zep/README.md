@@ -26,32 +26,32 @@ Services are configured via environment variables in the `docker-compose.yml`:
 
 ### LM Studio Integration
 ```yaml
-- OPENAI_API_KEY=lm-studio
-- OPENAI_BASE_URL=http://host.docker.internal:1234/v1
-- MODEL_NAME=microsoft/phi-4-mini-reasoning
+- OPENAI_API_KEY=your-api-key
+- OPENAI_BASE_URL=http://your-lm-studio-host:port/v1
+- MODEL_NAME=your-model-name
 ```
 
 ### Neo4j Database
 ```yaml
-- NEO4J_URI=bolt://neo4j:7687
-- NEO4J_USER=neo4j
-- NEO4J_PASSWORD=password
+- NEO4J_URI=bolt://neo4j:port
+- NEO4J_USER=your-username
+- NEO4J_PASSWORD=your-secure-password
 ```
 
 ## Service Endpoints
 
-### Zep Graphiti API (Port 8000)
-- **REST API**: `http://localhost:8000`
-- **Documentation**: `http://localhost:8000/docs`
-- **Redoc**: `http://localhost:8000/redoc`
+### Zep Graphiti API
+- **REST API**: `http://localhost:port`
+- **Documentation**: `http://localhost:port/docs`
+- **Redoc**: `http://localhost:port/redoc`
 
-### Neo4j Database (Port 7474/7687)
-- **Browser**: `http://localhost:7474`
-- **Credentials**: neo4j/password
+### Neo4j Database
+- **Browser**: `http://localhost:port`
+- **Credentials**: username/password
 
 ## Integration
 
-The TypeScript project uses `ZepGraphitiMemoryProvider` to connect to the Zep Graphiti service at `http://localhost:8000`.
+The TypeScript project uses `ZepGraphitiMemoryProvider` to connect to the Zep Graphiti service at the configured endpoint.
 
 ### Key API Endpoints Used:
 - Episodes, facts, and graph search operations
@@ -79,23 +79,23 @@ uv sync
 2. Set up environment variables in `.env`:
 ```bash
 # LM Studio configuration (for local LLM)
-OPENAI_API_KEY=lm-studio
-OPENAI_BASE_URL=http://localhost:1234/v1
-OPENAI_MODEL=microsoft/phi-4-mini-reasoning
+OPENAI_API_KEY=your-api-key
+OPENAI_BASE_URL=http://your-host:port/v1
+OPENAI_MODEL=your-model-name
 
 # Neo4j configuration
-NEO4J_URI=bolt://localhost:7687
-NEO4J_USER=neo4j
-NEO4J_PASSWORD=password
+NEO4J_URI=bolt://your-host:port
+NEO4J_USER=your-username
+NEO4J_PASSWORD=your-secure-password
 
 # Service configuration
-ZEP_SERVICE_HOST=0.0.0.0
-ZEP_SERVICE_PORT=8080
+ZEP_SERVICE_HOST=your-host
+ZEP_SERVICE_PORT=your-port
 ```
 
 3. Start Neo4j (required for Graphiti):
 ```bash
-docker run -p 7474:7474 -p 7687:7687 -e NEO4J_AUTH=neo4j/password neo4j:5.22.0
+docker run -p port:port -p port:port -e NEO4J_AUTH=username/password neo4j:5.22.0
 ```
 
 4. Run the Zep Graphiti service:

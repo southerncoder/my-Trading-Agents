@@ -90,7 +90,7 @@ export class ZepGraphitiMemoryProvider {
   constructor(config: ZepGraphitiConfig, agentConfig: AgentLLMConfig) {
     this.config = {
       maxResults: 10,
-      serviceUrl: 'http://localhost:8000',
+      serviceUrl: process.env.ZEP_SERVICE_URL || 'http://localhost:8000',
       ...config
     };
     this.agentConfig = agentConfig;
@@ -134,15 +134,22 @@ export class ZepGraphitiMemoryProvider {
     const timer = this.logger.startTimer('addEpisode');
     
     try {
-      const request: EpisodeRequest = {
-        name,
+      // Update to use the new /messages endpoint with correct format
+      const message = {
         content,
-        episode_type: episodeType,
+        role_type: 'assistant', // or 'user' depending on context
+        role: episodeType === 'text' ? 'trading_agent' : episodeType,
+        timestamp: new Date().toISOString(),
         source_description: metadata?.sourceDescription || 'Trading Agent',
-        ...(metadata && { metadata })
+        name: name
       };
 
-      const response = await fetch(`${this.serviceUrl}/memory/add`, {
+      const request = {
+        group_id: this.config.sessionId,
+        messages: [message]
+      };
+
+      const response = await fetch(`${this.serviceUrl}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(request)
@@ -229,22 +236,43 @@ export class ZepGraphitiMemoryProvider {
     metadata?: Record<string, any>
   ): Promise<void> {
     try {
-      const request: FactRequest = {
-        source_entity: sourceEntity,
-        target_entity: targetEntity,
-        relationship,
-        confidence,
-        ...(metadata && { metadata })
+      // Update to use the new /entity-node endpoint
+      // First, add the source entity node if it doesn't exist
+      const sourceNodeRequest = {
+        uuid: `${sourceEntity}_${Date.now()}`,
+        group_id: this.config.sessionId,
+        name: sourceEntity,
+        summary: `Entity representing ${sourceEntity}`
       };
 
-      const response = await fetch(`${this.serviceUrl}/memory/facts/add`, {
+      let sourceResponse = await fetch(`${this.serviceUrl}/entity-node`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(request)
+        body: JSON.stringify(sourceNodeRequest)
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+      // It's OK if entity already exists (409 conflict)
+      if (!sourceResponse.ok && sourceResponse.status !== 409) {
+        throw new Error(`HTTP ${sourceResponse.status}: ${await sourceResponse.text()}`);
+      }
+
+      // Then add the target entity node if it doesn't exist
+      const targetNodeRequest = {
+        uuid: `${targetEntity}_${Date.now()}`,
+        group_id: this.config.sessionId,
+        name: targetEntity,
+        summary: `Entity representing ${targetEntity}`
+      };
+
+      let targetResponse = await fetch(`${this.serviceUrl}/entity-node`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(targetNodeRequest)
+      });
+
+      // It's OK if entity already exists (409 conflict)
+      if (!targetResponse.ok && targetResponse.status !== 409) {
+        throw new Error(`HTTP ${targetResponse.status}: ${await targetResponse.text()}`);
       }
 
       this.logger.info('addFact', 'Fact added successfully', { 

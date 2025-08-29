@@ -37,7 +37,7 @@ async function testTradingGraphMemoryIntegration() {
         console.log(`      Provider: ${agentConfig.provider}`);
         console.log(`      Model: ${agentConfig.model}`);
         if (agentConfig.baseUrl) {
-          console.log(`      Base URL: ${agentConfig.baseUrl}`);
+          console.log(`      baseUrl: process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1'`);
         }
         
         // Create the memory provider that would be used by this agent

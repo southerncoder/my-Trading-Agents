@@ -29,6 +29,7 @@
     "test-simple-apis": "node tests/test-simple-apis.js",
     "test-minimal-apis": "node tests/test-minimal-apis.js",
     "test-lmstudio-setup": "node tests/test-lmstudio-setup.js",
+    "test-lm-studio-network": "node tests/test-lm-studio-network.js",
     "test-agent-validation": "node tests/test-quick-agent-validation.js",
     "test-agent-integration": "node tests/test-agent-integration-lmstudio.js",
     "test-agent-performance": "node tests/test-agent-performance-lmstudio.js",

@@ -70,7 +70,7 @@ async function testGraph() {
 }
 
 // Run the test if this file is executed directly
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   testGraph().catch(console.error);
 }
 

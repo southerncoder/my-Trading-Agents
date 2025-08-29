@@ -13,7 +13,7 @@ async function testSimple() {
     temperature: 0.1,
     maxTokens: 4000,
     apiKey: 'lm-studio',
-    baseUrl: 'http://localhost:1234/v1',
+    baseUrl: process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1',
     provider: 'lm_studio'
   };
 
@@ -29,7 +29,7 @@ async function testSimple() {
     const zepConfig: ZepGraphitiConfig = {
       sessionId: 'test-session',
       userId: 'test-user',
-      serviceUrl: 'http://localhost:8080',
+      serviceUrl: process.env.ZEP_SERVICE_URL || 'http://localhost:8000',
       maxResults: 5
     };
     

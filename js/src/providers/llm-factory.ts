@@ -113,7 +113,7 @@ export class LLMProviderFactory {
    * Create LM Studio LLM instance (OpenAI-compatible local server)
    */
   private static createLMStudioLLM(config: AgentLLMConfig): ChatOpenAI {
-    const baseUrl = config.baseUrl || 'http://localhost:1234/v1';
+    const baseUrl = config.baseUrl || process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1';
 
     const lmStudioConfig: any = {
       modelName: config.model,
@@ -138,7 +138,7 @@ export class LLMProviderFactory {
    * Create Ollama LLM instance (local inference server)
    */
   private static createOllamaLLM(config: AgentLLMConfig): ChatOpenAI {
-    const baseUrl = config.baseUrl || 'http://localhost:11434/v1';
+    const baseUrl = config.baseUrl || process.env.OLLAMA_BASE_URL || 'http://localhost:11434/v1';
 
     const ollamaConfig: any = {
       modelName: config.model,

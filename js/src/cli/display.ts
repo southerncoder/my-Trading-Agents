@@ -24,7 +24,7 @@ export class DisplaySystem {
       console.log();
       console.log(chalk.dim('Built by Tauric Research (https://github.com/TauricResearch)'));
       console.log();
-    } catch (error) {
+    } catch (_error) {
       // Fallback if welcome file doesn't exist
       console.clear();
       console.log(chalk.bold.green('═══════════════════════════════════════════════════════════════'));

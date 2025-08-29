@@ -29,7 +29,7 @@ async function testTraditionalTradingGraph() {
     const config = {
       provider: 'lm_studio',
       modelName: 'microsoft/phi-4-mini-reasoning',
-      baseURL: 'http://localhost:1234/v1',
+      baseURL: process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1',
       temperature: 0.1,
       maxTokens: 200,
       timeout: 60000
@@ -99,7 +99,7 @@ async function testLangChainComponents() {
       modelName: 'microsoft/phi-4-mini-reasoning',
       openAIApiKey: 'not-needed-for-local',
       configuration: {
-        baseURL: 'http://localhost:1234/v1'
+        baseURL: process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1'
       },
       temperature: 0.1,
       maxTokens: 100,

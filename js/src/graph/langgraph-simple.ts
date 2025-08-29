@@ -151,7 +151,7 @@ export class SimplifiedLangGraphSetup {
         llmProvider: 'lm_studio',
         deepThinkLlm: 'llama-3.2-3b-instruct',
         quickThinkLlm: 'llama-3.2-3b-instruct',
-        backendUrl: 'http://localhost:1234/v1',
+        backendUrl: process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1',
         maxDebateRounds: 3,
         maxRiskDiscussRounds: 3,
         maxRecurLimit: 5,

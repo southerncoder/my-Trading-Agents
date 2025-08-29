@@ -46,7 +46,7 @@ export class ConfigManager {
     try {
       const content = readFileSync(this.configFile, 'utf-8');
       return JSON.parse(content);
-    } catch (error) {
+    } catch (_error) {
       console.warn(chalk.yellow('Warning: Could not load config file, creating new one'));
       return {
         version: '1.0.0',

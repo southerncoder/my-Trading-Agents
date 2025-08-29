@@ -59,7 +59,7 @@ export class ModelProvider {
           modelName: config.modelName,
           openAIApiKey: config.apiKey || 'not-needed-for-local',
           configuration: {
-            baseURL: config.baseURL || 'http://localhost:1234/v1' // LM Studio default
+            baseURL: config.baseURL || process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1' // LM Studio default
           },
           temperature: config.temperature || 0.7,
           maxTokens: config.maxTokens || 2048,
@@ -194,13 +194,36 @@ export class ModelProvider {
   }
 
   /**
-   * Get LM Studio configuration for local development
+   * Get LM Studio configuration for local or network development
    */
-  static getLMStudioConfig(modelName: string = 'llama-3.2-3b-instruct'): ModelConfig {
+  static getLMStudioConfig(
+    modelName: string = 'llama-3.2-3b-instruct',
+    baseURL: string = process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1'
+  ): ModelConfig {
     return {
       provider: 'lm_studio',
       modelName,
-      baseURL: 'http://localhost:1234/v1',
+      baseURL,
+      temperature: 0.7,
+      maxTokens: 2048,
+      streaming: false
+    };
+  }
+
+  /**
+   * Get LM Studio configuration for network accessible instance
+   * @param modelName - Model name to use
+   * @param networkHost - Network host IP or hostname (use environment variable LM_STUDIO_HOST)
+   */
+  static getLMStudioNetworkConfig(
+    modelName: string = 'llama-3.2-3b-instruct',
+    networkHost?: string
+  ): ModelConfig {
+    const host = networkHost || process.env.LM_STUDIO_HOST || 'localhost';
+    return {
+      provider: 'lm_studio',
+      modelName,
+      baseURL: process.env.LM_STUDIO_BASE_URL || `http://${host}:1234/v1`,
       temperature: 0.7,
       maxTokens: 2048,
       streaming: false
@@ -214,7 +237,7 @@ export class ModelProvider {
     return {
       provider: 'ollama',
       modelName,
-      baseURL: 'http://localhost:11434/v1',
+      baseURL: process.env.OLLAMA_BASE_URL || 'http://localhost:11434/v1',
       temperature: 0.7,
       maxTokens: 2048,
       streaming: false
@@ -285,11 +308,11 @@ export class ModelProvider {
       },
       'lm_studio': {
         available: true,
-        description: 'LM Studio local inference (http://localhost:1234)'
+        description: 'LM Studio inference (use LM_STUDIO_HOST env var for network access)'
       },
       'ollama': {
         available: true,
-        description: 'Ollama local inference (http://localhost:11434)'
+        description: `Ollama local inference (${process.env.OLLAMA_BASE_URL || 'http://localhost:11434'})`
       },
       'openrouter': {
         available: !!process.env.OPENAI_API_KEY,

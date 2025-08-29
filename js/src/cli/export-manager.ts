@@ -179,7 +179,7 @@ export class ExportManager {
               timestamp = `${date}T${timeMatch[1]}:00`;
             }
           }
-        } catch (error) {
+        } catch (_error) {
           // Ignore log file parsing errors
         }
       }
@@ -188,7 +188,7 @@ export class ExportManager {
       try {
         const stats = statSync(analysisPath);
         timestamp = stats.mtime.toISOString();
-      } catch (error) {
+      } catch (_error) {
         // Use date as fallback
         timestamp = `${date}T12:00:00.000Z`;
       }
