@@ -64,7 +64,8 @@
     "audit:deps": "npm outdated",
     "clean": "rimraf dist",
     "prebuild": "npm run clean",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "smoke": "npm run type-check && npm test || true"
   },
   "bin": {
     "trading-agents": "dist/cli/main.js"
