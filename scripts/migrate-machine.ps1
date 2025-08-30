@@ -31,8 +31,11 @@ if ($null -eq $nodeCmd -or $null -eq $npmCmd) {
 
 if (-not $SkipInstall) {
   Write-Host "Running npm install (this may take a few minutes)..."
+  Push-Location (Join-Path $root "js")
   npm install
-  if ($LASTEXITCODE -ne 0) { ExitWithError "npm install failed with exit code $LASTEXITCODE" }
+  $npmExit = $LASTEXITCODE
+  Pop-Location
+  if ($npmExit -ne 0) { ExitWithError "npm install failed with exit code $npmExit" }
 } else {
   Write-Host "Skipping npm install as requested (--SkipInstall)"
 }
