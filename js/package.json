@@ -5,7 +5,7 @@
   "description": "Multi-Agents LLM Financial Trading Framework - TypeScript Implementation",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc && node fix-compiled-imports.js",
+    "build": "tsc",
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js",
     "watch": "tsc --watch",

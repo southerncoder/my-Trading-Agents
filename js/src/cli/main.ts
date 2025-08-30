@@ -1,5 +1,10 @@
+import 'dotenv/config';
+import { config } from 'dotenv';
 import { Command } from 'commander';
 import chalk from 'chalk';
+
+// Load local environment configuration
+config({ path: '.env.local' });
 import { 
   getTicker, 
   getAnalysisDate, 
@@ -224,14 +229,34 @@ export class TradingAgentsCLI {
     return selections;
   }
 
-  public async runAnalysis(): Promise<void> {
+  public async runAnalysis(ticker?: string, analysisDate?: string): Promise<void> {
     const timer = createOperationTimer('runAnalysis');
     
     try {
       console.log(chalk.blue('\n🚀 Starting Trading Analysis...'));
       
-      // Get all user selections
-      const selections = await this.getUserSelections();
+      // Get all user selections - use CLI args if provided, otherwise prompt
+      let selections: UserSelections;
+      
+      if (ticker && analysisDate) {
+        console.log('🔍 DEBUG: Using command-line arguments');
+        // Use default selections with CLI arguments
+        selections = {
+          ticker: ticker.toUpperCase(),
+          analysisDate,
+          analysts: [AnalystType.MARKET, AnalystType.SOCIAL, AnalystType.NEWS, AnalystType.FUNDAMENTALS], // Default analysts
+          researchDepth: 1, // Default depth
+          llmProvider: process.env.LLM_PROVIDER || 'lm_studio',
+          backendUrl: process.env.LLM_BACKEND_URL || 'http://localhost:1234/v1',
+          shallowThinker: process.env.QUICK_THINK_LLM || 'microsoft/phi-4-reasoning-plus',
+          deepThinker: process.env.DEEP_THINK_LLM || 'microsoft/phi-4-reasoning-plus'
+        };
+        console.log('🔍 DEBUG: Using selections:', selections);
+      } else {
+        console.log('🔍 DEBUG: Getting interactive user selections');
+        selections = await this.getUserSelections();
+      }
+      
       logSystemInfo();
 
       // Create config with selected options
@@ -244,11 +269,19 @@ export class TradingAgentsCLI {
       config.llmProvider = selections.llmProvider as any;
 
       // Initialize the enhanced graph
+      console.log('🔍 DEBUG: About to create EnhancedTradingAgentsGraph with config:', {
+        llmProvider: config.llmProvider,
+        backendUrl: config.backendUrl,
+        quickThinkLlm: config.quickThinkLlm,
+        deepThinkLlm: config.deepThinkLlm
+      });
+      
       const graph = new EnhancedTradingAgentsGraph({
         config,
         selectedAnalysts: selections.analysts,
         enableLangGraph: true
       });
+      console.log('🔍 DEBUG: EnhancedTradingAgentsGraph created successfully');
 
       // Create result directories
       const resultsDir = join(process.cwd(), config.resultsDir, selections.ticker, selections.analysisDate);
@@ -276,10 +309,24 @@ export class TradingAgentsCLI {
       this.display.showInfo('Starting analysis workflow...');
       
       try {
+        console.log('🔍 DEBUG: About to initialize workflow...');
         // Initialize the workflow first
         await graph.initializeWorkflow();
+        console.log('🔍 DEBUG: Workflow initialized successfully');
         
-        // Use the enhanced graph to run the analysis
+        console.log('🔍 DEBUG: About to execute analysis for ticker:', selections.ticker, 'date:', selections.analysisDate);
+        // Execute the full analysis to get detailed state
+        const executionResult = await graph.execute(selections.ticker, selections.analysisDate);
+        console.log('🔍 DEBUG: Execution completed. Success:', executionResult.success);
+        
+        if (!executionResult.success) {
+          throw new Error(executionResult.error || 'Analysis execution failed');
+        }
+
+        // Get the full detailed state from execution result
+        const fullState = executionResult.result;
+        
+        // Also get the simplified analysis result for decision extraction
         const analysisResult = await graph.analyzeAndDecide(selections.ticker, selections.analysisDate);
         
         // Simulate streaming by processing the result
@@ -295,14 +342,27 @@ export class TradingAgentsCLI {
 
         this.messageBuffer.addMessage("Analysis", `Completed analysis for ${selections.analysisDate}`);
 
-        // Create final state from analysis result
+        // Create enhanced final state with all detailed agent reports
         const finalState = {
+          // Include decision summary
           final_trade_decision: `Decision: ${analysisResult.decision} (Confidence: ${analysisResult.confidence})`,
           reasoning: analysisResult.reasoning.join('\n'),
-          messages: analysisResult.messages
+          messages: analysisResult.messages,
+          
+          // Include all detailed agent reports from full state
+          ...fullState,
+          
+          // Ensure we have the main analysis sections
+          market_report: fullState?.market_report,
+          sentiment_report: fullState?.sentiment_report, 
+          news_report: fullState?.news_report,
+          fundamentals_report: fullState?.fundamentals_report,
+          investment_debate_state: fullState?.investment_debate_state,
+          trader_investment_plan: fullState?.trader_investment_plan,
+          risk_debate_state: fullState?.risk_debate_state
         };
 
-        // Stop live display and show complete report
+        // Stop live display and show complete report with all agent details
         this.display.stopLiveDisplay();
         this.display.displayCompleteReport(finalState);
 
@@ -310,6 +370,10 @@ export class TradingAgentsCLI {
         if (this.messageBuffer.finalReport) {
           writeFileSync(join(reportDir, 'final_report.md'), this.messageBuffer.finalReport);
         }
+
+        // Save detailed state report
+        const detailedReport = this.generateDetailedReport(finalState, analysisResult);
+        writeFileSync(join(reportDir, 'detailed_agent_report.md'), detailedReport);
 
         // Show final decision
         this.display.showSuccess(`Final trading decision: ${decision} (Confidence: ${analysisResult.confidence})`);
@@ -319,7 +383,7 @@ export class TradingAgentsCLI {
         const duration = timer();
         console.log(chalk.green(`\n✅ Analysis completed in ${duration}ms`));
 
-      } catch (error) {
+      } catch (error: any) {
         timer(); // Complete timer on error
         this.display.stopLiveDisplay();
         this.display.showError(`Analysis failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -341,7 +405,7 @@ export class TradingAgentsCLI {
       try {
         const cleanContent = reasoning.replace(/\n/g, ' ');
         writeFileSync(logFile, `${new Date().toLocaleTimeString()} [Reasoning] ${cleanContent}\n`, { flag: 'a' });
-      } catch (error) {
+      } catch {
         // Ignore file write errors
       }
     }
@@ -353,7 +417,7 @@ export class TradingAgentsCLI {
     try {
       const reportContent = `# Trading Analysis Report\n\n## Decision: ${analysisResult.decision}\n\n## Confidence: ${analysisResult.confidence}\n\n## Reasoning:\n${analysisResult.reasoning.join('\n\n')}`;
       writeFileSync(join(reportDir, 'analysis_report.md'), reportContent);
-    } catch (error) {
+    } catch {
       // Ignore file write errors
     }
   }
@@ -413,7 +477,7 @@ export class TradingAgentsCLI {
         try {
           const cleanContent = content.replace(/\n/g, ' ');
           writeFileSync(logFile, `${new Date().toLocaleTimeString()} [${msgType}] ${cleanContent}\n`, { flag: 'a' });
-        } catch (error) {
+        } catch {
           // Ignore file write errors
         }
       }
@@ -571,7 +635,7 @@ export class TradingAgentsCLI {
       if (chunk[chunkKey]) {
         try {
           writeFileSync(join(reportDir, fileName), chunk[chunkKey]);
-        } catch (error) {
+        } catch {
           // Ignore file write errors
         }
       }
@@ -602,6 +666,94 @@ export class TradingAgentsCLI {
 
   private capitalizeFirst(str: string): string {
     return str.charAt(0).toUpperCase() + str.slice(1);
+  }
+
+  /**
+   * Generate a detailed report from the full state and analysis result
+   */
+  private generateDetailedReport(fullState: any, analysisResult: any): string {
+    const report = [];
+    
+    report.push('# Detailed Trading Agent Analysis Report\n');
+    report.push(`**Ticker:** ${analysisResult.ticker || 'N/A'}\n`);
+    report.push(`**Analysis Date:** ${analysisResult.analysisDate || new Date().toISOString()}\n`);
+    report.push(`**Final Decision:** ${analysisResult.decision}\n`);
+    report.push(`**Confidence:** ${analysisResult.confidence}\n\n`);
+    
+    // Market Analysis
+    if (fullState.market_report) {
+      report.push('## Market Analysis\n');
+      report.push(typeof fullState.market_report === 'string' 
+        ? fullState.market_report 
+        : JSON.stringify(fullState.market_report, null, 2));
+      report.push('\n\n');
+    }
+    
+    // Sentiment Analysis
+    if (fullState.sentiment_report) {
+      report.push('## Sentiment Analysis\n');
+      report.push(typeof fullState.sentiment_report === 'string' 
+        ? fullState.sentiment_report 
+        : JSON.stringify(fullState.sentiment_report, null, 2));
+      report.push('\n\n');
+    }
+    
+    // News Analysis
+    if (fullState.news_report) {
+      report.push('## News Analysis\n');
+      report.push(typeof fullState.news_report === 'string' 
+        ? fullState.news_report 
+        : JSON.stringify(fullState.news_report, null, 2));
+      report.push('\n\n');
+    }
+    
+    // Fundamentals Analysis
+    if (fullState.fundamentals_report) {
+      report.push('## Fundamentals Analysis\n');
+      report.push(typeof fullState.fundamentals_report === 'string' 
+        ? fullState.fundamentals_report 
+        : JSON.stringify(fullState.fundamentals_report, null, 2));
+      report.push('\n\n');
+    }
+    
+    // Investment Debate
+    if (fullState.investment_debate_state) {
+      report.push('## Investment Debate\n');
+      report.push(typeof fullState.investment_debate_state === 'string' 
+        ? fullState.investment_debate_state 
+        : JSON.stringify(fullState.investment_debate_state, null, 2));
+      report.push('\n\n');
+    }
+    
+    // Trading Plan
+    if (fullState.trader_investment_plan) {
+      report.push('## Trading Plan\n');
+      report.push(typeof fullState.trader_investment_plan === 'string' 
+        ? fullState.trader_investment_plan 
+        : JSON.stringify(fullState.trader_investment_plan, null, 2));
+      report.push('\n\n');
+    }
+    
+    // Risk Assessment
+    if (fullState.risk_debate_state) {
+      report.push('## Risk Assessment\n');
+      report.push(typeof fullState.risk_debate_state === 'string' 
+        ? fullState.risk_debate_state 
+        : JSON.stringify(fullState.risk_debate_state, null, 2));
+      report.push('\n\n');
+    }
+    
+    // Final Reasoning
+    report.push('## Final Reasoning\n');
+    if (Array.isArray(analysisResult.reasoning)) {
+      analysisResult.reasoning.forEach((reason: string, index: number) => {
+        report.push(`${index + 1}. ${reason}\n`);
+      });
+    } else {
+      report.push(analysisResult.reasoning || 'No reasoning provided');
+    }
+    
+    return report.join('');
   }
 }
 
@@ -639,9 +791,11 @@ export async function createCLI(): Promise<Command> {
   program
     .command('analyze')
     .description('Run a complete trading analysis')
-    .action(async () => {
+    .argument('[ticker]', 'Stock ticker symbol (e.g., AAPL)')
+    .argument('[date]', 'Analysis date (YYYY-MM-DD format)')
+    .action(async (ticker?: string, date?: string) => {
       const cli = new TradingAgentsCLI();
-      await cli.runAnalysis();
+      await cli.runAnalysis(ticker, date);
     });
 
   program
@@ -688,9 +842,13 @@ export async function createCLI(): Promise<Command> {
 // Export for direct usage
 
 // Main execution when run directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && (import.meta.url.includes(process.argv[1].replace(/\\/g, '/')) || process.argv[1].endsWith('src/cli/main.ts'))) {
+  console.log('🔍 DEBUG: CLI main execution starting');
+  console.log('🔍 DEBUG: Process arguments:', process.argv);
   createCLI().then(program => {
+    console.log('🔍 DEBUG: CLI created, parsing arguments...');
     program.parse(process.argv);
+    console.log('🔍 DEBUG: Arguments parsed');
   }).catch(error => {
     console.error('Failed to start CLI:', error);
     process.exit(1);
