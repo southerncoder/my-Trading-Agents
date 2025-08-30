@@ -20,6 +20,15 @@ Write-Host "Starting migration helper script..."
 $root = Resolve-Path -Path "." | Select-Object -ExpandProperty Path
 Write-Host "Repository root: $root"
 
+# Ensure Node.js and npm are available
+$nodeCmd = Get-Command node -ErrorAction SilentlyContinue
+$npmCmd = Get-Command npm -ErrorAction SilentlyContinue
+if ($null -eq $nodeCmd -or $null -eq $npmCmd) {
+  Write-Error "Node.js and/or npm not found in PATH. Please install Node.js (v18+) and ensure 'node' and 'npm' are on your PATH."
+  Write-Host "Download: https://nodejs.org/"
+  Exit 1
+}
+
 if (-not $SkipInstall) {
   Write-Host "Running npm install (this may take a few minutes)..."
   npm install
