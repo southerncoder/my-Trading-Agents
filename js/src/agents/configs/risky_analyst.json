@@ -1,0 +1,7 @@
+{
+  "provider": "lm_studio",
+  "model": "openai/gpt-oss-20b",
+  "temperature": 0.8,
+  "maxTokens": 2000,
+  "notes": "Aggressive risk scenario analysis."
+}

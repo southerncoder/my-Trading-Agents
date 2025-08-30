@@ -1,0 +1,7 @@
+{
+  "provider": "lm_studio",
+  "model": "openai/gpt-oss-20b",
+  "temperature": 0.7,
+  "maxTokens": 3000,
+  "notes": "Large model for deep scenario analysis."
+}

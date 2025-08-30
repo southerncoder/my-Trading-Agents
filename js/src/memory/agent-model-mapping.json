@@ -1,0 +1,106 @@
+{
+  "market_analyst": {
+    "provider": "lm_studio",
+    "model": "openai/gpt-oss-20b",
+  "allowEmbeddingModel": false,
+  "embeddingModel": "text-embedding-nomic-embed-text-v1.5",
+    "confidence": "high",
+    "reasons": ["text-generation", "large reasoning capacity", "mxfp4 quantization support", "apache-2.0 license"],
+    "notes": "High-quality local text-generation model available in LM Studio; good for technical analysis summaries."
+  },
+  "news_analyst": {
+    "provider": "lm_studio",
+    "model": "mistralai/Devstral-Small-2507",
+  "allowEmbeddingModel": false,
+  "embeddingModel": "text-embedding-nomic-embed-text-v1.5",
+    "confidence": "medium",
+    "reasons": ["small/fast => good for high-throughput news parsing", "mistral family, instruction-tuned"],
+    "notes": "Smaller instruct-tuned Mistral model suitable for summarization and news extraction."
+  },
+  "fundamentals_analyst": {
+    "provider": "lm_studio",
+    "model": "openai/gpt-oss-20b",
+  "allowEmbeddingModel": false,
+  "embeddingModel": "text-embedding-nomic-embed-text-v1.5",
+    "confidence": "medium-high",
+    "reasons": ["deep reasoning useful for fundamentals", "HF metadata available"],
+    "notes": "Gemma-3 provides robust reasoning when available; fallback to gpt-oss-20b for consistent availability."
+  },
+  "social_analyst": {
+    "provider": "lm_studio",
+    "model": "mistralai/Devstral-Small-2507",
+  "allowEmbeddingModel": false,
+  "embeddingModel": "text-embedding-nomic-embed-text-v1.5",
+    "confidence": "medium",
+    "reasons": ["lower latency for many short calls", "multilingual tags present"],
+    "notes": "Efficient for social sentiment and short-context reasoning."
+  },
+  "bull_researcher": {
+    "provider": "lm_studio",
+    "model": "openai/gpt-oss-20b",
+    "confidence": "medium",
+    "reasons": ["research depth required"],
+    "notes": "Large model for deep reasoning and scenario generation."
+  },
+  "bear_researcher": {
+    "provider": "lm_studio",
+    "model": "openai/gpt-oss-20b",
+    "confidence": "medium",
+    "reasons": ["research depth required"],
+    "notes": "Same as bull_researcher for parity in capabilities."
+  },
+  "research_manager": {
+    "provider": "lm_studio",
+    "model": "openai/gpt-oss-20b",
+    "confidence": "medium",
+    "reasons": ["summaries and reasoning across reports"],
+    "notes": "Phi-4 is a good alternative when available; gpt-oss-20b chosen for consistency."
+  },
+  "risky_analyst": {
+    "provider": "lm_studio",
+    "model": "openai/gpt-oss-20b",
+  "allowEmbeddingModel": false,
+  "embeddingModel": "text-embedding-nomic-embed-text-v1.5",
+    "confidence": "medium",
+    "reasons": ["high-capacity model for aggressive scenario analysis"],
+    "notes": "High-capacity model for aggressive scenario analysis."
+  },
+  "safe_analyst": {
+    "provider": "lm_studio",
+    "model": "mistralai/Devstral-Small-2507",
+  "allowEmbeddingModel": false,
+  "embeddingModel": "text-embedding-nomic-embed-text-v1.5",
+    "confidence": "medium",
+    "reasons": ["conservative, smaller instruct model to produce restrained outputs"],
+    "notes": "Conservative, smaller instruct model to produce restrained outputs."
+  },
+  "neutral_analyst": {
+    "provider": "lm_studio",
+    "model": "qwen/qwen3-1.7b",
+  "allowEmbeddingModel": false,
+  "embeddingModel": "text-embedding-nomic-embed-text-v1.5",
+    "confidence": "low",
+    "reasons": ["balanced but smaller model; HF metadata not fetched yet"],
+    "notes": "Balanced model for neutral analysis."
+  },
+  "portfolio_manager": {
+    "provider": "lm_studio",
+    "model": "openai/gpt-oss-20b",
+    "confidence": "medium",
+    "reasons": ["manager-level reasoning for portfolio decisions"],
+    "notes": "Phi-4 is an alternative; using gpt-oss-20b for parity with other managers."
+  },
+  "trader": {
+    "provider": "lm_studio",
+    "model": "qwen/qwen3-4b-thinking-2507",
+    "confidence": "medium",
+    "reasons": ["4B family supports low-latency inference; good trade support"],
+    "notes": "Smaller, fast model for trade decision support where latency matters."
+  },
+  "default": {
+    "provider": "lm_studio",
+    "model": "openai/gpt-oss-20b",
+    "confidence": "low",
+    "notes": "Fallback default for any agent not explicitly mapped."
+  }
+}

@@ -11,6 +11,13 @@ export interface AgentLLMConfig {
   temperature?: number;
   maxTokens?: number;
   timeout?: number;
+  // When true, this agent is allowed to use embedding models as its primary LLM
+  // (defaults to false). Primarily embedding models should be used for memory
+  // operations; this flag allows an analyst to explicitly accept an embedding
+  // model as a primary model if desired.
+  allowEmbeddingModel?: boolean;
+  // Optional explicit embedding model ID to use for memory/embedding tasks for this agent
+  embeddingModel?: string;
 }
 
 /**
@@ -189,6 +196,9 @@ export const DEFAULT_AGENT_CONFIGS: AgentTypeConfigs = {
                            process.env.ANALYSTS_LLM_TEMPERATURE || '0.3'),
     maxTokens: parseInt(process.env.MARKET_ANALYST_LLM_MAX_TOKENS || 
                        process.env.ANALYSTS_LLM_MAX_TOKENS || '1500')
+  ,
+  allowEmbeddingModel: false,
+  embeddingModel: 'text-embedding-nomic-embed-text-v1.5'
   },
   
   socialAnalyst: {
@@ -202,6 +212,9 @@ export const DEFAULT_AGENT_CONFIGS: AgentTypeConfigs = {
                            process.env.ANALYSTS_LLM_TEMPERATURE || '0.4'),
     maxTokens: parseInt(process.env.SOCIAL_ANALYST_LLM_MAX_TOKENS || 
                        process.env.ANALYSTS_LLM_MAX_TOKENS || '1500')
+  ,
+  allowEmbeddingModel: false,
+  embeddingModel: 'text-embedding-nomic-embed-text-v1.5'
   },
   
   newsAnalyst: {
@@ -215,6 +228,9 @@ export const DEFAULT_AGENT_CONFIGS: AgentTypeConfigs = {
                            process.env.ANALYSTS_LLM_TEMPERATURE || '0.3'),
     maxTokens: parseInt(process.env.NEWS_ANALYST_LLM_MAX_TOKENS || 
                        process.env.ANALYSTS_LLM_MAX_TOKENS || '1500')
+  ,
+  allowEmbeddingModel: false,
+  embeddingModel: 'text-embedding-nomic-embed-text-v1.5'
   },
   
   fundamentalsAnalyst: {
@@ -228,6 +244,9 @@ export const DEFAULT_AGENT_CONFIGS: AgentTypeConfigs = {
                            process.env.ANALYSTS_LLM_TEMPERATURE || '0.2'),
     maxTokens: parseInt(process.env.FUNDAMENTALS_ANALYST_LLM_MAX_TOKENS || 
                        process.env.ANALYSTS_LLM_MAX_TOKENS || '2000')
+  ,
+  allowEmbeddingModel: false,
+  embeddingModel: 'text-embedding-nomic-embed-text-v1.5'
   },
   
   // Researchers - more powerful models for complex reasoning
@@ -282,6 +301,9 @@ export const DEFAULT_AGENT_CONFIGS: AgentTypeConfigs = {
                            process.env.RISK_ANALYSTS_LLM_TEMPERATURE || '0.8'),
     maxTokens: parseInt(process.env.RISKY_ANALYST_LLM_MAX_TOKENS || 
                        process.env.RISK_ANALYSTS_LLM_MAX_TOKENS || '2000')
+  ,
+  allowEmbeddingModel: false,
+  embeddingModel: 'text-embedding-nomic-embed-text-v1.5'
   },
   
   safeAnalyst: {
@@ -295,6 +317,9 @@ export const DEFAULT_AGENT_CONFIGS: AgentTypeConfigs = {
                            process.env.RISK_ANALYSTS_LLM_TEMPERATURE || '0.3'),
     maxTokens: parseInt(process.env.SAFE_ANALYST_LLM_MAX_TOKENS || 
                        process.env.RISK_ANALYSTS_LLM_MAX_TOKENS || '2000')
+  ,
+  allowEmbeddingModel: false,
+  embeddingModel: 'text-embedding-nomic-embed-text-v1.5'
   },
   
   neutralAnalyst: {
@@ -308,6 +333,9 @@ export const DEFAULT_AGENT_CONFIGS: AgentTypeConfigs = {
                            process.env.RISK_ANALYSTS_LLM_TEMPERATURE || '0.5'),
     maxTokens: parseInt(process.env.NEUTRAL_ANALYST_LLM_MAX_TOKENS || 
                        process.env.RISK_ANALYSTS_LLM_MAX_TOKENS || '2000')
+  ,
+  allowEmbeddingModel: false,
+  embeddingModel: 'text-embedding-nomic-embed-text-v1.5'
   },
   
   portfolioManager: {

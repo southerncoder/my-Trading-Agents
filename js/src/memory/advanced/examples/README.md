@@ -1,3 +1,36 @@
+# Quickstart: Running the Example
+
+This folder contains a runnable example for the Advanced Memory & Learning System using Zep Graphiti as the backend knowledge graph.
+
+## Example: `run-advanced-memory-example.ts`
+
+- Demonstrates how to:
+  - Configure the ZepAdapter for your Zep Graphiti instance
+  - Initialize the `AdvancedMemoryLearningSystem`
+  - Submit a trading intelligence request and print the response
+
+### Prerequisites
+- Node.js 18+
+- Zep Graphiti running locally or remotely (set `ZEP_GRAPHITI_URL` and `ZEP_API_KEY` in your `.env.local`)
+- Install dependencies:
+  ```sh
+  cd js
+  npm install
+  ```
+
+### Running the Example
+From the `js` directory:
+```sh
+npx tsx src/memory/advanced/examples/run-advanced-memory-example.ts
+```
+
+### What it does
+- Connects to Zep Graphiti using the adapter
+- Initializes the advanced memory system with a sample config
+- Sends a sample trading intelligence request (for AAPL)
+- Prints the structured response (market intelligence, risk, confidence, learning insights)
+
+---
 # Advanced Memory & Learning System
 
 ## Overview

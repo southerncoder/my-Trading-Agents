@@ -285,13 +285,16 @@ export class TemporalRelationshipMapper {
    * Execute temporal search using Zep Graphiti's capabilities
    */
   private async executeTemporalSearch(query: TemporalMarketQuery): Promise<any> {
-    // This would integrate with Zep Graphiti's temporal search API
-    // Implementation depends on Zep's specific API structure
-    
-    // Placeholder for Zep Graphiti integration
-    // return await this.zepClient.temporalSearch(searchParams);
-    
-    // For now, return mock structure
+    // Use adapter if available on zepClient
+    if (this.zepClient && typeof this.zepClient.temporalSearch === 'function') {
+      try {
+        const res = await this.zepClient.temporalSearch(query);
+        return res;
+      } catch (_err) {
+        // fall through to empty result
+      }
+    }
+
     return {
       entities: [],
       relationships: [],

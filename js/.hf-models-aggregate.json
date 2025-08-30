@@ -1,0 +1,140 @@
+﻿[
+    {
+        "summary": {
+                        "modelId": "mistralai/Devstral-Small-2507",
+                        "pipeline_tag": null,
+                        "parameters": 23572.4,
+                        "private": false,
+                        "_lastModified": "2025-08-18T00:00:00.000Z"
+                    },
+        "id": "mistralai/devstral-small-2507",
+        "file": "js\\hf-models\\mistralai_devstral-small-2507.hf.json"
+    },
+    {
+        "summary": {
+                        "modelId": null,
+                        "pipeline_tag": null,
+                        "parameters": null,
+                        "private": null,
+                        "_lastModified": null,
+                        "note": "not found on HF"
+                    },
+        "id": "text-embedding-nomic-embed-text-v1.5",
+        "file": "js\\hf-models\\text-embedding-nomic-embed-text-v1.5.json"
+    },
+    {
+        "summary": {
+                        "modelId": "openai/gpt-oss-20b",
+                        "pipeline_tag": "text-generation",
+                        "parameters": 21512.0,
+                        "private": false,
+                        "_lastModified": "2025-08-26T17:25:47.000Z"
+                    },
+        "id": "openai/gpt-oss-20b",
+        "file": "js\\hf-models\\openai_gpt-oss-20b.hf.json"
+    },
+    {
+        "summary": {
+                        "modelId": "microsoft/Phi-4-reasoning-plus",
+                        "pipeline_tag": "text-generation",
+                        "parameters": 14659.5,
+                        "private": false,
+                        "_lastModified": "2025-06-13T00:00:00.000Z"
+                    },
+        "id": "microsoft/phi-4-reasoning-plus",
+        "file": "js\\hf-models\\microsoft_phi-4-reasoning-plus.hf.json"
+    },
+    {
+        "summary": {
+                        "modelId": "Qwen/Qwen3-4B-Thinking-2507",
+                        "pipeline_tag": "text-generation",
+                        "parameters": 4022.5,
+                        "private": false,
+                        "_lastModified": "2025-08-06T00:00:00.000Z"
+                    },
+        "id": "qwen/qwen3-4b-thinking-2507",
+        "file": "js\\hf-models\\qwen_qwen3-4b-thinking-2507.hf.json"
+    },
+    {
+        "summary": {
+                        "modelId": "Qwen/Qwen3-14B",
+                        "pipeline_tag": "text-generation",
+                        "parameters": 14768.3,
+                        "private": false,
+                        "_lastModified": "2025-07-26T00:00:00.000Z"
+                    },
+        "id": "qwen/qwen3-14b",
+        "file": "js\\hf-models\\qwen_qwen3-14b.hf.json"
+    },
+    {
+        "summary": {
+                        "modelId": "Qwen/Qwen3-1.7B",
+                        "pipeline_tag": "text-generation",
+                        "parameters": 2031.7,
+                        "private": false,
+                        "_lastModified": "2025-07-26T00:00:00.000Z"
+                    },
+        "id": "qwen/qwen3-1.7b",
+        "file": "js\\hf-models\\qwen_qwen3-1.7b.hf.json"
+    },
+    {
+        "summary": {
+                        "modelId": null,
+                        "pipeline_tag": null,
+                        "parameters": null,
+                        "private": null,
+                        "_lastModified": null,
+                        "note": "not fetched"
+                    },
+        "id": "phi-3-context-obedient-rag",
+        "file": "js\\hf-models\\phi-3-context-obedient-rag.json"
+    },
+    {
+        "summary": {
+                        "modelId": null,
+                        "pipeline_tag": null,
+                        "parameters": null,
+                        "private": null,
+                        "_lastModified": null,
+                        "note": "unauthorized"
+                    },
+        "id": "google/gemma-3-12b",
+        "file": "js\\hf-models\\google_gemma-3-12b.json"
+    },
+    {
+        "summary": {
+                        "modelId": null,
+                        "pipeline_tag": null,
+                        "parameters": null,
+                        "private": null,
+                        "_lastModified": null,
+                        "note": "name mismatch; consider mapping to mistralai/Mistral-7B family"
+                    },
+        "id": "mistralai_-_mistral-7b-instruct-v0.3",
+        "file": "js\\hf-models\\mistralai_-_mistral-7b-instruct-v0.3.json"
+    },
+    {
+        "summary": {
+                        "modelId": null,
+                        "pipeline_tag": null,
+                        "parameters": null,
+                        "private": null,
+                        "_lastModified": null,
+                        "note": "not fetched or unauthorized"
+                    },
+        "id": "google_gemma-3n-e4b-it",
+        "file": "js\\hf-models\\google_gemma-3n-e4b-it.json"
+    },
+    {
+        "summary": {
+                        "modelId": null,
+                        "pipeline_tag": null,
+                        "parameters": null,
+                        "private": null,
+                        "_lastModified": null,
+                        "note": "not fetched"
+                    },
+        "id": "dolphin-2.9-llama3-8b",
+        "file": "js\\hf-models\\dolphin-2.9-llama3-8b.json"
+    }
+]

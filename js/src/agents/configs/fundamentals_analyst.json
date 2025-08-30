@@ -1,0 +1,7 @@
+{
+  "provider": "lm_studio",
+  "model": "google/gemma-3-12b",
+  "temperature": 0.2,
+  "maxTokens": 2000,
+  "notes": "Higher reasoning capability for fundamentals analysis."
+}

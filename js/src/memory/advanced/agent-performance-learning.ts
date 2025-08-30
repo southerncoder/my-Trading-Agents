@@ -586,7 +586,14 @@ export class AgentPerformanceLearningSystem {
    * Retrieve performance data from storage
    */
   private async retrievePerformanceData(_agentId: string): Promise<any> {
-    // Implementation would retrieve historical performance data
+    if (this.zepClient && typeof this.zepClient.retrieveEntities === 'function') {
+      try {
+        const res = await this.zepClient.retrieveEntities({ agent_id: _agentId, type: 'AgentPerformance' });
+        return res;
+      } catch (_err) {
+        // fall back
+      }
+    }
     return {};
   }
 

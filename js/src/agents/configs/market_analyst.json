@@ -1,0 +1,9 @@
+{
+  "provider": "lm_studio",
+  "model": "openai/gpt-oss-20b",
+  "temperature": 0.3,
+  "maxTokens": 1500,
+  "embeddingModel": "text-embedding-nomic-embed-text-v1.5",
+  "allowEmbeddingModel": false,
+  "notes": "Example: market analyst uses gpt-oss-20b for completions and text-embedding-nomic-embed-text-v1.5 for memory/embeddings."
+}

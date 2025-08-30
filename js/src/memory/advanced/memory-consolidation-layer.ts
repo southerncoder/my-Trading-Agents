@@ -534,8 +534,14 @@ export class MemoryConsolidationLayer {
    * Store consolidated pattern in Zep Graphiti
    */
   private async storeConsolidatedPattern(_pattern: MarketPattern): Promise<void> {
-    // Implementation would store the pattern in Zep Graphiti
-    // as a temporal knowledge entity with relationships
+    if (this.zepClient && typeof this.zepClient.storeEntity === 'function') {
+      try {
+        await this.zepClient.storeEntity('MarketPattern', _pattern);
+        return;
+      } catch (_err) {
+        // ignore and return
+      }
+    }
   }
 
   /**

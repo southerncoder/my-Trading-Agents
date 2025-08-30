@@ -1,0 +1,7 @@
+{
+  "provider": "lm_studio",
+  "model": "mistralai_-_mistral-7b-instruct-v0.3",
+  "temperature": 0.25,
+  "maxTokens": 1500,
+  "notes": "Summarization-friendly instruct model for news extraction."
+}

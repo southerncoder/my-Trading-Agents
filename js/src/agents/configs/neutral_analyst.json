@@ -1,0 +1,7 @@
+{
+  "provider": "lm_studio",
+  "model": "qwen/qwen3-1.7b",
+  "temperature": 0.5,
+  "maxTokens": 2000,
+  "notes": "Balanced neutral analysis model."
+}

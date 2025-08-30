@@ -1,0 +1,12 @@
+{
+  "modelId": "microsoft/Phi-4-reasoning-plus",
+  "source": "huggingface",
+  "summary": {
+    "pipeline_tag": "text-generation",
+    "parameters": 14659.5,
+    "tags": ["transformers","safetensors","phi3","text-generation","license:mit"],
+    "lastModified": "2025-06-13T00:00:00.000Z",
+    "private": false
+  },
+  "raw": {}
+}

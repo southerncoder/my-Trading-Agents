@@ -1,0 +1,12 @@
+{
+  "modelId": "openai/gpt-oss-20b",
+  "source": "huggingface",
+  "summary": {
+    "pipeline_tag": "text-generation",
+    "parameters": 21512.0,
+    "tags": ["transformers","safetensors","gpt_oss","text-generation","vllm","mxfp4","license:apache-2.0"],
+    "lastModified": "2025-08-26T17:25:47.000Z",
+    "private": false
+  },
+  "raw": {}
+}

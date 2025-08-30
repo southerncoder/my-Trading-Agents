@@ -291,10 +291,21 @@ export class ContextRetrievalSystem {
     _lookbackDays: number,
     _searchType: 'technical' | 'macro' | 'sentiment'
   ): Promise<any[]> {
-    // Implementation would use Zep Graphiti's vector search capabilities
-    // to find similar condition vectors in the knowledge graph
-    
-    // Placeholder implementation
+    // Use zep client vectorSearch if available
+    if (this.zepClient && typeof this.zepClient.vectorSearch === 'function') {
+      try {
+        const res = await this.zepClient.vectorSearch({
+          entity_id: _entityId,
+          vector: _conditions,
+          lookback_days: _lookbackDays,
+          type: _searchType
+        });
+        return res?.results || [];
+      } catch (_err) {
+        // fall back to empty
+      }
+    }
+
     return [];
   }
 
