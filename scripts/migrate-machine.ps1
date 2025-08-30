@@ -44,6 +44,39 @@ if (Test-Path $envExample) {
 
 # Optionally start py_zep services
 if ($StartPyZep) {
+  # Check Docker Desktop: if Docker Desktop is installed but not running, try to start it
+  function Start-DockerDesktopIfNeeded() {
+    # Check for docker daemon via docker info
+    try {
+      & docker info > $null 2>&1
+      if ($LASTEXITCODE -eq 0) {
+        Write-Host "Docker daemon is running."
+        return
+      }
+    } catch {
+      # ignore
+    }
+
+    # Check for Docker Desktop executable in default install path
+    $dockerExe = "C:\\Program Files\\Docker\\Docker\\Docker Desktop.exe"
+    if (Test-Path $dockerExe) {
+      Write-Host "Docker daemon not running. Attempting to start Docker Desktop..."
+      Start-Process -FilePath $dockerExe -Verb runAs
+      Write-Host "Waiting up to 60 seconds for Docker to become available..."
+      $wait = 0
+      while ($wait -lt 60) {
+        Start-Sleep -Seconds 2
+        try { & docker info > $null 2>&1 } catch {}
+        if ($LASTEXITCODE -eq 0) { Write-Host "Docker is now available."; return }
+        $wait += 2
+      }
+      Write-Warning "Docker did not become available within 60s. Continue with caution."
+    } else {
+      Write-Warning "Docker Desktop not found at $dockerExe. Ensure Docker is installed if you plan to use py_zep via Docker."
+    }
+  }
+  Start-DockerDesktopIfNeeded
+
   $pyZepScript = Join-Path $root "py_zep\start-zep-services.ps1"
   if (Test-Path $pyZepScript) {
     Write-Host "Starting py_zep services via start-zep-services.ps1"
