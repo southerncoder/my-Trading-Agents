@@ -1,10 +1,8 @@
-#!/usr/bin/env node
-
 /**
  * Test script for Enhanced Trading Agents Graph
  */
 
-import { EnhancedTradingAgentsGraph } from '../dist/graph/enhanced-trading-graph.js';
+import { EnhancedTradingAgentsGraph } from '../../src/graph/enhanced-trading-graph';
 
 async function runTest() {
   try {

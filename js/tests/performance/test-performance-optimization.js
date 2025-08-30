@@ -21,8 +21,8 @@ async function performanceOptimizationTest() {
 
   try {
     // Import required modules
-    const { LoggingManager } = await import('../dist/cli/logging-manager.js');
-    const { createLogger } = await import('../dist/utils/enhanced-logger.js');
+    const { LoggingManager } = await import('../../dist/cli/logging-manager.js');
+    const { createLogger } = await import('../../dist/utils/enhanced-logger.js');
 
     console.log('📊 Test 1: Baseline Performance Metrics\n');
 

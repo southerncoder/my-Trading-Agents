@@ -9,7 +9,7 @@ async function testTraditionalTradingGraph() {
   
   try {
     console.log('🔍 Importing TradingAgentsGraph...');
-    const tradingGraphModule = await import('../dist/graph/trading-graph.js');
+    const tradingGraphModule = await import('../../dist/graph/trading-graph.js');
     
     // Check what exports are available
     console.log('📋 Available exports:', Object.keys(tradingGraphModule));

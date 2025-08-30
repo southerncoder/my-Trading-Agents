@@ -26,7 +26,7 @@ if ($Fresh) {
 Write-Host "📱 Opening new terminal window for services..." -ForegroundColor Cyan
 
 # Use a simple approach with Windows Terminal
-$wtCommand = "wt new-tab --title 'Zep Graphiti Services' powershell -NoExit -Command 'Set-Location ''$ZepDir''; Write-Host ''🐳 Starting Official Zep Graphiti Services...'' -ForegroundColor Green; docker-compose up --remove-orphans; Write-Host ''🛑 Services stopped. Press any key to close...'' -ForegroundColor Red; Read-Host'"
+$wtCommand = "wt new-tab --title `"Zep Graphiti Services`" powershell -NoExit -Command `"Set-Location '$ZepDir'; Write-Host '🐳 Starting Official Zep Graphiti Services...' -ForegroundColor Green; docker-compose up --remove-orphans; Write-Host '🛑 Services stopped. Press any key to close...' -ForegroundColor Red; Read-Host`""
 
 Start-Process -FilePath "cmd" -ArgumentList "/c", $wtCommand -WindowStyle Hidden
 

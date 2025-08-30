@@ -276,7 +276,7 @@ export class ModelProvider {
       const model = this.createModel(config);
       
       // Try a simple test message
-      const response = await model.invoke([
+      const _response = await model.invoke([
         { role: 'user', content: 'Hello, this is a connection test. Please respond with "OK".' }
       ]);
 

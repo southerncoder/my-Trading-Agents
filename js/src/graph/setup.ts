@@ -15,7 +15,6 @@ import { ChatOpenAI } from '@langchain/openai';
 import { ChatAnthropic } from '@langchain/anthropic';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 
-import { AgentState } from '../types/agent-states';
 import { Toolkit } from '../dataflows/interface';
 import { FinancialSituationMemory } from '../agents/utils/memory';
 import { ConditionalLogic } from './conditional-logic';

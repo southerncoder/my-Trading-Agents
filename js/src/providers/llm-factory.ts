@@ -197,7 +197,7 @@ export class LLMProviderFactory {
       await llm.invoke([{ role: 'user', content: 'Hello' }]);
       
       return true;
-    } catch (error) {
+    } catch (_error) {
       return false;
     }
   }

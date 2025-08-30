@@ -8,7 +8,7 @@
 import { ModelProvider, ModelConfig } from '../models/index';
 import { TradingAgentsConfig } from '../types/config';
 import { AgentState } from '../types/agent-states';
-import { logger } from '../utils/enhanced-logger.js';
+import { logger } from '../utils/enhanced-logger';
 
 export type AnalystType = 'market' | 'social' | 'news' | 'fundamentals';
 

@@ -2,8 +2,8 @@
  * Integration test for the CLI with mock selections
  */
 
-import { TradingAgentsCLI } from '../dist/cli/main.js';
-import { EnhancedTradingAgentsGraph } from '../dist/graph/enhanced-trading-graph.js';
+import { TradingAgentsCLI } from '../../src/cli/main.js';
+import { EnhancedTradingAgentsGraph } from '../../src/graph/enhanced-trading-graph.js';
 
 // Mock the getUserSelections method to avoid interactive prompts
 class TestTradingAgentsCLI extends TradingAgentsCLI {

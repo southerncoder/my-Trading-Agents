@@ -10,7 +10,7 @@ import { HumanMessage, AIMessage } from '@langchain/core/messages';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 
 import { AgentState } from '../types/agent-states';
-import { ModelProvider, ModelConfig } from '../models';
+import { ModelProvider, ModelConfig } from '../models/index';
 import { TradingAgentsConfig } from '../types/config';
 
 // Import specific agents we'll use

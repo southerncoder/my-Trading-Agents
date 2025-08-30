@@ -13,7 +13,7 @@ import {
   MarketRegime, 
   MarketRelationship,
   AnalysisOutcome 
-} from './market-entities.js';
+} from './market-entities';
 
 // ============================================================================
 // TEMPORAL QUERY INTERFACES

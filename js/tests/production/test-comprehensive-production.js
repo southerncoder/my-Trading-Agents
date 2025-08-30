@@ -11,7 +11,7 @@ async function testAgentMemoryIntegration() {
     console.log('📦 Importing memory components...');
     
     // Import agent memory
-    const { FinancialSituationMemory } = await import('../dist/agents/utils/memory.js');
+    const { FinancialSituationMemory } = await import('../../dist/agents/utils/memory.js');
     console.log('✅ FinancialSituationMemory imported');
     
     // Test memory creation
@@ -121,7 +121,7 @@ async function testEndToEndWorkflow() {
     console.log('🏗️ Setting up end-to-end workflow test...');
     
     // Import necessary components
-    const { EnhancedTradingAgentsGraph } = await import('../dist/graph/enhanced-trading-graph.js');
+    const { EnhancedTradingAgentsGraph } = await import('../../dist/graph/enhanced-trading-graph.js');
     const { ChatOpenAI } = await import('@langchain/openai');
     const { HumanMessage, SystemMessage } = await import('@langchain/core/messages');
     

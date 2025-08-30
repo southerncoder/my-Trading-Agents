@@ -72,7 +72,7 @@ async function validateWorkingComponents() {
     console.log('\n👥 TESTING TRADING AGENTS');
     console.log('-'.repeat(40));
     
-    const agentModule = await import('../dist/agents/analysts/market-analyst.js');
+    const agentModule = await import('../../dist/agents/analysts/market-analyst.js');
     const MarketAnalyst = agentModule.MarketAnalyst;
     const agent = new MarketAnalyst(model, []);
     
@@ -91,7 +91,7 @@ async function validateWorkingComponents() {
     console.log('\n🏗️ TESTING ENHANCED ORCHESTRATOR');
     console.log('-'.repeat(40));
     
-    const { EnhancedTradingAgentsGraph } = await import('../dist/graph/enhanced-trading-graph.js');
+    const { EnhancedTradingAgentsGraph } = await import('../../dist/graph/enhanced-trading-graph.js');
     const orchestrator = new EnhancedTradingAgentsGraph({
       enableLangGraph: true,
       llmProvider: 'lm_studio',

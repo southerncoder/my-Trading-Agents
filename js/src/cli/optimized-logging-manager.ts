@@ -277,7 +277,7 @@ export class OptimizedLoggingManager {
         _note: 'Metadata truncated for performance'
       };
       
-    } catch (error) {
+    } catch (_error) {
       // Handle circular references or serialization errors
       return {
         _error: 'Metadata optimization failed',

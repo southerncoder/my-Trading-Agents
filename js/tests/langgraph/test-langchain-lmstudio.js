@@ -56,7 +56,7 @@ async function testModelProviderWrapper() {
   
   try {
     console.log('📦 Importing ModelProvider...');
-    const { ModelProvider } = await import('../dist/models/provider.js');
+    const { ModelProvider } = await import('../../dist/models/provider.js');
     
     console.log('🔧 Creating model with extended timeout...');
     const config = {

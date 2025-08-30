@@ -28,21 +28,21 @@ import {
   ContextRetrievalSystem,
   createContextRetrievalSystem,
   type MarketContextQuery
-} from './context-retrieval-system.js';
+} from './context-retrieval-system';
 
 import {
   MemoryConsolidationLayer,
   createMemoryConsolidationLayer
-} from './memory-consolidation-layer.js';
+} from './memory-consolidation-layer';
 
 import {
   AgentPerformanceLearningSystem,
   createAgentPerformanceLearningSystem
-} from './agent-performance-learning.js';
+} from './agent-performance-learning';
 
 import {
   TemporalRelationshipMapper
-} from './temporal-relationship-mapper.js';
+} from './temporal-relationship-mapper';
 
 // Integration configuration schema
 export const AdvancedMemoryConfigSchema = z.object({

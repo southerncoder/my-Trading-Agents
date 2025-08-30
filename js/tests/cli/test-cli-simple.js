@@ -23,7 +23,7 @@ try {
   
   // Test default config
   try {
-    const { DEFAULT_CONFIG } = await import('./dist/config/default.js');
+    const { DEFAULT_CONFIG } = await import('../../src/config/index.js');
     console.log('✅ Default config imported successfully');
   } catch (error) {
     console.log('❌ Default config import failed:', error.message);
@@ -33,7 +33,7 @@ try {
   
   // Test CLI main
   try {
-    const { TradingAgentsCLI } = await import('./dist/cli/main.js');
+    const { TradingAgentsCLI } = await import('../../src/cli/main.js');
     console.log('✅ TradingAgentsCLI class imported successfully');
     
     const cli = new TradingAgentsCLI();
