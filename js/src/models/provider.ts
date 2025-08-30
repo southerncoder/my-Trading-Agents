@@ -38,6 +38,49 @@ export class ModelProvider {
   private static instances: Map<string, BaseChatModel> = new Map();
 
   /**
+   * Create or retrieve a model instance asynchronously. For `lm_studio`, ensure
+   * the requested model is loaded (LM Studio supports single active model load semantics),
+   * then create the ChatOpenAI wrapper.
+   */
+  static async createModelAsync(config: ModelConfig): Promise<BaseChatModel> {
+    const cacheKey = this.getCacheKey(config);
+    if (this.instances.has(cacheKey)) return this.instances.get(cacheKey)!;
+
+    const model = this.createModel(config);
+
+    // For LM Studio, wrap the model so that every chat/invoke ensures the right model is loaded first.
+    if (config.provider === 'lm_studio') {
+      const baseUrl = config.baseURL || process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1';
+      const { LMStudioManager } = await import('./lmstudio-manager');
+
+      // Create a lightweight wrapper around the BaseChatModel to intercept invoke calls
+      const wrapper: BaseChatModel = new Proxy(model, {
+        get(target: any, prop: PropertyKey) {
+          if (prop === 'invoke' || prop === 'call' || prop === 'generate') {
+            return async function (...args: any[]) {
+              // Ensure the desired model is loaded in LM Studio before delegating the call
+              await LMStudioManager.ensureModelLoaded(config.modelName, baseUrl);
+              // Delegate to the original method
+              const fn = (target as any)[prop];
+              if (typeof fn === 'function') {
+                return fn.apply(target, args);
+              }
+              throw new Error(`Model method ${String(prop)} is not a function on underlying model`);
+            };
+          }
+          return (target as any)[prop];
+        }
+      }) as BaseChatModel;
+
+      this.instances.set(cacheKey, wrapper);
+      return wrapper;
+    }
+
+    this.instances.set(cacheKey, model);
+    return model;
+  }
+
+  /**
    * Create a model instance based on configuration
    */
   static createModel(config: ModelConfig): BaseChatModel {
@@ -191,6 +234,16 @@ export class ModelProvider {
    */
   static clearCache(): void {
     this.instances.clear();
+  }
+
+  /**
+   * Preload model for LM Studio (noop for other providers)
+   */
+  static async preloadModel(config: ModelConfig): Promise<void> {
+    if (config.provider !== 'lm_studio') return;
+    const baseUrl = config.baseURL || process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1';
+    const { LMStudioManager } = await import('./lmstudio-manager');
+    await LMStudioManager.preloadModel(config.modelName, baseUrl);
   }
 
   /**

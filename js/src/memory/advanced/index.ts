@@ -44,6 +44,10 @@ import {
   TemporalRelationshipMapper
 } from './temporal-relationship-mapper';
 
+import { PatternRecognitionEngine } from '../pattern-recognition';
+import { CrossSessionMemorySystem } from '../cross-session-memory';
+import { TemporalReasoningEngine } from '../temporal-reasoning';
+
 // Integration configuration schema
 export const AdvancedMemoryConfigSchema = z.object({
   zep_client_config: z.object({
@@ -189,6 +193,9 @@ export class AdvancedMemoryLearningSystem {
   private contextRetrieval: ContextRetrievalSystem;
   private memoryConsolidation: MemoryConsolidationLayer;
   private performanceLearning: AgentPerformanceLearningSystem;
+  private patternRecognition: PatternRecognitionEngine;
+  private crossSessionMemory: CrossSessionMemorySystem;
+  private temporalReasoning: TemporalReasoningEngine;
   
   // System state
   private isInitialized: boolean = false;
@@ -213,6 +220,9 @@ export class AdvancedMemoryLearningSystem {
       performanceWindow: config.learning_config.performance_window_days,
       confidenceDecayRate: config.learning_config.confidence_decay_rate
     });
+    this.patternRecognition = new PatternRecognitionEngine(zepClient, this.logger);
+    this.crossSessionMemory = new CrossSessionMemorySystem(zepClient, undefined, this.logger);
+    this.temporalReasoning = new TemporalReasoningEngine(undefined, this.logger);
   }
 
   /**
@@ -409,7 +419,10 @@ export class AdvancedMemoryLearningSystem {
       historical_context: {},
       risk_assessment: {},
       confidence_analysis: {},
-      learning_insights: {}
+      learning_insights: {},
+      pattern_analysis: {},
+      temporal_insights: {},
+      cross_session_insights: {}
     };
 
     // Entity analysis
@@ -421,6 +434,15 @@ export class AdvancedMemoryLearningSystem {
     if (this.config.integration_config.enable_context_retrieval) {
       analysis.historical_context = await this.retrieveHistoricalContext(request);
     }
+
+    // Pattern recognition analysis
+    analysis.pattern_analysis = await this.analyzePatterns(request);
+
+    // Temporal reasoning insights
+    analysis.temporal_insights = await this.getTemporalInsights(request);
+
+    // Cross-session memory insights
+    analysis.cross_session_insights = await this.getCrossSessionInsights(request);
 
     // Risk assessment
     analysis.risk_assessment = await this.assessRisks(request, analysis);
@@ -523,6 +545,102 @@ export class AdvancedMemoryLearningSystem {
       market_regime_shifts: [],
       optimization_opportunities: []
     };
+  }
+
+  private async analyzePatterns(request: TradingIntelligenceRequest): Promise<any> {
+    try {
+      // Use pattern recognition engine to analyze current market data
+      // Convert technical indicators to price history format for pattern analysis
+      const priceHistory = [{
+        timestamp: new Date().toISOString(),
+        open: request.current_context.price_level,
+        high: request.current_context.price_level * 1.01,
+        low: request.current_context.price_level * 0.99,
+        close: request.current_context.price_level,
+        volume: request.current_context.volume
+      }];
+      
+      const patterns = await this.patternRecognition.recognizePatterns(
+        request.entity_id,
+        { 
+          price_history: priceHistory,
+          technical_indicators: Object.fromEntries(
+            Object.entries(request.current_context.technical_indicators).map(([key, value]) => [key, [value]])
+          ),
+          market_context: { regime: request.current_context.market_regime }
+        }
+      );
+      
+      return {
+        detected_patterns: patterns.patterns_detected || [],
+        pattern_confidence: patterns.pattern_confluence?.confidence_level || 0,
+        market_signals: patterns.actionable_insights?.filter((insight: any) => 
+          insight.insight_type === 'entry_signal' || insight.insight_type === 'exit_signal'
+        ) || [],
+        behavioral_patterns: patterns.actionable_insights?.filter((insight: any) => 
+          insight.insight_type === 'risk_warning'
+        ) || []
+      };
+    } catch (error) {
+      this.logger.error('analyzePatterns', 'Pattern analysis failed', { error });
+      return { detected_patterns: [], pattern_confidence: 0, market_signals: [], behavioral_patterns: [] };
+    }
+  }
+
+  private async getTemporalInsights(request: TradingIntelligenceRequest): Promise<any> {
+    try {
+      // Use temporal reasoning engine for time-series analysis
+      const insights = this.temporalReasoning.getTemporalInsights();
+      
+      // Create time series data from current context
+      const timeSeriesData = [{
+        timestamp: new Date().toISOString(),
+        value: request.current_context.price_level,
+        confidence: request.current_context.confidence_level
+      }];
+      
+      const trends = await this.temporalReasoning.analyzeTrends(timeSeriesData);
+      
+      return {
+        ...insights,
+        trend_analysis: trends,
+        temporal_recommendations: insights.temporalRecommendations || []
+      };
+    } catch (error) {
+      this.logger.error('getTemporalInsights', 'Temporal analysis failed', { error });
+      return { activeTrends: [], upcomingPatterns: [], regimeTransitionAlerts: [], temporalRecommendations: [] };
+    }
+  }
+
+  private async getCrossSessionInsights(request: TradingIntelligenceRequest): Promise<any> {
+    try {
+      // Use cross-session memory to get relevant historical insights
+      const volatilityLevel = request.current_context.volatility < 0.02 ? 'low' :
+                             request.current_context.volatility < 0.05 ? 'medium' : 'high';
+      
+      const relevantInsights = await this.crossSessionMemory.getRelevantInsights({
+        marketRegime: request.current_context.market_regime,
+        volatilityLevel,
+        sectorConditions: request.current_context.market_conditions || {},
+        timeHorizon: request.query_type
+      });
+      
+      // Get memory statistics
+      const memoryStats = this.crossSessionMemory.getMemoryStats();
+      
+      return {
+        relevant_insights: relevantInsights,
+        memory_statistics: memoryStats,
+        learning_progression: {
+          total_sessions: memoryStats.totalSessions,
+          insights_generated: memoryStats.totalInsights,
+          memory_utilization: memoryStats.memoryUtilization
+        }
+      };
+    } catch (error) {
+      this.logger.error('getCrossSessionInsights', 'Cross-session analysis failed', { error });
+      return { relevant_insights: [], memory_statistics: {}, learning_progression: {} };
+    }
   }
 
   private generateCacheKey(request: TradingIntelligenceRequest): string {
