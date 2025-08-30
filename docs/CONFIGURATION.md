@@ -2,7 +2,82 @@
 
 ## 🎯 Overview
 
-TradingAgents uses a sophisticated 4-tier environment variable hierarchy that allows fine-grained control over LLM providers and models for each agent type.
+TradingAgents uses a sophisticated 4-tier environment variable hierarchy that allows fine-grained control over LLM providers and models for each agent type, plus comprehensive directory path configuration for secure deployment.
+
+## 📁 Directory Configuration
+
+### Environment Variables for Paths
+
+All directory paths are configurable via environment variables for security and deployment flexibility:
+
+```bash
+# Required: Main directories
+TRADINGAGENTS_EXPORTS_DIR=/path/to/exports        # Export outputs directory
+TRADINGAGENTS_RESULTS_DIR=/path/to/results        # Trading analysis results
+TRADINGAGENTS_DATA_DIR=/path/to/data              # Data storage and cache
+TRADINGAGENTS_CACHE_DIR=/path/to/cache            # Application cache
+TRADINGAGENTS_LOGS_DIR=/path/to/logs              # Logging output
+TRADINGAGENTS_PROJECT_DIR=/path/to/project        # Project root directory
+```
+
+### Directory Path Features
+
+**🔒 Security Benefits:**
+- Zero hardcoded paths in source code
+- Environment-specific directory configuration
+- Secure path resolution and validation
+- No sensitive path information in git repository
+
+**⚙️ Flexibility Benefits:**
+- Support for both relative and absolute paths
+- Intelligent fallback to default directories
+- Cross-platform path handling
+- Easy deployment configuration
+
+**📋 Default Behavior:**
+```typescript
+// Fallback directories (when environment variables not set)
+{
+  exportsDir: './exports',
+  resultsDir: './results', 
+  dataDir: './data',
+  cacheDir: './cache',
+  logsDir: './logs',
+  projectDir: process.cwd()
+}
+```
+
+### Directory Setup Examples
+
+**Development Environment:**
+```bash
+# .env.local
+TRADINGAGENTS_EXPORTS_DIR=./exports
+TRADINGAGENTS_RESULTS_DIR=./results
+TRADINGAGENTS_DATA_DIR=./data
+TRADINGAGENTS_CACHE_DIR=./cache
+TRADINGAGENTS_LOGS_DIR=./logs
+```
+
+**Production Environment:**
+```bash
+# Production deployment
+TRADINGAGENTS_EXPORTS_DIR=/var/lib/tradingagents/exports
+TRADINGAGENTS_RESULTS_DIR=/var/lib/tradingagents/results
+TRADINGAGENTS_DATA_DIR=/var/lib/tradingagents/data
+TRADINGAGENTS_CACHE_DIR=/tmp/tradingagents/cache
+TRADINGAGENTS_LOGS_DIR=/var/log/tradingagents
+```
+
+**Docker Environment:**
+```bash
+# Docker deployment
+TRADINGAGENTS_EXPORTS_DIR=/app/data/exports
+TRADINGAGENTS_RESULTS_DIR=/app/data/results
+TRADINGAGENTS_DATA_DIR=/app/data/storage
+TRADINGAGENTS_CACHE_DIR=/app/cache
+TRADINGAGENTS_LOGS_DIR=/app/logs
+```
 
 ## 🏗️ Configuration Hierarchy
 
@@ -252,16 +327,40 @@ console.log('Configuration loaded:', Object.keys(DEFAULT_AGENT_CONFIGS));
 - Use environment-specific key management in production
 - Rotate keys regularly
 
+### Directory Security
+- Configure directories via environment variables only
+- Use secure paths with appropriate permissions
+- Ensure export directories are not publicly accessible
+- Validate all directory paths before use
+- Use absolute paths in production environments
+
 ### Environment Separation
 ```bash
 # Development
 .env.local          # Local development settings
+.env.example        # Template with example values
 
 # Staging  
 .env.staging        # Staging environment
 
 # Production
 # Use cloud secret management or environment variables
+# Never store production secrets in files
+```
+
+### Path Security Best Practices
+```bash
+# ✅ Good: Environment variables
+TRADINGAGENTS_EXPORTS_DIR=/secure/path/exports
+
+# ❌ Bad: Hardcoded paths in source
+const exportPath = '/hardcoded/path/exports';
+
+# ✅ Good: Relative paths in development
+TRADINGAGENTS_EXPORTS_DIR=./exports
+
+# ✅ Good: Absolute paths in production
+TRADINGAGENTS_EXPORTS_DIR=/var/lib/tradingagents/exports
 ```
 
 ## 🚨 Troubleshooting
@@ -273,6 +372,32 @@ cat .env.local
 
 # Check for syntax errors
 node -e "require('dotenv').config({ path: '.env.local' }); console.log('✅ Environment loaded');"
+```
+
+### Directory Configuration Issues
+```bash
+# Check directory environment variables
+node -e "
+require('dotenv').config({ path: '.env.local' });
+console.log('Exports Dir:', process.env.TRADINGAGENTS_EXPORTS_DIR || 'Using default');
+console.log('Results Dir:', process.env.TRADINGAGENTS_RESULTS_DIR || 'Using default');
+console.log('Data Dir:', process.env.TRADINGAGENTS_DATA_DIR || 'Using default');
+"
+
+# Test directory creation
+node -e "
+const fs = require('fs');
+const path = './exports';
+try {
+  fs.mkdirSync(path, { recursive: true });
+  console.log('✅ Directory creation successful');
+} catch (err) {
+  console.log('❌ Directory creation failed:', err.message);
+}
+"
+
+# Check directory permissions
+ls -la exports/ results/ data/ cache/ logs/ 2>/dev/null || echo "Some directories may not exist yet"
 ```
 
 ### Provider Authentication Issues
@@ -289,6 +414,22 @@ curl http://your_host_ip:1234/v1/models
 
 # Test OpenAI models
 curl -H "Authorization: Bearer $OPENAI_API_KEY" https://api.openai.com/v1/models
+```
+
+### Export Functionality Issues
+```bash
+# Test export directory access
+node -e "
+const { ConfigManager } = require('./dist/config/config-manager.js');
+const config = new ConfigManager();
+const exportDir = config.getExportsDirectory();
+console.log('Export directory:', exportDir);
+console.log('Directory exists:', require('fs').existsSync(exportDir));
+"
+
+# Check export permissions
+touch exports/test.txt && echo '✅ Export directory writable' || echo '❌ Export directory not writable'
+rm exports/test.txt 2>/dev/null
 ```
 
 ---

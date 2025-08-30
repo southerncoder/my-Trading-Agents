@@ -58,6 +58,21 @@ npm run test-agent-integration
 npm run test-agent-performance
 ```
 
+### Additional Test Files (Moved from Root)
+```bash
+# CLI-specific debug testing
+node tests/test-cli-debug.js
+
+# Detailed output format testing
+node tests/test-detailed-output.js
+
+# Display system testing
+node tests/test-display-system.js
+
+# Final integration testing
+node tests/test-final-integration.js
+```
+
 ## 📋 Prerequisites
 
 ### LM Studio Configuration

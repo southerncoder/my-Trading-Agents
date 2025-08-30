@@ -287,11 +287,49 @@ FINNHUB_API_KEY=your_finnhub_key
 REDDIT_CLIENT_ID=your_reddit_client_id
 REDDIT_CLIENT_SECRET=your_reddit_secret
 
+# Directory Configuration (NEW - August 2025)
+TRADINGAGENTS_RESULTS_DIR=./results    # Analysis results and trading outputs
+TRADINGAGENTS_DATA_DIR=./data          # Raw data files and downloads
+TRADINGAGENTS_EXPORTS_DIR=./exports    # Exported reports and configurations
+TRADINGAGENTS_CACHE_DIR=./cache        # Cached data and temporary files
+TRADINGAGENTS_LOGS_DIR=./logs          # Application log files
+TRADINGAGENTS_PROJECT_DIR=./project    # Base project directory
+
 # System Configuration
 ONLINE_TOOLS=true                      # Enable live data sources
 MAX_DEBATE_ROUNDS=1
 MAX_RISK_DISCUSS_ROUNDS=1
 ```
+
+### 📁 Directory Configuration System
+
+**NEW August 2025:** All directory paths are now configurable via environment variables, eliminating hardcoded paths and enabling flexible deployment configurations.
+
+#### Features:
+- **🔒 Security Enhanced:** No hardcoded paths in source code
+- **🚀 Container-Ready:** Easy volume mounting for different environments
+- **⚙️ Deployment Flexible:** Different directories for dev/staging/production
+- **📁 Organized:** Clear separation of data types (results, exports, cache, logs)
+
+#### Configuration Examples:
+
+```bash
+# Development (relative paths)
+TRADINGAGENTS_RESULTS_DIR=./results
+TRADINGAGENTS_EXPORTS_DIR=./exports
+
+# Production (absolute paths)
+TRADINGAGENTS_RESULTS_DIR=/app/data/results
+TRADINGAGENTS_EXPORTS_DIR=/secure/exports
+TRADINGAGENTS_LOGS_DIR=/var/log/trading-agents
+
+# Container (volume mounts)
+TRADINGAGENTS_RESULTS_DIR=/data/results
+TRADINGAGENTS_EXPORTS_DIR=/data/exports
+TRADINGAGENTS_CACHE_DIR=/tmp/cache
+```
+
+For complete directory configuration details, see: [`docs/DIRECTORY_CONFIGURATION.md`](docs/DIRECTORY_CONFIGURATION.md)
 
 ## 📖 Usage Examples
 
@@ -346,6 +384,32 @@ npm run cli
 - Access verbose logging setup through the main menu: "Configure Verbose Logging"
 - Step-by-step configuration with explanations for each log level
 - Real-time configuration changes with immediate feedback
+
+### Export Functionality
+
+The CLI now includes comprehensive export capabilities for research data and trading analysis:
+
+**🔧 Configurable Export Directory:**
+```bash
+# Set custom export directory
+export TRADINGAGENTS_EXPORTS_DIR="/path/to/your/exports"
+
+# Or use .env file
+echo "TRADINGAGENTS_EXPORTS_DIR=/path/to/your/exports" >> .env
+```
+
+**📊 Available Export Options:**
+- **Historical Analysis**: Export comprehensive trading research with timestamps
+- **Research Data**: Export fundamental and technical analysis results
+- **Risk Analysis**: Export risk assessment reports
+- **Trading Signals**: Export generated trading recommendations
+
+**🎯 Export Features:**
+- ✅ Automatic timestamp-based file organization
+- ✅ JSON and formatted text output options
+- ✅ Secure path handling with environment variables
+- ✅ Error handling for export operations
+- ✅ Integration with all CLI analysis tools
 
 ### Configuration Customization
 

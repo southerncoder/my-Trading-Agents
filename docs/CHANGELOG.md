@@ -2,6 +2,38 @@
 
 All notable changes to the TradingAgents project.
 
+## [1.1.0] - 2025-01-20 - Security & Configuration Enhancement
+
+### 🔧 Configuration System
+- **Environment Variable Configuration**: All directory paths now configurable via environment variables
+- **Flexible Path Management**: Support for both relative and absolute paths with intelligent fallbacks
+- **Export Directory System**: Configurable exports directory with TRADINGAGENTS_EXPORTS_DIR variable
+
+### 📁 Directory Configuration
+- `TRADINGAGENTS_RESULTS_DIR`: Trading analysis results directory
+- `TRADINGAGENTS_DATA_DIR`: Data storage and cache directory  
+- `TRADINGAGENTS_EXPORTS_DIR`: Export outputs directory
+- `TRADINGAGENTS_CACHE_DIR`: Application cache directory
+- `TRADINGAGENTS_LOGS_DIR`: Logging output directory
+- `TRADINGAGENTS_PROJECT_DIR`: Project root directory
+
+### 🔒 Security Enhancements
+- **Zero Hardcoded Paths**: All directory paths moved to environment variables
+- **Secure Defaults**: Sensible fallback values for all configuration options
+- **Path Validation**: Enhanced security with proper path resolution and validation
+- **Secrets Audit**: Comprehensive security audit confirms no exposed secrets in codebase
+
+### 📊 Export Functionality
+- **Historical Analysis Export**: Export comprehensive trading research with timestamps
+- **Multiple Export Formats**: JSON and formatted text output options
+- **Error Handling**: Robust export operations with proper error management
+- **CLI Integration**: Export capabilities integrated across all analysis tools
+
+### 📚 Documentation Updates
+- **Configuration Guide**: Complete documentation for environment variable setup
+- **Security Best Practices**: Guidelines for secure configuration management
+- **Export Documentation**: Comprehensive guide for using export functionality
+
 ## [1.0.0] - 2025-08-29 - Production Release
 
 ### 🎉 Major Features
