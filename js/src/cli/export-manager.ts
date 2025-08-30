@@ -1,5 +1,5 @@
-import { existsSync, readFileSync, writeFileSync, readdirSync, statSync } from 'fs';
-import { join, basename } from 'path';
+import { existsSync, readFileSync, writeFileSync, readdirSync, statSync, mkdirSync } from 'fs';
+import { join, basename, resolve, isAbsolute } from 'path';
 import chalk from 'chalk';
 import { input, select, checkbox, confirm } from '@inquirer/prompts';
 import { createLogger } from '../utils/enhanced-logger';
@@ -35,9 +35,26 @@ export interface ExportOptions {
 
 export class ExportManager {
   private resultsDir: string;
+  private exportsDir: string;
 
-  constructor(resultsDir: string = './results') {
+  constructor(resultsDir: string = process.env.TRADINGAGENTS_RESULTS_DIR || './results') {
     this.resultsDir = resultsDir;
+    this.exportsDir = this.getExportsDirectory();
+  }
+
+  private getExportsDirectory(): string {
+    const envExportsDir = process.env.TRADINGAGENTS_EXPORTS_DIR;
+    if (envExportsDir && envExportsDir.trim()) {
+      return isAbsolute(envExportsDir) ? envExportsDir : resolve(process.cwd(), envExportsDir);
+    }
+    // Default: go up one level from js directory to workspace root, then into exports
+    return join(process.cwd(), '..', 'exports');
+  }
+
+  private ensureExportsDirectory(): void {
+    if (!existsSync(this.exportsDir)) {
+      mkdirSync(this.exportsDir, { recursive: true });
+    }
   }
 
   public async exportResults(): Promise<void> {
@@ -59,9 +76,11 @@ export class ExportManager {
         return;
       }
 
+      this.ensureExportsDirectory();
+
       const exportPath = await input({
         message: 'Enter export file path:',
-        default: `tradingagents-export-${new Date().toISOString().split('T')[0]}.${options.format}`,
+        default: join(this.exportsDir, `tradingagents-export-${new Date().toISOString().split('T')[0]}.${options.format}`),
         validate: (input: string) => {
           if (input.trim().length === 0) {
             return 'Please enter a valid file path.';

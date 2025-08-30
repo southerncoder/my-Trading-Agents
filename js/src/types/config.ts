@@ -8,6 +8,8 @@ export interface TradingAgentsConfig {
   resultsDir: string;
   dataDir: string;
   dataCacheDir: string;
+  exportsDir: string;
+  logsDir: string;
 
   // LLM settings
   llmProvider: LLMProvider;

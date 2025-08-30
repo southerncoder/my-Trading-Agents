@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
-import { join } from 'path';
+import { join, isAbsolute, resolve } from 'path';
 import { UserSelections } from './types';
 import chalk from 'chalk';
 import { input, select, confirm, Separator } from '@inquirer/prompts';
@@ -22,16 +22,34 @@ export interface ConfigFile {
 export class ConfigManager {
   private configDir: string;
   private configFile: string;
+  private exportsDir: string;
 
   constructor(configDir: string = join(process.cwd(), '.tradingagents')) {
     this.configDir = configDir;
     this.configFile = join(configDir, 'configs.json');
+    this.exportsDir = this.getExportsDirectory();
     this.ensureConfigDir();
+    this.ensureExportsDir();
+  }
+
+  private getExportsDirectory(): string {
+    const envExportsDir = process.env.TRADINGAGENTS_EXPORTS_DIR;
+    if (envExportsDir && envExportsDir.trim()) {
+      return isAbsolute(envExportsDir) ? envExportsDir : resolve(process.cwd(), envExportsDir);
+    }
+    // Default: go up one level from js directory to workspace root, then into exports
+    return join(process.cwd(), '..', 'exports');
   }
 
   private ensureConfigDir(): void {
     if (!existsSync(this.configDir)) {
       mkdirSync(this.configDir, { recursive: true });
+    }
+  }
+
+  private ensureExportsDir(): void {
+    if (!existsSync(this.exportsDir)) {
+      mkdirSync(this.exportsDir, { recursive: true });
     }
   }
 
@@ -287,7 +305,7 @@ export class ConfigManager {
   private async exportConfigs(configFile: ConfigFile): Promise<void> {
     const exportPath = await input({
       message: 'Enter export file path:',
-      default: 'tradingagents-configs.json'
+      default: join(this.exportsDir, 'tradingagents-configs.json')
     });
 
     try {

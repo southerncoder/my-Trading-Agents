@@ -142,9 +142,12 @@ export class ModernConfigLoader {
     getSystemConfig() {
         return {
             // Directory settings
-            projectDir: process.cwd(),
+            projectDir: process.env.TRADINGAGENTS_PROJECT_DIR || './project',
             resultsDir: process.env.TRADINGAGENTS_RESULTS_DIR || './results',
             dataDir: process.env.TRADINGAGENTS_DATA_DIR || './data',
+            dataCacheDir: process.env.TRADINGAGENTS_CACHE_DIR || './cache',
+            exportsDir: process.env.TRADINGAGENTS_EXPORTS_DIR || './exports',
+            logsDir: process.env.TRADINGAGENTS_LOGS_DIR || './logs',
             
             // Debate and discussion settings
             maxDebateRounds: parseInt(process.env.MAX_DEBATE_ROUNDS || '1'),

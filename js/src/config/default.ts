@@ -1,4 +1,3 @@
-import path from 'path';
 import { TradingAgentsConfig } from '@/types/config';
 
 /**
@@ -6,10 +5,12 @@ import { TradingAgentsConfig } from '@/types/config';
  */
 export const DEFAULT_CONFIG: TradingAgentsConfig = {
   // Directory settings
-  projectDir: process.cwd(),
+  projectDir: process.env.TRADINGAGENTS_PROJECT_DIR || './project',
   resultsDir: process.env.TRADINGAGENTS_RESULTS_DIR || './results',
   dataDir: process.env.TRADINGAGENTS_DATA_DIR || './data',
-  dataCacheDir: path.join(process.cwd(), 'dataflows', 'data_cache'),
+  dataCacheDir: process.env.TRADINGAGENTS_CACHE_DIR || './cache',
+  exportsDir: process.env.TRADINGAGENTS_EXPORTS_DIR || './exports',
+  logsDir: process.env.TRADINGAGENTS_LOGS_DIR || './logs',
 
   // LLM settings
   llmProvider: (process.env.LLM_PROVIDER as any) || 'openai',

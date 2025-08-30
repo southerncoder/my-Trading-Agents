@@ -314,10 +314,12 @@ export class EnhancedTradingAgentsGraph {
    */
   static createTestInstance(): EnhancedTradingAgentsGraph {
     const config: TradingAgentsConfig = {
-      projectDir: './project',
-      resultsDir: './results',
-      dataDir: './data',
-      dataCacheDir: './cache',
+      projectDir: process.env.TRADINGAGENTS_PROJECT_DIR || './project',
+      resultsDir: process.env.TRADINGAGENTS_RESULTS_DIR || './results',
+      dataDir: process.env.TRADINGAGENTS_DATA_DIR || './data',
+      dataCacheDir: process.env.TRADINGAGENTS_CACHE_DIR || './cache',
+      exportsDir: process.env.TRADINGAGENTS_EXPORTS_DIR || './exports',
+      logsDir: process.env.TRADINGAGENTS_LOGS_DIR || './logs',
       llmProvider: 'lm_studio',
       deepThinkLlm: 'microsoft/phi-4-mini-reasoning',
       quickThinkLlm: 'microsoft/phi-4-mini-reasoning',

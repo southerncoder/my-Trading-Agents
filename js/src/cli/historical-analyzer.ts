@@ -40,7 +40,7 @@ export class HistoricalAnalyzer {
   private resultsDir: string;
   private exportManager: ExportManager;
 
-  constructor(resultsDir: string = './results') {
+  constructor(resultsDir: string = process.env.TRADINGAGENTS_RESULTS_DIR || './results') {
     this.resultsDir = resultsDir;
     this.exportManager = new ExportManager(resultsDir);
   }

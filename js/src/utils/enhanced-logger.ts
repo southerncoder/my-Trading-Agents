@@ -111,8 +111,9 @@ export class EnhancedLogger {
 
     // File transport (optional)
     if (this.config.enableFile) {
+      const logsDir = process.env.TRADINGAGENTS_LOGS_DIR || './logs';
       transports.push(new winston.transports.File({
-        filename: 'logs/trading-agents.log',
+        filename: `${logsDir}/trading-agents.log`,
         level: this.config.level,
         maxsize: this.parseFileSize(this.config.maxFileSize),
         maxFiles: this.config.maxFiles,
