@@ -22,6 +22,7 @@ export default defineConfig({
         '@langchain/core', '@langchain/openai', '@langchain/langgraph',
         '@langchain/community', 'langchain', 'winston', 'chalk', 'inquirer',
         'ora', 'axios', 'dotenv', 'zod', 'commander'
+        , 'node-fetch'
       ]
     },
     outDir: 'dist',

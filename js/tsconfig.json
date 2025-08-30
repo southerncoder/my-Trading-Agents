@@ -25,6 +25,7 @@
     "noEmit": false,
     "verbatimModuleSyntax": false,
     "baseUrl": "./src",
+    "types": ["node", "jest"],
     "paths": {
       "@/*": ["*"],
       "@/agents/*": ["agents/*"],
