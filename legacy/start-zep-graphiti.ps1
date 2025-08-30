@@ -93,7 +93,7 @@ Write-Host ""
 Write-Host "🎉 Zep Graphiti Memory Integration is ready!" -ForegroundColor Green
 Write-Host ""
 Write-Host "📋 Service Status:" -ForegroundColor Cyan
-Write-Host "   Neo4j Database: http://localhost:7474 (user: neo4j, password: password)"
+Write-Host "   Neo4j Database: http://localhost:7474 (user: neo4j, password: [see .env])"
 Write-Host "   Zep API Service: http://localhost:8080"
 Write-Host "   Health Check: http://localhost:8080/health"
 Write-Host ""

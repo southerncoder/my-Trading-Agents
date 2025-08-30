@@ -22,7 +22,7 @@ async function testBasicConnection() {
       timeout: 10000
     });
 
-    console.log('🌐 Connecting to LM Studio at http://localhost:1234/v1');
+    console.log(`🌐 Connecting to LM Studio at ${process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1'}`);
     console.log('🤖 Model: microsoft/phi-4-mini-reasoning');
     
     const startTime = Date.now();
@@ -39,9 +39,9 @@ async function testBasicConnection() {
     return true;
   } catch (error) {
     console.error('❌ Connection failed:', error.message);
-    console.error('\n💡 Troubleshooting checklist:');
+    console.error('💡 Troubleshooting checklist:');
     console.error('   1. ✅ LM Studio is running');
-    console.error('   2. ✅ Server is on http://localhost:1234');
+    console.error(`   2. ✅ Server is on ${process.env.LM_STUDIO_BASE_URL?.replace('/v1', '') || 'http://localhost:1234'}`);
     console.error('   3. ✅ Model microsoft/phi-4-mini-reasoning is loaded');
     console.error('   4. ✅ Model is not busy processing another request');
     console.error('\n🔧 In LM Studio:');
@@ -65,7 +65,7 @@ async function testModelProvider() {
     const config = {
       provider: 'lm_studio',
       modelName: 'microsoft/phi-4-mini-reasoning',
-      baseURL: 'http://localhost:1234/v1',
+      baseURL: process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1',
       temperature: 0.3,
       maxTokens: 100
     };

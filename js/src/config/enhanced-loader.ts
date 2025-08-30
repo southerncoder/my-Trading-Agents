@@ -1,7 +1,6 @@
 import { 
   EnhancedTradingAgentsConfig, 
   AgentLLMConfig, 
-  AgentConfigType,
   AgentTypeConfigs,
   DEFAULT_AGENT_CONFIGS,
   AGENT_TYPE_TO_CONFIG_KEY
@@ -55,70 +54,33 @@ export class EnhancedConfigLoader {
 
   /**
    * Load agent-specific configurations from environment variables
+   * Uses the DEFAULT_AGENT_CONFIGS which already includes environment variable logic
    */
   private loadAgentConfigurations(): AgentTypeConfigs {
+    // The DEFAULT_AGENT_CONFIGS already handles environment variables with proper fallbacks
     const agentConfigs: AgentTypeConfigs = { ...DEFAULT_AGENT_CONFIGS };
-
-    // Override with environment variables if present
-    Object.keys(DEFAULT_AGENT_CONFIGS).forEach(agentType => {
-      if (agentType === 'default') return;
-
-      const envPrefix = `AGENT_${agentType.toUpperCase()}`;
-      const defaultConfig = DEFAULT_AGENT_CONFIGS[agentType as AgentConfigType];
-      if (!defaultConfig) return;
-
-      const config: AgentLLMConfig = { ...defaultConfig };
-
-      // Override provider
-      const providerEnv = process.env[`${envPrefix}_PROVIDER`];
-      if (providerEnv && this.isValidProvider(providerEnv)) {
-        config.provider = providerEnv as LLMProvider;
-      }
-
-      // Override model
-      const modelEnv = process.env[`${envPrefix}_MODEL`];
-      if (modelEnv) {
-        config.model = modelEnv;
-      }
-
-      // Override temperature
-      const tempEnv = process.env[`${envPrefix}_TEMPERATURE`];
-      if (tempEnv) {
-        const temp = parseFloat(tempEnv);
-        if (!isNaN(temp) && temp >= 0 && temp <= 2) {
-          config.temperature = temp;
-        }
-      }
-
-      // Override max tokens
-      const tokensEnv = process.env[`${envPrefix}_MAX_TOKENS`];
-      if (tokensEnv) {
-        const tokens = parseInt(tokensEnv);
-        if (!isNaN(tokens) && tokens > 0) {
-          config.maxTokens = tokens;
-        }
-      }
-
+    
+    // Add API keys and base URLs for each configuration
+    Object.keys(agentConfigs).forEach(agentType => {
+      const config = agentConfigs[agentType as keyof AgentTypeConfigs];
+      if (!config) return;
+      
       // Set API key based on provider (allow undefined for local providers)
       const apiKey = this.getApiKeyForProvider(config.provider);
       if (apiKey) {
         config.apiKey = apiKey;
       }
-      
+
       // Set base URL for local providers
       if (config.provider === 'lm_studio') {
         config.baseUrl = process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1';
       } else if (config.provider === 'ollama') {
         config.baseUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
       }
-
-      agentConfigs[agentType as AgentConfigType] = config;
     });
-
+    
     return agentConfigs;
-  }
-
-  /**
+  }  /**
    * Check if provider string is valid
    */
   private isValidProvider(provider: string): boolean {

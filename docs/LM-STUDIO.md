@@ -12,7 +12,7 @@ import { ModelProvider } from './src/models/provider.js';
 
 // Default local configuration
 const localConfig = ModelProvider.getLMStudioConfig();
-// Uses: http://localhost:1234/v1
+// Uses: http://your_host_ip:1234/v1
 ```
 
 ### 2. Network LM Studio (Environment-based)
@@ -43,18 +43,18 @@ Set these environment variables to configure LM Studio automatically:
 
 ```powershell
 # For network LM Studio
-$env:LLM_PROVIDER = "lm_studio"
+$env:LLM_PROVIDER = "openai"
 $env:LM_STUDIO_HOST = "your-server-ip"
 $env:LLM_BACKEND_URL = "http://your-server-ip:1234/v1"
 
 # Or use direct backend URL override
-$env:LLM_PROVIDER = "lm_studio"
+$env:LLM_PROVIDER = "openai"
 $env:LLM_BACKEND_URL = "http://your-server-ip:1234/v1"
 ```
 
 ```bash
 # For Linux/Mac
-export LLM_PROVIDER="lm_studio"
+export LLM_PROVIDER="openai"
 export LM_STUDIO_HOST="your-server-ip"
 export LLM_BACKEND_URL="http://your-server-ip:1234/v1"
 ```
@@ -65,11 +65,11 @@ Create a `.env.local` file (ignored by git) with your actual server configuratio
 
 ```bash
 # .env.local (IGNORED BY GIT)
-LLM_PROVIDER=lm_studio
+LLM_PROVIDER=openai
 LM_STUDIO_HOST=your-actual-server-ip
 LLM_BACKEND_URL=http://your-actual-server-ip:1234/v1
-QUICK_THINK_LLM=llama-3.2-3b-instruct
-DEEP_THINK_LLM=llama-3.2-8b-instruct
+QUICK_THINK_LLM=gpt-4o-mini
+DEEP_THINK_LLM=gpt-4o
 ```
 
 ## Usage Examples
@@ -77,7 +77,7 @@ DEEP_THINK_LLM=llama-3.2-8b-instruct
 ### CLI Configuration
 ```powershell
 # Set network LM Studio and run CLI
-$env:LLM_PROVIDER = "lm_studio"
+$env:LLM_PROVIDER = "openai"
 $env:LLM_BACKEND_URL = "http://your-server-ip:1234/v1"
 npm run cli
 ```
@@ -89,10 +89,10 @@ import { ModelProvider } from './src/models/provider.js';
 
 // Create network LM Studio configuration
 const config = {
-  llmProvider: 'lm_studio',
+  llmProvider: 'openai',
   backendUrl: 'http://your-server-ip:1234/v1',
-  quickThinkLlm: 'llama-3.2-3b-instruct',
-  deepThinkLlm: 'llama-3.2-8b-instruct'
+  quickThinkLlm: 'gpt-4o-mini',
+  deepThinkLlm: 'gpt-4o'
 };
 
 // Create and run analysis

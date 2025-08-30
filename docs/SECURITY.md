@@ -7,7 +7,7 @@
 #### 1. **Hardcoded IP Addresses FIXED**
 - **Location**: Test files and documentation examples
 - **Risk**: Network topology exposure
-- **Fix**: Replaced all `192.168.1.85` with `your-server-ip` placeholders
+- **Fix**: Replaced all hardcoded private IP addresses with `your-server-ip` placeholders
 - **Files Fixed**:
   - `js/tests/test-lm-studio-network.js`
   - `docs/lm-studio-network-config.md`

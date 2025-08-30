@@ -11,5 +11,64 @@ __pycache__/
 eval_results/
 eval_data/
 
-# Environment variables
+# Environment variables and secrets
 .env
+.env.local
+.env.production
+.env.development
+*.env
+**/secrets/**
+**/*-secrets.*
+**/*-credentials.*
+
+# API keys and configuration files
+**/api-keys.*
+**/config.local.*
+**/credentials.*
+
+# Temporary and backup files
+*.tmp
+*.bak
+*.backup
+*~
+
+# IDE and editor files
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Logs
+logs/
+*.log
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.nyc_output
+
+# TypeScript
+*.tsbuildinfo
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Results and exports
+results/
+exports/
+**/*export*.html
+**/*export*.json

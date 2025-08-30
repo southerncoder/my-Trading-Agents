@@ -82,9 +82,9 @@ console.log(`   Temperature: ${customConfig.temperature}\n`);
 
 // Test 4: Environment variable examples
 console.log('🌍 Environment Variable Examples:');
-console.log('   Set LM_STUDIO_URL=http://192.168.1.85:1234/v1');
+console.log('   Set LM_STUDIO_URL=http://[LM_STUDIO_HOST]:[PORT]/v1');
 console.log('   Set LLM_PROVIDER=lm_studio');
-console.log('   Set LLM_BACKEND_URL=http://192.168.1.85:1234/v1\n');
+console.log('   Set LLM_BACKEND_URL=http://[LM_STUDIO_HOST]:[PORT]/v1\n');
 
 // Test 5: PowerShell Examples
 console.log('� PowerShell Configuration Examples:');

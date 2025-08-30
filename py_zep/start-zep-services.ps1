@@ -59,4 +59,4 @@ try {
 Write-Host ""
 Write-Host "🚀 Setup complete! The services are running in a separate terminal window." -ForegroundColor Green
 Write-Host "📖 API Documentation: http://localhost:8000/docs" -ForegroundColor Cyan
-Write-Host "🗄️  Neo4j Browser: http://localhost:7474 (neo4j/password)" -ForegroundColor Cyan
+Write-Host "🗄️  Neo4j Browser: http://localhost:7474 (neo4j/[check your .env])" -ForegroundColor Cyan
