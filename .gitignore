@@ -72,3 +72,4 @@ results/
 exports/
 **/*export*.html
 **/*export*.json
+migrate-log.txt
