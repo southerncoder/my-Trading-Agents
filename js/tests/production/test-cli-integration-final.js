@@ -8,8 +8,8 @@ async function testCLIIntegration() {
 
   try {
     // Import required modules
-    const { createCLI } = await import('../dist/cli/main.js');
-    const { LoggingManager } = await import('../dist/cli/logging-manager.js');
+    const { createCLI } = await import('../../dist/cli/main.js');
+    const { LoggingManager } = await import('../../dist/cli/logging-manager.js');
 
     // Test 1: Verify CLI options are registered
     console.log('1. Testing CLI Options Registration...');

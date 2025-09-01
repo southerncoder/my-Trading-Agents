@@ -12,6 +12,9 @@ import { LangGraphSetup, AnalystType } from './langgraph-working';
 import { LazyGraphSetup } from '../performance/lazy-factory';
 import { OptimizedStateManager, StateOptimizationConfig } from '../performance/state-optimization';
 import { createLogger } from '../utils/enhanced-logger';
+import { 
+  AdvancedMemoryLearningSystem
+} from '../memory/advanced/index';
 
 const logger = createLogger('graph', 'enhanced-trading-graph');
 
@@ -23,6 +26,13 @@ export interface TradingGraphConfig {
   enableStateOptimization?: boolean;
   stateOptimizationConfig?: StateOptimizationConfig;
   enableCaching?: boolean;
+  enableAdvancedMemory?: boolean;
+  zepClientConfig?: {
+    api_key: string;
+    base_url: string;
+    session_id?: string;
+    user_id?: string;
+  };
 }
 
 /**
@@ -35,10 +45,13 @@ export class EnhancedTradingAgentsGraph {
   private enableLazyLoading: boolean;
   private enableCaching: boolean;
   private enableStateOptimization: boolean;
+  private enableAdvancedMemory: boolean;
   private langGraphSetup?: LangGraphSetup;
   private lazyGraphSetup?: LazyGraphSetup;
   private stateManager?: OptimizedStateManager;
+  private advancedMemorySystem?: AdvancedMemoryLearningSystem;
   private workflow?: any;
+  private zepClientConfig?: any;
 
   constructor(graphConfig: TradingGraphConfig) {
     this.config = graphConfig.config;
@@ -47,6 +60,8 @@ export class EnhancedTradingAgentsGraph {
     this.enableLazyLoading = graphConfig.enableLazyLoading ?? true;
     this.enableCaching = graphConfig.enableCaching ?? true;
     this.enableStateOptimization = graphConfig.enableStateOptimization ?? true;
+    this.enableAdvancedMemory = graphConfig.enableAdvancedMemory ?? true;
+    this.zepClientConfig = graphConfig.zepClientConfig;
 
     // Initialize state optimization if enabled
     if (this.enableStateOptimization) {
@@ -65,7 +80,8 @@ export class EnhancedTradingAgentsGraph {
       enableLangGraph: this.enableLangGraph,
       enableLazyLoading: this.enableLazyLoading,
       enableStateOptimization: this.enableStateOptimization,
-      enableCaching: this.enableCaching
+      enableCaching: this.enableCaching,
+      enableAdvancedMemory: this.enableAdvancedMemory
     });
 
     if (this.enableLangGraph) {
@@ -74,6 +90,15 @@ export class EnhancedTradingAgentsGraph {
 
     if (this.enableLazyLoading) {
       this.initializeLazyLoading();
+    }
+
+    if (this.enableAdvancedMemory) {
+      // Initialize advanced memory in background
+      this.initializeAdvancedMemory()        .catch((error: any) => {
+        logger.error('constructor', 'Failed to initialize advanced memory system', {
+          error: error instanceof Error ? error.message : String(error)
+        });
+      });
     }
   }
 
@@ -97,6 +122,35 @@ export class EnhancedTradingAgentsGraph {
     // For now, lazy loading setup is deferred until workflow initialization
     // This avoids type conflicts with ModelProvider
     logger.info('initializeLazyLoading', 'Lazy loading enabled, will initialize on demand');
+  }
+
+  /**
+   * Initialize advanced memory system
+   */
+  private async initializeAdvancedMemory() {
+    if (!this.zepClientConfig) {
+      logger.warn('initializeAdvancedMemory', 'No Zep client config provided, advanced memory disabled');
+      return;
+    }
+
+    try {
+      // Create a mock Zep client for now - in production this would be a real Zep client
+      const mockZepClient = {
+        search: async () => ({ results: [] }),
+        add: async () => ({ success: true })
+      };
+
+      const { createAdvancedMemoryLearningSystem, createDefaultConfig } = await import('../memory/advanced/index');
+      const config = createDefaultConfig(this.zepClientConfig);
+      this.advancedMemorySystem = createAdvancedMemoryLearningSystem(config, mockZepClient);
+      
+      await this.advancedMemorySystem.initialize();
+      logger.info('initializeAdvancedMemory', 'Advanced memory system initialized successfully');
+    } catch (error) {
+      logger.error('initializeAdvancedMemory', 'Failed to initialize advanced memory system', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
   }
 
   /**
@@ -198,14 +252,58 @@ export class EnhancedTradingAgentsGraph {
   }
 
   /**
-   * Execute analysis and extract trading decision
+   * Execute analysis and extract trading decision with advanced memory integration
    */
   async analyzeAndDecide(companyOfInterest: string, tradeDate: string): Promise<{
     decision: string;
     reasoning: string[];
     confidence: number;
     messages: any[];
+    memoryInsights?: any;
   }> {
+    let memoryInsights: any = null;
+
+    // Get advanced memory insights if available
+    if (this.enableAdvancedMemory && this.advancedMemorySystem) {
+      try {
+        const { TradingIntelligenceRequestSchema } = await import('../memory/advanced/index');
+        
+        const intelligenceRequest = TradingIntelligenceRequestSchema.parse({
+          request_id: `${companyOfInterest}-${tradeDate}-${Date.now()}`,
+          agent_id: 'enhanced-trading-graph',
+          entity_id: companyOfInterest,
+          query_type: 'market_analysis',
+          current_context: {
+            market_conditions: { ticker: companyOfInterest, date: tradeDate },
+            technical_indicators: {},
+            economic_indicators: {},
+            sentiment_scores: {},
+            market_regime: 'sideways',
+            price_level: 100,
+            volatility: 0.2,
+            volume: 1000000,
+            confidence_level: 0.5
+          },
+          preferences: {
+            include_similar_scenarios: true,
+            include_pattern_analysis: true,
+            include_risk_factors: true,
+            include_confidence_adjustment: true
+          }
+        });
+
+        memoryInsights = await this.advancedMemorySystem.processIntelligenceRequest(intelligenceRequest);
+        logger.info('analyzeAndDecide', 'Advanced memory insights retrieved', {
+          company: companyOfInterest,
+          processingTime: memoryInsights.processing_time_ms
+        });
+      } catch (error) {
+        logger.warn('analyzeAndDecide', 'Failed to get memory insights', {
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
+    }
+
     const execution = await this.execute(companyOfInterest, tradeDate);
     
     if (!execution.success) {
@@ -213,7 +311,8 @@ export class EnhancedTradingAgentsGraph {
         decision: 'ERROR',
         reasoning: [execution.error || 'Unknown error occurred'],
         confidence: 0,
-        messages: []
+        messages: [],
+        memoryInsights
       };
     }
 
@@ -222,6 +321,20 @@ export class EnhancedTradingAgentsGraph {
     const reasoning: string[] = [];
     let decision = 'HOLD';
     let confidence = 0.5;
+
+    // Incorporate memory insights into reasoning
+    if (memoryInsights) {
+      const riskFactors = memoryInsights.market_intelligence?.risk_assessment?.risk_factors || [];
+      if (riskFactors.length > 0) {
+        reasoning.push(`Memory Analysis: Identified ${riskFactors.length} risk factors from historical patterns`);
+      }
+      
+      const adjustedConfidence = memoryInsights.market_intelligence?.confidence_analysis?.adjusted_confidence;
+      if (adjustedConfidence !== undefined) {
+        confidence = Math.max(confidence, adjustedConfidence);
+        reasoning.push(`Confidence adjusted to ${(adjustedConfidence * 100).toFixed(1)}% based on historical performance`);
+      }
+    }
 
     for (const message of messages) {
       if (message.content) {
@@ -242,11 +355,22 @@ export class EnhancedTradingAgentsGraph {
       }
     }
 
+    // Post-decision learning: store this analysis for future learning
+    if (this.enableAdvancedMemory && this.advancedMemorySystem && memoryInsights) {
+      this.storePredictionForLearning(companyOfInterest, tradeDate, decision, confidence, memoryInsights.request_id)
+        .catch((error: any) => {
+          logger.warn('analyzeAndDecide', 'Failed to store prediction for learning', {
+            error: error instanceof Error ? error.message : String(error)
+          });
+        });
+    }
+
     return {
       decision,
       reasoning,
       confidence,
-      messages
+      messages,
+      memoryInsights
     };
   }
 
@@ -307,6 +431,74 @@ export class EnhancedTradingAgentsGraph {
     });
 
     return newState;
+  }
+
+  /**
+   * Store prediction for future learning
+   */
+  private async storePredictionForLearning(
+    companyOfInterest: string,
+    tradeDate: string,
+    decision: string,
+    confidence: number,
+    requestId: string
+  ): Promise<void> {
+    // Store prediction metadata for later outcome comparison
+    // In a production system, this would persist to a database
+    logger.info('storePredictionForLearning', 'Storing prediction for future learning', {
+      company: companyOfInterest,
+      tradeDate,
+      decision,
+      confidence,
+      requestId
+    });
+  }
+
+  /**
+   * Update system with actual outcomes for learning
+   */
+  async updateWithOutcome(
+    requestId: string,
+    actualReturn: number,
+    actualVolatility: number,
+    unexpectedEvents: Array<{ event: string; impact: number }> = []
+  ): Promise<void> {
+    if (!this.enableAdvancedMemory || !this.advancedMemorySystem) {
+      logger.warn('updateWithOutcome', 'Advanced memory not available for outcome learning');
+      return;
+    }
+
+    try {
+      await this.advancedMemorySystem.updateWithOutcome(requestId, {
+        actual_return: actualReturn,
+        actual_volatility: actualVolatility,
+        actual_max_drawdown: Math.min(0, actualReturn),
+        unexpected_events: unexpectedEvents
+      });
+      logger.info('updateWithOutcome', 'Outcome updated for learning', { requestId });
+    } catch (error) {
+      logger.error('updateWithOutcome', 'Failed to update outcome', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  }
+
+  /**
+   * Get advanced memory analytics
+   */
+  async getAdvancedMemoryAnalytics(): Promise<any> {
+    if (!this.enableAdvancedMemory || !this.advancedMemorySystem) {
+      return { message: 'Advanced memory not enabled' };
+    }
+
+    try {
+      return await this.advancedMemorySystem.getSystemAnalytics();
+    } catch (error) {
+      logger.error('getAdvancedMemoryAnalytics', 'Failed to get analytics', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return { error: 'Failed to retrieve analytics' };
+    }
   }
 
   /**

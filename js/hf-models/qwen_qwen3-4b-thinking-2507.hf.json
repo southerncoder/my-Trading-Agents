@@ -1,0 +1,12 @@
+{
+  "modelId": "Qwen/Qwen3-4B-Thinking-2507",
+  "source": "huggingface",
+  "summary": {
+    "pipeline_tag": "text-generation",
+    "parameters": 4022.5,
+    "tags": ["transformers","safetensors","qwen3","text-generation","license:apache-2.0"],
+    "lastModified": "2025-08-06T00:00:00.000Z",
+    "private": false
+  },
+  "raw": {}
+}

@@ -1,0 +1,7 @@
+{
+  "provider": "lm_studio",
+  "model": "mistralai_-_mistral-7b-instruct-v0.3",
+  "temperature": 0.3,
+  "maxTokens": 2000,
+  "notes": "Conservative instructions and constrained outputs."
+}

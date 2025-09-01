@@ -24,12 +24,22 @@ docker-compose up
 
 Services are configured via environment variables in the `docker-compose.yml`:
 
-### LM Studio Integration
+### OpenAI-Compatible Endpoint Integration
 ```yaml
 - OPENAI_API_KEY=your-api-key
-- OPENAI_BASE_URL=http://your-lm-studio-host:port/v1
+- OPENAI_BASE_URL=<your_openai_or_lm_studio_base_url>
 - MODEL_NAME=your-model-name
 ```
+
+### Embedder / Provider Selection
+The Graphiti service uses an embedder to generate text embeddings. It expects OpenAI-style environment variables (`OPENAI_API_KEY`, `OPENAI_BASE_URL`).
+Optional provider selection via:
+- `EMBEDDER_PROVIDER` — one of `openai` (default), `lm_studio`, or `mock`.
+- `EMBEDDER_API_KEY` — key for the chosen embedder (if required).
+Note: Use `OPENAI_BASE_URL` for any OpenAI-compatible endpoint; no separate LM Studio URL setting is required.
+
+For secure production usage, prefer Docker secrets or environment injection from your orchestration system rather than embedding API keys in `.env` files.
+
 
 ### Neo4j Database
 ```yaml
@@ -102,6 +112,25 @@ docker run -p port:port -p port:port -e NEO4J_AUTH=username/password neo4j:5.26.
 ```bash
 uv run python main.py
 ```
+
+## Using Docker Secrets (Local Development)
+
+For local testing you can use file-backed Docker secrets. Create the `secrets/` folder and add the following files (these are referenced by `docker-compose.yml`):
+
+- `secrets/openai_api_key.txt` — your OpenAI-compatible API key (or leave placeholder)
+- `secrets/embedder_api_key.txt` — embedder provider API key (optional)
+
+Example (PowerShell):
+
+```powershell
+mkdir secrets
+Set-Content -Path secrets\lm_studio_url.txt -Value "http://192.168.1.85:1234/v1"
+Set-Content -Path secrets\openai_api_key.txt -Value "<PLACEHOLDER_OPENAI_API_KEY>"
+Set-Content -Path secrets\embedder_api_key.txt -Value "<PLACEHOLDER_EMBEDDER_API_KEY>"
+docker-compose up
+```
+
+When using secrets, the provided `start-wrapper.sh` will read them from `/run/secrets/*` and export environment variables expected by the Graphiti image.
 
 ## API Endpoints
 

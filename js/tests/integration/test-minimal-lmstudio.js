@@ -60,7 +60,7 @@ async function testModelProvider() {
   
   try {
     // Import our model provider
-    const { ModelProvider } = await import('../dist/models/provider.js');
+    const { ModelProvider } = await import('../../dist/models/provider.js');
     
     const config = {
       provider: 'lm_studio',

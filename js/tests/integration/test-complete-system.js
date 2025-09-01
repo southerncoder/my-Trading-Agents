@@ -77,12 +77,14 @@ async function runCompleteSystemTest() {
         console.log('--------------------------------');
         
         try {
-            const { DEFAULT_CONFIG, enhancedConfigLoader } = await import('./dist/config/index.js');
+            const { DEFAULT_CONFIG, enhancedConfigLoader } = await import('../../src/config/index.js');
             console.log('   ✅ Configuration modules imported');
             
             if (DEFAULT_CONFIG && typeof DEFAULT_CONFIG === 'object') {
-                console.log(`   ✅ Default config loaded (Provider: ${DEFAULT_CONFIG.llmProvider})`);
-                console.log(`   ✅ Backend URL: ${DEFAULT_CONFIG.backendUrl}`);
+                console.log(`   ✅ Default config loaded (Provider: ${DEFAULT_CONFIG.llmProvider || 'undefined'})`);
+                console.log(`   ✅ Backend URL: ${DEFAULT_CONFIG.backendUrl || 'undefined'}`);
+            } else {
+                console.log(`   ⚠️ DEFAULT_CONFIG is ${DEFAULT_CONFIG}, type: ${typeof DEFAULT_CONFIG}`);
             }
             
             const configSummary = enhancedConfigLoader.getConfigSummary();
@@ -101,7 +103,7 @@ async function runCompleteSystemTest() {
         console.log('----------------------');
         
         try {
-            const { TradingAgentsCLI } = await import('./dist/cli/main.js');
+            const { TradingAgentsCLI } = await import('../../src/cli/main.js');
             const cli = new TradingAgentsCLI();
             console.log('   ✅ CLI instantiated successfully');
             
@@ -139,12 +141,14 @@ async function runCompleteSystemTest() {
         console.log('--------------------------------');
         
         try {
-            const { EnhancedTradingAgentsGraph } = await import('./dist/graph/enhanced-trading-graph.js');
-            const { backwardCompatibleConfig } = await import('./dist/config/index.js');
+            const { EnhancedTradingAgentsGraph } = await import('../../src/graph/enhanced-trading-graph.js');
+            const { backwardCompatibleConfig } = await import('../../src/config/index.js');
             
             // Use backward compatible config for legacy graph
             const legacyConfig = backwardCompatibleConfig.getConfig();
-            const graph = new EnhancedTradingAgentsGraph(legacyConfig);
+            console.log(`   📋 Legacy config keys: ${Object.keys(legacyConfig).join(', ')}`);
+            console.log(`   📋 Legacy config llmProvider: ${legacyConfig.llmProvider || 'undefined'}`);
+            const graph = new EnhancedTradingAgentsGraph({ config: legacyConfig });
             console.log('   ✅ Enhanced trading graph created');
             
             if (typeof graph.initialize === 'function') {
@@ -190,13 +194,13 @@ async function runCompleteSystemTest() {
         
         try {
             // Test that all systems can work together
-            const { TradingAgentsCLI } = await import('./dist/cli/main.js');
-            const { EnhancedTradingAgentsGraph } = await import('./dist/graph/enhanced-trading-graph.js');
-            const { backwardCompatibleConfig } = await import('./dist/config/index.js');
+            const { TradingAgentsCLI } = await import('../../src/cli/main.js');
+            const { EnhancedTradingAgentsGraph } = await import('../../src/graph/enhanced-trading-graph.js');
+            const { backwardCompatibleConfig } = await import('../../src/config/index.js');
             
             const cli = new TradingAgentsCLI();
             const legacyConfig = backwardCompatibleConfig.getConfig();
-            const graph = new EnhancedTradingAgentsGraph(legacyConfig);
+            const graph = new EnhancedTradingAgentsGraph({ config: legacyConfig });
             
             console.log('   ✅ CLI and Graph systems integrated');
             console.log('   ✅ Configuration system connected');

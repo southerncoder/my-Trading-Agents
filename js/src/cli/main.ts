@@ -268,6 +268,31 @@ export class TradingAgentsCLI {
       config.backendUrl = selections.backendUrl;
       config.llmProvider = selections.llmProvider as any;
 
+      // If using LM Studio, start a background preload of the quick/deep models (non-blocking)
+      if ((config.llmProvider as string) === 'lm_studio') {
+        const quickModel = config.quickThinkLlm;
+        const deepModel = config.deepThinkLlm;
+        try {
+          this.display.showInfo(`Preloading LM Studio models in background: ${quickModel}${deepModel ? ', ' + deepModel : ''}`);
+          import('../models/provider').then(async (mod) => {
+            try {
+              const tasks: Promise<void>[] = [];
+              tasks.push(mod.ModelProvider.preloadModel({ provider: 'lm_studio', modelName: quickModel, baseURL: config.backendUrl }));
+              if (deepModel) tasks.push(mod.ModelProvider.preloadModel({ provider: 'lm_studio', modelName: deepModel, baseURL: config.backendUrl }));
+              await Promise.all(tasks);
+              this.display.showInfo('LM Studio model preload completed (background)');
+            } catch (err: any) {
+              this.display.showError(`LM Studio model preload failed: ${err instanceof Error ? err.message : String(err)}`);
+            }
+          }).catch(err => {
+            this.display.showError(`Failed to start LM Studio preload: ${err instanceof Error ? err.message : String(err)}`);
+          });
+        } catch (err: any) {
+          // Non-fatal - log and continue
+          this.display.showError(`LM Studio preload error: ${err instanceof Error ? err.message : String(err)}`);
+        }
+      }
+
       // Initialize the enhanced graph
       console.log('🔍 DEBUG: About to create EnhancedTradingAgentsGraph with config:', {
         llmProvider: config.llmProvider,
@@ -828,6 +853,88 @@ export async function createCLI(): Promise<Command> {
     .action(async () => {
       const configManager = new ConfigManager();
       await configManager.manageConfigs();
+    });
+
+  program
+    .command('lmstudio:preload')
+    .description('Preload a model on an LM Studio instance')
+    .requiredOption('-m, --model <name>', 'Model name to preload')
+    .requiredOption('-h, --host <url>', 'LM Studio base URL (e.g., http://192.168.1.85:1234/v1)')
+    .action(async (opts: { model: string; host: string }) => {
+      try {
+        const { ModelProvider } = await import('../models/provider');
+        console.log(`Preloading model ${opts.model} at ${opts.host}...`);
+        await ModelProvider.preloadModel({ provider: 'lm_studio', modelName: opts.model, baseURL: opts.host });
+        console.log('Model preload requested successfully.');
+      } catch (err: any) {
+        console.error('Failed to preload model:', err instanceof Error ? err.message : String(err));
+        process.exit(1);
+      }
+    });
+
+  program
+    .command('lmstudio:unload')
+    .description('Request unload of a model on an LM Studio admin endpoint')
+    .requiredOption('-m, --model <name>', 'Model name to unload')
+    .option('-a, --admin <url>', 'LM Studio admin URL (falls back to LM_STUDIO_ADMIN_URL env var)')
+    .action(async (opts: { model: string; admin?: string }) => {
+      try {
+        const { default: LMStudioManager } = await import('../models/lmstudio-manager');
+        console.log(`Requesting unload of model ${opts.model} via admin ${opts.admin || process.env.LM_STUDIO_ADMIN_URL}...`);
+        const success = await LMStudioManager.requestModelUnload(opts.model, opts.admin);
+        if (success) {
+          console.log('Model unload requested successfully.');
+          process.exit(0);
+        } else {
+          console.error('Model unload request failed. Check admin URL and permissions.');
+          process.exit(2);
+        }
+      } catch (err: any) {
+        console.error('Failed to request model unload:', err instanceof Error ? err.message : String(err));
+        process.exit(1);
+      }
+    });
+
+  program
+    .command('lmstudio:switch')
+    .description('Switch LM Studio instance to a different model (load target, optionally unload previous)')
+    .requiredOption('-t, --to <model>', 'Target model to switch to')
+    .option('-f, --from <model>', 'Previous model to unload after switch')
+    .requiredOption('-h, --host <url>', 'LM Studio base URL (used to poll availability)')
+    .option('-a, --admin <url>', 'LM Studio admin URL (falls back to LM_STUDIO_ADMIN_URL env var)')
+    .option('--no-unload', 'Do not attempt to unload the previous model')
+    .action(async (opts: { to: string; from?: string; host: string; admin?: string; unload?: boolean }) => {
+      try {
+        const { default: LMStudioManager } = await import('../models/lmstudio-manager');
+        console.log(`Switching LM Studio at ${opts.host} to model ${opts.to}...`);
+        const switchOpts: { adminUrl?: string; unloadPrevious?: boolean; previousModel?: string; pollIntervalMs?: number; timeoutMs?: number } = {};
+        if (opts.admin) switchOpts.adminUrl = opts.admin;
+        // NOTE: opts.unload is true when user sets the flag; when undefined, do not include to preserve defaults
+        if (typeof opts.unload !== 'undefined') switchOpts.unloadPrevious = !!opts.unload;
+        if (opts.from) switchOpts.previousModel = opts.from;
+        await LMStudioManager.requestModelSwitch(opts.to, opts.host, switchOpts);
+        console.log('Model switch completed (request submitted and availability confirmed).');
+        process.exit(0);
+      } catch (err: any) {
+        console.error('Model switch failed:', err instanceof Error ? err.message : String(err));
+        process.exit(1);
+      }
+    });
+
+  program
+    .command('lmstudio:metrics')
+    .description('Print LM Studio manager metrics snapshot')
+    .action(async () => {
+      try {
+        const { default: LMStudioManager } = await import('../models/lmstudio-manager');
+        const metrics = LMStudioManager.getMetrics();
+        console.log('LM Studio Metrics:');
+        console.log(JSON.stringify(metrics, null, 2));
+        process.exit(0);
+      } catch (err: any) {
+        console.error('Failed to retrieve LM Studio metrics:', err instanceof Error ? err.message : String(err));
+        process.exit(1);
+      }
     });
 
   // Default action - show main menu

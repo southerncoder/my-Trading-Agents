@@ -190,7 +190,7 @@ export class ZepGraphitiMemoryProvider {
         ...(options?.centerNodeUuid && { center_node_uuid: options.centerNodeUuid })
       };
 
-      const response = await fetch(`${this.serviceUrl}/memory/search`, {
+      const response = await fetch(`${this.serviceUrl}/search`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(searchRequest)
@@ -245,7 +245,7 @@ export class ZepGraphitiMemoryProvider {
         summary: `Entity representing ${sourceEntity}`
       };
 
-      let sourceResponse = await fetch(`${this.serviceUrl}/entity-node`, {
+      const sourceResponse = await fetch(`${this.serviceUrl}/entity-node`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(sourceNodeRequest)
@@ -264,7 +264,7 @@ export class ZepGraphitiMemoryProvider {
         summary: `Entity representing ${targetEntity}`
       };
 
-      let targetResponse = await fetch(`${this.serviceUrl}/entity-node`, {
+      const targetResponse = await fetch(`${this.serviceUrl}/entity-node`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(targetNodeRequest)

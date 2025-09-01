@@ -3,7 +3,7 @@
  * Fast test to verify all agents can instantiate and basic LLM connectivity works
  */
 
-import { ModelProvider } from '../dist/models/provider.js';
+import { ModelProvider } from '../../src/models/provider.js';
 
 // Test configuration for LM Studio
 const LM_STUDIO_CONFIG = {
@@ -55,18 +55,18 @@ async function testAgentInstantiations() {
   
   // Import and test each agent type
   const agentTests = [
-    { name: 'MarketAnalyst', module: '../dist/agents/analysts/market-analyst.js' },
-    { name: 'SocialAnalyst', module: '../dist/agents/analysts/social-analyst.js' },
-    { name: 'NewsAnalyst', module: '../dist/agents/analysts/news-analyst.js' },
-    { name: 'FundamentalsAnalyst', module: '../dist/agents/analysts/fundamentals-analyst.js' },
-    { name: 'BullResearcher', module: '../dist/agents/researchers/bull-researcher.js' },
-    { name: 'BearResearcher', module: '../dist/agents/researchers/bear-researcher.js' },
-    { name: 'ResearchManager', module: '../dist/agents/managers/research-manager.js' },
-    { name: 'Trader', module: '../dist/agents/trader/trader.js' },
-    { name: 'RiskyAnalyst', module: '../dist/agents/risk-mgmt/risky-analyst.js' },
-    { name: 'SafeAnalyst', module: '../dist/agents/risk-mgmt/safe-analyst.js' },
-    { name: 'NeutralAnalyst', module: '../dist/agents/risk-mgmt/neutral-analyst.js' },
-    { name: 'PortfolioManager', module: '../dist/agents/risk-mgmt/portfolio-manager.js' }
+    { name: 'MarketAnalyst', module: '../../src/agents/analysts/market-analyst.js' },
+    { name: 'SocialAnalyst', module: '../../src/agents/analysts/social-analyst.js' },
+    { name: 'NewsAnalyst', module: '../../src/agents/analysts/news-analyst.js' },
+    { name: 'FundamentalsAnalyst', module: '../../src/agents/analysts/fundamentals-analyst.js' },
+    { name: 'BullResearcher', module: '../../src/agents/researchers/bull-researcher.js' },
+    { name: 'BearResearcher', module: '../../src/agents/researchers/bear-researcher.js' },
+    { name: 'ResearchManager', module: '../../src/agents/managers/research-manager.js' },
+    { name: 'Trader', module: '../../src/agents/trader/trader.js' },
+    { name: 'RiskyAnalyst', module: '../../src/agents/risk-mgmt/risky-analyst.js' },
+    { name: 'SafeAnalyst', module: '../../src/agents/risk-mgmt/safe-analyst.js' },
+    { name: 'NeutralAnalyst', module: '../../src/agents/risk-mgmt/neutral-analyst.js' },
+    { name: 'PortfolioManager', module: '../../src/agents/risk-mgmt/portfolio-manager.js' }
   ];
   
   const results = [];
@@ -98,7 +98,7 @@ async function testSingleAgentProcessing() {
   
   try {
     const model = ModelProvider.createModel(LM_STUDIO_CONFIG);
-    const { MarketAnalyst } = await import('../dist/agents/analysts/market-analyst.js');
+    const { MarketAnalyst } = await import('../../src/agents/analysts/market-analyst.js');
     
     const agent = new MarketAnalyst(model, []);
     

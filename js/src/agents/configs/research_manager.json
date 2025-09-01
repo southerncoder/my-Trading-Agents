@@ -1,0 +1,7 @@
+{
+  "provider": "lm_studio",
+  "model": "microsoft/phi-4-reasoning-plus",
+  "temperature": 0.5,
+  "maxTokens": 3000,
+  "notes": "Manager-level reasoning and planning."
+}

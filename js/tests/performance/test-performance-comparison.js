@@ -19,8 +19,8 @@ async function performanceComparisonTest() {
 
   try {
     // Import both logging managers
-    const { LoggingManager } = await import('../dist/cli/logging-manager.js');
-    const { OptimizedLoggingManager } = await import('../dist/cli/optimized-logging-manager.js');
+    const { LoggingManager } = await import('../../dist/cli/logging-manager.js');
+    const { OptimizedLoggingManager } = await import('../../dist/cli/optimized-logging-manager.js');
 
     console.log('📊 Test 1: Basic Performance Comparison\n');
 

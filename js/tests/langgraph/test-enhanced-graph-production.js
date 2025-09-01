@@ -9,11 +9,11 @@ async function testEnhancedTradingGraphImports() {
   
   try {
     console.log('🔍 Importing EnhancedTradingAgentsGraph...');
-    const { EnhancedTradingAgentsGraph } = await import('../dist/graph/enhanced-trading-graph.js');
+    const { EnhancedTradingAgentsGraph } = await import('../../dist/graph/enhanced-trading-graph.js');
     console.log('✅ EnhancedTradingAgentsGraph imported successfully');
     
     console.log('🔍 Importing configuration...');
-    const { defaultConfig } = await import('../dist/config/default.js');
+    const { defaultConfig } = await import('../../dist/config/default.js');
     console.log('✅ Configuration imported successfully');
     
     return { success: true, EnhancedTradingAgentsGraph, defaultConfig };
@@ -28,7 +28,7 @@ async function testEnhancedGraphCreation() {
   console.log('='.repeat(50));
   
   try {
-    const { EnhancedTradingAgentsGraph } = await import('../dist/graph/enhanced-trading-graph.js');
+    const { EnhancedTradingAgentsGraph } = await import('../../dist/graph/enhanced-trading-graph.js');
     
     // Test with LangGraph enabled
     console.log('🔧 Creating graph with LangGraph enabled...');
@@ -86,7 +86,7 @@ async function testEnhancedGraphExecution() {
   console.log('='.repeat(50));
   
   try {
-    const { EnhancedTradingAgentsGraph } = await import('../dist/graph/enhanced-trading-graph.js');
+    const { EnhancedTradingAgentsGraph } = await import('../../dist/graph/enhanced-trading-graph.js');
     
     // Create and test LangGraph mode
     console.log('📊 Testing LangGraph execution mode...');
@@ -162,7 +162,7 @@ async function testEnhancedGraphFeatures() {
   console.log('='.repeat(50));
   
   try {
-    const { EnhancedTradingAgentsGraph } = await import('../dist/graph/enhanced-trading-graph.js');
+    const { EnhancedTradingAgentsGraph } = await import('../../dist/graph/enhanced-trading-graph.js');
     
     // Test multiple analyst selection
     console.log('👥 Testing multiple analyst selection...');

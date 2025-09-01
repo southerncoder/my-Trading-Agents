@@ -1,12 +1,15 @@
-#!/usr/bin/env node
-
 /**
  * Comprehensive Test Runner for Trading Agents CLI
  * Executes all test categories in sequence with detailed reporting
  */
 
-const { execSync } = require('child_process');
-const path = require('path');
+import { execSync } from 'child_process';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import process from 'process';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const colors = {
     green: '\x1b[32m',
@@ -29,7 +32,7 @@ function runTest(testName, testPath) {
     log(`${colors.blue}${'='.repeat(60)}${colors.reset}`);
     
     try {
-        const result = execSync(`node ${testPath}`, { 
+        execSync(`vite-node ${testPath}`, { 
             encoding: 'utf8',
             stdio: 'inherit',
             cwd: path.dirname(__dirname)
@@ -52,16 +55,8 @@ async function main() {
         {
             category: 'CLI Core',
             tests: [
-                { name: 'CLI Integration', path: 'tests/test-cli-integration.js' },
-                { name: 'CLI Components', path: 'tests/test-cli-components.js' }
-            ]
-        },
-        
-        // CLI Specific Tests
-        {
-            category: 'CLI Functionality',
-            tests: [
-                { name: 'CLI Debug Features', path: 'tests/cli/test-cli-debug.js' },
+                { name: 'CLI Integration', path: 'tests/cli/test-cli-integration.js' },
+                { name: 'CLI Debug Features', path: 'tests/test-cli-debug.js' },
                 { name: 'CLI Simple Operations', path: 'tests/cli/test-cli-simple.js' }
             ]
         },
@@ -71,7 +66,16 @@ async function main() {
             category: 'System Integration',
             tests: [
                 { name: 'Complete System Test', path: 'tests/integration/test-complete-system.js' },
-                { name: 'Modern System Test', path: 'tests/integration/test-complete-modern-system.js' }
+                { name: 'Modern System Test', path: 'tests/integration/test-complete-modern-system.js' },
+                { name: 'Final Integration Test', path: 'tests/test-final-integration.js' }
+            ]
+        },
+        
+        // LangGraph Tests
+        {
+            category: 'LangGraph Integration',
+            tests: [
+                { name: 'LangGraph Core Test', path: 'tests/langgraph/test-langgraph.js' }
             ]
         },
         
@@ -158,11 +162,10 @@ async function main() {
     }
 }
 
-if (require.main === module) {
-    main().catch(error => {
-        log(`Fatal error: ${error.message}`, colors.red);
-        process.exit(1);
-    });
-}
+// Run main function if this file is executed directly
+main().catch(error => {
+    log(`Fatal error: ${error.message}`, colors.red);
+    process.exit(1);
+});
 
-module.exports = { runTest, main };
+export { runTest, main };

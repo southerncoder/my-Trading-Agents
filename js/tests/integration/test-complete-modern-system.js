@@ -20,7 +20,7 @@ async function testModernConfiguration() {
     
     try {
         // Test importing the modern config
-        const { ModernConfigLoader, modernConfigLoader, getModernConfig } = await import('./dist/config/modern-config.js');
+        const { modernConfigLoader } = await import('../../src/config/modern-config.js');
         
         // Test basic config loading
         const config = modernConfigLoader.getLLMConfig();
@@ -58,7 +58,7 @@ async function testSystemConfiguration() {
     console.log('\n🔧 Testing System Configuration Integration...');
     
     try {
-        const { modernConfigLoader } = await import('./dist/config/modern-config.js');
+        const { modernConfigLoader } = await import('../../src/config/modern-config.js');
         
         // Test system config
         const systemConfig = modernConfigLoader.getSystemConfig();
@@ -93,7 +93,7 @@ async function testCLIIntegration() {
     
     try {
         // Test CLI initialization with modern config
-        const { TradingAgentsCLI } = await import('./dist/cli/main.js');
+        const { TradingAgentsCLI } = await import('../../src/cli/main.js');
         const cliMain = new TradingAgentsCLI();
         
         // Test CLI exists and can be instantiated
@@ -118,7 +118,7 @@ async function testModernStandardsCompliance() {
     
     try {
         // Run the modern standards test
-        const { stdout } = await execAsync('node test-modern-standards.js');
+        const { stdout } = await execAsync('vite-node tests/modernization/test-modern-standards.js');
         
         // Check if all tests passed
         if (stdout.includes('🎉 COMPLETE MODERN STANDARDS COMPLIANCE') && 
@@ -147,7 +147,7 @@ async function testSecurityCompliance() {
     
     try {
         // Test that no hardcoded secrets exist
-        const { modernConfigLoader } = await import('./dist/config/modern-config.js');
+        const { modernConfigLoader } = await import('../../src/config/modern-config.js');
         
         const config = modernConfigLoader.getLLMConfig();
         
@@ -185,7 +185,7 @@ async function testLMStudioConnection() {
     console.log('\n🤖 Testing LM Studio Connection...');
     
     try {
-        const { modernConfigLoader } = await import('./dist/config/modern-config.js');
+        const { modernConfigLoader } = await import('../../src/config/modern-config.js');
         
         // Create a chat model using modern configuration
         const chatModel = await modernConfigLoader.createChatModel();
@@ -212,7 +212,7 @@ async function testCompleteSystem() {
     console.log('\n🌟 Testing Complete System Integration...');
     
     try {
-        const { getModernConfig } = await import('./dist/config/modern-config.js');
+        const { getModernConfig } = await import('../../src/config/modern-config.js');
         
         // Get complete modern configuration
         const completeConfig = await getModernConfig();

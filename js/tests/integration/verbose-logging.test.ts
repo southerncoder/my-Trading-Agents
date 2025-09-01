@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+/// <reference types="jest" />
+import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 
 // Create a minimal mock for testing the core functionality
 const mockInquirer = {
@@ -16,15 +17,15 @@ jest.mock('chalk', () => ({
   magenta: jest.fn((str: string) => str)
 }));
 
-import { LoggingManager, LOG_LEVEL_OPTIONS } from '../src/cli/logging-manager';
-import { getGlobalLogLevel, setGlobalLogLevel } from '../src/utils/enhanced-logger';
+import { LoggingManager, LOG_LEVEL_OPTIONS } from '../../src/cli/logging-manager';
+import { getGlobalLogLevel, setGlobalLogLevel } from '../../src/utils/enhanced-logger';
 
 describe('Verbose Logging Integration Tests', () => {
   let loggingManager: LoggingManager;
   let originalLogLevel: string;
-  let consoleLogSpy: jest.SpyInstance;
-  let consoleWarnSpy: jest.SpyInstance;
-  let consoleErrorSpy: jest.SpyInstance;
+  let consoleLogSpy: any;
+  let consoleWarnSpy: any;
+  let consoleErrorSpy: any;
 
   beforeEach(() => {
     // Store original log level
@@ -99,11 +100,11 @@ describe('Verbose Logging Integration Tests', () => {
     it('should have correct log level options available', () => {
       expect(LOG_LEVEL_OPTIONS).toHaveLength(5);
       
-      const levels = LOG_LEVEL_OPTIONS.map(option => option.value);
+  const levels = LOG_LEVEL_OPTIONS.map((option: any) => option.value);
       expect(levels).toEqual(['debug', 'info', 'warn', 'error', 'critical']);
       
       // Verify each option has required properties
-      LOG_LEVEL_OPTIONS.forEach(option => {
+  LOG_LEVEL_OPTIONS.forEach((option: any) => {
         expect(option).toHaveProperty('name');
         expect(option).toHaveProperty('value');
         expect(option).toHaveProperty('description');

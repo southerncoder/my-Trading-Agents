@@ -1,11 +1,9 @@
-#!/usr/bin/env node
-
 /**
  * Integration test for the official Zep Graphiti service
  * Tests basic connectivity and API compatibility
  */
 
-import { ZepGraphitiMemoryProvider } from '../dist/providers/zep-graphiti-memory-provider.js';
+import { ZepGraphitiMemoryProvider } from '../../src/providers/zep-graphiti-memory-provider.js';
 
 async function testZepGraphitiIntegration() {
   console.log('🧪 Testing Official Zep Graphiti Integration...\n');

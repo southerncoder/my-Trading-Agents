@@ -6,57 +6,48 @@
     This script starts the Neo4j database and official Zep Graphiti service containers
     in a new Windows Terminal window for easy monitoring and management.
 #>
+#!/usr/bin/env pwsh
+<#
+.SYNOPSIS
+    Start Zep Graphiti services (detached) for automated tests.
+.DESCRIPTION
+    This script starts Neo4j and Zep Graphiti using docker-compose in detached mode.
+    It is intentionally simple and avoids interactive terminal launches so automated
+    test runners can call it reliably.
+#>
 
 param(
     [switch]$Fresh = $false
 )
 
-$ZepDir = "C:\code\PersonalDev\my-Trading-Agents\py_zep"
+$ZepDir = Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Definition) ''
 
-Write-Host "🚀 Starting Official Zep Graphiti Services..." -ForegroundColor Green
+Write-Host "Starting Zep Graphiti services (detached)..."
 
-# Stop any existing containers if Fresh start requested
 if ($Fresh) {
-    Write-Host "🧹 Cleaning up existing containers..." -ForegroundColor Yellow
-    Set-Location $ZepDir
+    Write-Host "Performing fresh cleanup (docker-compose down -v)..."
+    Push-Location $ZepDir
     docker-compose down -v
+    Pop-Location
 }
 
-# Start services in a new Windows Terminal window
-Write-Host "📱 Opening new terminal window for services..." -ForegroundColor Cyan
-
-# Use a simple approach with Windows Terminal
-$wtCommand = "wt new-tab --title 'Zep Graphiti Services' powershell -NoExit -Command 'Set-Location ''$ZepDir''; Write-Host ''🐳 Starting Official Zep Graphiti Services...'' -ForegroundColor Green; docker-compose up --remove-orphans; Write-Host ''🛑 Services stopped. Press any key to close...'' -ForegroundColor Red; Read-Host'"
-
-Start-Process -FilePath "cmd" -ArgumentList "/c", $wtCommand -WindowStyle Hidden
-
-Write-Host "✅ Services starting in new terminal window!" -ForegroundColor Green
-Write-Host "📊 Monitor the services in the new terminal tab" -ForegroundColor Yellow
-Write-Host "🔍 Services will be available at:" -ForegroundColor Cyan
-Write-Host "   - Neo4j Browser: http://localhost:7474" -ForegroundColor White
-Write-Host "   - Zep Graphiti API: http://localhost:8000/docs" -ForegroundColor White
-Write-Host "   - Zep Graphiti Redoc: http://localhost:8000/redoc" -ForegroundColor White
-Write-Host ""
-Write-Host "⏳ Waiting 45 seconds for services to start..." -ForegroundColor Yellow
-
-# Wait for services to start (official images may take longer)
-Start-Sleep -Seconds 45
-
-# Test service availability
-Write-Host "🔍 Testing service connectivity..." -ForegroundColor Cyan
-
+Push-Location $ZepDir
 try {
-    $response = Invoke-RestMethod -Uri "http://localhost:8000/docs" -Method GET -TimeoutSec 10
-    Write-Host "✅ Zep Graphiti service is running!" -ForegroundColor Green
-    Write-Host "   API Documentation available at: http://localhost:8000/docs" -ForegroundColor White
-    Write-Host "🎉 All services are healthy and ready!" -ForegroundColor Green
+    docker-compose pull
+    docker-compose up -d --remove-orphans
+    Write-Host "docker-compose up -d completed. Waiting 30 seconds for services to initialize..."
+    Start-Sleep -Seconds 30
+    try {
+        $resp = Invoke-RestMethod -Uri 'http://localhost:8000/docs' -Method GET -TimeoutSec 10 -ErrorAction Stop
+        Write-Host "Zep Graphiti is responding at /docs"
+    } catch {
+        Write-Host "Warning: Zep Graphiti /docs not reachable yet: $($_.Exception.Message)"
+    }
 } catch {
-    Write-Host "⚠️  Zep Graphiti service not ready yet (may still be starting):" -ForegroundColor Yellow
-    Write-Host "   $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host "📱 Check the service terminal window for startup progress" -ForegroundColor Cyan
+    Write-Host "Error while starting services: $($_.Exception.Message)"
+    Pop-Location
+    exit 1
 }
+Pop-Location
 
-Write-Host ""
-Write-Host "🚀 Setup complete! The services are running in a separate terminal window." -ForegroundColor Green
-Write-Host "📖 API Documentation: http://localhost:8000/docs" -ForegroundColor Cyan
-Write-Host "🗄️  Neo4j Browser: http://localhost:7474 (neo4j/[check your .env])" -ForegroundColor Cyan
+Write-Host "Services started (detached). Use 'docker-compose -f docker-compose.yml ps' to check status." 

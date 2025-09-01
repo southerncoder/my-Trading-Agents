@@ -12,7 +12,7 @@
  */
 
 import { BaseMessage, HumanMessage } from '@langchain/core/messages';
-import { AgentState, InvestDebateState, RiskDebateState, AgentStateHelpers } from '../types/agent-states';
+import { AgentState, InvestDebateState, RiskDebateState } from '../types/agent-states';
 
 export interface PropagatorConfig {
   maxRecurLimit: number;

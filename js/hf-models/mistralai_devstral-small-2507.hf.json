@@ -1,0 +1,12 @@
+{
+  "modelId": "mistralai/Devstral-Small-2507",
+  "source": "huggingface",
+  "summary": {
+    "pipeline_tag": null,
+    "parameters": 23572.4,
+    "tags": ["mistral","safetensors","vllm","license:apache-2.0"],
+    "lastModified": "2025-08-18T00:00:00.000Z",
+    "private": false
+  },
+  "raw": {}
+}

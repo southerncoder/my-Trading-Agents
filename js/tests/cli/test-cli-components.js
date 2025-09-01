@@ -2,10 +2,10 @@
  * Simple test script to verify CLI components work correctly
  */
 
-import { TradingAgentsCLI } from '../dist/cli/main.js';
-import { DisplaySystem } from '../dist/cli/display.js';
-import { MessageBuffer } from '../dist/cli/message-buffer.js';
-import { AnalystType } from '../dist/cli/types.js';
+import { TradingAgentsCLI } from '../../src/cli/main.ts';
+import { DisplaySystem } from '../../src/cli/display.ts';
+import { MessageBuffer } from '../../src/cli/message-buffer.ts';
+import { AnalystType } from '../../src/cli/types.ts';
 
 async function testCLIComponents() {
   console.log('🧪 Testing CLI Components...\n');

@@ -3,7 +3,7 @@ import { StructuredTool } from '@langchain/core/tools';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AbstractAgent } from '../base/index';
 import { AgentState } from '../../types/agent-states';
-import { logger } from '../../utils/enhanced-logger.js';
+import { logger } from '../../utils/enhanced-logger';
 
 /**
  * Fundamentals Analyst Agent

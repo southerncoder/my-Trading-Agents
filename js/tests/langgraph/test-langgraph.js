@@ -2,7 +2,7 @@
  * Test LangGraph Integration
  */
 
-import { LangGraphSetup } from '../dist/graph/langgraph-working.js';
+import { LangGraphSetup } from '../../src/graph/langgraph-working';
 
 async function testLangGraphIntegration() {
   console.log('🚀 Starting LangGraph Integration Test...\n');

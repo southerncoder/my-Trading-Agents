@@ -1,0 +1,7 @@
+{
+  "provider": "lm_studio",
+  "model": "dolphin-2.9-llama3-8b",
+  "temperature": 0.3,
+  "maxTokens": 2000,
+  "notes": "Low-latency model for trade decision support."
+}

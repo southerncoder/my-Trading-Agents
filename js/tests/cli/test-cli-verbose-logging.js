@@ -2,7 +2,7 @@
  * Test CLI verbose logging functionality
  */
 
-import { createCLI } from '../dist/cli/main.js';
+import { createCLI } from '../../dist/cli/main.js';
 
 async function testCLIVerboseLogging() {
   console.log('🧪 Testing CLI Verbose Logging Functionality...\n');
@@ -57,7 +57,7 @@ async function testCLIVerboseLogging() {
     console.log('3. Testing Logging Configuration...');
     
     // Import LoggingManager to check if configuration was applied
-    const { LoggingManager } = await import('../dist/cli/logging-manager.js');
+    const { LoggingManager } = await import('../../dist/cli/logging-manager.js');
     const loggingManager = LoggingManager.getInstance();
     
     const currentOptions = loggingManager.getCurrentOptions();

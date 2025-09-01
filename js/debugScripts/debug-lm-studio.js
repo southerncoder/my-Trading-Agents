@@ -9,7 +9,7 @@ async function testLMStudioConnection() {
     console.log('LLM_BACKEND_URL:', process.env.LLM_BACKEND_URL);
     
     console.log('\n2. Testing LM Studio endpoint connectivity...');
-    const url = process.env.LLM_BACKEND_URL || 'http://192.168.1.85:1234/v1';
+    const url = process.env.LLM_BACKEND_URL || 'http://your_host_ip:1234/v1';
     
     // Test basic connectivity
     try {
@@ -32,10 +32,10 @@ async function testLMStudioConnection() {
       
       // Suggest fixes
       console.log('\n🔧 POSSIBLE FIXES:');
-      console.log('1. Start LM Studio on the specified host (192.168.1.85:1234)');
+      console.log('1. Start LM Studio on the specified host (your_host_ip:1234)');
       console.log('2. Change to OpenAI by setting: LLM_PROVIDER=openai and adding OPENAI_API_KEY');
       console.log('3. Use local LM Studio: LM_STUDIO_HOST=localhost');
-      console.log('4. Check network connectivity to 192.168.1.85');
+      console.log('4. Check network connectivity to your_host_ip');
     }
     
     console.log('\n3. Testing alternative provider configurations...');

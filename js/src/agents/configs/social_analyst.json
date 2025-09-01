@@ -1,0 +1,7 @@
+{
+  "provider": "lm_studio",
+  "model": "qwen/qwen3-4b-thinking-2507",
+  "temperature": 0.4,
+  "maxTokens": 1500,
+  "notes": "Efficient model for social sentiment analysis."
+}

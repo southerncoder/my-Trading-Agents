@@ -5,7 +5,7 @@
  * of the OptimizedStateManager
  */
 
-import { OptimizedStateManager, StateOptimizationUtils } from './dist/performance/state-optimization.js';
+import { OptimizedStateManager, StateOptimizationUtils } from '../../src/performance/state-optimization.js';
 
 async function testStateOptimization() {
     console.log('🧪 Testing State Management Optimization...\n');

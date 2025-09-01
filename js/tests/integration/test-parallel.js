@@ -1,4 +1,4 @@
-import { EnhancedTradingAgentsGraph } from './dist/graph/enhanced-trading-graph.js';
+import { EnhancedTradingAgentsGraph } from '../../src/graph/enhanced-trading-graph.js';
 
 async function testParallelExecution() {
     console.log('Testing parallel execution implementation...');

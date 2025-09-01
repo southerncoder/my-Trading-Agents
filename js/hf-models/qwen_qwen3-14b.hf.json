@@ -1,0 +1,12 @@
+{
+  "modelId": "Qwen/Qwen3-14B",
+  "source": "huggingface",
+  "summary": {
+    "pipeline_tag": "text-generation",
+    "parameters": 14768.3,
+    "tags": ["transformers","safetensors","qwen3","text-generation","license:apache-2.0"],
+    "lastModified": "2025-07-26T00:00:00.000Z",
+    "private": false
+  },
+  "raw": {}
+}

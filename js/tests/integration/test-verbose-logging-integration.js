@@ -2,7 +2,7 @@
  * Integration test for verbose logging functionality
  */
 
-import { createLogger, setGlobalLogLevel, getGlobalLogLevel } from '../dist/utils/enhanced-logger.js';
+import { createLogger, setGlobalLogLevel, getGlobalLogLevel } from '../../src/utils/enhanced-logger.js';
 
 async function testVerboseLogging() {
   console.log('🧪 Testing Verbose Logging Integration...\n');

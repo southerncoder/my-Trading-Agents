@@ -2,11 +2,11 @@ version: '3.8'
 
 services:
   neo4j:
-    image: neo4j:5.26.0  # Use minimum required version for Zep Graphiti compatibility
+    image: neo4j:5.26.0
     container_name: trading-agents-neo4j
     ports:
-      - "7474:7474"  # HTTP
-      - "7687:7687"  # Bolt
+      - "7474:7474"
+      - "7687:7687"
     environment:
       - NEO4J_AUTH=${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD:-demo-password-change-me}
       - NEO4J_PLUGINS=["apoc"]
@@ -27,19 +27,26 @@ services:
     image: zepai/graphiti:latest
     container_name: trading-agents-zep-graphiti
     ports:
-      - "8000:8000"  # Standard Zep Graphiti REST API port
+      - "8000:8000"
     environment:
-      - NEO4J_URI=bolt://neo4j:7687
-      - NEO4J_USER=${NEO4J_USER:-neo4j}
-      - NEO4J_PASSWORD=${NEO4J_PASSWORD:-demo-password-change-me}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-demo-key}
-      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-http://host.docker.internal:1234/v1}
-      # Additional Zep Graphiti configuration
-      - MODEL_NAME=dolphin-2.9-llama3-8b
-      - SMALL_MODEL_NAME=dolphin-2.9-llama3-8b
-      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-text-embedding-nomic-embed-text-v1.5}
-      - LLM_TEMPERATURE=0.1
-      - SEMAPHORE_LIMIT=5
+      NEO4J_URI: bolt://trading-agents-neo4j:7687
+      NEO4J_USER: ${NEO4J_USER:-neo4j}
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-demo-password-change-me}
+      EMBEDDER_PROVIDER: ${EMBEDDER_PROVIDER:-openai}
+      MODEL_NAME: dolphin-2.9-llama3-8b
+      SMALL_MODEL_NAME: dolphin-2.9-llama3-8b
+      LLM_TEMPERATURE: 0.1
+      SEMAPHORE_LIMIT: 5
+      PORT: 8000
+    env_file:
+      - .env.local
+    volumes:
+      - ./secrets/start-wrapper.sh:/start-wrapper.sh:ro
+      - ./graph_service/zep_graphiti.py:/app/graph_service/zep_graphiti.py:ro
+    command: ["/bin/sh", "/start-wrapper.sh", "/bin/sh", "-c", "uvicorn graph_service.main:app --host 0.0.0.0 --port $$PORT"]
+    secrets:
+      - openai_api_key
+      - embedder_api_key
     depends_on:
       neo4j:
         condition: service_healthy
@@ -58,5 +65,10 @@ volumes:
   neo4j_logs:
 
 networks:
-  trading_agents:
-    driver: bridge
+  trading_agents: {}
+
+secrets:
+  openai_api_key:
+    file: ./secrets/openai_api_key.txt
+  embedder_api_key:
+    file: ./secrets/embedder_api_key.txt

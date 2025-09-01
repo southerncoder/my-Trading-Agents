@@ -13,7 +13,7 @@ async function testEmbeddings() {
         'Authorization': 'Bearer demo-key'
       },
       body: JSON.stringify({
-        model: 'text-embedding-nomic-embed-text-v1.5',
+        model: 'text-embedding-qwen3-embedding-4b',
         input: 'Apple Inc. stock entity'
       })
     });

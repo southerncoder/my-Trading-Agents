@@ -1,5 +1,5 @@
-import { createZepGraphitiMemory, ZepGraphitiConfig, EpisodeType } from '../src/providers/zep-graphiti-memory-provider';
-import { AgentLLMConfig } from '../src/types/agent-config';
+import { createZepGraphitiMemory, ZepGraphitiConfig, EpisodeType } from '../../src/providers/zep-graphiti-memory-provider';
+import { AgentLLMConfig } from '../../src/types/agent-config';
 
 /**
  * Test Zep Graphiti Memory Provider

@@ -4,7 +4,7 @@
 
 ### Prerequisites
 - **Node.js 18+** and npm
-- **LM Studio** (optional, for local inference)
+- **Docker & Docker Compose** (for advanced memory system)
 - **API Keys** for cloud providers (OpenAI, Anthropic, Google)
 
 ### Installation
@@ -26,10 +26,45 @@
    # Edit .env.local with your API keys and preferences
    ```
 
-4. **Build the project**
+4. **Start advanced memory services** (optional but recommended)
    ```bash
-   npm run build
+   cd ../py_zep
+   ./start-zep-services.ps1
    ```
+
+5. **Build and run**
+   ```bash
+   cd ../js
+   npm run build
+   npm run cli
+   ```
+
+## 🧠 Advanced Memory System
+
+The TradingAgents framework includes a sophisticated AI/ML memory system with:
+
+- **Temporal Relationship Mapping**: Statistical correlation analysis
+- **Memory Consolidation**: ML clustering and pattern recognition  
+- **Context Retrieval**: Multi-dimensional intelligent search
+- **Performance Learning**: Reinforcement learning with agent optimization
+
+### Memory System Setup
+
+1. **Start Docker services**
+   ```powershell
+   cd py_zep
+   .\start-zep-services.ps1
+   ```
+
+2. **Test memory system**
+   ```bash
+   cd js
+   npm run test-memory-advanced
+   ```
+
+3. **View memory analytics**
+   - Access Neo4j Browser: http://localhost:7474
+   - Username: neo4j, Password: devpassword
 
 ## 🔧 Configuration
 
