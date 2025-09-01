@@ -34,6 +34,9 @@ export interface TradingAgentsConfig {
   redditClientSecret?: string | undefined;
   redditUsername?: string | undefined;
   redditPassword?: string | undefined;
+  
+  // Data source paths
+  simfinDataPath?: string | undefined;
 }
 
 export type LLMProvider = 'openai' | 'anthropic' | 'google' | 'lm_studio' | 'ollama' | 'openrouter';
