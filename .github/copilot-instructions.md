@@ -109,16 +109,22 @@ npm run build                    # Verify TypeScript compilation
 npm run lint                     # ESLint validation
 ```
 
-### LLM Provider Configuration
-```powershell
-# Local development (recommended - required for memory integration)
-$env:LLM_PROVIDER = "lm_studio"
-$env:LLM_BACKEND_URL = "http://localhost:1234/v1"
+### LLM Provider Configuration and Secrets Handling
 
-# Cloud providers (optional)
-$env:LLM_PROVIDER = "openai"
-$env:OPENAI_API_KEY = "your_key"
+- All secret values (model IDs, API keys, LM Studio URLs, and provider endpoints) MUST be kept out of tracked source, tests, and documentation.
+- Use `py_zep/.env.local` (or project-level `.env.local`) to store all runtime secrets. Only commit `.env.local.example` with placeholder values.
+
+Example (set these in `py_zep/.env.local`):
+```powershell
+# Example entries for py_zep/.env.local (DO NOT COMMIT)
+OPENAI_API_KEY=<your_openai_or_lmstudio_api_key>
+OPENAI_BASE_URL=<your_lm_studio_base_url>
+EMBEDDING_MODEL=<your_embedding_model_id>
+LM_STUDIO_URL=<your_lm_studio_base_url>
+PRIMARY_LM_STUDIO_URL=<your_remote_lm_studio_admin_url>
 ```
+
+The codebase and tests will read `.env.local` when present. Do not add concrete model names or URLs in code or docs.
 
 ## Current Status & Recent Achievements
 

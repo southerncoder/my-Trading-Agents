@@ -1,3 +1,6 @@
+# Archive debug scripts folder
+py_graphiti_debug/
+archive/py_graphiti_debug/
 # Python specific
 env/
 __pycache__/

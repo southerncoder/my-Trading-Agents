@@ -169,9 +169,6 @@ DEFAULT_LLM_MODEL=local-model
 DEFAULT_LLM_TEMPERATURE=0.7
 DEFAULT_LLM_MAX_TOKENS=3000
 
-# Base URL for local providers
-LM_STUDIO_BASE_URL=http://your_host_ip:1234/v1
-OLLAMA_BASE_URL=http://localhost:11434
 ```
 
 ### 4. Hardcoded Fallbacks
@@ -227,40 +224,6 @@ GOOGLE_DEFAULT_MODEL=gemini-1.5-pro
 - `gemini-1.5-flash`
 - `gemini-pro`
 
-### LM Studio Configuration
-```bash
-LM_STUDIO_BASE_URL=http://your_host_ip:1234/v1
-LM_STUDIO_DEFAULT_MODEL=local-model
-LM_STUDIO_API_KEY=not-needed  # Optional, usually not required
-```
-
-#### LM Studio Admin Endpoint (Optional)
-
-LM Studio exposes an administrative endpoint that can be used to programmatically request model loads and unloads. This project supports using that endpoint to reduce startup latency and avoid manual model management.
-
-Recommended environment variables:
-
-```bash
-# Optional admin endpoint for LM Studio to request model load/unload
-LM_STUDIO_ADMIN_URL=http://your-lm-studio-host:port/admin
-
-# TTL (milliseconds) for caching model loaded state to avoid excessive polling
-LM_STUDIO_MODEL_CACHE_TTL_MS=30000
-```
-
-Security and operational notes:
-- Only enable `LM_STUDIO_ADMIN_URL` in trusted networks (do not expose it publicly).
-- Treat `LM_STUDIO_ADMIN_URL` as a secret-like endpoint; restrict access via firewall or VPN where possible.
-- Use `LM_STUDIO_MODEL_CACHE_TTL_MS` to tune frequency of live model checks; larger values reduce LM Studio traffic but may delay perceiving model unloads/switches.
-- When using admin endpoints, the system will call `/models/load` and `/models/unload` (POST) with JSON payload `{ model: <modelName> }`.
-
-Example switch flow:
-
-1. `requestModelSwitch('gpt-local-v2', 'http://localhost:1234/v1', { adminUrl: process.env.LM_STUDIO_ADMIN_URL, unloadPrevious: true, previousModel: 'gpt-local-v1' })`
-2. Manager calls admin `/models/load` for `gpt-local-v2` and waits until `/models` reports the model present.
-3. If `unloadPrevious` is set and admin/unload is available, manager calls `/models/unload` for the previous model.
-
-Only enable automatic unloads if you understand memory and model residency costs. Manual unloads are safer in many deployments.
 
 ### Ollama Configuration
 ```bash
@@ -289,10 +252,6 @@ TRADER_LLM_MODEL=local-trading-model
 
 ### Example 2: All Local Inference
 ```bash
-# Use LM Studio for everything
-DEFAULT_LLM_PROVIDER=openai
-DEFAULT_LLM_MODEL=local-model
-LM_STUDIO_BASE_URL=http://your_host_ip:1234/v1
 ```
 
 ### Example 3: Cost-Optimized Cloud Setup

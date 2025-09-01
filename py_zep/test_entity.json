@@ -1,0 +1,5 @@
+﻿{
+  "name": "test_entity",
+  "summary": "This is a test entity for verifying the embedding functionality works correctly.",
+  "labels": ["TestNode"]
+}

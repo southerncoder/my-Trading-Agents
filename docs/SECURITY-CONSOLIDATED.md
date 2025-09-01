@@ -25,7 +25,7 @@ TradingAgents implements comprehensive security practices to protect sensitive d
 ```bash
 # LLM Provider Configuration
 LLM_PROVIDER=lm_studio|openai|anthropic|google
-LLM_BACKEND_URL=http://your_host:1234/v1
+LLM_BACKEND_URL=http://your_host:1234/v1  # replace with your LM Studio base URL
 
 # API Keys (choose based on provider)
 OPENAI_API_KEY=your_openai_key_here
@@ -73,8 +73,8 @@ py_zep/.env.example # Zep service template (committed)
 ```yaml
 environment:
   - OPENAI_API_KEY=${OPENAI_API_KEY}
-  - EMBEDDING_MODEL=${EMBEDDING_MODEL:-text-embedding-nomic-embed-text-v1.5}
-  - OPENAI_BASE_URL=${OPENAI_BASE_URL:-http://host.docker.internal:1234/v1}
+  - EMBEDDING_MODEL=${EMBEDDING_MODEL:-<your_embedding_model_id>}
+  - OPENAI_BASE_URL=${OPENAI_BASE_URL:-<your_lm_studio_base_url>}
   - NEO4J_PASSWORD=${NEO4J_PASSWORD:-your_strong_password_here}
 ```
 
@@ -82,7 +82,7 @@ environment:
 ```typescript
 const config = {
   llmProvider: process.env.LLM_PROVIDER || 'lm_studio',
-  backendUrl: process.env.LLM_BACKEND_URL || 'http://localhost:1234/v1',
+  backendUrl: process.env.LLM_BACKEND_URL || '<your_lm_studio_base_url>',
   apiKey: process.env.OPENAI_API_KEY, // No default for sensitive data
 };
 ```

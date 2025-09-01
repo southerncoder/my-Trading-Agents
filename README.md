@@ -24,13 +24,10 @@ npm run cli
 
 ### Configuration
 ```bash
-# Local AI (recommended)
-LLM_PROVIDER=local_inference
-LLM_BACKEND_URL=http://localhost:1234/v1
-
-# Or cloud providers
-LLM_PROVIDER=openai
-OPENAI_API_KEY=your_key
+# AI Endpoint Configuration
+OPENAI_API_KEY=<your_api_key>
+OPENAI_BASE_URL=<your_openai_or_lm_studio_base_url>
+# Optionally: EMBEDDER_PROVIDER=lm_studio
 ```
 
 ## 🏗️ Architecture
@@ -84,13 +81,13 @@ The CLI includes helper commands to manage LM Studio instances used for local or
 Examples:
 ```powershell
 # Preload model on local LM Studio
-node dist/cli/cli.js lmstudio:preload -m "llama-3.2-3b-instruct" -h "http://localhost:1234/v1"
+node dist/cli/cli.js lmstudio:preload -m "<model_id>" -h "<your_lm_studio_base_url>"
 
 # Unload a model via admin endpoint
-node dist/cli/cli.js lmstudio:unload -m "old-model" -a "http://192.168.1.85:1234/admin"
+node dist/cli/cli.js lmstudio:unload -m "old-model" -a "<your_lm_studio_admin_url>"
 
 # Switch models (load target, unload previous)
-node dist/cli/cli.js lmstudio:switch -t "llama-3.2-3b-instruct" -h "http://localhost:1234/v1" -f "old-model" -a "http://localhost:1234/admin"
+node dist/cli/cli.js lmstudio:switch -t "<target_model>" -h "<your_lm_studio_base_url>" -f "old-model" -a "<your_lm_studio_admin_url>"
 
 # Print metrics
 node dist/cli/cli.js lmstudio:metrics
@@ -126,10 +123,7 @@ Troubleshooting
 - [Configuration](docs/CONFIGURATION.md)
 - [Complete Docs](docs/)
 
-## 📄 License
+npm run cli
+```
 
-MIT License - see [LICENSE](LICENSE) file for details.
-
----
-
-**⚠️ Disclaimer:** Educational and research purposes only. Not financial advice.
+## � Documentation

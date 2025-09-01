@@ -9,7 +9,6 @@
 ## 🔧 Configuration & Setup
 
 - **[CONFIGURATION.md](./CONFIGURATION.md)** - Environment-driven configuration system
-- **[LM-STUDIO.md](./LM-STUDIO.md)** - Local inference setup with LM Studio
 - **[SECURITY.md](./SECURITY.md)** - Security configuration and best practices
 
 ## 📊 Project Status
