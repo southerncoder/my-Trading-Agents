@@ -190,7 +190,7 @@ export class ZepGraphitiMemoryProvider {
         ...(options?.centerNodeUuid && { center_node_uuid: options.centerNodeUuid })
       };
 
-      const response = await fetch(`${this.serviceUrl}/memory/search`, {
+      const response = await fetch(`${this.serviceUrl}/search`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(searchRequest)

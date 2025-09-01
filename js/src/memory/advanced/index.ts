@@ -196,6 +196,7 @@ export class AdvancedMemoryLearningSystem {
   private patternRecognition: PatternRecognitionEngine;
   private crossSessionMemory: CrossSessionMemorySystem;
   private temporalReasoning: TemporalReasoningEngine;
+  private zepProvider: any; // Will be initialized in initializeZepConnection()
   
   // System state
   private isInitialized: boolean = false;
@@ -402,15 +403,167 @@ export class AdvancedMemoryLearningSystem {
   // Private helper methods
 
   private async initializeZepConnection(): Promise<void> {
-    // Implementation would initialize Zep Graphiti connection
+    try {
+      // Import the existing Zep provider
+      const { ZepGraphitiMemoryProvider } = await import('../../providers/zep-graphiti-memory-provider');
+      
+      // Initialize the provider with config
+      this.zepProvider = new ZepGraphitiMemoryProvider({
+        serviceUrl: this.config.zep_client_config.base_url,
+        sessionId: this.config.zep_client_config.session_id || 'advanced-memory-session',
+        userId: this.config.zep_client_config.user_id || 'trading-agent',
+        maxResults: 100
+      }, {
+        provider: 'openai', // Default provider for memory operations
+        model: 'gpt-4o-mini', // Efficient model for memory tasks
+        temperature: 0.3,
+        maxTokens: 1000
+      });
+
+      // Test the connection
+      const healthCheck = await fetch(`${this.config.zep_client_config.base_url}/healthcheck`);
+      if (!healthCheck.ok) {
+        throw new Error(`Zep service not available: ${healthCheck.status}`);
+      }
+
+      this.logger.info('Zep Graphiti connection initialized successfully', {
+        component: 'AdvancedMemorySystem',
+        service_url: this.config.zep_client_config.base_url
+      });
+
+    } catch (error) {
+      this.logger.error('Failed to initialize Zep connection', {
+        component: 'AdvancedMemorySystem',
+        error: error instanceof Error ? error.message : String(error)
+      });
+      throw error;
+    }
   }
 
   private async initializeComponents(): Promise<void> {
-    // Implementation would initialize all component systems
+    try {
+      // Initialize all component systems with the Zep provider
+      this.logger.info('Initializing advanced memory components', {
+        component: 'AdvancedMemorySystem'
+      });
+
+      // Update component systems to use the new provider if needed
+      // Note: Components already initialized in constructor, 
+      // this method can be used for additional setup or validation
+      
+      // Validate component systems are properly initialized
+      const components = [
+        { name: 'temporalMapper', instance: this.temporalMapper },
+        { name: 'contextRetrieval', instance: this.contextRetrieval },
+        { name: 'memoryConsolidation', instance: this.memoryConsolidation },
+        { name: 'performanceLearning', instance: this.performanceLearning },
+        { name: 'patternRecognition', instance: this.patternRecognition },
+        { name: 'crossSessionMemory', instance: this.crossSessionMemory },
+        { name: 'temporalReasoning', instance: this.temporalReasoning }
+      ];
+
+      for (const component of components) {
+        if (!component.instance) {
+          throw new Error(`Component ${component.name} failed to initialize`);
+        }
+      }
+
+      this.logger.info('All advanced memory components initialized successfully', {
+        component: 'AdvancedMemorySystem',
+        components_count: components.length
+      });
+
+    } catch (error) {
+      this.logger.error('Failed to initialize components', {
+        component: 'AdvancedMemorySystem',
+        error: error instanceof Error ? error.message : String(error)
+      });
+      throw error;
+    }
   }
 
   private async startBackgroundLearning(): Promise<void> {
-    // Implementation would start background learning processes
+    try {
+      this.logger.info('Starting background learning processes', {
+        component: 'AdvancedMemorySystem'
+      });
+
+      // Start background processes if enabled
+      if (this.config.processing_config.enable_real_time_learning) {
+        // Schedule periodic memory consolidation
+        this.schedulePeriodicConsolidation();
+        
+        // Start performance tracking
+        this.startPerformanceMonitoring();
+        
+        this.logger.info('Background learning processes started', {
+          component: 'AdvancedMemorySystem',
+          real_time_learning: true
+        });
+      } else {
+        this.logger.info('Real-time learning disabled, skipping background processes', {
+          component: 'AdvancedMemorySystem',
+          real_time_learning: false
+        });
+      }
+
+    } catch (error) {
+      this.logger.error('Failed to start background learning', {
+        component: 'AdvancedMemorySystem',
+        error: error instanceof Error ? error.message : String(error)
+      });
+      // Don't throw here as this is not critical for basic functionality
+    }
+  }
+
+  private schedulePeriodicConsolidation(): void {
+    // Schedule memory consolidation every hour
+    setInterval(async () => {
+      try {
+        await this.memoryConsolidation.consolidateInstitutionalMemory([
+          'pattern_library',
+          'agent_performance',
+          'market_regime'
+        ]);
+        this.logger.debug('Periodic memory consolidation completed', {
+          component: 'AdvancedMemorySystem'
+        });
+      } catch (error) {
+        this.logger.error('Periodic memory consolidation failed', {
+          component: 'AdvancedMemorySystem',
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
+    }, 3600000); // 1 hour
+  }
+
+  private startPerformanceMonitoring(): void {
+    // Start collecting performance metrics
+    setInterval(() => {
+      try {
+        const metrics = {
+          cache_hit_rate: this.calculateCacheHitRate(),
+          request_count: this.getRequestCount(),
+          avg_response_time: this.getAverageResponseTime(),
+          memory_usage: process.memoryUsage(),
+          timestamp: new Date().toISOString()
+        };
+        
+        this.performanceMetrics.set('latest', metrics);
+        
+        // Keep only last 100 metrics to prevent memory leak
+        if (this.performanceMetrics.size > 100) {
+          const keys = Array.from(this.performanceMetrics.keys());
+          keys.slice(0, -100).forEach(key => this.performanceMetrics.delete(key));
+        }
+        
+      } catch (error) {
+        this.logger.error('Performance monitoring failed', {
+          component: 'AdvancedMemorySystem',
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
+    }, 300000); // 5 minutes
   }
 
   private async conductComprehensiveAnalysis(request: TradingIntelligenceRequest): Promise<any> {
@@ -458,13 +611,72 @@ export class AdvancedMemoryLearningSystem {
     return analysis;
   }
 
-  private async analyzeEntity(_request: TradingIntelligenceRequest): Promise<any> {
-    // Implementation would analyze the target entity
-    return {
-      entity_summary: {},
-      current_regime: {},
-      temporal_context: {}
-    };
+  private async analyzeEntity(request: TradingIntelligenceRequest): Promise<any> {
+    try {
+      // Use the Zep provider to get entity information
+      const entityInfo = await this.zepProvider?.searchMemory(
+        `entity analysis for ${request.entity_id}`,
+        { maxResults: 10 }
+      );
+
+      // Basic entity analysis using current context
+      const entitySummary = {
+        entity_id: request.entity_id,
+        current_price: request.current_context.price_level,
+        volatility: request.current_context.volatility,
+        volume: request.current_context.volume,
+        market_regime: request.current_context.market_regime,
+        last_updated: new Date().toISOString()
+      };
+
+      // Current market regime analysis
+      const currentRegime = {
+        regime_type: request.current_context.market_regime,
+        regime_strength: this.calculateRegimeStrength(request.current_context),
+        regime_duration: 'unknown', // Would calculate from historical data
+        transition_probability: 0.15 // Would calculate from patterns
+      };
+
+      // Temporal context from patterns
+      const temporalContext = {
+        historical_patterns: entityInfo?.facts || [],
+        seasonal_effects: {},
+        cycle_position: 'mid-cycle',
+        momentum_indicators: request.current_context.technical_indicators
+      };
+
+      this.logger.info('Entity analysis completed', {
+        component: 'AdvancedMemorySystem',
+        entity_id: request.entity_id,
+        patterns_found: entityInfo?.facts?.length || 0
+      });
+
+      return {
+        entity_summary: entitySummary,
+        current_regime: currentRegime,
+        temporal_context: temporalContext
+      };
+    } catch (error) {
+      this.logger.error('Entity analysis failed', {
+        component: 'AdvancedMemorySystem',
+        entity_id: request.entity_id,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      
+      // Return basic fallback analysis
+      return {
+        entity_summary: { entity_id: request.entity_id },
+        current_regime: { regime_type: request.current_context.market_regime },
+        temporal_context: {}
+      };
+    }
+  }
+
+  private calculateRegimeStrength(context: any): number {
+    // Simple regime strength calculation based on volatility and momentum
+    const volatilityScore = context.volatility < 0.02 ? 0.8 : context.volatility > 0.05 ? 0.3 : 0.6;
+    const volumeScore = context.volume > 1000000 ? 0.7 : 0.5;
+    return (volatilityScore + volumeScore) / 2;
   }
 
   private async retrieveHistoricalContext(request: TradingIntelligenceRequest): Promise<any> {
@@ -716,6 +928,16 @@ export class AdvancedMemoryLearningSystem {
 
   private calculateCacheHitRate(): number {
     return 0.75; // Would calculate from actual cache statistics
+  }
+
+  private getRequestCount(): number {
+    // Count requests from cache or metrics
+    return this.requestCache.size;
+  }
+
+  private getAverageResponseTime(): number {
+    // Would calculate from actual response time tracking
+    return 150; // milliseconds
   }
 
   private hashObject(obj: any): string {

@@ -43,6 +43,8 @@
     "test-agents-comprehensive": "vite-node tests/agents/test-comprehensive-agents.js",
     "test-memory": "tsx tests/memory/test-zep-graphiti-memory.ts",
     "test-memory-full": "npm run services:start && tsx tests/memory/test-zep-graphiti-memory.ts",
+    "test-memory-advanced": "vite-node tests/memory/test-advanced-memory-phase6-simple.js",
+    "test-memory-complete": "vite-node tests/memory/test-advanced-memory-complete-system.js",
     "test-zep-integration": "vite-node tests/memory/test-zep-integration.js",
     "services:start": "powershell -ExecutionPolicy Bypass -File ../py_zep/start-zep-services.ps1",
     "services:fresh": "powershell -ExecutionPolicy Bypass -File ../py_zep/start-zep-services.ps1 -Fresh",

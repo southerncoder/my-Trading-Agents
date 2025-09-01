@@ -438,31 +438,148 @@ export class TemporalRelationshipMapper {
    * Calculate recent correlations for emerging relationship discovery
    */
   private async calculateRecentCorrelations(
-    _entityId: string,
-    _windowDays: number
+    entityId: string,
+    windowDays: number
   ): Promise<Record<string, number>> {
     
-    // Implementation would calculate correlations with other entities
-    return {};
+    try {
+      // Query Zep Graphiti for recent price/performance data
+      const query = `recent price data for ${entityId} last ${windowDays} days`;
+      const searchResults = await this.zepClient.searchMemory?.(query, { maxResults: 50 });
+      
+      if (!searchResults?.facts || searchResults.facts.length === 0) {
+        this.logger.warn('No recent data found for correlation calculation', {
+          component: 'TemporalRelationshipMapper',
+          entity_id: entityId,
+          window_days: windowDays
+        });
+        return {};
+      }
+
+      // Extract price/performance data from facts
+      const timeSeriesData = this.extractTimeSeriesFromFacts(searchResults.facts, entityId);
+      
+      // Get related entities for correlation analysis
+      const relatedEntities = await this.getRelatedEntities(entityId);
+      
+      const correlations: Record<string, number> = {};
+      
+      // Calculate Pearson correlation with each related entity
+      for (const relatedEntity of relatedEntities) {
+        const relatedData = await this.getEntityTimeSeriesData(relatedEntity, windowDays);
+        if (relatedData.length > 0) {
+          const correlation = this.calculatePearsonCorrelation(timeSeriesData, relatedData);
+          if (!isNaN(correlation)) {
+            correlations[relatedEntity] = correlation;
+          }
+        }
+      }
+
+      this.logger.info('Recent correlations calculated', {
+        component: 'TemporalRelationshipMapper',
+        entity_id: entityId,
+        correlations_count: Object.keys(correlations).length,
+        window_days: windowDays
+      });
+
+      return correlations;
+      
+    } catch (error) {
+      this.logger.error('Failed to calculate recent correlations', {
+        component: 'TemporalRelationshipMapper',
+        entity_id: entityId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return {};
+    }
   }
 
   /**
    * Get historical correlation baselines
    */
   private async getHistoricalCorrelationBaselines(
-    _entityId: string
+    entityId: string
   ): Promise<Record<string, { mean: number; std: number; count: number }>> {
     
-    // Implementation would get historical correlation statistics
-    return {};
+    try {
+      // Query for historical correlation data
+      const query = `historical correlation baseline ${entityId}`;
+      const searchResults = await this.zepClient.searchMemory?.(query, { maxResults: 100 });
+      
+      const correlationBaselines: Record<string, { mean: number; std: number; count: number }> = {};
+      
+      if (searchResults?.facts) {
+        // Extract correlation data from historical facts
+        const correlationData: Record<string, number[]> = {};
+        
+        for (const fact of searchResults.facts) {
+          const factText = fact.fact || '';
+          
+          // Look for correlation mentions in the fact
+          const correlationMatch = factText.match(/correlation with (\w+)[:\s]+(-?\d+\.?\d*)/i);
+          if (correlationMatch) {
+            const targetEntity = correlationMatch[1];
+            const correlation = parseFloat(correlationMatch[2]);
+            
+            if (!correlationData[targetEntity]) {
+              correlationData[targetEntity] = [];
+            }
+            correlationData[targetEntity].push(correlation);
+          }
+        }
+        
+        // Calculate statistical baselines for each entity
+        for (const [targetEntity, correlations] of Object.entries(correlationData)) {
+          if (correlations.length >= 3) { // Need minimum data points
+            const mean = correlations.reduce((sum, val) => sum + val, 0) / correlations.length;
+            const variance = correlations.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / correlations.length;
+            const std = Math.sqrt(variance);
+            
+            correlationBaselines[targetEntity] = {
+              mean: mean,
+              std: std,
+              count: correlations.length
+            };
+          }
+        }
+      }
+      
+      // Add default baselines for common entities if not found
+      const commonEntities = ['SPY', 'QQQ', 'IWM'];
+      for (const entity of commonEntities) {
+        if (!correlationBaselines[entity] && entity !== entityId) {
+          correlationBaselines[entity] = {
+            mean: 0.3, // Default moderate correlation with market
+            std: 0.2,
+            count: 30
+          };
+        }
+      }
+      
+      this.logger.info('Historical correlation baselines retrieved', {
+        component: 'TemporalRelationshipMapper',
+        entity_id: entityId,
+        baselines_count: Object.keys(correlationBaselines).length
+      });
+      
+      return correlationBaselines;
+      
+    } catch (error) {
+      this.logger.error('Failed to get historical correlation baselines', {
+        component: 'TemporalRelationshipMapper',
+        entity_id: entityId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return {};
+    }
   }
 
   /**
    * Identify statistically significant emerging relationships
    */
   private async identifyEmergingRelationships(
-    _recentCorrelations: Record<string, number>,
-    _historicalBaselines: Record<string, { mean: number; std: number; count: number }>
+    recentCorrelations: Record<string, number>,
+    historicalBaselines: Record<string, { mean: number; std: number; count: number }>
   ): Promise<Array<{
     target_entity_id: string;
     relationship_type: string;
@@ -476,8 +593,105 @@ export class TemporalRelationshipMapper {
     }>;
   }>> {
     
-    // Implementation would use statistical tests to identify significant new relationships
-    return [];
+    const emergingRelationships: Array<{
+      target_entity_id: string;
+      relationship_type: string;
+      strength: number;
+      confidence: number;
+      emergence_date: string;
+      supporting_evidence: Array<{
+        date: string;
+        correlation: number;
+        market_event: string;
+      }>;
+    }> = [];
+    
+    try {
+      const currentDate = new Date().toISOString();
+      
+      // Statistical significance threshold (2 standard deviations)
+      const SIGNIFICANCE_THRESHOLD = 2.0;
+      
+      for (const [targetEntity, recentCorr] of Object.entries(recentCorrelations)) {
+        const baseline = historicalBaselines[targetEntity];
+        
+        if (baseline && baseline.count >= 3) {
+          // Calculate z-score to determine statistical significance
+          const zScore = Math.abs(recentCorr - baseline.mean) / baseline.std;
+          
+          if (zScore >= SIGNIFICANCE_THRESHOLD) {
+            // Determine relationship type based on correlation direction and magnitude
+            let relationshipType = 'emerging_correlation';
+            if (Math.abs(recentCorr) > 0.7) {
+              relationshipType = recentCorr > 0 ? 'strong_positive_correlation' : 'strong_negative_correlation';
+            } else if (Math.abs(recentCorr) > 0.4) {
+              relationshipType = recentCorr > 0 ? 'moderate_positive_correlation' : 'moderate_negative_correlation';
+            }
+            
+            // Calculate confidence based on z-score and sample size
+            const confidence = Math.min(0.95, 0.5 + (zScore - SIGNIFICANCE_THRESHOLD) * 0.1);
+            
+            // Create supporting evidence (simplified)
+            const supportingEvidence = [{
+              date: currentDate,
+              correlation: recentCorr,
+              market_event: `Correlation shift detected: ${recentCorr.toFixed(3)} vs baseline ${baseline.mean.toFixed(3)}`
+            }];
+            
+            emergingRelationships.push({
+              target_entity_id: targetEntity,
+              relationship_type: relationshipType,
+              strength: Math.abs(recentCorr),
+              confidence: confidence,
+              emergence_date: currentDate,
+              supporting_evidence: supportingEvidence
+            });
+            
+            this.logger.info('Emerging relationship detected', {
+              component: 'TemporalRelationshipMapper',
+              target_entity: targetEntity,
+              relationship_type: relationshipType,
+              recent_correlation: recentCorr,
+              baseline_mean: baseline.mean,
+              z_score: zScore,
+              confidence: confidence
+            });
+          }
+        } else {
+          // New entity with no historical baseline - consider as emerging if correlation is strong
+          if (Math.abs(recentCorr) > 0.5) {
+            emergingRelationships.push({
+              target_entity_id: targetEntity,
+              relationship_type: recentCorr > 0 ? 'new_positive_correlation' : 'new_negative_correlation',
+              strength: Math.abs(recentCorr),
+              confidence: 0.6, // Lower confidence for new relationships
+              emergence_date: currentDate,
+              supporting_evidence: [{
+                date: currentDate,
+                correlation: recentCorr,
+                market_event: `New relationship discovered with no historical baseline`
+              }]
+            });
+          }
+        }
+      }
+      
+      this.logger.info('Emerging relationships analysis complete', {
+        component: 'TemporalRelationshipMapper',
+        emerging_count: emergingRelationships.length,
+        recent_entities: Object.keys(recentCorrelations).length,
+        baseline_entities: Object.keys(historicalBaselines).length
+      });
+      
+      return emergingRelationships;
+      
+    } catch (error) {
+      this.logger.error('Failed to identify emerging relationships', {
+        component: 'TemporalRelationshipMapper',
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return [];
+    }
   }
 }
 
@@ -545,6 +759,171 @@ export class SectorRotationAnalyzer {
         }
       ]
     };
+  }
+
+  // ========================================================================
+  // Utility Methods for Correlation Calculations
+  // ========================================================================
+
+  /**
+   * Extract time series data from Zep facts
+   */
+  private extractTimeSeriesFromFacts(facts: any[], entityId: string): Array<{ date: string; value: number }> {
+    const timeSeriesData: Array<{ date: string; value: number }> = [];
+    
+    for (const fact of facts) {
+      try {
+        // Try to extract price/performance data from fact content
+        const factText = fact.fact || '';
+        const timestamp = fact.timestamp;
+        
+        // Look for price patterns in the fact text
+        const priceMatch = factText.match(/price[:\s]+\$?(\d+\.?\d*)/i);
+        const returnMatch = factText.match(/return[:\s]+(-?\d+\.?\d*)%?/i);
+        const performanceMatch = factText.match(/performance[:\s]+(-?\d+\.?\d*)%?/i);
+        
+        let value = 0;
+        if (priceMatch) {
+          value = parseFloat(priceMatch[1]);
+        } else if (returnMatch) {
+          value = parseFloat(returnMatch[1]);
+        } else if (performanceMatch) {
+          value = parseFloat(performanceMatch[1]);
+        }
+        
+        if (value !== 0 && timestamp) {
+          timeSeriesData.push({
+            date: timestamp,
+            value: value
+          });
+        }
+      } catch (error) {
+        // Skip invalid facts
+        continue;
+      }
+    }
+    
+    // Sort by date
+    return timeSeriesData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }
+
+  /**
+   * Get related entities for correlation analysis
+   */
+  private async getRelatedEntities(entityId: string): Promise<string[]> {
+    try {
+      // Query for entities in the same sector or correlated entities
+      const query = `related entities to ${entityId} sector correlation`;
+      const searchResults = await this.zepClient.searchMemory?.(query, { maxResults: 20 });
+      
+      const relatedEntities: Set<string> = new Set();
+      
+      if (searchResults?.facts) {
+        for (const fact of searchResults.facts) {
+          // Extract entity mentions from facts
+          const factText = fact.fact || '';
+          const entityMatches = factText.match(/\b[A-Z]{1,5}\b/g); // Stock symbols
+          
+          if (entityMatches) {
+            for (const match of entityMatches) {
+              if (match !== entityId && match.length >= 2) {
+                relatedEntities.add(match);
+              }
+            }
+          }
+        }
+      }
+      
+      // Add some common index/sector entities for broader correlation
+      const commonEntities = ['SPY', 'QQQ', 'IWM', 'XLF', 'XLK', 'XLE', 'XLV'];
+      for (const entity of commonEntities) {
+        if (entity !== entityId) {
+          relatedEntities.add(entity);
+        }
+      }
+      
+      return Array.from(relatedEntities).slice(0, 10); // Limit to top 10
+      
+    } catch (error) {
+      this.logger.error('Failed to get related entities', {
+        component: 'TemporalRelationshipMapper',
+        entity_id: entityId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return ['SPY', 'QQQ']; // Default fallback
+    }
+  }
+
+  /**
+   * Get time series data for a specific entity
+   */
+  private async getEntityTimeSeriesData(entityId: string, windowDays: number): Promise<Array<{ date: string; value: number }>> {
+    try {
+      const query = `price data for ${entityId} last ${windowDays} days`;
+      const searchResults = await this.zepClient.searchMemory?.(query, { maxResults: 30 });
+      
+      if (searchResults?.facts) {
+        return this.extractTimeSeriesFromFacts(searchResults.facts, entityId);
+      }
+      
+      return [];
+      
+    } catch (error) {
+      this.logger.error('Failed to get entity time series data', {
+        component: 'TemporalRelationshipMapper',
+        entity_id: entityId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return [];
+    }
+  }
+
+  /**
+   * Calculate Pearson correlation coefficient between two time series
+   */
+  private calculatePearsonCorrelation(
+    series1: Array<{ date: string; value: number }>,
+    series2: Array<{ date: string; value: number }>
+  ): number {
+    
+    if (series1.length === 0 || series2.length === 0) {
+      return 0;
+    }
+    
+    // Align the series by date (simple approach - match by position for now)
+    const minLength = Math.min(series1.length, series2.length);
+    if (minLength < 3) {
+      return 0; // Need at least 3 points for meaningful correlation
+    }
+    
+    const values1 = series1.slice(-minLength).map(d => d.value);
+    const values2 = series2.slice(-minLength).map(d => d.value);
+    
+    // Calculate means
+    const mean1 = values1.reduce((sum, val) => sum + val, 0) / values1.length;
+    const mean2 = values2.reduce((sum, val) => sum + val, 0) / values2.length;
+    
+    // Calculate correlation components
+    let numerator = 0;
+    let sumSquares1 = 0;
+    let sumSquares2 = 0;
+    
+    for (let i = 0; i < values1.length; i++) {
+      const diff1 = values1[i] - mean1;
+      const diff2 = values2[i] - mean2;
+      
+      numerator += diff1 * diff2;
+      sumSquares1 += diff1 * diff1;
+      sumSquares2 += diff2 * diff2;
+    }
+    
+    const denominator = Math.sqrt(sumSquares1 * sumSquares2);
+    
+    if (denominator === 0) {
+      return 0;
+    }
+    
+    return numerator / denominator;
   }
 }
 

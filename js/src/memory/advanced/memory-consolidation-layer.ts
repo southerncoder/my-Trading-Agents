@@ -205,6 +205,7 @@ export type ConsolidatedMemory = z.infer<typeof ConsolidatedMemorySchema>;
  */
 export class MemoryConsolidationLayer {
   private zepClient: any; // Zep Graphiti client
+  private logger: any; // Logger instance
   private consolidationSchedule: Map<string, number> = new Map();
   private learningRate: number = 0.1;
   private memoryRetentionDays: number = 365 * 3; // 3 years
@@ -214,8 +215,10 @@ export class MemoryConsolidationLayer {
     learningRate?: number;
     memoryRetentionDays?: number;
     patternValidationThreshold?: number;
+    logger?: any;
   }) {
     this.zepClient = zepClient;
+    this.logger = config?.logger || console; // Default to console if no logger provided
     if (config) {
       this.learningRate = config.learningRate ?? this.learningRate;
       this.memoryRetentionDays = config.memoryRetentionDays ?? this.memoryRetentionDays;
@@ -359,11 +362,159 @@ export class MemoryConsolidationLayer {
    * Group similar pattern observations
    */
   private groupSimilarObservations(observations: any[]): any[] {
-    // Implementation would cluster observations by market conditions similarity
-    // Using techniques like k-means or hierarchical clustering
+    if (observations.length === 0) {
+      return [];
+    }
+
+    try {
+      // Simple clustering implementation using market condition similarity
+      const clusters: any[][] = [];
+      const SIMILARITY_THRESHOLD = 0.7; // Minimum similarity for grouping
+      
+      for (const observation of observations) {
+        let addedToCluster = false;
+        
+        // Try to find an existing cluster to add this observation to
+        for (const cluster of clusters) {
+          if (cluster.length > 0) {
+            const similarity = this.calculateObservationSimilarity(observation, cluster[0]);
+            if (similarity >= SIMILARITY_THRESHOLD) {
+              cluster.push(observation);
+              addedToCluster = true;
+              break;
+            }
+          }
+        }
+        
+        // If not added to any cluster, create a new cluster
+        if (!addedToCluster) {
+          clusters.push([observation]);
+        }
+      }
+      
+      // Return the largest cluster (most common pattern)
+      // In production, this would return all clusters with metadata
+      if (clusters.length === 0) {
+        return observations;
+      }
+      
+      const largestCluster = clusters.reduce((prev, current) => 
+        prev.length > current.length ? prev : current
+      );
+      
+      this.logger.info('Observation clustering completed', {
+        component: 'MemoryConsolidationLayer',
+        total_observations: observations.length,
+        clusters_found: clusters.length,
+        largest_cluster_size: largestCluster.length,
+        cluster_sizes: clusters.map(c => c.length)
+      });
+      
+      return largestCluster;
+      
+    } catch (error) {
+      this.logger.error('Failed to group similar observations', {
+        component: 'MemoryConsolidationLayer',
+        error: error instanceof Error ? error.message : String(error),
+        observations_count: observations.length
+      });
+      
+      // Fallback: return all observations as one group
+      return observations;
+    }
+  }
+
+  /**
+   * Calculate similarity between two observations based on market conditions
+   */
+  private calculateObservationSimilarity(obs1: any, obs2: any): number {
+    try {
+      const features1 = this.extractObservationFeatures(obs1);
+      const features2 = this.extractObservationFeatures(obs2);
+      
+      // Calculate cosine similarity between feature vectors
+      return this.calculateCosineSimilarity(features1, features2);
+      
+    } catch (error) {
+      this.logger.error('Failed to calculate observation similarity', {
+        component: 'MemoryConsolidationLayer',
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return 0;
+    }
+  }
+
+  /**
+   * Extract numerical features from an observation for similarity calculation
+   */
+  private extractObservationFeatures(observation: any): number[] {
+    const features: number[] = [];
     
-    // Placeholder: return all observations as one group
-    return observations;
+    try {
+      // Extract market condition features
+      const marketConditions = observation.market_conditions || {};
+      const technicalIndicators = observation.technical_indicators || {};
+      
+      // Technical indicators
+      features.push(technicalIndicators.rsi || 50);
+      features.push(technicalIndicators.macd || 0);
+      features.push(technicalIndicators.bollinger_position || 0.5);
+      features.push(technicalIndicators.momentum || 0);
+      
+      // Market conditions
+      features.push(marketConditions.volatility || 0.02);
+      features.push(marketConditions.volume_ratio || 1.0);
+      features.push(marketConditions.trend_strength || 0);
+      
+      // Normalize market regime to numerical value
+      const regimeMap: Record<string, number> = {
+        'bull': 1.0,
+        'bear': -1.0,
+        'sideways': 0.0,
+        'volatile': 0.5
+      };
+      features.push(regimeMap[marketConditions.market_regime] || 0);
+      
+      // Price level (normalized by dividing by typical range)
+      features.push((marketConditions.price_level || 100) / 100);
+      
+      return features;
+      
+    } catch (_error) {
+      // Return default feature vector if extraction fails
+      return [50, 0, 0.5, 0, 0.02, 1.0, 0, 0, 1.0];
+    }
+  }
+
+  /**
+   * Calculate cosine similarity between two feature vectors
+   */
+  private calculateCosineSimilarity(vector1: number[], vector2: number[]): number {
+    if (vector1.length !== vector2.length) {
+      return 0;
+    }
+    
+    let dotProduct = 0;
+    let norm1 = 0;
+    let norm2 = 0;
+    
+    for (let i = 0; i < vector1.length; i++) {
+      const val1 = vector1[i] ?? 0;
+      const val2 = vector2[i] ?? 0;
+      
+      dotProduct += val1 * val2;
+      norm1 += val1 * val1;
+      norm2 += val2 * val2;
+    }
+    
+    norm1 = Math.sqrt(norm1);
+    norm2 = Math.sqrt(norm2);
+    
+    if (norm1 === 0 || norm2 === 0) {
+      return 0;
+    }
+    
+    return dotProduct / (norm1 * norm2);
   }
 
   /**
@@ -745,11 +896,151 @@ export class MemoryUtils {
   /**
    * Calculate pattern similarity
    */
-  static calculatePatternSimilarity(_pattern1: MarketPattern, _pattern2: MarketPattern): number {
-    // Implementation would calculate similarity between two patterns
-    // based on conditions, outcomes, and characteristics
+  static calculatePatternSimilarity(pattern1: MarketPattern, pattern2: MarketPattern): number {
+    try {
+      // Calculate similarity across multiple dimensions
+      let totalSimilarity = 0;
+      let dimensionCount = 0;
+      
+      // 1. Pattern type similarity
+      const typeScore = pattern1.pattern_type === pattern2.pattern_type ? 1.0 : 0.0;
+      totalSimilarity += typeScore;
+      dimensionCount++;
+      
+      // 2. Technical indicators similarity
+      const techSimilarity = this.calculateTechnicalIndicatorsSimilarity(
+        pattern1.conditions.technical_indicators,
+        pattern2.conditions.technical_indicators
+      );
+      totalSimilarity += techSimilarity;
+      dimensionCount++;
+      
+      // 3. Market conditions similarity
+      const marketSimilarity = this.calculateMarketConditionsSimilarity(
+        pattern1.conditions.market_conditions,
+        pattern2.conditions.market_conditions
+      );
+      totalSimilarity += marketSimilarity;
+      dimensionCount++;
+      
+      // 4. Outcome similarity (performance characteristics)
+      const outcomeSimilarity = this.calculateOutcomeSimilarity(
+        pattern1.outcomes,
+        pattern2.outcomes
+      );
+      totalSimilarity += outcomeSimilarity;
+      dimensionCount++;
+      
+      // 5. Confidence and reliability similarity
+      const confidenceDiff = Math.abs(pattern1.confidence - pattern2.confidence);
+      const confidenceScore = 1.0 - (confidenceDiff / 1.0); // Normalize to 0-1
+      totalSimilarity += confidenceScore;
+      dimensionCount++;
+      
+      return totalSimilarity / dimensionCount;
+      
+    } catch (error) {
+      console.error('Failed to calculate pattern similarity:', error);
+      return 0.0;
+    }
+  }
+
+  /**
+   * Calculate similarity between technical indicators
+   */
+  private static calculateTechnicalIndicatorsSimilarity(tech1: any, tech2: any): number {
+    if (!tech1 || !tech2) return 0;
     
-    return 0.5; // Placeholder
+    const indicators = ['rsi', 'macd', 'bollinger_position', 'momentum', 'volume_ratio'];
+    let totalSimilarity = 0;
+    let validIndicators = 0;
+    
+    for (const indicator of indicators) {
+      const val1 = tech1[indicator];
+      const val2 = tech2[indicator];
+      
+      if (val1 !== undefined && val2 !== undefined) {
+        // Normalize differences based on typical ranges
+        let normalizedDiff = 0;
+        if (indicator === 'rsi') {
+          normalizedDiff = Math.abs(val1 - val2) / 100; // RSI range 0-100
+        } else if (indicator === 'bollinger_position') {
+          normalizedDiff = Math.abs(val1 - val2) / 1; // Range 0-1
+        } else {
+          normalizedDiff = Math.abs(val1 - val2) / Math.max(Math.abs(val1), Math.abs(val2), 1);
+        }
+        
+        totalSimilarity += 1.0 - normalizedDiff;
+        validIndicators++;
+      }
+    }
+    
+    return validIndicators > 0 ? totalSimilarity / validIndicators : 0;
+  }
+
+  /**
+   * Calculate similarity between market conditions
+   */
+  private static calculateMarketConditionsSimilarity(market1: any, market2: any): number {
+    if (!market1 || !market2) return 0;
+    
+    let similarity = 0;
+    let factors = 0;
+    
+    // Market regime similarity
+    if (market1.market_regime && market2.market_regime) {
+      similarity += market1.market_regime === market2.market_regime ? 1.0 : 0.0;
+      factors++;
+    }
+    
+    // Volatility similarity
+    if (market1.volatility !== undefined && market2.volatility !== undefined) {
+      const volDiff = Math.abs(market1.volatility - market2.volatility);
+      similarity += 1.0 - Math.min(volDiff / 0.1, 1.0); // Normalize by 10% volatility
+      factors++;
+    }
+    
+    // Volume similarity
+    if (market1.volume_ratio !== undefined && market2.volume_ratio !== undefined) {
+      const volumeDiff = Math.abs(market1.volume_ratio - market2.volume_ratio);
+      similarity += 1.0 - Math.min(volumeDiff / 2.0, 1.0); // Normalize by 2x volume
+      factors++;
+    }
+    
+    return factors > 0 ? similarity / factors : 0;
+  }
+
+  /**
+   * Calculate similarity between outcomes
+   */
+  private static calculateOutcomeSimilarity(outcome1: any, outcome2: any): number {
+    if (!outcome1 || !outcome2) return 0;
+    
+    let similarity = 0;
+    let factors = 0;
+    
+    // Success rate similarity
+    if (outcome1.success_rate !== undefined && outcome2.success_rate !== undefined) {
+      const successDiff = Math.abs(outcome1.success_rate - outcome2.success_rate);
+      similarity += 1.0 - successDiff; // Already normalized 0-1
+      factors++;
+    }
+    
+    // Average return similarity
+    if (outcome1.avg_return !== undefined && outcome2.avg_return !== undefined) {
+      const returnDiff = Math.abs(outcome1.avg_return - outcome2.avg_return);
+      similarity += 1.0 - Math.min(returnDiff / 0.5, 1.0); // Normalize by 50% return
+      factors++;
+    }
+    
+    // Volatility similarity
+    if (outcome1.volatility !== undefined && outcome2.volatility !== undefined) {
+      const volDiff = Math.abs(outcome1.volatility - outcome2.volatility);
+      similarity += 1.0 - Math.min(volDiff / 0.3, 1.0); // Normalize by 30% volatility
+      factors++;
+    }
+    
+    return factors > 0 ? similarity / factors : 0;
   }
 
   /**
