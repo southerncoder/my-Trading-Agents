@@ -225,13 +225,6 @@ GOOGLE_DEFAULT_MODEL=gemini-1.5-pro
 - `gemini-pro`
 
 
-### Ollama Configuration
-```bash
-OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_DEFAULT_MODEL=llama2
-OLLAMA_API_KEY=not-needed  # Not required for local Ollama
-```
-
 ## 📋 Configuration Examples
 
 ### Example 1: Multi-Provider Setup
@@ -246,15 +239,11 @@ RESEARCHERS_LLM_MODEL=claude-3-5-sonnet-20241022
 RISK_ANALYSTS_LLM_PROVIDER=google     # Balanced perspective
 RISK_ANALYSTS_LLM_MODEL=gemini-1.5-pro
 
-TRADER_LLM_PROVIDER=openai         # Cloud, scalable decisions
-TRADER_LLM_MODEL=local-trading-model
+TRADER_LLM_PROVIDER=openai           # Final decisions
+TRADER_LLM_MODEL=gpt-4o
 ```
 
-### Example 2: All Local Inference
-```bash
-```
-
-### Example 3: Cost-Optimized Cloud Setup
+### Example 2: Cost-Optimized Cloud Setup
 ```bash
 # Use cost-effective models
 ANALYSTS_LLM_PROVIDER=openai
@@ -396,11 +385,14 @@ node -e "console.log('Anthropic Key:', process.env.ANTHROPIC_API_KEY ? '✅ Set'
 
 ### Model Availability
 ```bash
-# Test LM Studio connection
-curl http://your_host_ip:1234/v1/models
-
 # Test OpenAI models
 curl -H "Authorization: Bearer $OPENAI_API_KEY" https://api.openai.com/v1/models
+
+# Test Anthropic models  
+curl -H "x-api-key: $ANTHROPIC_API_KEY" -H "anthropic-version: 2023-06-01" https://api.anthropic.com/v1/models
+
+# Test Google Generative AI
+curl -H "x-goog-api-key: $GOOGLE_API_KEY" https://generativelanguage.googleapis.com/v1beta/models
 ```
 
 ### Export Functionality Issues

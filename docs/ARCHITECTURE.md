@@ -1,22 +1,57 @@
 # TradingAgents System Architecture
 
-## 🎯 Current Status: ✅ PRODUCTION READY
+## 🎯 Current Status: ✅ PRODUCTION READY WITH ADVANCED AI/ML MEMORY
 
-The TradingAgents system implements a clean, environment-driven agent configuration architecture with multi-provider LLM support and enterprise-grade performance optimizations.
+The TradingAgents system implements a sophisticated multi-agent architecture with advanced AI/ML memory capabilities, environment-driven configuration, and enterprise-grade performance optimizations.
 
-## 🏗️ Architectural Achievements
+## 🧠 Advanced Memory System Architecture
 
-### 1. ✅ Clean Provider Abstraction
+### Core Components
+
+1. **Core Infrastructure Layer**
+   - Zep Graphiti integration for knowledge graphs
+   - Neo4j database for graph storage and queries
+   - TypeScript-based memory providers and interfaces
+
+2. **Temporal Relationship Mapping**
+   - Statistical correlation analysis (Pearson coefficients)
+   - Z-score significance testing
+   - Emerging relationship discovery algorithms
+
+3. **Memory Consolidation Layer**
+   - ML clustering using cosine similarity
+   - Pattern recognition and validation
+   - Automated memory organization and archival
+
+4. **Context Retrieval System**
+   - Multi-dimensional similarity search
+   - Relevance scoring and ranking algorithms
+   - Historical scenario matching
+
+5. **Performance Learning Engine**
+   - Reinforcement learning (Q-learning) implementation
+   - Agent parameter optimization using ML
+   - Continuous performance improvement algorithms
+
+## 🏗️ System Integration
+
+### 1. ✅ Advanced AI/ML Memory Integration
+- **Objective**: Implement sophisticated memory and learning capabilities
+- **Implementation**: 6-phase advanced memory system with ML algorithms
+- **Technologies**: Neo4j, Zep Graphiti, statistical analysis, reinforcement learning
+- **Result**: Intelligent agents with pattern recognition and continuous learning
+
+### 2. ✅ Clean Provider Abstraction
 - **Objective**: Remove all hardcoded provider references from core code
 - **Implementation**: Zero hardcoded references to specific providers like `lm_studio` in agent configurations
 - **Result**: Clean separation of concerns with provider-specific logic isolated to provider implementations
 
-### 2. ✅ Environment-Driven Configuration  
+### 3. ✅ Environment-Driven Configuration  
 - **Objective**: Each agent should have configurable model and provider settings
 - **Implementation**: Complete 3-tier environment variable hierarchy
 - **Result**: Flexible per-agent, per-group, and global configuration capabilities
 
-### 3. ✅ Multi-Provider Support
+### 4. ✅ Multi-Provider Support
 - **Objective**: Support multiple LLM providers simultaneously
 - **Implementation**: Provider-agnostic configuration system
 - **Supported Providers**: OpenAI, Anthropic, Google, LM Studio, Ollama
