@@ -3,6 +3,9 @@
  * 
  * Supports multiple LLM providers including LM Studio for local inference.
  * Each agent can have its own model instance and configuration.
+ * 
+ * All methods are async to support proper model initialization and
+ * LM Studio's singleton pattern for model loading/unloading.
  */
 
 import { ChatOpenAI } from '@langchain/openai';
@@ -10,6 +13,10 @@ import { ChatAnthropic } from '@langchain/anthropic';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { TradingAgentsConfig } from '../types/config';
+import { getLMStudioSingleton } from './lmstudio-singleton';
+import { createLogger } from '../utils/enhanced-logger';
+
+const logger = createLogger('system', 'ModelProvider');
 
 export type LLMProvider = 'openai' | 'anthropic' | 'google' | 'lm_studio' | 'ollama' | 'openrouter';
 
@@ -32,58 +39,125 @@ export interface AgentModelConfig {
 
 /**
  * Model Provider Factory
- * Creates LLM instances based on configuration
+ * Creates LLM instances based on configuration with async support
  */
 export class ModelProvider {
   private static instances: Map<string, BaseChatModel> = new Map();
 
   /**
-   * Create or retrieve a model instance asynchronously. For `lm_studio`, ensure
-   * the requested model is loaded (LM Studio supports single active model load semantics),
-   * then create the ChatOpenAI wrapper.
+   * Create or retrieve a model instance asynchronously.
+   * This is the primary method that should be used for all model creation.
    */
   static async createModelAsync(config: ModelConfig): Promise<BaseChatModel> {
     const cacheKey = this.getCacheKey(config);
-    if (this.instances.has(cacheKey)) return this.instances.get(cacheKey)!;
-
-    const model = this.createModel(config);
-
-    // For LM Studio, wrap the model so that every chat/invoke ensures the right model is loaded first.
-    if (config.provider === 'lm_studio') {
-      const baseUrl = config.baseURL || process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1';
-      const { LMStudioManager } = await import('./lmstudio-manager');
-
-      // Create a lightweight wrapper around the BaseChatModel to intercept invoke calls
-      const wrapper: BaseChatModel = new Proxy(model, {
-        get(target: any, prop: PropertyKey) {
-          if (prop === 'invoke' || prop === 'call' || prop === 'generate') {
-            return async function (...args: any[]) {
-              // Ensure the desired model is loaded in LM Studio before delegating the call
-              await LMStudioManager.ensureModelLoaded(config.modelName, baseUrl);
-              // Delegate to the original method
-              const fn = (target as any)[prop];
-              if (typeof fn === 'function') {
-                return fn.apply(target, args);
-              }
-              throw new Error(`Model method ${String(prop)} is not a function on underlying model`);
-            };
-          }
-          return (target as any)[prop];
-        }
-      }) as BaseChatModel;
-
-      this.instances.set(cacheKey, wrapper);
-      return wrapper;
+    
+    // Return cached instance if exists
+    if (this.instances.has(cacheKey)) {
+      logger.debug('createModelAsync', 'Returning cached model instance', {
+        provider: config.provider,
+        modelName: config.modelName,
+        cacheKey
+      });
+      return this.instances.get(cacheKey)!;
     }
 
-    this.instances.set(cacheKey, model);
+    logger.info('createModelAsync', 'Creating new model instance', {
+      provider: config.provider,
+      modelName: config.modelName,
+      baseURL: config.baseURL
+    });
+
+    let model: BaseChatModel;
+
+    switch (config.provider) {
+      case 'lm_studio': {
+        // Use singleton pattern for LM Studio
+        const singleton = getLMStudioSingleton(config.baseURL);
+        model = await singleton.getModel(config);
+        logger.info('createModelAsync', 'Created LM Studio model via singleton', {
+          modelName: config.modelName,
+          baseURL: config.baseURL
+        });
+        break;
+      }
+
+      case 'openai':
+      case 'ollama':
+      case 'openrouter':
+        model = new ChatOpenAI({
+          modelName: config.modelName,
+          openAIApiKey: config.apiKey || 'not-needed-for-local',
+          configuration: {
+            baseURL: config.baseURL || (config.provider === 'openai' ? undefined : 'http://localhost:11434/v1')
+          },
+          temperature: config.temperature || 0.7,
+          maxTokens: config.maxTokens || 2048,
+          streaming: config.streaming || false,
+          timeout: config.timeout || 60000
+        });
+        break;
+
+      case 'anthropic':
+        if (!config.apiKey) {
+          throw new Error('API key required for Anthropic provider');
+        }
+        model = new ChatAnthropic({
+          modelName: config.modelName,
+          anthropicApiKey: config.apiKey,
+          clientOptions: {
+            baseURL: config.baseURL
+          },
+          temperature: config.temperature || 0.7,
+          maxTokens: config.maxTokens || 2048,
+          streaming: config.streaming || false
+        });
+        break;
+
+      case 'google':
+        if (!config.apiKey) {
+          throw new Error('API key required for Google provider');
+        }
+        model = new ChatGoogleGenerativeAI({
+          model: config.modelName,
+          apiKey: config.apiKey,
+          temperature: config.temperature || 0.7,
+          maxOutputTokens: config.maxTokens || 2048,
+          streaming: config.streaming || false
+        });
+        break;
+
+      default:
+        throw new Error(`Unsupported provider: ${config.provider}`);
+    }
+
+    // Cache the instance (except for LM Studio which handles its own caching)
+    if (config.provider !== 'lm_studio') {
+      this.instances.set(cacheKey, model);
+    }
+
+    logger.info('createModelAsync', 'Successfully created model instance', {
+      provider: config.provider,
+      modelName: config.modelName,
+      cached: config.provider !== 'lm_studio'
+    });
+
     return model;
   }
 
   /**
-   * Create a model instance based on configuration
+   * Create a model instance based on configuration (DEPRECATED - use createModelAsync)
+   * This method is kept for backward compatibility but should not be used for new code.
+   * For LM Studio, this will create a basic model without proper singleton management.
+   * 
+   * @deprecated Use createModelAsync instead for proper async model initialization
    */
   static createModel(config: ModelConfig): BaseChatModel {
+    logger.warn('createModel', 'Using deprecated sync createModel method', {
+      provider: config.provider,
+      modelName: config.modelName,
+      warning: 'Use createModelAsync for proper async initialization'
+    });
+
     const cacheKey = this.getCacheKey(config);
     
     // Return cached instance if exists
@@ -102,7 +176,11 @@ export class ModelProvider {
           modelName: config.modelName,
           openAIApiKey: config.apiKey || 'not-needed-for-local',
           configuration: {
-            baseURL: config.baseURL || process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1' // LM Studio default
+            baseURL: config.baseURL || (config.provider === 'lm_studio' 
+              ? process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1'
+              : config.provider === 'ollama'
+              ? 'http://localhost:11434/v1'
+              : undefined)
           },
           temperature: config.temperature || 0.7,
           maxTokens: config.maxTokens || 2048,
@@ -150,12 +228,53 @@ export class ModelProvider {
   }
 
   /**
-   * Create models for a specific agent
+   * Create models for a specific agent (async version)
+   */
+  static async createAgentModelsAsync(agentConfig: AgentModelConfig): Promise<{
+    quickThinking: BaseChatModel;
+    deepThinking?: BaseChatModel;
+  }> {
+    logger.info('createAgentModelsAsync', 'Creating agent models', {
+      agentName: agentConfig.agentName,
+      hasDeepThinking: !!agentConfig.deepThinkModel
+    });
+
+    const quickThinking = await this.createModelAsync(agentConfig.quickThinkModel);
+    const deepThinking = agentConfig.deepThinkModel 
+      ? await this.createModelAsync(agentConfig.deepThinkModel)
+      : undefined;
+
+    const result: { quickThinking: BaseChatModel; deepThinking?: BaseChatModel } = {
+      quickThinking
+    };
+
+    if (deepThinking) {
+      result.deepThinking = deepThinking;
+    }
+
+    logger.info('createAgentModelsAsync', 'Successfully created agent models', {
+      agentName: agentConfig.agentName,
+      quickThinkingProvider: agentConfig.quickThinkModel.provider,
+      deepThinkingProvider: agentConfig.deepThinkModel?.provider
+    });
+
+    return result;
+  }
+
+  /**
+   * Create models for a specific agent (DEPRECATED - use createAgentModelsAsync)
+   * 
+   * @deprecated Use createAgentModelsAsync for proper async initialization
    */
   static createAgentModels(agentConfig: AgentModelConfig): {
     quickThinking: BaseChatModel;
     deepThinking?: BaseChatModel;
   } {
+    logger.warn('createAgentModels', 'Using deprecated sync createAgentModels method', {
+      agentName: agentConfig.agentName,
+      warning: 'Use createAgentModelsAsync for proper async initialization'
+    });
+
     const quickThinking = this.createModel(agentConfig.quickThinkModel);
     const deepThinking = agentConfig.deepThinkModel 
       ? this.createModel(agentConfig.deepThinkModel)

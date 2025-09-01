@@ -74,6 +74,7 @@
   },
   "dependencies": {
     "@getzep/zep-cloud": "^3.4.1",
+    "@getzep/zep-js": "^2.0.2",
     "@langchain/anthropic": "^0.3.26",
     "@langchain/google-genai": "^0.2.16",
     "@langchain/langgraph": "^0.4.6",
@@ -85,6 +86,7 @@
     "cli-progress": "^3.12.0",
     "cli-table3": "^0.6.5",
     "commander": "^14.0.0",
+    "csv-parser": "^3.2.0",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.1",
     "graphzep": "^0.1.0",
@@ -92,10 +94,12 @@
     "langchain": "^0.3.31",
     "lodash": "^4.17.21",
     "lru-cache": "^11.1.0",
+    "newsapi": "^2.4.1",
     "node-fetch": "^3.3.2",
     "ora": "^8.2.0",
     "redis": "^5.8.2",
-    "winston": "^3.17.0"
+    "winston": "^3.17.0",
+    "yahoo-finance2": "^2.13.3"
   },
   "devDependencies": {
     "@types/cli-progress": "^3.11.6",

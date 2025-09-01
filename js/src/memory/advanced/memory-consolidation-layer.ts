@@ -1044,7 +1044,10 @@ export class MemoryUtils {
   }
 
   /**
-   * Merge similar patterns
+   * Merge similar patterns using intelligent pattern consolidation
+   * TODO: Implement machine learning-based pattern fusion
+   * TODO: Add confidence weighting for pattern merging
+   * TODO: Implement pattern validation and consistency checking
    */
   static mergePatterns(patterns: MarketPattern[]): MarketPattern {
     if (patterns.length === 0) {
@@ -1059,13 +1062,217 @@ export class MemoryUtils {
       return firstPattern;
     }
     
-    // Implementation would intelligently merge similar patterns
-    // For now, return the first pattern as placeholder
-    const firstPattern = patterns[0];
-    if (!firstPattern) {
-      throw new Error('Pattern array contains undefined values');
+    // Intelligent pattern merging with weighted averaging
+    try {
+      // Calculate pattern frequencies and weights
+      const patternStats = this.calculatePatternStatistics(patterns);
+      
+      // Find the most representative base pattern
+      const basePattern = this.selectBasePattern(patterns, patternStats);
+      
+      // Merge characteristics from all patterns
+      const mergedCharacteristics = this.mergePatternCharacteristics(patterns, patternStats);
+      
+      // Calculate consolidated confidence
+      const consolidatedConfidence = this.calculateConsolidatedConfidence(patterns);
+      
+      // Create merged pattern
+      const mergedPattern: MarketPattern = {
+        pattern_id: `merged_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        pattern_type: basePattern.pattern_type,
+        market_conditions: mergedCharacteristics.marketConditions,
+        time_period: this.mergeTimePeriods(patterns),
+        success_rate: mergedCharacteristics.successRate,
+        confidence_score: consolidatedConfidence,
+        occurrence_frequency: patterns.length,
+        related_entities: this.mergeRelatedEntities(patterns),
+        pattern_strength: mergedCharacteristics.patternStrength,
+        last_updated: new Date().toISOString()
+      };
+      
+      return mergedPattern;
+    } catch (error) {
+      // Fallback to highest confidence pattern
+      const sortedByConfidence = patterns
+        .filter(p => p !== undefined && p !== null)
+        .sort((a, b) => (b.confidence_score || 0) - (a.confidence_score || 0));
+      
+      if (sortedByConfidence.length === 0) {
+        throw new Error('No valid patterns to merge');
+      }
+      
+      return sortedByConfidence[0];
     }
-    return firstPattern;
+  }
+
+  /**
+   * Calculate statistical properties of pattern collection
+   * TODO: Implement advanced statistical pattern analysis
+   */
+  private static calculatePatternStatistics(patterns: MarketPattern[]): any {
+    const typeFrequency = new Map<string, number>();
+    const confidenceSum = patterns.reduce((sum, pattern) => {
+      const type = pattern.pattern_type || 'unknown';
+      typeFrequency.set(type, (typeFrequency.get(type) || 0) + 1);
+      return sum + (pattern.confidence_score || 0);
+    }, 0);
+
+    return {
+      typeFrequency,
+      averageConfidence: confidenceSum / patterns.length,
+      totalPatterns: patterns.length,
+      mostCommonType: Array.from(typeFrequency.entries())
+        .sort((a, b) => b[1] - a[1])[0]?.[0] || 'unknown'
+    };
+  }
+
+  /**
+   * Select the most representative pattern as base for merging
+   * TODO: Implement sophisticated pattern scoring algorithms
+   */
+  private static selectBasePattern(patterns: MarketPattern[], stats: any): MarketPattern {
+    // Score patterns based on confidence, frequency, and representativeness
+    const scoredPatterns = patterns.map(pattern => {
+      let score = pattern.confidence_score || 0;
+      
+      // Bonus for matching most common type
+      if (pattern.pattern_type === stats.mostCommonType) {
+        score += 0.2;
+      }
+      
+      // Bonus for higher occurrence frequency
+      score += Math.min(0.3, (pattern.occurrence_frequency || 1) / 10);
+      
+      // Bonus for recent patterns
+      if (pattern.last_updated) {
+        const daysSinceUpdate = (Date.now() - new Date(pattern.last_updated).getTime()) / (1000 * 60 * 60 * 24);
+        score += Math.max(0, 0.1 * (1 - daysSinceUpdate / 30)); // Decay over 30 days
+      }
+      
+      return { pattern, score };
+    });
+
+    return scoredPatterns.sort((a, b) => b.score - a.score)[0].pattern;
+  }
+
+  /**
+   * Merge characteristics from multiple patterns
+   * TODO: Implement advanced characteristic fusion algorithms
+   */
+  private static mergePatternCharacteristics(patterns: MarketPattern[], stats: any): any {
+    const totalWeight = patterns.length;
+    
+    // Weighted average of success rates
+    const successRate = patterns.reduce((sum, pattern) => {
+      const weight = (pattern.confidence_score || 0.5);
+      return sum + (pattern.success_rate || 0.5) * weight;
+    }, 0) / patterns.reduce((sum, pattern) => sum + (pattern.confidence_score || 0.5), 0);
+
+    // Weighted average of pattern strength
+    const patternStrength = patterns.reduce((sum, pattern) => {
+      const weight = (pattern.confidence_score || 0.5);
+      return sum + (pattern.pattern_strength || 0.5) * weight;
+    }, 0) / patterns.reduce((sum, pattern) => sum + (pattern.confidence_score || 0.5), 0);
+
+    // Merge market conditions (take most frequent values)
+    const marketConditions: any = {};
+    for (const pattern of patterns) {
+      if (pattern.market_conditions) {
+        for (const [key, value] of Object.entries(pattern.market_conditions)) {
+          if (!marketConditions[key]) {
+            marketConditions[key] = [];
+          }
+          marketConditions[key].push(value);
+        }
+      }
+    }
+
+    // For each condition, take the most frequent value
+    for (const [key, values] of Object.entries(marketConditions)) {
+      const valueArray = values as any[];
+      const frequency = new Map();
+      valueArray.forEach(val => {
+        frequency.set(val, (frequency.get(val) || 0) + 1);
+      });
+      
+      marketConditions[key] = Array.from(frequency.entries())
+        .sort((a, b) => b[1] - a[1])[0]?.[0] || valueArray[0];
+    }
+
+    return {
+      successRate: Math.max(0, Math.min(1, successRate)),
+      patternStrength: Math.max(0, Math.min(1, patternStrength)),
+      marketConditions
+    };
+  }
+
+  /**
+   * Calculate consolidated confidence from multiple patterns
+   * TODO: Implement Bayesian confidence aggregation
+   */
+  private static calculateConsolidatedConfidence(patterns: MarketPattern[]): number {
+    if (patterns.length === 0) return 0;
+    
+    // Use ensemble confidence calculation
+    const confidences = patterns.map(p => p.confidence_score || 0.5);
+    const averageConfidence = confidences.reduce((sum, conf) => sum + conf, 0) / confidences.length;
+    
+    // Bonus for pattern agreement (higher confidence when multiple patterns agree)
+    const consistencyBonus = Math.min(0.2, patterns.length * 0.05);
+    
+    // Penalty for low individual confidences
+    const minConfidence = Math.min(...confidences);
+    const reliabilityPenalty = minConfidence < 0.3 ? 0.1 : 0;
+    
+    const consolidatedConfidence = averageConfidence + consistencyBonus - reliabilityPenalty;
+    
+    return Math.max(0.1, Math.min(0.95, consolidatedConfidence));
+  }
+
+  /**
+   * Merge time periods from multiple patterns
+   * TODO: Implement temporal pattern fusion with overlap detection
+   */
+  private static mergeTimePeriods(patterns: MarketPattern[]): any {
+    const periods = patterns
+      .map(p => p.time_period)
+      .filter(period => period && period.start && period.end);
+    
+    if (periods.length === 0) {
+      return {
+        start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+        end: new Date().toISOString()
+      };
+    }
+    
+    // Find overall time range that encompasses all patterns
+    const startDates = periods.map(p => new Date(p.start).getTime());
+    const endDates = periods.map(p => new Date(p.end).getTime());
+    
+    return {
+      start: new Date(Math.min(...startDates)).toISOString(),
+      end: new Date(Math.max(...endDates)).toISOString()
+    };
+  }
+
+  /**
+   * Merge related entities from multiple patterns
+   * TODO: Implement entity deduplication and relationship mapping
+   */
+  private static mergeRelatedEntities(patterns: MarketPattern[]): string[] {
+    const allEntities = new Set<string>();
+    
+    for (const pattern of patterns) {
+      if (pattern.related_entities && Array.isArray(pattern.related_entities)) {
+        pattern.related_entities.forEach(entity => {
+          if (typeof entity === 'string' && entity.trim()) {
+            allEntities.add(entity.trim());
+          }
+        });
+      }
+    }
+    
+    return Array.from(allEntities).sort();
   }
 
   /**

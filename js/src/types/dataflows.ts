@@ -38,6 +38,8 @@ export interface RedditPost {
   numComments: number;
   createdUtc: string;
   url: string;
+  subreddit?: string;
+  author?: string;
 }
 
 export interface InsiderSentiment {

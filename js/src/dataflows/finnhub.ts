@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { TradingAgentsConfig } from '@/types/config';
 import { NewsItem, InsiderSentiment, InsiderTransaction } from '@/types/dataflows';
+import { createLogger } from '../utils/enhanced-logger.js';
 
 /**
  * Finnhub API wrapper for financial data
@@ -8,6 +9,7 @@ import { NewsItem, InsiderSentiment, InsiderTransaction } from '@/types/dataflow
 export class FinnhubAPI {
   private config: TradingAgentsConfig;
   private apiKey: string;
+  private logger = createLogger('dataflow', 'finnhub-api');
 
   constructor(config: TradingAgentsConfig) {
     this.config = config;
@@ -47,7 +49,11 @@ export class FinnhubAPI {
 
       return `## ${ticker} News, from ${before.toISOString().split('T')[0]} to ${currDate}:\n` + combinedResult;
     } catch (error) {
-      console.error(`Error fetching Finnhub news for ${ticker}:`, error);
+      this.logger.error('news-fetch-error', `Error fetching Finnhub news for ${ticker}`, {
+        ticker,
+        error: error instanceof Error ? error.message : String(error),
+        apiKey: this.apiKey ? 'present' : 'missing'
+      });
       return `Error fetching news for ${ticker}: ${error}`;
     }
   }
@@ -88,7 +94,11 @@ export class FinnhubAPI {
         resultStr +
         'The change field refers to the net buying/selling from all insiders\' transactions. The mspr field refers to monthly share purchase ratio.';
     } catch (error) {
-      console.error(`Error fetching insider sentiment for ${ticker}:`, error);
+      this.logger.error('insider-sentiment-error', `Error fetching insider sentiment for ${ticker}`, {
+        ticker,
+        error: error instanceof Error ? error.message : String(error),
+        apiKey: this.apiKey ? 'present' : 'missing'
+      });
       return `Error fetching insider sentiment for ${ticker}: ${error}`;
     }
   }
@@ -129,7 +139,11 @@ export class FinnhubAPI {
         resultStr +
         'The change field reflects the variation in share count—here a negative number indicates a reduction in holdings—while share specifies the total number of shares involved. The transactionPrice denotes the per-share price at which the trade was executed, and transactionDate marks when the transaction occurred. The name field identifies the insider making the trade, and transactionCode (e.g., S for sale) clarifies the nature of the transaction. FilingDate records when the transaction was officially reported, and the unique id links to the specific SEC filing, as indicated by the source. Additionally, the symbol ties the transaction to a particular company, isDerivative flags whether the trade involves derivative securities, and currency notes the currency context of the transaction.';
     } catch (error) {
-      console.error(`Error fetching insider transactions for ${ticker}:`, error);
+      this.logger.error('insider-transactions-error', `Error fetching insider transactions for ${ticker}`, {
+        ticker,
+        error: error instanceof Error ? error.message : String(error),
+        apiKey: this.apiKey ? 'present' : 'missing'
+      });
       return `Error fetching insider transactions for ${ticker}: ${error}`;
     }
   }

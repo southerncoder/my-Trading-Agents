@@ -11,6 +11,10 @@
  */
 
 import { EventEmitter } from 'events';
+import { createLogger } from './enhanced-logger.js';
+
+// Initialize logger for error handling
+const logger = createLogger('system', 'error-handler');
 
 // ========================================
 // Error Type System
@@ -413,8 +417,11 @@ export class ErrorHandlerRegistry {
       try {
         await handler(error, error.context);
       } catch (handlerError) {
-        // eslint-disable-next-line no-console
-        console.error('Error in error handler:', handlerError);
+        logger.error('handler-execution', 'Error in error handler', { 
+          originalError: error.type,
+          handlerError: handlerError instanceof Error ? handlerError.message : String(handlerError),
+          stack: handlerError instanceof Error ? handlerError.stack : undefined
+        });
       }
     }
 
@@ -423,8 +430,11 @@ export class ErrorHandlerRegistry {
       try {
         await handler(error, error.context);
       } catch (handlerError) {
-        // eslint-disable-next-line no-console
-        console.error('Error in global error handler:', handlerError);
+        logger.error('global-handler-execution', 'Error in global error handler', { 
+          originalError: error.type,
+          handlerError: handlerError instanceof Error ? handlerError.message : String(handlerError),
+          stack: handlerError instanceof Error ? handlerError.stack : undefined
+        });
       }
     }
   }
@@ -492,31 +502,59 @@ export class StructuredLogger {
   }
 
   private outputToConsole(entry: LogEntry): void {
-    const timestamp = entry.timestamp.toISOString();
-    const prefix = `[${timestamp}] [${entry.level.toUpperCase()}] [${entry.component}:${entry.operation}]`;
-    
-    switch (entry.level) {
-      case 'debug':
-        // eslint-disable-next-line no-console
-        console.debug(`${prefix} ${entry.message}`, entry.metadata || '');
-        break;
-      case 'info':
-        // eslint-disable-next-line no-console
-        console.info(`${prefix} ${entry.message}`, entry.metadata || '');
-        break;
-      case 'warn':
-        // eslint-disable-next-line no-console
-        console.warn(`${prefix} ${entry.message}`, entry.metadata || '');
-        break;
-      case 'error':
-      case 'critical':
-        // eslint-disable-next-line no-console
-        console.error(`${prefix} ${entry.message}`);
-        if (entry.error) {
+    // Try to use Winston logger first, fall back to console if Winston fails
+    try {
+      const operation = `${entry.component}:${entry.operation}`;
+      const metadata = {
+        component: entry.component,
+        operation: entry.operation,
+        ...(entry.metadata || {}),
+        ...(entry.error && { error: entry.error.toJSON() })
+      };
+
+      switch (entry.level) {
+        case 'debug':
+          logger.debug(operation, entry.message, metadata);
+          break;
+        case 'info':
+          logger.info(operation, entry.message, metadata);
+          break;
+        case 'warn':
+          logger.warn(operation, entry.message, metadata);
+          break;
+        case 'error':
+        case 'critical':
+          logger.error(operation, entry.message, metadata);
+          break;
+      }
+    } catch (loggerError) {
+      // Fallback to console if Winston logger fails (bootstrap/circular dependency issue)
+      const timestamp = entry.timestamp.toISOString();
+      const prefix = `[${timestamp}] [${entry.level.toUpperCase()}] [${entry.component}:${entry.operation}]`;
+      
+      switch (entry.level) {
+        case 'debug':
           // eslint-disable-next-line no-console
-          console.error('Error details:', entry.error.toJSON());
-        }
-        break;
+          console.debug(`${prefix} ${entry.message}`, entry.metadata || '');
+          break;
+        case 'info':
+          // eslint-disable-next-line no-console
+          console.info(`${prefix} ${entry.message}`, entry.metadata || '');
+          break;
+        case 'warn':
+          // eslint-disable-next-line no-console
+          console.warn(`${prefix} ${entry.message}`, entry.metadata || '');
+          break;
+        case 'error':
+        case 'critical':
+          // eslint-disable-next-line no-console
+          console.error(`${prefix} ${entry.message}`);
+          if (entry.error) {
+            // eslint-disable-next-line no-console
+            console.error('Error details:', entry.error.toJSON());
+          }
+          break;
+      }
     }
   }
 

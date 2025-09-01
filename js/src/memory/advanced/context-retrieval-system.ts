@@ -311,18 +311,262 @@ export class ContextRetrievalSystem {
 
   /**
    * Regime-based search for similar market conditions
+   * TODO: Implement machine learning-based regime classification
+   * TODO: Add volatility clustering analysis for regime detection
+   * TODO: Implement sector-specific regime indicators
    */
   private async regimeBasedSearch(
-    _entityId: string,
-    _currentRegime: string,
-    _lookbackDays: number,
-    _strictMode: boolean
+    entityId: string,
+    currentRegime: string,
+    lookbackDays: number,
+    strictMode: boolean
   ): Promise<any[]> {
-    // Implementation would query Zep Graphiti for entities
-    // with similar market regime characteristics
+    if (!this.zepClient) {
+      return [];
+    }
+
+    try {
+      // Build regime-specific search criteria
+      const regimeKeywords = this.buildRegimeKeywords(currentRegime, strictMode);
+      const timeWindow = this.calculateRegimeTimeWindow(lookbackDays, currentRegime);
+      
+      // Search for entities with similar market regime characteristics
+      const searchResults = await this.zepClient.searchMemory({
+        text: regimeKeywords,
+        metadata: {
+          entity_id: entityId,
+          market_regime: currentRegime,
+          time_range: timeWindow,
+          search_type: 'regime_similarity'
+        },
+        limit: 50
+      });
+
+      if (!searchResults?.results || searchResults.results.length === 0) {
+        return [];
+      }
+
+      // Score and filter results based on regime similarity
+      const scoredResults = await Promise.all(
+        searchResults.results.map(async (result: any) => {
+          const regimeScore = await this.calculateRegimeSimilarity(
+            result.metadata?.market_conditions || {},
+            currentRegime,
+            strictMode
+          );
+          
+          const temporalScore = this.calculateTemporalRelevance(
+            result.metadata?.timestamp || new Date().toISOString(),
+            lookbackDays
+          );
+
+          return {
+            ...result,
+            regime_score: regimeScore,
+            temporal_score: temporalScore,
+            combined_score: (regimeScore * 0.7) + (temporalScore * 0.3),
+            entity_id: entityId,
+            date: result.metadata?.timestamp || new Date().toISOString()
+          };
+        })
+      );
+
+      // Filter and sort by combined score
+      const filteredResults = scoredResults
+        .filter(result => result.regime_score > (strictMode ? 0.8 : 0.6))
+        .sort((a, b) => b.combined_score - a.combined_score)
+        .slice(0, 20); // Limit to top 20 regime matches
+
+      return filteredResults;
+    } catch (_error) {
+      // Log regime-based search failure for debugging
+      // TODO: Implement proper error logging system
+      return [];
+    }
+  }
+
+  /**
+   * Build keyword patterns for regime-specific searches
+   * TODO: Implement adaptive keyword generation based on regime characteristics
+   */
+  private buildRegimeKeywords(regime: string, strictMode: boolean): string {
+    const regimePatterns: Record<string, string[]> = {
+      'high_volatility': ['volatility spike', 'market stress', 'VIX elevated', 'uncertainty', 'risk-off'],
+      'low_volatility': ['calm markets', 'low VIX', 'steady trends', 'risk-on', 'complacency'],
+      'trending_up': ['bull market', 'uptrend', 'momentum', 'breakout', 'new highs'],
+      'trending_down': ['bear market', 'downtrend', 'selloff', 'breakdown', 'new lows'],
+      'sideways': ['consolidation', 'range-bound', 'choppy', 'indecision', 'support resistance'],
+      'crisis': ['market crash', 'panic selling', 'flight to quality', 'liquidation', 'systemic risk'],
+      'recovery': ['rebound', 'oversold bounce', 'relief rally', 'stabilization', 'bottoming']
+    };
+
+    const baseKeywords = regimePatterns[regime] || [];
     
-    // Placeholder implementation
-    return [];
+    if (strictMode) {
+      // Use more specific keywords for strict matching
+      return baseKeywords.slice(0, 2).join(' AND ');
+    } else {
+      // Use broader keyword set for flexible matching
+      return baseKeywords.join(' OR ');
+    }
+  }
+
+  /**
+   * Calculate time window for regime searches based on regime persistence
+   * TODO: Implement dynamic time windows based on historical regime duration
+   */
+  private calculateRegimeTimeWindow(lookbackDays: number, regime: string): { start: string; end: string } {
+    const regimePersistence: Record<string, number> = {
+      'high_volatility': 0.5, // Short-lived
+      'low_volatility': 2.0,  // Longer persistence
+      'trending_up': 1.5,
+      'trending_down': 1.2,
+      'sideways': 1.8,
+      'crisis': 0.3,          // Very short
+      'recovery': 0.8
+    };
+
+    const persistenceMultiplier = regimePersistence[regime] || 1.0;
+    const adjustedLookback = Math.floor(lookbackDays * persistenceMultiplier);
+    
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - adjustedLookback);
+
+    return {
+      start: startDate.toISOString(),
+      end: endDate.toISOString()
+    };
+  }
+
+  /**
+   * Calculate similarity between regime characteristics
+   * TODO: Implement machine learning-based regime feature comparison
+   */
+  private async calculateRegimeSimilarity(
+    candidateConditions: any,
+    currentRegime: string,
+    strictMode: boolean
+  ): Promise<number> {
+    if (!candidateConditions || typeof candidateConditions !== 'object') {
+      return 0;
+    }
+
+    try {
+      // Define regime characteristic weights
+      const regimeWeights: Record<string, Record<string, number>> = {
+        'high_volatility': { volatility: 0.4, vix: 0.3, volume: 0.2, sentiment: 0.1 },
+        'low_volatility': { volatility: 0.4, vix: 0.3, trend_strength: 0.2, momentum: 0.1 },
+        'trending_up': { momentum: 0.3, trend_strength: 0.3, volume: 0.2, sentiment: 0.2 },
+        'trending_down': { momentum: 0.3, trend_strength: 0.3, fear_greed: 0.2, volume: 0.2 },
+        'sideways': { volatility: 0.25, support_resistance: 0.25, volume: 0.25, momentum: 0.25 },
+        'crisis': { fear_greed: 0.3, volatility: 0.3, volume: 0.2, correlation: 0.2 },
+        'recovery': { momentum: 0.3, sentiment: 0.25, volume: 0.25, oversold: 0.2 }
+      };
+
+      const weights = regimeWeights[currentRegime] || { volatility: 0.5, momentum: 0.5 };
+      let totalScore = 0;
+      let totalWeight = 0;
+
+      // Calculate weighted similarity for each characteristic
+      for (const [characteristic, weight] of Object.entries(weights)) {
+        const candidateValue = candidateConditions[characteristic];
+        if (candidateValue !== undefined && candidateValue !== null) {
+          // Normalize values to 0-1 range for comparison
+          const normalizedValue = Math.min(Math.max(Number(candidateValue) || 0, 0), 1);
+          const characteristicScore = this.calculateCharacteristicSimilarity(
+            characteristic,
+            normalizedValue,
+            currentRegime
+          );
+          
+          totalScore += characteristicScore * weight;
+          totalWeight += weight;
+        }
+      }
+
+      const averageScore = totalWeight > 0 ? totalScore / totalWeight : 0;
+      
+      // Apply strictness modifier
+      if (strictMode) {
+        return Math.pow(averageScore, 1.5); // Make scoring more selective
+      } else {
+        return Math.sqrt(averageScore); // Make scoring more inclusive
+      }
+    } catch (_error) {
+      // Error calculating regime similarity
+      // TODO: Implement proper error logging and fallback similarity calculation
+      return 0;
+    }
+  }
+
+  /**
+   * Calculate similarity for specific market characteristics
+   * TODO: Implement fuzzy logic for characteristic comparison
+   */
+  private calculateCharacteristicSimilarity(
+    characteristic: string,
+    candidateValue: number,
+    currentRegime: string
+  ): number {
+    // Define expected ranges for each characteristic by regime
+    const expectedRanges: Record<string, Record<string, { min: number; max: number; optimal: number }>> = {
+      'high_volatility': {
+        volatility: { min: 0.6, max: 1.0, optimal: 0.8 },
+        vix: { min: 0.7, max: 1.0, optimal: 0.85 }
+      },
+      'low_volatility': {
+        volatility: { min: 0.0, max: 0.4, optimal: 0.2 },
+        vix: { min: 0.0, max: 0.3, optimal: 0.15 }
+      },
+      'trending_up': {
+        momentum: { min: 0.6, max: 1.0, optimal: 0.8 },
+        trend_strength: { min: 0.5, max: 1.0, optimal: 0.75 }
+      },
+      'trending_down': {
+        momentum: { min: 0.0, max: 0.4, optimal: 0.2 },
+        trend_strength: { min: 0.5, max: 1.0, optimal: 0.75 }
+      }
+    };
+
+    const regimeRanges = expectedRanges[currentRegime];
+    if (!regimeRanges || !regimeRanges[characteristic]) {
+      // Default similarity calculation for unknown characteristics
+      return Math.max(0, 1 - Math.abs(candidateValue - 0.5) * 2);
+    }
+
+    const range = regimeRanges[characteristic];
+    
+    // Calculate distance from optimal value
+    const distanceFromOptimal = Math.abs(candidateValue - range.optimal);
+    const maxDistance = Math.max(range.optimal - range.min, range.max - range.optimal);
+    
+    // Convert distance to similarity score
+    const similarity = maxDistance > 0 ? 1 - (distanceFromOptimal / maxDistance) : 1;
+    
+    return Math.max(0, Math.min(1, similarity));
+  }
+
+  /**
+   * Calculate temporal relevance based on time distance
+   * TODO: Implement regime-aware temporal decay functions
+   */
+  private calculateTemporalRelevance(timestamp: string, lookbackDays: number): number {
+    try {
+      const eventDate = new Date(timestamp);
+      const currentDate = new Date();
+      const daysDifference = Math.abs((currentDate.getTime() - eventDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      // Exponential decay function for temporal relevance
+      const decayRate = 0.1 / lookbackDays; // Adjust decay based on lookback period
+      const temporalScore = Math.exp(-decayRate * daysDifference);
+      
+      return Math.max(0, Math.min(1, temporalScore));
+    } catch (_error) {
+      // Error calculating temporal relevance
+      // TODO: Implement proper error logging and fallback temporal scoring
+      return 0;
+    }
   }
 
   /**

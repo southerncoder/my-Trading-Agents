@@ -1,8 +1,55 @@
-# 🧪 Agent Testing Suite
+# 🧪 Trading Agents - Test Suite & Security Guide
 
-## Overview
+## 📁 Test Organization
 
-This comprehensive testing suite validates that all 12 TradingAgents work correctly with the configured LLM provider and model. The tests ensure proper connectivity, agent instantiation, processing capabilities, and performance characteristics.
+This comprehensive testing suite has been reorganized for better maintainability and security. All tests are now properly categorized and secrets have been secured.
+
+### Directory Structure
+
+```
+js/tests/
+├── config/                    # Configuration tests
+│   ├── basic-config.test.ts      # Basic configuration loading
+│   ├── enhanced-config.test.ts   # Enhanced configuration features
+│   └── remote-lmstudio.config.ts # Remote LM Studio configuration
+├── integration/               # Integration tests
+│   ├── agent-memory.test.ts      # Agent memory integration
+│   ├── remote-lmstudio.test.ts   # Remote LM Studio integration
+│   └── trading-graph-memory.test.ts # Trading graph with memory
+├── memory/                    # Memory system tests
+│   ├── memory-fallback.test.ts   # Memory fallback mechanisms
+│   ├── memory-providers.test.ts  # Memory provider tests
+│   ├── test-zep-simple.ts       # Zep memory simple tests
+│   └── test-zep-graphiti-memory.ts # Zep Graphiti memory tests
+├── models/                    # Model provider tests
+│   ├── lmstudio-singleton.test.ts # LM Studio singleton pattern
+│   ├── test-lmstudio-admin.spec.ts # LM Studio admin interface
+│   └── test-lmstudio-manager.spec.ts # LM Studio manager
+└── README.md                  # This documentation
+```
+
+## 🔒 Security & Environment Setup
+
+### Environment Variables (Required)
+All sensitive configuration now uses environment variables:
+
+```bash
+# Copy the example file
+cp .env.example .env
+
+# Edit .env with your values:
+REMOTE_LM_STUDIO_URL=http://your-server:port/v1
+ZEP_SERVICE_URL=http://localhost:8000
+OPENAI_API_KEY=your_key_here
+ANTHROPIC_API_KEY=your_key_here
+```
+
+### Security Features
+- ✅ No hardcoded API keys or secrets
+- ✅ No hardcoded IP addresses in source code  
+- ✅ Environment variables for all external endpoints
+- ✅ Enhanced .gitignore for sensitive files
+- ✅ Safe defaults for development
 
 ## 🎯 Agents Tested
 
@@ -21,18 +68,33 @@ This comprehensive testing suite validates that all 12 TradingAgents work correc
 | | NeutralAnalyst | Balanced risk assessment |
 | **Trading** | Trader | Concrete trading plan creation |
 
-## 🚀 Quick Start
+## 🚀 Running Tests
 
-### 1. Setup LLM Provider
+### Quick Start
 ```bash
-# Verify LLM provider configuration
-npm run test-llm-setup
+# Setup environment
+cp .env.example .env
+# Edit .env with your values
+
+# Run specific test categories
+npx vite-node tests/integration/remote-lmstudio.test.ts
+npx vite-node tests/config/basic-config.test.ts
+npx vite-node tests/models/lmstudio-singleton.test.ts
 ```
 
-### 2. Run Comprehensive Tests
+### Test Categories
 ```bash
-# Run all tests in sequence with full reporting
-npm run test-agents-comprehensive
+# Configuration tests
+npm run test -- tests/config/
+
+# Integration tests  
+npm run test -- tests/integration/
+
+# Memory tests
+npm run test -- tests/memory/
+
+# Model tests
+npm run test -- tests/models/
 ```
 
 ## 🔧 Individual Test Commands

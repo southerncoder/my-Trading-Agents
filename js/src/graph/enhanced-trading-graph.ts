@@ -134,15 +134,16 @@ export class EnhancedTradingAgentsGraph {
     }
 
     try {
-      // Create a mock Zep client for now - in production this would be a real Zep client
-      const mockZepClient = {
-        search: async () => ({ results: [] }),
-        add: async () => ({ success: true })
-      };
+      // Create a real Zep client for memory operations
+      const { ZepClient } = await import('@getzep/zep-js');
+      const zepClient = new ZepClient({
+        apiKey: process.env.ZEP_API_KEY || this.zepClientConfig.apiKey,
+        baseUrl: this.zepClientConfig.baseUrl || 'https://api.getzep.com'
+      });
 
       const { createAdvancedMemoryLearningSystem, createDefaultConfig } = await import('../memory/advanced/index');
       const config = createDefaultConfig(this.zepClientConfig);
-      this.advancedMemorySystem = createAdvancedMemoryLearningSystem(config, mockZepClient);
+      this.advancedMemorySystem = createAdvancedMemoryLearningSystem(config, zepClient);
       
       await this.advancedMemorySystem.initialize();
       logger.info('initializeAdvancedMemory', 'Advanced memory system initialized successfully');
