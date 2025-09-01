@@ -1,3 +1,5 @@
+import { createLogger } from '../../utils/enhanced-logger';
+import { withLLMResilience, OPENAI_LLM_CONFIG, createResilientLLM } from '../../utils/resilient-llm';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { StructuredTool } from '@langchain/core/tools';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
@@ -14,6 +16,8 @@ import { PortfolioManager } from './portfolio-manager';
  * and makes final risk-informed trading decisions
  */
 export class RiskManager extends AbstractAgent {
+  private readonly logger = createLogger('agent', 'RiskManager');
+  private readonly resilientLLM: BaseChatModel;
   private riskyAnalyst: RiskyAnalyst;
   private safeAnalyst: SafeAnalyst;
   private neutralAnalyst: NeutralAnalyst;
@@ -27,62 +31,83 @@ export class RiskManager extends AbstractAgent {
       tools
     );
 
+    // Create resilient LLM wrapper with OpenAI-optimized configuration
+    this.resilientLLM = createResilientLLM(llm, OPENAI_LLM_CONFIG);
+
     // Initialize risk analysis components
     this.riskyAnalyst = new RiskyAnalyst(llm, tools);
     this.safeAnalyst = new SafeAnalyst(llm, tools);
     this.neutralAnalyst = new NeutralAnalyst(llm, tools);
     this.portfolioManager = new PortfolioManager(llm, tools);
+    
+    this.logger.info('constructor', 'RiskManager initialized with all risk analysis components', {
+      llmType: llm.constructor.name,
+      hasTools: tools ? tools.length > 0 : false,
+      toolCount: tools ? tools.length : 0
+    });
   }
 
   async process(state: AgentState): Promise<Partial<AgentState>> {
-    try {
-      console.log('🎯 Risk Manager: Starting comprehensive risk analysis');
+    this.logger.info('process', 'Starting comprehensive risk analysis', {
+      company: state.company_of_interest,
+      tradeDate: state.trade_date,
+      hasTradingPlan: !!state.trader_investment_plan
+    });
 
-      // Step 1: Run all risk perspective analyses in parallel
-      const [riskyAnalysis, safeAnalysis, neutralAnalysis] = await Promise.all([
-        this.riskyAnalyst.process(state),
-        this.safeAnalyst.process(state),
-        this.neutralAnalyst.process(state)
-      ]);
+    return await withLLMResilience(
+      'risk_management_orchestration',
+      async () => {
+        // Step 1: Run all risk perspective analyses in parallel
+        this.logger.debug('process', 'Starting parallel risk analyses', {
+          analysisSteps: ['risky', 'safe', 'neutral']
+        });
+        
+        const [riskyAnalysis, safeAnalysis, neutralAnalysis] = await Promise.all([
+          this.riskyAnalyst.process(state),
+          this.safeAnalyst.process(state),
+          this.neutralAnalyst.process(state)
+        ]);
 
-      // Step 2: Create aggregated state with risk analyses
-      const aggregatedState: AgentState = {
-        ...state,
-        messages: [
-          ...state.messages,
-          ...(riskyAnalysis.messages || []),
-          ...(safeAnalysis.messages || []),
-          ...(neutralAnalysis.messages || [])
-        ]
-      };
+        this.logger.info('process', 'All risk analyses completed', {
+          riskyComplete: !!riskyAnalysis,
+          safeComplete: !!safeAnalysis,
+          neutralComplete: !!neutralAnalysis
+        });
 
-      // Step 3: Portfolio manager makes final decision
-      const finalDecision = await this.portfolioManager.process(aggregatedState);
+        // Step 2: Create aggregated state with risk analyses
+        const aggregatedState: AgentState = {
+          ...state,
+          messages: [
+            ...state.messages,
+            ...(riskyAnalysis.messages || []),
+            ...(safeAnalysis.messages || []),
+            ...(neutralAnalysis.messages || [])
+          ]
+        };
 
-      // Step 4: Create risk synthesis
-      const riskSynthesis = await this.synthesizeRiskAssessment(state, finalDecision);
+        // Step 3: Portfolio manager makes final decision
+        this.logger.debug('process', 'Portfolio manager making final decision');
+        const finalDecision = await this.portfolioManager.process(aggregatedState);
 
-      console.log('✅ Risk Manager: Comprehensive risk analysis completed');
+        // Step 4: Create risk synthesis
+        const riskSynthesis = await this.synthesizeRiskAssessment(state, finalDecision);
 
-      return {
-        ...finalDecision,
-        messages: [
-          ...(finalDecision.messages || state.messages),
-          new HumanMessage(riskSynthesis)
-        ]
-      };
+        this.logger.info('process', 'Comprehensive risk analysis completed', {
+          hasFinalDecision: !!finalDecision,
+          hasSynthesis: !!riskSynthesis,
+          company: state.company_of_interest
+        });
 
-    } catch (error) {
-      console.error('❌ Risk Manager: Error in risk analysis:', error);
-      return {
-        ...state,
-        final_trade_decision: 'HOLD - Risk analysis error',
-        messages: [
-          ...state.messages,
-          new HumanMessage(`Risk analysis error: ${error}`)
-        ]
-      };
-    }
+        return {
+          ...finalDecision,
+          messages: [
+            ...(finalDecision.messages || state.messages),
+            new HumanMessage(riskSynthesis)
+          ]
+        };
+      },
+      OPENAI_LLM_CONFIG
+    );
   }
 
   /**
@@ -123,7 +148,10 @@ Please provide:
       return response.content.toString();
 
     } catch (error) {
-      console.error('Error synthesizing risk assessment:', error);
+      this.logger.error('synthesizeRiskAssessment', 'Error synthesizing risk assessment', {
+        error: error instanceof Error ? error.message : String(error),
+        finalDecision: finalDecision.final_trade_decision || 'Unknown'
+      });
       return `Risk synthesis error: ${error}. Decision: ${finalDecision.final_trade_decision || 'Unknown'}`;
     }
   }

@@ -6,10 +6,30 @@
  */
 
 import winston from 'winston';
-import { TradingAgentError, ErrorSeverity } from './error-handler';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'critical';
 export type LogContext = 'agent' | 'dataflow' | 'graph' | 'cli' | 'test' | 'system';
+
+// Simple error severity enum to avoid circular dependency
+export enum ErrorSeverity {
+  LOW = 'LOW',
+  MEDIUM = 'MEDIUM', 
+  HIGH = 'HIGH',
+  CRITICAL = 'CRITICAL'
+}
+
+// Simplified error interface to avoid circular dependency
+export interface SimpleError extends Error {
+  severity?: ErrorSeverity;
+  type?: string;
+  retryable?: boolean;
+  retryCount?: number;
+  context?: {
+    component: string;
+    operation: string;
+    metadata?: Record<string, any>;
+  };
+}
 
 export interface LogEntry {
   timestamp: Date;
@@ -192,15 +212,15 @@ export class EnhancedLogger {
   }
 
   /**
-   * Log TradingAgentError with full context
+   * Log error with full context  
    */
-  public logError(error: TradingAgentError, traceId?: string): void {
-    const level = this.severityToLevel(error.severity);
+  public logError(error: SimpleError, traceId?: string): void {
+    const level = error.severity ? this.severityToLevel(error.severity) : 'error';
     this.log(
       level,
       'system',
-      error.context.component,
-      error.context.operation,
+      error.context?.component || 'unknown',
+      error.context?.operation || 'unknown',
       error.message,
       {
         errorType: error.type,
@@ -208,7 +228,7 @@ export class EnhancedLogger {
         stack: error.stack,
         retryable: error.retryable,
         retryCount: error.retryCount,
-        ...error.context.metadata
+        ...error.context?.metadata
       },
       traceId
     );

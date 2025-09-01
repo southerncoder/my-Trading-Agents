@@ -1,4 +1,5 @@
 import logging
+import os
 from typing import Annotated
 
 from fastapi import Depends, HTTPException
@@ -13,6 +14,8 @@ from graph_service.config import ZepEnvDep
 from graph_service.dto import FactResult
 
 logger = logging.getLogger(__name__)
+_DEBUG_EMBEDDER = os.getenv("ZEP_EMBEDDER_DEBUG", "false").lower() in {"1", "true", "yes"}
+_LOG_RAW_HTTP = os.getenv("ZEP_EMBEDDER_LOG_RAW", "false").lower() in {"1", "true", "yes"}
 
 
 class ZepGraphiti(Graphiti):
@@ -20,16 +23,25 @@ class ZepGraphiti(Graphiti):
         super().__init__(uri, user, password, llm_client)
 
     async def save_entity_node(self, name: str, uuid: str, group_id: str, summary: str = ''):
-        print(f"DEBUG: Creating entity node - name: {name}, uuid: {uuid}")
-        print(f"DEBUG: Embedder type: {type(self.embedder)}")
+        logger.debug("Creating entity node", extra={
+            "op": "save_entity_node",
+            "name": name,
+            "uuid": uuid,
+            "group_id": group_id,
+        })
+        if _DEBUG_EMBEDDER:
+            logger.debug("Embedder type", extra={"embedder_type": str(type(self.embedder))})
         
         # Debug embedder details if it's our OpenAI embedder
-        if hasattr(self.embedder, 'config'):
-            print(f"DEBUG: Embedder config: {getattr(self.embedder, 'config', None)}")
+        if _DEBUG_EMBEDDER and hasattr(self.embedder, 'config'):
+            logger.debug("Embedder config present", extra={})
         client_attr = getattr(self.embedder, 'client', None)
-        if client_attr is not None:
-            print(f"DEBUG: Embedder client base_url: {getattr(client_attr, 'base_url', None)}")
-            print(f"DEBUG: Embedder client api_key: {getattr(client_attr, 'api_key', None)}")
+        if _DEBUG_EMBEDDER and client_attr is not None:
+            # Avoid logging API keys
+            logger.debug("Embedder client details", extra={
+                "base_url": getattr(client_attr, 'base_url', None),
+                "api_key_present": bool(getattr(client_attr, 'api_key', None)),
+            })
         
         new_node = EntityNode(
             name=name,
@@ -38,20 +50,21 @@ class ZepGraphiti(Graphiti):
             summary=summary,
         )
         
-        print("DEBUG: About to generate name embedding...")
+        logger.debug("Generating name embedding", extra={"op": "save_entity_node", "uuid": uuid})
         try:
             await new_node.generate_name_embedding(self.embedder)
-            print("DEBUG: Name embedding generated successfully")
+            logger.debug("Name embedding generated", extra={"uuid": uuid})
         except Exception as e:
-            print(f"DEBUG: Name embedding failed: {e}")
-            print(f"DEBUG: Exception type: {type(e)}")
-            import traceback
-            print(f"DEBUG: Traceback: {traceback.format_exc()}")
+            logger.exception("Name embedding failed", extra={
+                "uuid": uuid,
+                "error": str(e),
+                "error_type": str(type(e)),
+            })
             raise
             
-        print("DEBUG: About to save node...")
+        logger.debug("Saving node", extra={"uuid": uuid})
         await new_node.save(self.driver)
-        print("DEBUG: Node saved successfully")
+        logger.debug("Node saved", extra={"uuid": uuid})
         return new_node
 
     async def get_entity_edge(self, uuid: str):
@@ -112,7 +125,7 @@ async def get_graphiti(settings: ZepEnvDep):
 
     # Configure embedder with proper OpenAIEmbedderConfig
     if settings.openai_base_url is not None and settings.openai_api_key is not None:
-        print("DEBUG: Replacing embedder with OpenAI embedder...")
+        logger.info("Configuring OpenAI embedder", extra={"base_url": settings.openai_base_url is not None})
         from graphiti_core.embedder.openai import OpenAIEmbedder
 
         # Normalize base_url: ensure it includes the /v1 path used by LM Studio
@@ -125,7 +138,6 @@ async def get_graphiti(settings: ZepEnvDep):
             base_url = base_url + '/v1'
 
         # Prefer `OPEN_AI_KEY` env var for the embedder (special zep_graphiti support)
-        import os
         api_key = os.getenv('OPEN_AI_KEY') or settings.openai_api_key
 
         # Create proper embedder configuration (use env-derived api_key)
@@ -136,7 +148,13 @@ async def get_graphiti(settings: ZepEnvDep):
             base_url=base_url,
         )
 
-        print(f"DEBUG: Created embedder config: {embedder_config}")
+        if _DEBUG_EMBEDDER:
+            logger.debug("Created embedder config", extra={
+                "embedding_model": embedder_config.embedding_model,
+                "embedding_dim": embedder_config.embedding_dim,
+                "base_url": embedder_config.base_url,
+                "api_key_present": bool(api_key),
+            })
 
         # Create AsyncOpenAI client with proper configuration
         async_openai_client = AsyncOpenAI(
@@ -144,7 +162,8 @@ async def get_graphiti(settings: ZepEnvDep):
             api_key=api_key,
         )
 
-        print("DEBUG: Created AsyncOpenAI client")
+        if _DEBUG_EMBEDDER:
+            logger.debug("Created AsyncOpenAI client")
 
         # Add a small wrapper around the embeddings.create method to log low-level
         # information if parsing fails at the OpenAI client layer.
@@ -152,10 +171,15 @@ async def get_graphiti(settings: ZepEnvDep):
             orig_create = async_openai_client.embeddings.create
 
             async def _create_wrapper(*args, **kwargs):
-                print("DEBUG: embeddings.create called with args:", args, "kwargs:", kwargs)
+                if _DEBUG_EMBEDDER:
+                    logger.debug("embeddings.create called", extra={
+                        "args_len": len(args),
+                        "kwargs_keys": list(kwargs.keys()),
+                    })
                 try:
                     result = await orig_create(*args, **kwargs)
-                    print("DEBUG: embeddings.create returned successfully, raw result:", result)
+                    if _DEBUG_EMBEDDER:
+                        logger.debug("embeddings.create returned successfully")
                     # If pydantic parsed no data, fetch raw JSON to patch
                     if getattr(result, 'data', None) is None:
                         try:
@@ -173,24 +197,30 @@ async def get_graphiti(settings: ZepEnvDep):
                                 headers['Authorization'] = f'Bearer {api_key}'
                             async with httpx.AsyncClient(timeout=10.0) as httpc:
                                 resp = await httpc.post(emb_url, json=payload, headers=headers)
-                                print('DEBUG: Raw HTTP embeddings request URL:', emb_url)
-                                print('DEBUG: Raw HTTP embeddings payload:', payload)
+                                if _LOG_RAW_HTTP:
+                                    logger.debug('Raw HTTP embeddings request', extra={
+                                        "url": emb_url,
+                                        "payload_keys": list(payload.keys()),
+                                        "status": resp.status_code,
+                                    })
                                 json_resp = await resp.json()
-                                print('DEBUG: Raw JSON response:', json_resp)
                                 data_list = json_resp.get('data')
                                 if data_list is None and 'embeddings' in json_resp:
                                     # LM Studio returns raw embeddings list under 'embeddings'
                                     patched = [ {'object':'embedding','embedding':e,'index':i} for i,e in enumerate(json_resp['embeddings']) ]
                                     setattr(result, 'data', patched)
-                                    print('DEBUG: Patched result.data from embeddings')
+                                if _DEBUG_EMBEDDER:
+                                    logger.debug('Patched result.data from embeddings')
                                 else:
                                     setattr(result, 'data', data_list)
-                                    print('DEBUG: Patched result.data from data field')
+                                if _DEBUG_EMBEDDER:
+                                    logger.debug('Patched result.data from data field')
                         except Exception as patch_err:
-                            print('DEBUG: Failed to patch result.data via raw HTTP:', repr(patch_err))
+                            if _DEBUG_EMBEDDER:
+                                logger.debug('Failed to patch result.data via raw HTTP', extra={"error": repr(patch_err)})
                     return result
                 except Exception as e:
-                    print("DEBUG: embeddings.create raised exception:", repr(e))
+                    logger.warning("embeddings.create raised exception", extra={"error": repr(e)})
                     # Attempt raw HTTP request to capture full response
                     try:
                         import httpx
@@ -206,21 +236,25 @@ async def get_graphiti(settings: ZepEnvDep):
                             headers['Authorization'] = f'Bearer {api_key}'
                         async with httpx.AsyncClient(timeout=10.0) as httpc:
                             resp = await httpc.post(emb_url, json=payload, headers=headers)
-                            print('DEBUG: Raw embeddings endpoint request URL:', emb_url)
-                            print('DEBUG: Raw embeddings request payload:', payload)
-                            try:
-                                text = await resp.aread()
-                            except Exception:
-                                text = resp.text
-                            print('DEBUG: Raw embeddings response status:', resp.status_code)
-                            print('DEBUG: Raw embeddings response body:', text)
+                            if _LOG_RAW_HTTP:
+                                try:
+                                    text = await resp.aread()
+                                except Exception:
+                                    text = resp.text
+                                logger.debug('Raw embeddings response', extra={
+                                    "url": emb_url,
+                                    "status": resp.status_code,
+                                    "body_len": len(text) if hasattr(text, "__len__") else None,
+                                })
                     except Exception as raw_err:
-                        print('DEBUG: Failed raw HTTP debug request:', repr(raw_err))
+                        if _DEBUG_EMBEDDER:
+                            logger.debug('Failed raw HTTP debug request', extra={"error": repr(raw_err)})
                     raise
 
             async_openai_client.embeddings.create = _create_wrapper
         except Exception:
-            print("DEBUG: Failed to wrap embeddings.create for extra logging")
+            if _DEBUG_EMBEDDER:
+                logger.debug("Failed to wrap embeddings.create for extra logging")
 
         # Replace the embedder with properly configured one
         old_embedder = client.embedder
@@ -229,9 +263,13 @@ async def get_graphiti(settings: ZepEnvDep):
             client=async_openai_client,
         )
 
-        print(f"DEBUG: Replaced embedder from {type(old_embedder)} to {type(client.embedder)}")
+        if _DEBUG_EMBEDDER:
+            logger.debug("Replaced embedder", extra={
+                "old": str(type(old_embedder)),
+                "new": str(type(client.embedder)),
+            })
     else:
-        print("DEBUG: Not replacing embedder - missing OpenAI settings")
+        logger.info("Not replacing embedder - missing OpenAI settings")
 
     try:
         yield client

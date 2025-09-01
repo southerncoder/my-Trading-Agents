@@ -1,5 +1,6 @@
 
-import { logger } from '../../utils/enhanced-logger';
+import { createLogger } from '../../utils/enhanced-logger';
+import { withLLMResilience, OPENAI_LLM_CONFIG, createResilientLLM } from '../../utils/resilient-llm';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { StructuredTool } from '@langchain/core/tools';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
@@ -11,6 +12,9 @@ import { AgentState, AgentStateHelpers } from '../../types/agent-states';
  * Synthesizes research from bull and bear researchers and makes final investment decisions
  */
 export class ResearchManager extends AbstractAgent {
+  private readonly logger = createLogger('agent', 'ResearchManager');
+  private readonly resilientLLM: BaseChatModel;
+
   constructor(llm: BaseChatModel, tools?: StructuredTool[]) {
     super(
       'Research Manager',
@@ -18,9 +22,26 @@ export class ResearchManager extends AbstractAgent {
       llm,
       tools
     );
+    
+    // Create resilient LLM wrapper with OpenAI-optimized configuration
+    this.resilientLLM = createResilientLLM(llm, OPENAI_LLM_CONFIG);
+    
+    this.logger.info('constructor', 'ResearchManager initialized with resilient LLM wrapper', {
+      llmType: llm.constructor.name,
+      hasTools: tools ? tools.length > 0 : false,
+      toolCount: tools ? tools.length : 0
+    });
   }
 
   async process(state: AgentState): Promise<Partial<AgentState>> {
+    this.logger.info('process', 'Starting research management synthesis process', {
+      company: state.company_of_interest,
+      tradeDate: state.trade_date,
+      hasBullHistory: !!(state.investment_debate_state?.bull_history),
+      hasBearHistory: !!(state.investment_debate_state?.bear_history),
+      hasJudgeDecision: !!(state.investment_debate_state?.judge_decision)
+    });
+
     try {
       // Create system prompt
       const systemPrompt = this.getSystemPrompt();
@@ -28,11 +49,27 @@ export class ResearchManager extends AbstractAgent {
       // Create human message with context from research debate
       const humanMessage = this.createManagementRequest(state);
       
-      // Invoke LLM
-      const response = await this.invokeLLM([
-        new SystemMessage(systemPrompt),
-        humanMessage,
-      ]);
+      this.logger.debug('process', 'Prepared LLM messages for research synthesis', {
+        systemPromptLength: systemPrompt.length,
+        humanMessageLength: humanMessage.content.toString().length
+      });
+
+      // Use resilient LLM wrapper for research synthesis
+      const response = await withLLMResilience(
+        'ResearchManager.synthesize',
+        async () => {
+          return await this.resilientLLM.invoke([
+            new SystemMessage(systemPrompt),
+            humanMessage,
+          ]);
+        },
+        OPENAI_LLM_CONFIG
+      );
+
+      this.logger.info('process', 'LLM research synthesis completed successfully', {
+        responseType: typeof response.content,
+        hasToolCalls: response.tool_calls && response.tool_calls.length > 0
+      });
 
       // Extract management decision from response
       let managementDecision = '';
@@ -53,6 +90,11 @@ export class ResearchManager extends AbstractAgent {
           .join('\n');
       }
 
+      this.logger.info('process', 'Research management decision extracted successfully', {
+        decisionLength: managementDecision.length,
+        company: state.company_of_interest
+      });
+
       // Update investment debate state with final decision
       const currentDebateState = state.investment_debate_state || AgentStateHelpers.createInitialInvestDebateState();
       
@@ -72,12 +114,16 @@ export class ResearchManager extends AbstractAgent {
         sender: this.name,
       };
     } catch (error) {
-      logger.error('agent', this.name, 'execution', `Error in ${this.name}`, { 
-        error: error instanceof Error ? error.message : String(error),
-        agentName: this.name,
-        operation: 'processMessage'
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      
+      this.logger.error('process', `Research synthesis failed for ${state.company_of_interest}`, {
+        error: errorMsg,
+        company: state.company_of_interest,
+        tradeDate: state.trade_date,
+        errorType: error instanceof Error ? error.constructor.name : 'Unknown'
       });
-      throw new Error(`${this.name} failed to process: ${error}`);
+      
+      throw new Error(`${this.name} failed to process: ${errorMsg}`);
     }
   }
 
@@ -138,10 +184,21 @@ Be decisive but balanced. Acknowledge the strength of opposing arguments while m
 
   canProcess(state: AgentState): boolean {
     // Research manager can process if both bull and bear researchers have provided input
-    return super.canProcess(state) && 
-           !!(state.investment_debate_state?.bull_history) &&
-           !!(state.investment_debate_state?.bear_history) &&
-           !AgentStateHelpers.isInvestmentDebateComplete(state);
+    const canProcess = super.canProcess(state) && 
+                      !!(state.investment_debate_state?.bull_history) &&
+                      !!(state.investment_debate_state?.bear_history) &&
+                      !AgentStateHelpers.isInvestmentDebateComplete(state);
+    
+    this.logger.debug('canProcess', 'Evaluating if ResearchManager can process state', {
+      basicCanProcess: super.canProcess(state),
+      hasBullHistory: !!(state.investment_debate_state?.bull_history),
+      hasBearHistory: !!(state.investment_debate_state?.bear_history),
+      isInvestmentDebateComplete: AgentStateHelpers.isInvestmentDebateComplete(state),
+      finalCanProcess: canProcess,
+      company: state.company_of_interest
+    });
+    
+    return canProcess;
   }
 
   private createManagementRequest(state: AgentState): HumanMessage {
@@ -150,6 +207,13 @@ Be decisive but balanced. Acknowledge the strength of opposing arguments while m
       trade_date, 
       investment_debate_state 
     } = state;
+    
+    this.logger.debug('createManagementRequest', 'Creating research synthesis request prompt', {
+      company: company_of_interest,
+      tradeDate: trade_date,
+      hasBullHistory: !!(investment_debate_state?.bull_history),
+      hasBearHistory: !!(investment_debate_state?.bear_history)
+    });
     
     const prompt = `As Research Manager, synthesize the bull and bear research arguments below and make a balanced investment decision for ${company_of_interest}.
 

@@ -2,6 +2,11 @@ import { TradingAgentsConfig } from '@/types/config';
 import { RedditPost } from '@/types/dataflows';
 import axios from 'axios';
 import { createLogger } from '../utils/enhanced-logger.js';
+import { 
+  withDataflowResilience, 
+  REDDIT_API_CONFIG, 
+  DataflowMetricsCollector 
+} from '../utils/resilient-dataflow.js';
 
 // Reddit API interfaces
 interface RedditApiResponse {
@@ -25,135 +30,203 @@ interface RedditApiResponse {
 
 /**
  * Reddit API wrapper using official Reddit API for social sentiment analysis
+ * Enhanced with resilient patterns for robust external API integration
  */
 export class RedditAPI {
   private config: TradingAgentsConfig;
   private accessToken: string | null = null;
   private tokenExpiry: Date | null = null;
   private logger = createLogger('dataflow', 'reddit-api');
+  private metrics = new DataflowMetricsCollector();
 
   constructor(config: TradingAgentsConfig) {
     this.config = config;
+    
+    this.logger.info('constructor', 'Initializing Reddit API', {
+      hasClientId: !!process.env.REDDIT_CLIENT_ID,
+      hasClientSecret: !!process.env.REDDIT_CLIENT_SECRET
+    });
   }
 
   /**
-   * Get Reddit client credentials token (for read-only access)
+   * Get Reddit client credentials token (for read-only access) with resilient patterns
    */
   private async getAccessToken(): Promise<string | null> {
-    try {
-      const clientId = process.env.REDDIT_CLIENT_ID;
-      const clientSecret = process.env.REDDIT_CLIENT_SECRET;
+    return withDataflowResilience(
+      'reddit-access-token',
+      async () => {
+        const clientId = process.env.REDDIT_CLIENT_ID;
+        const clientSecret = process.env.REDDIT_CLIENT_SECRET;
 
-      if (!clientId || !clientSecret) {
-        this.logger.warn('credentials-missing', 'Reddit API credentials not configured', {
-          clientId: clientId ? 'present' : 'missing',
-          clientSecret: clientSecret ? 'present' : 'missing'
-        });
-        return null;
-      }
-
-      // Check if current token is still valid
-      if (this.accessToken && this.tokenExpiry && new Date() < this.tokenExpiry) {
-        return this.accessToken;
-      }
-
-      // Get new token using client credentials flow
-      const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-      
-      const response = await axios.post('https://www.reddit.com/api/v1/access_token', 
-        'grant_type=client_credentials',
-        {
-          headers: {
-            'Authorization': `Basic ${auth}`,
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'User-Agent': 'TradingAgents/1.0 by YourUsername'
-          }
+        if (!clientId || !clientSecret) {
+          this.logger.warn('credentials-missing', 'Reddit API credentials not configured', {
+            clientId: clientId ? 'present' : 'missing',
+            clientSecret: clientSecret ? 'present' : 'missing'
+          });
+          return null;
         }
-      );
 
-      this.accessToken = response.data.access_token;
-      this.tokenExpiry = new Date(Date.now() + (response.data.expires_in * 1000) - 60000); // 1 min buffer
-      
-      return this.accessToken;
-    } catch (error) {
+        // Check if current token is still valid
+        if (this.accessToken && this.tokenExpiry && new Date() < this.tokenExpiry) {
+          this.logger.debug('token-valid', 'Using existing valid access token');
+          return this.accessToken;
+        }
+
+        this.logger.info('token-fetch', 'Fetching new Reddit access token');
+
+        // Get new token using client credentials flow
+        const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+        
+        const response = await axios.post('https://www.reddit.com/api/v1/access_token', 
+          'grant_type=client_credentials',
+          {
+            headers: {
+              'Authorization': `Basic ${auth}`,
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'User-Agent': 'TradingAgents/1.0 by YourUsername'
+            }
+          }
+        );
+
+        this.accessToken = response.data.access_token;
+        this.tokenExpiry = new Date(Date.now() + (response.data.expires_in * 1000) - 60000); // 1 min buffer
+        
+        this.logger.info('token-fetched', 'Reddit access token fetched successfully', {
+          expiresIn: response.data.expires_in,
+          tokenExpiry: this.tokenExpiry.toISOString()
+        });
+        
+        return this.accessToken;
+      },
+      REDDIT_API_CONFIG
+    ).catch((error) => {
       this.logger.error('token-error', 'Error getting Reddit access token', {
-        error: error instanceof Error ? error.message : String(error)
+        error: error.message
       });
       return null;
-    }
+    });
   }
 
   /**
-   * Get global news from Reddit
+   * Get global news from Reddit with resilient patterns
    */
   async getGlobalNews(startDate: string, lookBackDays: number, maxLimitPerDay: number): Promise<string> {
-    try {
-      const globalPosts = await this.fetchGlobalPosts(startDate, lookBackDays, maxLimitPerDay);
-      
-      if (globalPosts.length === 0) {
-        return `## Global News Reddit:\n\nNo global financial news found on Reddit.`;
-      }
+    return withDataflowResilience(
+      'reddit-global-news',
+      async () => {
+        this.logger.info('get-global-news', 'Fetching global news from Reddit', {
+          startDate,
+          lookBackDays,
+          maxLimitPerDay
+        });
 
-      let newsStr = '';
-      for (const post of globalPosts) {
-        const createdDate = new Date(post.createdUtc).toLocaleDateString();
-        newsStr += `### ${post.title} (r/${post.subreddit || 'unknown'}, ${createdDate})\n\n`;
-        newsStr += `Score: ${post.score} | Comments: ${post.numComments}\n\n`;
+        const globalPosts = await this.fetchGlobalPosts(startDate, lookBackDays, maxLimitPerDay);
         
-        if (post.content && post.content.length > 0) {
-          const preview = post.content.length > 200 ? post.content.substring(0, 200) + '...' : post.content;
-          newsStr += `${preview}\n\n`;
+        if (globalPosts.length === 0) {
+          this.logger.warn('no-global-news', 'No global financial news found on Reddit', {
+            startDate,
+            lookBackDays
+          });
+          return `## Global News Reddit:\n\nNo global financial news found on Reddit.`;
         }
-        
-        newsStr += `[View on Reddit](https://reddit.com${post.url})\n\n`;
-      }
 
-      const beforeDate = new Date(startDate);
-      beforeDate.setDate(beforeDate.getDate() - lookBackDays);
+        this.logger.info('global-news-fetched', 'Global news fetched successfully from Reddit', {
+          postsCount: globalPosts.length,
+          startDate,
+          lookBackDays
+        });
 
-      return `## Global News Reddit, from ${beforeDate.toISOString().split('T')[0]} to ${startDate}:\n\n${newsStr}`;
-    } catch (error) {
+        let newsStr = '';
+        for (const post of globalPosts) {
+          const createdDate = new Date(post.createdUtc).toLocaleDateString();
+          newsStr += `### ${post.title} (r/${post.subreddit || 'unknown'}, ${createdDate})\n\n`;
+          newsStr += `Score: ${post.score} | Comments: ${post.numComments}\n\n`;
+          
+          if (post.content && post.content.length > 0) {
+            const preview = post.content.length > 200 ? post.content.substring(0, 200) + '...' : post.content;
+            newsStr += `${preview}\n\n`;
+          }
+          
+          newsStr += `[View on Reddit](https://reddit.com${post.url})\n\n`;
+        }
+
+        const beforeDate = new Date(startDate);
+        beforeDate.setDate(beforeDate.getDate() - lookBackDays);
+
+        return `## Global News Reddit, from ${beforeDate.toISOString().split('T')[0]} to ${startDate}:\n\n${newsStr}`;
+      },
+      REDDIT_API_CONFIG
+    ).catch((error) => {
       this.logger.error('global-news-error', 'Error fetching Reddit global news', {
-        error: error instanceof Error ? error.message : String(error),
-        startDate
+        error: error.message,
+        startDate,
+        lookBackDays
       });
       return this.getFallbackGlobalNews(startDate);
-    }
+    });
   }
 
   /**
-   * Get company-specific news from Reddit
+   * Get company-specific news from Reddit with resilient patterns
    */
   async getCompanyNews(ticker: string, startDate: string, lookBackDays: number, maxLimitPerDay: number): Promise<string> {
-    try {
-      const companyPosts = await this.fetchCompanyPosts(ticker, startDate, lookBackDays, maxLimitPerDay);
-      
-      if (companyPosts.length === 0) {
-        return `## ${ticker} News Reddit:\n\nNo Reddit posts found for ${ticker}.`;
-      }
+    return withDataflowResilience(
+      `reddit-company-news-${ticker}`,
+      async () => {
+        this.logger.info('get-company-news', `Fetching company news for ${ticker} from Reddit`, {
+          ticker,
+          startDate,
+          lookBackDays,
+          maxLimitPerDay
+        });
 
-      let newsStr = '';
-      for (const post of companyPosts) {
-        const createdDate = new Date(post.createdUtc).toLocaleDateString();
-        newsStr += `### ${post.title} (r/${post.subreddit || 'unknown'}, ${createdDate})\n\n`;
-        newsStr += `Score: ${post.score} | Comments: ${post.numComments} | Author: u/${post.author || 'unknown'}\n\n`;
+        const companyPosts = await this.fetchCompanyPosts(ticker, startDate, lookBackDays, maxLimitPerDay);
         
-        if (post.content && post.content.length > 0) {
-          const preview = post.content.length > 200 ? post.content.substring(0, 200) + '...' : post.content;
-          newsStr += `${preview}\n\n`;
+        if (companyPosts.length === 0) {
+          this.logger.warn('no-company-news', `No Reddit posts found for ${ticker}`, {
+            ticker,
+            startDate,
+            lookBackDays
+          });
+          return `## ${ticker} News Reddit:\n\nNo Reddit posts found for ${ticker}.`;
         }
-        
-        newsStr += `[View on Reddit](https://reddit.com${post.url})\n\n`;
-      }
 
-      const beforeDate = new Date(startDate);
-      beforeDate.setDate(beforeDate.getDate() - lookBackDays);
+        this.logger.info('company-news-fetched', `Company news fetched successfully for ${ticker}`, {
+          ticker,
+          postsCount: companyPosts.length,
+          startDate,
+          lookBackDays
+        });
 
-      return `## ${ticker} News Reddit, from ${beforeDate.toISOString().split('T')[0]} to ${startDate}:\n\n${newsStr}`;
-    } catch (error) {
-      console.error(`Error fetching Reddit news for ${ticker}:`, error);
+        let newsStr = '';
+        for (const post of companyPosts) {
+          const createdDate = new Date(post.createdUtc).toLocaleDateString();
+          newsStr += `### ${post.title} (r/${post.subreddit || 'unknown'}, ${createdDate})\n\n`;
+          newsStr += `Score: ${post.score} | Comments: ${post.numComments} | Author: u/${post.author || 'unknown'}\n\n`;
+          
+          if (post.content && post.content.length > 0) {
+            const preview = post.content.length > 200 ? post.content.substring(0, 200) + '...' : post.content;
+            newsStr += `${preview}\n\n`;
+          }
+          
+          newsStr += `[View on Reddit](https://reddit.com${post.url})\n\n`;
+        }
+
+        const beforeDate = new Date(startDate);
+        beforeDate.setDate(beforeDate.getDate() - lookBackDays);
+
+        return `## ${ticker} News Reddit, from ${beforeDate.toISOString().split('T')[0]} to ${startDate}:\n\n${newsStr}`;
+      },
+      REDDIT_API_CONFIG
+    ).catch((error) => {
+      this.logger.error('company-news-error', `Error fetching Reddit news for ${ticker}`, {
+        ticker,
+        startDate,
+        lookBackDays,
+        error: error.message
+      });
       return this.getFallbackNews(ticker, startDate);
-    }
+    });
   }
 
   /**

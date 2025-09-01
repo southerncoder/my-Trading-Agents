@@ -1,5 +1,6 @@
 
-import { logger } from '../../utils/enhanced-logger';
+import { createLogger } from '../../utils/enhanced-logger';
+import { withLLMResilience, OPENAI_LLM_CONFIG, createResilientLLM } from '../../utils/resilient-llm';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { StructuredTool } from '@langchain/core/tools';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
@@ -11,6 +12,9 @@ import { AgentState, AgentStateHelpers } from '../../types/agent-states';
  * Advocates for aggressive risk-taking strategies
  */
 export class RiskyAnalyst extends AbstractAgent {
+  private readonly logger = createLogger('agent', 'RiskyAnalyst');
+  private readonly resilientLLM: BaseChatModel;
+
   constructor(llm: BaseChatModel, tools?: StructuredTool[]) {
     super(
       'Risky Analyst',
@@ -18,70 +22,93 @@ export class RiskyAnalyst extends AbstractAgent {
       llm,
       tools
     );
+    
+    // Create resilient LLM wrapper with OpenAI-optimized configuration
+    this.resilientLLM = createResilientLLM(llm, OPENAI_LLM_CONFIG);
+    
+    this.logger.info('constructor', 'RiskyAnalyst initialized with resilient LLM wrapper', {
+      llmType: llm.constructor.name,
+      hasTools: tools ? tools.length > 0 : false,
+      toolCount: tools ? tools.length : 0
+    });
   }
 
   async process(state: AgentState): Promise<Partial<AgentState>> {
-    try {
-      // Create system prompt
-      const systemPrompt = this.getSystemPrompt();
-      
-      // Create human message with context from trading plan
-      const humanMessage = this.createRiskAnalysisRequest(state);
-      
-      // Invoke LLM
-      const response = await this.invokeLLM([
-        new SystemMessage(systemPrompt),
-        humanMessage,
-      ]);
+    this.logger.info('process', 'Starting risky analysis', {
+      company: state.company_of_interest,
+      tradeDate: state.trade_date,
+      hasTradingPlan: !!state.trader_investment_plan,
+      riskDebateCount: state.risk_debate_state?.count || 0
+    });
 
-      // Extract risky analysis from response
-      let riskyAnalysis = '';
-      if (typeof response.content === 'string') {
-        riskyAnalysis = response.content;
-      } else if (Array.isArray(response.content)) {
-        riskyAnalysis = response.content
-          .map(item => {
-            if (typeof item === 'string') {
-              return item;
-            } else if (typeof item === 'object' && 'text' in item) {
-              return (item as any).text;
-            } else {
-              return '';
-            }
-          })
-          .filter(text => text.length > 0)
-          .join('\n');
-      }
+    return await withLLMResilience(
+      'risky_analysis',
+      async () => {
+        // Create system prompt
+        const systemPrompt = this.getSystemPrompt();
+        
+        // Create human message with context from trading plan
+        const humanMessage = this.createRiskAnalysisRequest(state);
+        
+        this.logger.debug('process', 'Invoking resilient LLM for risky analysis', {
+          systemPromptLength: systemPrompt.length,
+          humanMessageLength: typeof humanMessage.content === 'string' ? humanMessage.content.length : 0
+        });
+        
+        // Invoke resilient LLM
+        const response = await this.resilientLLM.invoke([
+          new SystemMessage(systemPrompt),
+          humanMessage,
+        ]);
 
-      // Update risk debate state
-      const currentRiskState = state.risk_debate_state || AgentStateHelpers.createInitialRiskDebateState();
-      
-      const updatedRiskState = {
-        ...currentRiskState,
-        risky_history: currentRiskState.risky_history ? 
-          `${currentRiskState.risky_history}\n\n${riskyAnalysis}` : 
-          riskyAnalysis,
-        current_risky_response: riskyAnalysis,
-        latest_speaker: this.name,
-        count: currentRiskState.count + 1,
-      };
+        // Extract risky analysis from response
+        let riskyAnalysis = '';
+        if (typeof response.content === 'string') {
+          riskyAnalysis = response.content;
+        } else if (Array.isArray(response.content)) {
+          riskyAnalysis = response.content
+            .map(item => {
+              if (typeof item === 'string') {
+                return item;
+              } else if (typeof item === 'object' && 'text' in item) {
+                return (item as any).text;
+              } else {
+                return '';
+              }
+            })
+            .filter(text => text.length > 0)
+            .join('\n');
+        }
 
-      // Add response message to state
-      const updatedMessages = [...state.messages, response];
+        this.logger.info('process', 'Risky analysis completed', {
+          analysisLength: riskyAnalysis.length,
+          company: state.company_of_interest
+        });
 
-      return {
-        messages: updatedMessages,
-        risk_debate_state: updatedRiskState,
-        sender: this.name,
-      };
-    } catch (error) {
-      logger.error('agent', this.name, 'execution', `Error in ${this.name}`, { 
-        error: error instanceof Error ? error.message : String(error),
-        agentName: this.name,
-        operation: 'processMessage'
-      });
-      throw new Error(`${this.name} failed to process: ${error}`);
-    }
+        // Update risk debate state
+        const currentRiskState = state.risk_debate_state || AgentStateHelpers.createInitialRiskDebateState();
+        
+        const updatedRiskState = {
+          ...currentRiskState,
+          risky_history: currentRiskState.risky_history ? 
+            `${currentRiskState.risky_history}\n\n${riskyAnalysis}` : 
+            riskyAnalysis,
+          current_risky_response: riskyAnalysis,
+          latest_speaker: this.name,
+          count: currentRiskState.count + 1,
+        };
+
+        // Add response message to state
+        const updatedMessages = [...state.messages, response];
+
+        return {
+          messages: updatedMessages,
+          risk_debate_state: updatedRiskState,
+          sender: this.name,
+        };
+      },
+      OPENAI_LLM_CONFIG
+    );
   }
 
   getSystemPrompt(): string {

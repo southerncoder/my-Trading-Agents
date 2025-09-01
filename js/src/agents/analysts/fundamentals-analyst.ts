@@ -3,13 +3,17 @@ import { StructuredTool } from '@langchain/core/tools';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AbstractAgent } from '../base/index';
 import { AgentState } from '../../types/agent-states';
-import { logger } from '../../utils/enhanced-logger';
+import { createLogger } from '../../utils/enhanced-logger';
+import { withLLMResilience, OPENAI_LLM_CONFIG, createResilientLLM } from '../../utils/resilient-llm';
 
 /**
  * Fundamentals Analyst Agent
  * Analyzes company fundamentals and financial metrics
  */
 export class FundamentalsAnalyst extends AbstractAgent {
+  private readonly logger = createLogger('agent', 'FundamentalsAnalyst');
+  private readonly resilientLLM: BaseChatModel;
+
   constructor(llm: BaseChatModel, tools: StructuredTool[]) {
     super(
       'Fundamentals Analyst',
@@ -17,9 +21,24 @@ export class FundamentalsAnalyst extends AbstractAgent {
       llm,
       tools
     );
+    
+    // Create resilient LLM wrapper with OpenAI-optimized configuration
+    this.resilientLLM = createResilientLLM(llm, OPENAI_LLM_CONFIG);
+    
+    this.logger.info('constructor', 'FundamentalsAnalyst initialized with resilient LLM wrapper', {
+      llmType: llm.constructor.name,
+      hasTools: tools.length > 0,
+      toolCount: tools.length
+    });
   }
 
   async process(state: AgentState): Promise<Partial<AgentState>> {
+    this.logger.info('process', 'Starting fundamentals analysis process', {
+      company: state.company_of_interest,
+      tradeDate: state.trade_date,
+      hasFundamentalsReport: !!state.fundamentals_report
+    });
+
     try {
       // Create system prompt
       const systemPrompt = this.getSystemPrompt();
@@ -27,11 +46,27 @@ export class FundamentalsAnalyst extends AbstractAgent {
       // Create human message with context
       const humanMessage = this.createAnalysisRequest(state);
       
-      // Invoke LLM with tools
-      const response = await this.invokeLLM([
-        new SystemMessage(systemPrompt),
-        humanMessage,
-      ]);
+      this.logger.debug('process', 'Prepared LLM messages for fundamentals analysis', {
+        systemPromptLength: systemPrompt.length,
+        humanMessageLength: humanMessage.content.toString().length
+      });
+
+      // Use resilient LLM wrapper for analysis
+      const response = await withLLMResilience(
+        'FundamentalsAnalyst.analyze',
+        async () => {
+          return await this.resilientLLM.invoke([
+            new SystemMessage(systemPrompt),
+            humanMessage,
+          ]);
+        },
+        OPENAI_LLM_CONFIG
+      );
+
+      this.logger.info('process', 'LLM fundamentals analysis completed successfully', {
+        responseType: typeof response.content,
+        hasToolCalls: response.tool_calls && response.tool_calls.length > 0
+      });
 
       // Extract fundamentals report from response
       let fundamentalsReport = '';
@@ -52,6 +87,11 @@ export class FundamentalsAnalyst extends AbstractAgent {
           .join('\n');
       }
 
+      this.logger.info('process', 'Fundamentals analysis extracted successfully', {
+        reportLength: fundamentalsReport.length,
+        company: state.company_of_interest
+      });
+
       // Add response message to state
       const updatedMessages = [...state.messages, response];
 
@@ -61,12 +101,16 @@ export class FundamentalsAnalyst extends AbstractAgent {
         sender: this.name,
       };
     } catch (error) {
-      logger.error('agent', this.name, 'execution', `Error in ${this.name}`, { 
-        error: error instanceof Error ? error.message : String(error),
-        agentName: this.name,
-        operation: 'processMessage'
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      
+      this.logger.error('process', `Fundamentals analysis failed for ${state.company_of_interest}`, {
+        error: errorMsg,
+        company: state.company_of_interest,
+        tradeDate: state.trade_date,
+        errorType: error instanceof Error ? error.constructor.name : 'Unknown'
       });
-      throw new Error(`${this.name} failed to process: ${error}`);
+      
+      throw new Error(`${this.name} failed to process: ${errorMsg}`);
     }
   }
 
@@ -134,11 +178,25 @@ Keep your analysis thorough, data-driven, and focused on long-term fundamental v
 
   canProcess(state: AgentState): boolean {
     // Fundamentals analyst can process if basic state is valid and no fundamentals report exists yet
-    return super.canProcess(state) && !state.fundamentals_report;
+    const canProcess = super.canProcess(state) && !state.fundamentals_report;
+    
+    this.logger.debug('canProcess', 'Evaluating if FundamentalsAnalyst can process state', {
+      basicCanProcess: super.canProcess(state),
+      hasFundamentalsReport: !!state.fundamentals_report,
+      finalCanProcess: canProcess,
+      company: state.company_of_interest
+    });
+    
+    return canProcess;
   }
 
   private createAnalysisRequest(state: AgentState): HumanMessage {
     const { company_of_interest, trade_date } = state;
+    
+    this.logger.debug('createAnalysisRequest', 'Creating fundamentals analysis request prompt', {
+      company: company_of_interest,
+      tradeDate: trade_date
+    });
     
     const prompt = `Perform a comprehensive fundamental analysis for ${company_of_interest} as of ${trade_date}.
 

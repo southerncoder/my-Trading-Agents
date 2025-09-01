@@ -4,6 +4,7 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AbstractAgent } from '../base/index';
 import { AgentState } from '../../types/agent-states';
 import { createLogger } from '../../utils/enhanced-logger';
+import { withLLMResilience, OPENAI_LLM_CONFIG, createResilientLLM } from '../../utils/resilient-llm';
 
 /**
  * Social Analyst Agent
@@ -11,6 +12,7 @@ import { createLogger } from '../../utils/enhanced-logger';
  */
 export class SocialAnalyst extends AbstractAgent {
   private readonly logger = createLogger('agent', 'SocialAnalyst');
+  private readonly resilientLLM: BaseChatModel;
   
   constructor(llm: BaseChatModel, tools: StructuredTool[]) {
     super(
@@ -19,9 +21,24 @@ export class SocialAnalyst extends AbstractAgent {
       llm,
       tools
     );
+    
+    // Create resilient LLM wrapper with OpenAI-optimized configuration
+    this.resilientLLM = createResilientLLM(llm, OPENAI_LLM_CONFIG);
+    
+    this.logger.info('constructor', 'SocialAnalyst initialized with resilient LLM wrapper', {
+      llmType: llm.constructor.name,
+      hasTools: tools.length > 0,
+      toolCount: tools.length
+    });
   }
 
   async process(state: AgentState): Promise<Partial<AgentState>> {
+    this.logger.info('process', 'Starting social sentiment analysis process', {
+      company: state.company_of_interest,
+      tradeDate: state.trade_date,
+      hasSentimentReport: !!state.sentiment_report
+    });
+
     try {
       // Create system prompt
       const systemPrompt = this.getSystemPrompt();
@@ -29,11 +46,27 @@ export class SocialAnalyst extends AbstractAgent {
       // Create human message with context
       const humanMessage = this.createAnalysisRequest(state);
       
-      // Invoke LLM with tools
-      const response = await this.invokeLLM([
-        new SystemMessage(systemPrompt),
-        humanMessage,
-      ]);
+      this.logger.debug('process', 'Prepared LLM messages for social sentiment analysis', {
+        systemPromptLength: systemPrompt.length,
+        humanMessageLength: humanMessage.content.toString().length
+      });
+
+      // Use resilient LLM wrapper for analysis
+      const response = await withLLMResilience(
+        'SocialAnalyst.analyze',
+        async () => {
+          return await this.resilientLLM.invoke([
+            new SystemMessage(systemPrompt),
+            humanMessage,
+          ]);
+        },
+        OPENAI_LLM_CONFIG
+      );
+
+      this.logger.info('process', 'LLM social sentiment analysis completed successfully', {
+        responseType: typeof response.content,
+        hasToolCalls: response.tool_calls && response.tool_calls.length > 0
+      });
 
       // Extract sentiment report from response
       let sentimentReport = '';
@@ -54,6 +87,11 @@ export class SocialAnalyst extends AbstractAgent {
           .join('\n');
       }
 
+      this.logger.info('process', 'Social sentiment analysis extracted successfully', {
+        reportLength: sentimentReport.length,
+        company: state.company_of_interest
+      });
+
       // Add response message to state
       const updatedMessages = [...state.messages, response];
 
@@ -64,8 +102,15 @@ export class SocialAnalyst extends AbstractAgent {
       };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      this.logger.error('process', `Error in ${this.name}: ${errorMsg}`);
-      throw new Error(`${this.name} failed to process: ${error}`);
+      
+      this.logger.error('process', `Social sentiment analysis failed for ${state.company_of_interest}`, {
+        error: errorMsg,
+        company: state.company_of_interest,
+        tradeDate: state.trade_date,
+        errorType: error instanceof Error ? error.constructor.name : 'Unknown'
+      });
+      
+      throw new Error(`${this.name} failed to process: ${errorMsg}`);
     }
   }
 
@@ -122,11 +167,25 @@ Keep your analysis balanced, fact-based, and focused on actionable social sentim
 
   canProcess(state: AgentState): boolean {
     // Social analyst can process if basic state is valid and no sentiment report exists yet
-    return super.canProcess(state) && !state.sentiment_report;
+    const canProcess = super.canProcess(state) && !state.sentiment_report;
+    
+    this.logger.debug('canProcess', 'Evaluating if SocialAnalyst can process state', {
+      basicCanProcess: super.canProcess(state),
+      hasSentimentReport: !!state.sentiment_report,
+      finalCanProcess: canProcess,
+      company: state.company_of_interest
+    });
+    
+    return canProcess;
   }
 
   private createAnalysisRequest(state: AgentState): HumanMessage {
     const { company_of_interest, trade_date } = state;
+    
+    this.logger.debug('createAnalysisRequest', 'Creating social sentiment analysis request prompt', {
+      company: company_of_interest,
+      tradeDate: trade_date
+    });
     
     const prompt = `Perform a comprehensive social sentiment analysis for ${company_of_interest} as of ${trade_date}.
 

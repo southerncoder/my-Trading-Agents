@@ -37,13 +37,12 @@ services:
       SMALL_MODEL_NAME: dolphin-2.9-llama3-8b
       LLM_TEMPERATURE: 0.1
       SEMAPHORE_LIMIT: 5
-      PORT: 8000
     env_file:
       - .env.local
     volumes:
-      - ./secrets/start-wrapper.sh:/start-wrapper.sh:ro
+      - ./secrets/simple-init.py:/init.py:ro
       - ./graph_service/zep_graphiti.py:/app/graph_service/zep_graphiti.py:ro
-    command: ["/bin/sh", "/start-wrapper.sh", "/bin/sh", "-c", "uvicorn graph_service.main:app --host 0.0.0.0 --port $$PORT"]
+    command: ["python3", "/init.py", "uvicorn", "graph_service.main:app", "--host", "0.0.0.0", "--port", "8000"]
     secrets:
       - openai_api_key
       - embedder_api_key

@@ -19,8 +19,7 @@ js/tests/
 ├── memory/                    # Memory system tests
 │   ├── memory-fallback.test.ts   # Memory fallback mechanisms
 │   ├── memory-providers.test.ts  # Memory provider tests
-│   ├── test-zep-simple.ts       # Zep memory simple tests
-│   └── test-zep-graphiti-memory.ts # Zep Graphiti memory tests
+│   └── lmstudio-embedding.spec.ts # LM Studio baseURL + gating
 ├── models/                    # Model provider tests
 │   ├── lmstudio-singleton.test.ts # LM Studio singleton pattern
 │   ├── test-lmstudio-admin.spec.ts # LM Studio admin interface
@@ -38,7 +37,10 @@ All sensitive configuration now uses environment variables:
 cp .env.example .env
 
 # Edit .env with your values:
-REMOTE_LM_STUDIO_URL=http://your-server:port/v1
+# Preferred base URL for OpenAI-compatible servers (LM Studio)
+LM_STUDIO_BASE_URL=http://your-server:port/v1
+# Alternatively, use OPENAI_BASE_URL; precedence is OPENAI_BASE_URL > LM_STUDIO_BASE_URL > LLM_BACKEND_URL
+# OPENAI_BASE_URL=http://your-server:port/v1
 ZEP_SERVICE_URL=http://localhost:8000
 OPENAI_API_KEY=your_key_here
 ANTHROPIC_API_KEY=your_key_here
@@ -71,12 +73,12 @@ ANTHROPIC_API_KEY=your_key_here
 ## 🚀 Running Tests
 
 ### Quick Start
-```bash
+```
 # Setup environment
 cp .env.example .env
 # Edit .env with your values
 
-# Run specific test categories
+# Run specific test categories (vite-node for script-style, Jest for unit)
 npx vite-node tests/integration/remote-lmstudio.test.ts
 npx vite-node tests/config/basic-config.test.ts
 npx vite-node tests/models/lmstudio-singleton.test.ts
@@ -120,19 +122,12 @@ npm run test-agent-integration
 npm run test-agent-performance
 ```
 
-### Additional Test Files (Moved from Root)
-```bash
-# CLI-specific debug testing
-node tests/test-cli-debug.js
-
-# Detailed output format testing
-node tests/test-detailed-output.js
-
-# Display system testing
-node tests/test-display-system.js
-
-# Final integration testing
-node tests/test-final-integration.js
+### Examples (moved from tests)
+Script-style demos are now under `js/examples/` and run with vite-node:
+```
+npx vite-node examples/memory/test-zep-graphiti-memory.ts
+npx vite-node examples/memory/test-zep-integration.js
+npx vite-node examples/memory/test-advanced-memory-phase6-simple.js
 ```
 
 ## 📋 Prerequisites
@@ -235,7 +230,7 @@ node tests/test-final-integration.js
 
 ### 1. Connection Issues
 ```bash
-# Check if LM Studio is accessible
+# Check if LM Studio is accessible (OpenAI-compatible route)
 curl http://localhost:1234/v1/models
 
 # Expected response: JSON with model list

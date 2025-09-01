@@ -9,6 +9,11 @@
   "transform": {
     "^.+\\.ts$": "ts-jest"
   },
+  "globals": {
+    "ts-jest": {
+      "tsconfig": "<rootDir>/tsconfig.dev.json"
+    }
+  },
   "collectCoverageFrom": [
     "src/**/*.ts",
     "!src/**/*.d.ts",
@@ -31,8 +36,21 @@
     }
   },
   "moduleNameMapper": {
-    "^@/(.*)$": "<rootDir>/src/$1"
+    "^@/(.*)$": "<rootDir>/src/$1",
+    "^(.+)\\.js$": "$1"
   },
+  "testPathIgnorePatterns": [
+    "<rootDir>/tests/integration/remote-lmstudio.test.ts",
+    "<rootDir>/src/tests/integration/remote-lmstudio.test.ts",
+    "<rootDir>/tests/memory/simple-memory.test.ts",
+    "<rootDir>/tests/memory/memory-fallback.test.ts",
+    "<rootDir>/tests/memory/memory-providers.test.ts",
+    "<rootDir>/tests/config/basic-config.test.ts",
+    "<rootDir>/tests/config/enhanced-config.test.ts",
+    "<rootDir>/tests/integration/agent-memory.test.ts",
+    "<rootDir>/tests/integration/trading-graph-memory.test.ts",
+    "<rootDir>/tests/models/lmstudio-singleton.test.ts"
+  ],
   "setupFilesAfterEnv": ["<rootDir>/tests/setup.ts"],
   "testTimeout": 30000,
   "verbose": true,

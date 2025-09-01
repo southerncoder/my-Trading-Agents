@@ -44,15 +44,32 @@ Multi-agent system with specialized roles:
 Create a `.env` file in the `js/` directory:
 
 ```bash
-# Required: LLM Provider Configuration
-OPENAI_API_KEY=your_openai_key
-# OR
-ANTHROPIC_API_KEY=your_anthropic_key
-# OR configure local LM Studio/Ollama endpoints
+# LLM Provider (openai | lm_studio | google | anthropic | ollama)
+LLM_PROVIDER=openai
+
+# OpenAI-compatible base URL precedence:
+# 1) OPENAI_BASE_URL  2) LM_STUDIO_BASE_URL  3) LLM_BACKEND_URL
+# If any is set, OpenAI-compatible clients can operate without a real key (dummy key allowed).
+OPENAI_BASE_URL=
+LM_STUDIO_BASE_URL=
+LLM_BACKEND_URL=https://api.openai.com/v1
+
+# API Keys (set only what you use)
+OPENAI_API_KEY=
+ANTHROPIC_API_KEY=
+GOOGLE_API_KEY=
+
+# Embedding controls: local fallback is DISABLED in production unless true
+ALLOW_LOCAL_EMBEDDING=false
+
+# Optional logging
+LOG_LEVEL=info
 
 # Optional: Memory Services
 ZEP_SERVICE_URL=http://localhost:8000
 ```
+
+Secret policy: never commit secrets or keys. Use environment variables only. `.env*` files are gitignored; use the provided `.env.example` and `py_zep/.env.example` as templates. For local LM Studio, set `LM_STUDIO_BASE_URL=http://localhost:1234/v1` and omit `OPENAI_API_KEY`.
 
 ## 🧪 Development
 
