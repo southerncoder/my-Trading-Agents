@@ -22,7 +22,7 @@ export class DisplaySystem {
       console.log(chalk.bold('Workflow Steps:'));
       console.log('I. Analyst Team → II. Research Team → III. Trader → IV. Risk Management → V. Portfolio Management');
       console.log();
-      console.log(chalk.dim('Built by Tauric Research (https://github.com/TauricResearch)'));
+      console.log(chalk.dim('Improved by Southerncoder (https://github.com/southerncoder)'));
       console.log();
     } catch (_error) {
       // Fallback if welcome file doesn't exist
@@ -34,7 +34,7 @@ export class DisplaySystem {
       console.log(chalk.bold('Workflow Steps:'));
       console.log('I. Analyst Team → II. Research Team → III. Trader → IV. Risk Management → V. Portfolio Management');
       console.log();
-      console.log(chalk.dim('Built by Tauric Research'));
+      console.log(chalk.dim('Improved by Southerncoder'));
       console.log();
     }
   }
@@ -69,7 +69,7 @@ export class DisplaySystem {
   private displayHeader(): void {
     console.log(chalk.green('┌─────────────────────────────────────────────────────────────┐'));
     console.log(chalk.green('│') + ' ' + chalk.bold.green('Welcome to TradingAgents CLI').padEnd(59) + chalk.green('│'));
-    console.log(chalk.green('│') + ' ' + chalk.dim('© Tauric Research (https://github.com/TauricResearch)').padEnd(59) + chalk.green('│'));
+    console.log(chalk.green('│') + ' ' + chalk.dim('© Southerncoder (https://github.com/southerncoder)').padEnd(59) + chalk.green('│'));
     console.log(chalk.green('└─────────────────────────────────────────────────────────────┘'));
     console.log();
   }

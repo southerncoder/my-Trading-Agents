@@ -1,5 +1,5 @@
 {
-  "name": "trading-agents-ts",
+  "name": "my-trading-agents-ts",
   "version": "0.1.0",
   "type": "module",
   "description": "Multi-Agents LLM Financial Trading Framework - TypeScript Implementation",
@@ -144,7 +144,7 @@
     "langgraph",
     "langchain"
   ],
-  "author": "TauricResearch",
+  "author": "southernCoder",
   "license": "MIT",
   "repository": {
     "type": "git",
