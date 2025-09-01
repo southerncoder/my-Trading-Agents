@@ -1,5 +1,6 @@
 import { TradingAgentsConfig } from '@/types/config';
 import axios from 'axios';
+import { createLogger } from '../utils/enhanced-logger.js';
 
 // News API interfaces
 interface NewsApiArticle {
@@ -27,6 +28,7 @@ interface NewsApiResponse {
 export class GoogleNewsAPI {
   private config: TradingAgentsConfig;
   private apiKey: string | undefined;
+  private logger = createLogger('dataflow', 'google-news-api');
 
   constructor(config: TradingAgentsConfig) {
     this.config = config;
@@ -39,7 +41,11 @@ export class GoogleNewsAPI {
   async getNews(query: string, currDate: string, lookBackDays: number): Promise<string> {
     try {
       if (!this.apiKey) {
-        console.warn('NEWS_API_KEY not set, using fallback news data');
+        this.logger.warn('api-key-missing', 'NEWS_API_KEY not set, using fallback news data', {
+          query,
+          currDate,
+          lookBackDays
+        });
         return this.getFallbackNews(query, currDate);
       }
 
@@ -89,7 +95,13 @@ export class GoogleNewsAPI {
 
       return `## ${query} News, from ${fromDate} to ${toDate}:\n\nFound ${response.data.articles.length} articles\n\n${newsStr}`;
     } catch (error) {
-      console.error(`Error fetching news for ${query}:`, error);
+      this.logger.error('news-fetch-error', `Error fetching news for ${query}`, {
+        query,
+        currDate,
+        lookBackDays,
+        error: error instanceof Error ? error.message : String(error),
+        apiKey: this.apiKey ? 'present' : 'missing'
+      });
       
       if (axios.isAxiosError(error) && error.response?.status === 429) {
         return `## ${query} News API Rate Limited\n\nRate limit exceeded for news API. Please try again later.`;

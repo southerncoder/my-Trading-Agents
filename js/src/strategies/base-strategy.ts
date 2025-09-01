@@ -10,6 +10,7 @@
  */
 
 import { TradingAgentsConfig } from '../config';
+import { createLogger } from '../utils/enhanced-logger.js';
 
 /**
  * Signal types for trading decisions
@@ -153,6 +154,7 @@ export abstract class BaseTradingStrategy implements ITradingStrategy {
   protected readonly tradingConfig: TradingAgentsConfig;
   protected performance: StrategyPerformance;
   protected signalHistory: TradingSignal[];
+  protected logger = createLogger('agent', 'base-strategy');
   
   constructor(
     public readonly name: string,
@@ -200,17 +202,26 @@ export abstract class BaseTradingStrategy implements ITradingStrategy {
     try {
       // Basic validation
       if (!this.config.name || this.config.name.trim() === '') {
-        console.error(`${this.name}: Strategy name is required`);
+        this.logger.error('validation-error', 'Strategy name is required', {
+          strategy: this.name,
+          configName: this.config.name
+        });
         return false;
       }
 
       if (this.config.maxPositionSize <= 0 || this.config.maxPositionSize > 1) {
-        console.error(`${this.name}: Invalid max position size. Must be between 0 and 1`);
+        this.logger.error('validation-error', 'Invalid max position size. Must be between 0 and 1', {
+          strategy: this.name,
+          maxPositionSize: this.config.maxPositionSize
+        });
         return false;
       }
 
       if (this.config.lookbackPeriod <= 0) {
-        console.error(`${this.name}: Lookback period must be positive`);
+        this.logger.error('validation-error', 'Lookback period must be positive', {
+          strategy: this.name,
+          lookbackPeriod: this.config.lookbackPeriod
+        });
         return false;
       }
 
@@ -218,7 +229,10 @@ export abstract class BaseTradingStrategy implements ITradingStrategy {
       return this.validateStrategySpecific();
 
     } catch (error) {
-      console.error(`${this.name}: Validation error:`, error);
+      this.logger.error('validation-error', 'Strategy validation failed', {
+        strategy: this.name,
+        error: error instanceof Error ? error.message : String(error)
+      });
       return false;
     }
   }
@@ -248,7 +262,11 @@ export abstract class BaseTradingStrategy implements ITradingStrategy {
     
     // Re-validate after config update
     if (!this.validate()) {
-      console.warn(`${this.name}: Configuration update resulted in invalid state`);
+      this.logger.warn('config-invalid', 'Configuration update resulted in invalid state', {
+        strategy: this.name,
+        newConfig: JSON.stringify(newConfig),
+        currentConfig: JSON.stringify(this.config)
+      });
     }
   }
 
@@ -393,6 +411,7 @@ export abstract class BaseTradingStrategy implements ITradingStrategy {
  */
 export class StrategyFactory {
   private static strategies: Map<string, new (...args: any[]) => ITradingStrategy> = new Map();
+  private static logger = createLogger('agent', 'strategy-factory');
 
   /**
    * Register a strategy class
@@ -407,14 +426,21 @@ export class StrategyFactory {
   static create(name: string, config: StrategyConfig, ...args: any[]): ITradingStrategy | null {
     const StrategyClass = this.strategies.get(name);
     if (!StrategyClass) {
-      console.error(`Strategy '${name}' not found in factory`);
+      this.logger.error('strategy-not-found', `Strategy '${name}' not found in factory`, {
+        requestedStrategy: name,
+        availableStrategies: Array.from(this.strategies.keys())
+      });
       return null;
     }
 
     try {
       return new StrategyClass(config, ...args);
     } catch (error) {
-      console.error(`Error creating strategy '${name}':`, error);
+      this.logger.error('strategy-creation-failed', `Error creating strategy '${name}'`, {
+        strategyName: name,
+        error: error instanceof Error ? error.message : String(error),
+        config: JSON.stringify(config)
+      });
       return null;
     }
   }

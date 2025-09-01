@@ -18,6 +18,7 @@ import {
   StrategyConfig 
 } from './base-strategy';
 import { TradingAgentsConfig } from '../config';
+import { createLogger } from '../utils/enhanced-logger.js';
 
 /**
  * Range Breakout Strategy
@@ -34,6 +35,7 @@ export class RangeBreakoutStrategy extends BaseTradingStrategy {
   private rangeThreshold: number; // Minimum range width as percentage
   private breakoutThreshold: number; // Percentage beyond range for confirmation
   private volumeMultiplier: number; // Volume required for confirmation
+  private logger = createLogger('agent', 'range-breakout-strategy');
 
   constructor(config: StrategyConfig, tradingConfig: TradingAgentsConfig) {
     super(
@@ -162,7 +164,13 @@ export class RangeBreakoutStrategy extends BaseTradingStrategy {
       }
 
     } catch (error) {
-      console.error(`Error in Range Breakout analysis:`, error);
+      this.logger.error('analysis-error', 'Error in Range Breakout analysis', { 
+        error: error instanceof Error ? error.message : String(error),
+        consolidationPeriod: this.consolidationPeriod,
+        rangeThreshold: this.rangeThreshold,
+        breakoutThreshold: this.breakoutThreshold,
+        dataPoints: marketData.length
+      });
     }
 
     return signals;
@@ -350,12 +358,18 @@ export class RangeBreakoutStrategy extends BaseTradingStrategy {
    */
   protected validateStrategySpecific(): boolean {
     if (this.rangeThreshold <= 0 || this.rangeThreshold > 0.1) {
-      console.error(`${this.name}: Range threshold should be between 0 and 0.1`);
+      this.logger.error('validation-error', 'Range threshold should be between 0 and 0.1', {
+        rangeThreshold: this.rangeThreshold,
+        strategy: this.name
+      });
       return false;
     }
 
     if (this.volumeMultiplier < 1) {
-      console.error(`${this.name}: Volume multiplier should be at least 1`);
+      this.logger.error('validation-error', 'Volume multiplier should be at least 1', {
+        volumeMultiplier: this.volumeMultiplier,
+        strategy: this.name
+      });
       return false;
     }
 
@@ -378,6 +392,7 @@ export class VolatilityBreakoutStrategy extends BaseTradingStrategy {
   private lowVolatilityThreshold: number; // ATR percentile for low volatility
   private breakoutMultiplier: number; // ATR multiplier for breakout detection
   private lookbackPeriod: number;
+  private logger = createLogger('agent', 'volatility-breakout-strategy');
 
   constructor(config: StrategyConfig, tradingConfig: TradingAgentsConfig) {
     super(
@@ -463,7 +478,13 @@ export class VolatilityBreakoutStrategy extends BaseTradingStrategy {
       }
 
     } catch (error) {
-      console.error(`Error in Volatility Breakout analysis:`, error);
+      this.logger.error('analysis-error', 'Error in Volatility Breakout analysis', { 
+        error: error instanceof Error ? error.message : String(error),
+        atrPeriod: this.atrPeriod,
+        lowVolatilityThreshold: this.lowVolatilityThreshold,
+        breakoutMultiplier: this.breakoutMultiplier,
+        dataPoints: marketData.length
+      });
     }
 
     return signals;
@@ -609,12 +630,18 @@ export class VolatilityBreakoutStrategy extends BaseTradingStrategy {
    */
   protected validateStrategySpecific(): boolean {
     if (this.lowVolatilityThreshold <= 0 || this.lowVolatilityThreshold >= 1) {
-      console.error(`${this.name}: Low volatility threshold should be between 0 and 1`);
+      this.logger.error('validation-error', 'Low volatility threshold should be between 0 and 1', {
+        lowVolatilityThreshold: this.lowVolatilityThreshold,
+        strategy: this.name
+      });
       return false;
     }
 
     if (this.breakoutMultiplier < 1) {
-      console.error(`${this.name}: Breakout multiplier should be at least 1`);
+      this.logger.error('validation-error', 'Breakout multiplier should be at least 1', {
+        breakoutMultiplier: this.breakoutMultiplier,
+        strategy: this.name
+      });
       return false;
     }
 

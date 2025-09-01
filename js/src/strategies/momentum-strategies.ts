@@ -20,6 +20,7 @@ import {
   RiskLevel 
 } from './base-strategy';
 import { TradingAgentsConfig } from '../config';
+import { createLogger } from '../utils/enhanced-logger.js';
 
 /**
  * Moving Average Crossover Strategy
@@ -36,6 +37,7 @@ export class MovingAverageCrossoverStrategy extends BaseTradingStrategy {
   private slowPeriod: number;
   private maType: 'SMA' | 'EMA';
   private volumeConfirmation: boolean;
+  private logger = createLogger('agent', 'MA-crossover-strategy');
 
   constructor(config: StrategyConfig, tradingConfig: TradingAgentsConfig) {
     super(
@@ -138,8 +140,13 @@ export class MovingAverageCrossoverStrategy extends BaseTradingStrategy {
       }
 
     } catch (error) {
-      // TODO: Implement proper logging
-      console.error(`Error in MA Crossover analysis:`, error);
+      this.logger.error('analysis-error', 'Error in MA Crossover analysis', { 
+        error: error instanceof Error ? error.message : String(error),
+        fastPeriod: this.fastPeriod,
+        slowPeriod: this.slowPeriod,
+        maType: this.maType,
+        dataPoints: marketData.length
+      });
     }
 
     return signals;
@@ -278,12 +285,20 @@ export class MovingAverageCrossoverStrategy extends BaseTradingStrategy {
    */
   protected validateStrategySpecific(): boolean {
     if (this.fastPeriod >= this.slowPeriod) {
-      console.error(`${this.name}: Fast period must be less than slow period`);
+      this.logger.error('validation-error', 'Fast period must be less than slow period', {
+        fastPeriod: this.fastPeriod,
+        slowPeriod: this.slowPeriod,
+        strategy: this.name
+      });
       return false;
     }
     
     if (this.fastPeriod < 1 || this.slowPeriod < 1) {
-      console.error(`${this.name}: MA periods must be positive`);
+      this.logger.error('validation-error', 'MA periods must be positive', {
+        fastPeriod: this.fastPeriod,
+        slowPeriod: this.slowPeriod,
+        strategy: this.name
+      });
       return false;
     }
     
@@ -306,6 +321,7 @@ export class MACDStrategy extends BaseTradingStrategy {
   private slowPeriod: number;
   private signalPeriod: number;
   private useHistogram: boolean;
+  private logger = createLogger('agent', 'MACD-strategy');
 
   constructor(config: StrategyConfig, tradingConfig: TradingAgentsConfig) {
     super(
@@ -400,7 +416,13 @@ export class MACDStrategy extends BaseTradingStrategy {
       // TODO: Add divergence detection
 
     } catch (error) {
-      console.error(`Error in MACD analysis:`, error);
+      this.logger.error('analysis-error', 'Error in MACD analysis', { 
+        error: error instanceof Error ? error.message : String(error),
+        fastPeriod: this.fastPeriod,
+        slowPeriod: this.slowPeriod,
+        signalPeriod: this.signalPeriod,
+        dataPoints: marketData.length
+      });
     }
 
     return signals;
@@ -538,12 +560,19 @@ export class MACDStrategy extends BaseTradingStrategy {
    */
   protected validateStrategySpecific(): boolean {
     if (this.fastPeriod >= this.slowPeriod) {
-      console.error(`${this.name}: Fast period must be less than slow period`);
+      this.logger.error('validation-error', 'Fast period must be less than slow period', {
+        fastPeriod: this.fastPeriod,
+        slowPeriod: this.slowPeriod,
+        strategy: this.name
+      });
       return false;
     }
     
     if (this.signalPeriod < 1) {
-      console.error(`${this.name}: Signal period must be positive`);
+      this.logger.error('validation-error', 'Signal period must be positive', {
+        signalPeriod: this.signalPeriod,
+        strategy: this.name
+      });
       return false;
     }
     
@@ -565,6 +594,7 @@ export class RSIMomentumStrategy extends BaseTradingStrategy {
   private oversoldLevel: number;
   private overboughtLevel: number;
   private useDivergence: boolean;
+  private logger = createLogger('agent', 'RSI-momentum-strategy');
 
   constructor(config: StrategyConfig, tradingConfig: TradingAgentsConfig) {
     super(
@@ -651,7 +681,13 @@ export class RSIMomentumStrategy extends BaseTradingStrategy {
       // TODO: Add RSI failure swings
 
     } catch (error) {
-      console.error(`Error in RSI analysis:`, error);
+      this.logger.error('analysis-error', 'Error in RSI analysis', { 
+        error: error instanceof Error ? error.message : String(error),
+        rsiPeriod: this.rsiPeriod,
+        oversoldLevel: this.oversoldLevel,
+        overboughtLevel: this.overboughtLevel,
+        dataPoints: marketData.length
+      });
     }
 
     return signals;
@@ -747,12 +783,20 @@ export class RSIMomentumStrategy extends BaseTradingStrategy {
    */
   protected validateStrategySpecific(): boolean {
     if (this.oversoldLevel >= this.overboughtLevel) {
-      console.error(`${this.name}: Oversold level must be less than overbought level`);
+      this.logger.error('validation-error', 'Oversold level must be less than overbought level', {
+        oversoldLevel: this.oversoldLevel,
+        overboughtLevel: this.overboughtLevel,
+        strategy: this.name
+      });
       return false;
     }
     
     if (this.oversoldLevel < 0 || this.overboughtLevel > 100) {
-      console.error(`${this.name}: RSI levels must be between 0 and 100`);
+      this.logger.error('validation-error', 'RSI levels must be between 0 and 100', {
+        oversoldLevel: this.oversoldLevel,
+        overboughtLevel: this.overboughtLevel,
+        strategy: this.name
+      });
       return false;
     }
     

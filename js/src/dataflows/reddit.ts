@@ -1,6 +1,7 @@
 import { TradingAgentsConfig } from '@/types/config';
 import { RedditPost } from '@/types/dataflows';
 import axios from 'axios';
+import { createLogger } from '../utils/enhanced-logger.js';
 
 // Reddit API interfaces
 interface RedditApiResponse {
@@ -29,6 +30,7 @@ export class RedditAPI {
   private config: TradingAgentsConfig;
   private accessToken: string | null = null;
   private tokenExpiry: Date | null = null;
+  private logger = createLogger('dataflow', 'reddit-api');
 
   constructor(config: TradingAgentsConfig) {
     this.config = config;
@@ -43,7 +45,10 @@ export class RedditAPI {
       const clientSecret = process.env.REDDIT_CLIENT_SECRET;
 
       if (!clientId || !clientSecret) {
-        console.warn('Reddit API credentials not configured');
+        this.logger.warn('credentials-missing', 'Reddit API credentials not configured', {
+          clientId: clientId ? 'present' : 'missing',
+          clientSecret: clientSecret ? 'present' : 'missing'
+        });
         return null;
       }
 
@@ -71,7 +76,9 @@ export class RedditAPI {
       
       return this.accessToken;
     } catch (error) {
-      console.error('Error getting Reddit access token:', error);
+      this.logger.error('token-error', 'Error getting Reddit access token', {
+        error: error instanceof Error ? error.message : String(error)
+      });
       return null;
     }
   }
@@ -106,7 +113,10 @@ export class RedditAPI {
 
       return `## Global News Reddit, from ${beforeDate.toISOString().split('T')[0]} to ${startDate}:\n\n${newsStr}`;
     } catch (error) {
-      console.error('Error fetching Reddit global news:', error);
+      this.logger.error('global-news-error', 'Error fetching Reddit global news', {
+        error: error instanceof Error ? error.message : String(error),
+        startDate
+      });
       return this.getFallbackGlobalNews(startDate);
     }
   }

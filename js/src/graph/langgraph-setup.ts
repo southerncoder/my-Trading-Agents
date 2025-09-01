@@ -60,25 +60,59 @@ const TradingAgentState = Annotation.Root({
  * Handles the setup and configuration of the LangGraph agent workflow
  */
 export class LangGraphSetup {
-  private quickThinkingModel: BaseChatModel;
-  private deepThinkingModel: BaseChatModel;
+  private quickThinkingModel: BaseChatModel | undefined;
+  private deepThinkingModel: BaseChatModel | undefined;
   private conditionalLogic: ConditionalLogic;
   private config: TradingAgentsConfig;
+  private quickThinkingModelPromise: Promise<BaseChatModel>;
+  private deepThinkingModelPromise: Promise<BaseChatModel>;
 
   constructor(setupConfig: GraphSetupConfig) {
-    this.quickThinkingModel = ModelProvider.createModel(setupConfig.modelConfigs.quickThinking);
-    this.deepThinkingModel = ModelProvider.createModel(setupConfig.modelConfigs.deepThinking);
+    // Initialize models asynchronously
+    this.quickThinkingModelPromise = ModelProvider.createModelAsync(setupConfig.modelConfigs.quickThinking);
+    this.deepThinkingModelPromise = ModelProvider.createModelAsync(setupConfig.modelConfigs.deepThinking);
     this.conditionalLogic = new ConditionalLogic();
     this.config = setupConfig.config;
   }
 
   /**
+   * Initialize the models asynchronously
+   */
+  async initializeModels(): Promise<void> {
+    this.quickThinkingModel = await this.quickThinkingModelPromise;
+    this.deepThinkingModel = await this.deepThinkingModelPromise;
+  }
+
+  /**
+   * Get quick thinking model (with null check)
+   */
+  private getQuickThinkingModel(): BaseChatModel {
+    if (!this.quickThinkingModel) {
+      throw new Error('Quick thinking model not initialized. Call initializeModels() first.');
+    }
+    return this.quickThinkingModel;
+  }
+
+  /**
+   * Get deep thinking model (with null check)
+   */
+  private getDeepThinkingModel(): BaseChatModel {
+    if (!this.deepThinkingModel) {
+      throw new Error('Deep thinking model not initialized. Call initializeModels() first.');
+    }
+    return this.deepThinkingModel;
+  }
+
+  /**
    * Set up and compile the agent workflow graph
    */
-  setupGraph(selectedAnalysts: AnalystType[] = ['market', 'social', 'news', 'fundamentals']) {
+  async setupGraph(selectedAnalysts: AnalystType[] = ['market', 'social', 'news', 'fundamentals']) {
     if (selectedAnalysts.length === 0) {
       throw new Error('Trading Agents Graph Setup Error: no analysts selected!');
     }
+
+    // Ensure models are initialized
+    await this.initializeModels();
 
     // Create the state graph
     const workflow = new StateGraph(TradingAgentState);
@@ -104,7 +138,7 @@ export class LangGraphSetup {
    */
   private addAnalystNodes(workflow: StateGraph<typeof TradingAgentState>, selectedAnalysts: AnalystType[]) {
     if (selectedAnalysts.includes('market')) {
-      const marketAnalyst = new MarketAnalyst(this.quickThinkingModel, []);
+      const marketAnalyst = new MarketAnalyst(this.getQuickThinkingModel(), []);
       workflow.addNode('MarketAnalyst', async (state: typeof TradingAgentState.State) => {
         const result = await marketAnalyst.process(state as AgentState);
         return result;
@@ -113,7 +147,7 @@ export class LangGraphSetup {
     }
 
     if (selectedAnalysts.includes('social')) {
-      const socialAnalyst = new SocialAnalyst(this.quickThinkingModel, []);
+      const socialAnalyst = new SocialAnalyst(this.getQuickThinkingModel(), []);
       workflow.addNode('SocialAnalyst', async (state: typeof TradingAgentState.State) => {
         const result = await socialAnalyst.process(state as AgentState);
         return result;
@@ -122,7 +156,7 @@ export class LangGraphSetup {
     }
 
     if (selectedAnalysts.includes('news')) {
-      const newsAnalyst = new NewsAnalyst(this.quickThinkingModel, []);
+      const newsAnalyst = new NewsAnalyst(this.getQuickThinkingModel(), []);
       workflow.addNode('NewsAnalyst', async (state: typeof TradingAgentState.State) => {
         const result = await newsAnalyst.process(state as AgentState);
         return result;
@@ -131,7 +165,7 @@ export class LangGraphSetup {
     }
 
     if (selectedAnalysts.includes('fundamentals')) {
-      const fundamentalsAnalyst = new FundamentalsAnalyst(this.quickThinkingModel, []);
+      const fundamentalsAnalyst = new FundamentalsAnalyst(this.getQuickThinkingModel(), []);
       workflow.addNode('FundamentalsAnalyst', async (state: typeof TradingAgentState.State) => {
         const result = await fundamentalsAnalyst.process(state as AgentState);
         return result;
@@ -144,9 +178,9 @@ export class LangGraphSetup {
    * Add research nodes to the workflow
    */
   private addResearchNodes(workflow: StateGraph<typeof TradingAgentState>) {
-    const bullResearcher = new BullResearcher(this.quickThinkingModel, []);
-    const bearResearcher = new BearResearcher(this.quickThinkingModel, []);
-    const researchManager = new ResearchManager(this.deepThinkingModel, []);
+    const bullResearcher = new BullResearcher(this.getQuickThinkingModel(), []);
+    const bearResearcher = new BearResearcher(this.getQuickThinkingModel(), []);
+    const researchManager = new ResearchManager(this.getDeepThinkingModel(), []);
 
     workflow.addNode('BullResearcher', async (state: typeof TradingAgentState.State) => {
       const result = await bullResearcher.process(state as AgentState);
@@ -163,7 +197,7 @@ export class LangGraphSetup {
       return result;
     });
 
-    const trader = new Trader(this.quickThinkingModel, []);
+    const trader = new Trader(this.getQuickThinkingModel(), []);
     workflow.addNode('Trader', async (state: typeof TradingAgentState.State) => {
       const result = await trader.process(state as AgentState);
       return result;
@@ -174,9 +208,9 @@ export class LangGraphSetup {
    * Add risk analysis nodes to the workflow
    */
   private addRiskAnalysisNodes(workflow: StateGraph<typeof TradingAgentState>) {
-    const riskyAnalyst = new RiskyAnalyst(this.quickThinkingModel, []);
-    const neutralAnalyst = new NeutralAnalyst(this.quickThinkingModel, []);
-    const safeAnalyst = new SafeAnalyst(this.quickThinkingModel, []);
+    const riskyAnalyst = new RiskyAnalyst(this.getQuickThinkingModel(), []);
+    const neutralAnalyst = new NeutralAnalyst(this.getQuickThinkingModel(), []);
+    const safeAnalyst = new SafeAnalyst(this.getQuickThinkingModel(), []);
 
     workflow.addNode('RiskyAnalyst', async (state: typeof TradingAgentState.State) => {
       const result = await riskyAnalyst.process(state as AgentState);

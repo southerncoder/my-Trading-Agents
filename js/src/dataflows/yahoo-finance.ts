@@ -1,11 +1,13 @@
 import { TradingAgentsConfig } from '@/types/config';
 import yahooFinance from 'yahoo-finance2';
+import { createLogger } from '../utils/enhanced-logger.js';
 
 /**
  * Yahoo Finance API wrapper using the official node-yahoo-finance2 library
  */
 export class YahooFinanceAPI {
   private config: TradingAgentsConfig;
+  private logger = createLogger('dataflow', 'yahoo-finance');
 
   constructor(config: TradingAgentsConfig) {
     this.config = config;
@@ -60,7 +62,12 @@ export class YahooFinanceAPI {
 
       return header + timestamp + csvData;
     } catch (error) {
-      console.error(`Error fetching Yahoo Finance data for ${symbol}:`, error);
+      this.logger.error('historical-data-error', `Error fetching Yahoo Finance data for ${symbol}`, {
+        symbol,
+        startDate,
+        endDate,
+        error: error instanceof Error ? error.message : String(error)
+      });
       
       // Fallback to cached data if API fails
       return this.getDataOffline(symbol, startDate, endDate);
@@ -75,7 +82,10 @@ export class YahooFinanceAPI {
       const quote = await yahooFinance.quote(symbol);
       return quote;
     } catch (error) {
-      console.error(`Error fetching quote for ${symbol}:`, error);
+      this.logger.error('quote-fetch-failed', `Error fetching quote for ${symbol}`, {
+        symbol,
+        error: error instanceof Error ? error.message : String(error)
+      });
       throw error;
     }
   }
@@ -88,7 +98,11 @@ export class YahooFinanceAPI {
       const quotes = await yahooFinance.quote(symbols);
       return Array.isArray(quotes) ? quotes : [quotes];
     } catch (error) {
-      console.error(`Error fetching quotes for ${symbols.join(', ')}:`, error);
+      this.logger.error('quotes-fetch-failed', `Error fetching quotes for ${symbols.join(', ')}`, {
+        symbols,
+        symbolCount: symbols.length,
+        error: error instanceof Error ? error.message : String(error)
+      });
       throw error;
     }
   }
@@ -103,7 +117,11 @@ export class YahooFinanceAPI {
       });
       return summary;
     } catch (error) {
-      console.error(`Error fetching quote summary for ${symbol}:`, error);
+      this.logger.error('quote-summary-failed', `Error fetching quote summary for ${symbol}`, {
+        symbol,
+        modules,
+        error: error instanceof Error ? error.message : String(error)
+      });
       throw error;
     }
   }
@@ -116,7 +134,10 @@ export class YahooFinanceAPI {
       const results = await yahooFinance.search(query);
       return results;
     } catch (error) {
-      console.error(`Error searching for ${query}:`, error);
+      this.logger.error('symbol-search-failed', `Error searching for ${query}`, {
+        query,
+        error: error instanceof Error ? error.message : String(error)
+      });
       throw error;
     }
   }
@@ -131,7 +152,12 @@ export class YahooFinanceAPI {
       });
       return fundamentals;
     } catch (error) {
-      console.error(`Error fetching fundamentals for ${symbol}:`, error);
+      this.logger.error('fundamentals-fetch-failed', `Error fetching fundamentals for ${symbol}`, {
+        symbol,
+        startDate,
+        modules: ['defaultKeyStatistics', 'financialData', 'summaryProfile', 'earningsHistory'],
+        error: error instanceof Error ? error.message : String(error)
+      });
       throw error;
     }
   }
@@ -168,7 +194,12 @@ export class YahooFinanceAPI {
 
       return `## Raw Market Data for ${symbol} from ${startDate} to ${endDate}:\n\n` + filteredLines.join('\n');
     } catch (error) {
-      console.error(`Error reading cached data for ${symbol}:`, error);
+      this.logger.error('cached-data-read-failed', `Error reading cached data for ${symbol}`, {
+        symbol,
+        startDate,
+        endDate,
+        error: error instanceof Error ? error.message : String(error)
+      });
       
       // Return minimal mock data as last resort
       return this.generateMockData(symbol, startDate, endDate);

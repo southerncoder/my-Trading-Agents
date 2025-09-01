@@ -1,5 +1,6 @@
 import { ChatOpenAI } from '@langchain/openai';
 import { TradingAgentsConfig } from '../types/config';
+import { createLogger } from '../utils/enhanced-logger.js';
 
 /**
  * OpenAI-powered data analysis API
@@ -7,6 +8,7 @@ import { TradingAgentsConfig } from '../types/config';
 export class OpenAIDataAPI {
   private config: TradingAgentsConfig;
   private client: ChatOpenAI;
+  private logger = createLogger('dataflow', 'openai-data-api');
 
   constructor(config: TradingAgentsConfig) {
     this.config = config;
@@ -51,7 +53,11 @@ Format the response as a comprehensive analysis with specific examples and senti
       
       return `## Social Media Analysis for ${ticker} around ${currDate}:\n\n${content}`;
     } catch (error) {
-      console.error(`Error fetching stock news for ${ticker}:`, error);
+      this.logger.error('stock-news-error', `Error fetching stock news for ${ticker}`, {
+        ticker,
+        currDate,
+        error: error instanceof Error ? error.message : String(error)
+      });
       return `Error fetching stock news for ${ticker}: ${error}`;
     }
   }
@@ -85,7 +91,10 @@ Format as a comprehensive trading-focused analysis with specific impact assessme
       
       return `## Global Economic News around ${currDate}:\n\n${content}`;
     } catch (error) {
-      console.error('Error fetching global news:', error);
+      this.logger.error('global-news-error', 'Error fetching global news', {
+        currDate,
+        error: error instanceof Error ? error.message : String(error)
+      });
       return `Error fetching global news: ${error}`;
     }
   }
@@ -120,7 +129,11 @@ Format as a comprehensive table with financial metrics and detailed analysis of 
       
       return `## Fundamental Analysis for ${ticker} around ${currDate}:\n\n${content}`;
     } catch (error) {
-      console.error(`Error fetching fundamentals for ${ticker}:`, error);
+      this.logger.error('fundamentals-error', `Error fetching fundamentals for ${ticker}`, {
+        ticker,
+        currDate,
+        error: error instanceof Error ? error.message : String(error)
+      });
       return `Error fetching fundamentals for ${ticker}: ${error}`;
     }
   }

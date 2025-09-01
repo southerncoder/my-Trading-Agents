@@ -18,6 +18,7 @@ import {
   StrategyConfig 
 } from './base-strategy';
 import { TradingAgentsConfig } from '../config';
+import { createLogger } from '../utils/enhanced-logger.js';
 
 /**
  * Bollinger Bands Mean Reversion Strategy
@@ -34,6 +35,7 @@ export class BollingerBandsMeanReversionStrategy extends BaseTradingStrategy {
   private standardDeviations: number;
   private bandTouchThreshold: number;
   private requireVolumeConfirmation: boolean;
+  private logger = createLogger('agent', 'bollinger-bands-strategy');
 
   constructor(config: StrategyConfig, tradingConfig: TradingAgentsConfig) {
     super(
@@ -153,7 +155,13 @@ export class BollingerBandsMeanReversionStrategy extends BaseTradingStrategy {
       // TODO: Add band expansion/contraction signals
 
     } catch (error) {
-      console.error(`Error in Bollinger Bands analysis:`, error);
+      this.logger.error('analysis-error', 'Error in Bollinger Bands analysis', { 
+        error: error instanceof Error ? error.message : String(error),
+        period: this.period,
+        standardDeviations: this.standardDeviations,
+        bandTouchThreshold: this.bandTouchThreshold,
+        dataPoints: marketData.length
+      });
     }
 
     return signals;
@@ -275,12 +283,18 @@ export class BollingerBandsMeanReversionStrategy extends BaseTradingStrategy {
    */
   protected validateStrategySpecific(): boolean {
     if (this.standardDeviations <= 0) {
-      console.error(`${this.name}: Standard deviations must be positive`);
+      this.logger.error('validation-error', 'Standard deviations must be positive', {
+        standardDeviations: this.standardDeviations,
+        strategy: this.name
+      });
       return false;
     }
     
     if (this.bandTouchThreshold < 0 || this.bandTouchThreshold > 0.1) {
-      console.error(`${this.name}: Band touch threshold should be between 0 and 0.1`);
+      this.logger.error('validation-error', 'Band touch threshold should be between 0 and 0.1', {
+        bandTouchThreshold: this.bandTouchThreshold,
+        strategy: this.name
+      });
       return false;
     }
     
@@ -302,6 +316,7 @@ export class PriceActionMeanReversionStrategy extends BaseTradingStrategy {
   private lookbackPeriod: number;
   private extremeThreshold: number; // Percentage for price extremes
   private supportResistanceStrength: number; // Minimum touches for S/R level
+  private logger = createLogger('agent', 'price-action-strategy');
 
   constructor(config: StrategyConfig, tradingConfig: TradingAgentsConfig) {
     super(
@@ -406,7 +421,13 @@ export class PriceActionMeanReversionStrategy extends BaseTradingStrategy {
       }
 
     } catch (error) {
-      console.error(`Error in Price Action analysis:`, error);
+      this.logger.error('analysis-error', 'Error in Price Action analysis', { 
+        error: error instanceof Error ? error.message : String(error),
+        lookbackPeriod: this.lookbackPeriod,
+        extremeThreshold: this.extremeThreshold,
+        supportResistanceStrength: this.supportResistanceStrength,
+        dataPoints: marketData.length
+      });
     }
 
     return signals;
@@ -594,12 +615,18 @@ export class PriceActionMeanReversionStrategy extends BaseTradingStrategy {
    */
   protected validateStrategySpecific(): boolean {
     if (this.extremeThreshold <= 0 || this.extremeThreshold > 0.1) {
-      console.error(`${this.name}: Extreme threshold should be between 0 and 0.1`);
+      this.logger.error('validation-error', 'Extreme threshold should be between 0 and 0.1', {
+        extremeThreshold: this.extremeThreshold,
+        strategy: this.name
+      });
       return false;
     }
     
     if (this.supportResistanceStrength < 2) {
-      console.error(`${this.name}: Support/Resistance strength should be at least 2`);
+      this.logger.error('validation-error', 'Support/Resistance strength should be at least 2', {
+        supportResistanceStrength: this.supportResistanceStrength,
+        strategy: this.name
+      });
       return false;
     }
     
