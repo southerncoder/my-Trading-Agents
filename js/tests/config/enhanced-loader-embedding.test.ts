@@ -58,7 +58,7 @@ describe('EnhancedConfigLoader embedding model opt-in', () => {
   const mapping = require(mappingPath);
     mapping['market_analyst'] = {
       provider: 'lm_studio',
-      model: 'text-embedding-nomic-embed-text-v1.5',
+      model: 'text-embedding-qwen3-embedding-4b',
       allowEmbeddingModel: false
     };
 
@@ -93,7 +93,7 @@ describe('EnhancedConfigLoader embedding model opt-in', () => {
   const mapping = require(mappingPath);
     mapping['market_analyst'] = {
       provider: 'lm_studio',
-      model: 'text-embedding-nomic-embed-text-v1.5',
+      model: 'text-embedding-qwen3-embedding-4b',
       allowEmbeddingModel: true
     };
     const fs = require('fs');

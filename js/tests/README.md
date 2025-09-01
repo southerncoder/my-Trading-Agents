@@ -1,8 +1,8 @@
-# 🧪 Agent Testing Suite for LM Studio
+# 🧪 Agent Testing Suite
 
 ## Overview
 
-This comprehensive testing suite validates that all 12 TradingAgents work correctly with LM Studio using the `microsoft/phi-4-mini-reasoning` model. The tests ensure proper connectivity, agent instantiation, processing capabilities, and performance characteristics.
+This comprehensive testing suite validates that all 12 TradingAgents work correctly with the configured LLM provider and model. The tests ensure proper connectivity, agent instantiation, processing capabilities, and performance characteristics.
 
 ## 🎯 Agents Tested
 
@@ -23,10 +23,10 @@ This comprehensive testing suite validates that all 12 TradingAgents work correc
 
 ## 🚀 Quick Start
 
-### 1. Setup LM Studio
+### 1. Setup LLM Provider
 ```bash
-# First, verify LM Studio is properly configured
-npm run test-lmstudio-setup
+# Verify LLM provider configuration
+npm run test-llm-setup
 ```
 
 ### 2. Run Comprehensive Tests

@@ -3,7 +3,7 @@
     "provider": "lm_studio",
     "model": "openai/gpt-oss-20b",
   "allowEmbeddingModel": false,
-  "embeddingModel": "text-embedding-nomic-embed-text-v1.5",
+  "embeddingModel": "",
     "confidence": "high",
     "reasons": ["text-generation", "large reasoning capacity", "mxfp4 quantization support", "apache-2.0 license"],
     "notes": "High-quality local text-generation model available in LM Studio; good for technical analysis summaries."
@@ -12,7 +12,7 @@
     "provider": "lm_studio",
     "model": "mistralai/Devstral-Small-2507",
   "allowEmbeddingModel": false,
-  "embeddingModel": "text-embedding-nomic-embed-text-v1.5",
+  "embeddingModel": "",
     "confidence": "medium",
     "reasons": ["small/fast => good for high-throughput news parsing", "mistral family, instruction-tuned"],
     "notes": "Smaller instruct-tuned Mistral model suitable for summarization and news extraction."
@@ -21,7 +21,7 @@
     "provider": "lm_studio",
     "model": "openai/gpt-oss-20b",
   "allowEmbeddingModel": false,
-  "embeddingModel": "text-embedding-nomic-embed-text-v1.5",
+  "embeddingModel": "",
     "confidence": "medium-high",
     "reasons": ["deep reasoning useful for fundamentals", "HF metadata available"],
     "notes": "Gemma-3 provides robust reasoning when available; fallback to gpt-oss-20b for consistent availability."
@@ -30,7 +30,7 @@
     "provider": "lm_studio",
     "model": "mistralai/Devstral-Small-2507",
   "allowEmbeddingModel": false,
-  "embeddingModel": "text-embedding-nomic-embed-text-v1.5",
+  "embeddingModel": "",
     "confidence": "medium",
     "reasons": ["lower latency for many short calls", "multilingual tags present"],
     "notes": "Efficient for social sentiment and short-context reasoning."
@@ -60,7 +60,7 @@
     "provider": "lm_studio",
     "model": "openai/gpt-oss-20b",
   "allowEmbeddingModel": false,
-  "embeddingModel": "text-embedding-nomic-embed-text-v1.5",
+  "embeddingModel": "",
     "confidence": "medium",
     "reasons": ["high-capacity model for aggressive scenario analysis"],
     "notes": "High-capacity model for aggressive scenario analysis."
@@ -69,7 +69,7 @@
     "provider": "lm_studio",
     "model": "mistralai/Devstral-Small-2507",
   "allowEmbeddingModel": false,
-  "embeddingModel": "text-embedding-nomic-embed-text-v1.5",
+  "embeddingModel": "",
     "confidence": "medium",
     "reasons": ["conservative, smaller instruct model to produce restrained outputs"],
     "notes": "Conservative, smaller instruct model to produce restrained outputs."
@@ -78,7 +78,7 @@
     "provider": "lm_studio",
     "model": "qwen/qwen3-1.7b",
   "allowEmbeddingModel": false,
-  "embeddingModel": "text-embedding-nomic-embed-text-v1.5",
+  "embeddingModel": "",
     "confidence": "low",
     "reasons": ["balanced but smaller model; HF metadata not fetched yet"],
     "notes": "Balanced model for neutral analysis."

@@ -198,7 +198,7 @@ export const DEFAULT_AGENT_CONFIGS: AgentTypeConfigs = {
                        process.env.ANALYSTS_LLM_MAX_TOKENS || '1500')
   ,
   allowEmbeddingModel: false,
-  embeddingModel: 'text-embedding-nomic-embed-text-v1.5'
+  embeddingModel: process.env.EMBEDDING_MODEL || ''
   },
   
   socialAnalyst: {
@@ -214,7 +214,7 @@ export const DEFAULT_AGENT_CONFIGS: AgentTypeConfigs = {
                        process.env.ANALYSTS_LLM_MAX_TOKENS || '1500')
   ,
   allowEmbeddingModel: false,
-  embeddingModel: 'text-embedding-nomic-embed-text-v1.5'
+  embeddingModel: process.env.EMBEDDING_MODEL || ''
   },
   
   newsAnalyst: {
@@ -230,7 +230,7 @@ export const DEFAULT_AGENT_CONFIGS: AgentTypeConfigs = {
                        process.env.ANALYSTS_LLM_MAX_TOKENS || '1500')
   ,
   allowEmbeddingModel: false,
-  embeddingModel: 'text-embedding-nomic-embed-text-v1.5'
+  embeddingModel: process.env.EMBEDDING_MODEL || ''
   },
   
   fundamentalsAnalyst: {
@@ -246,7 +246,7 @@ export const DEFAULT_AGENT_CONFIGS: AgentTypeConfigs = {
                        process.env.ANALYSTS_LLM_MAX_TOKENS || '2000')
   ,
   allowEmbeddingModel: false,
-  embeddingModel: 'text-embedding-nomic-embed-text-v1.5'
+  embeddingModel: process.env.EMBEDDING_MODEL || ''
   },
   
   // Researchers - more powerful models for complex reasoning
@@ -303,7 +303,7 @@ export const DEFAULT_AGENT_CONFIGS: AgentTypeConfigs = {
                        process.env.RISK_ANALYSTS_LLM_MAX_TOKENS || '2000')
   ,
   allowEmbeddingModel: false,
-  embeddingModel: 'text-embedding-nomic-embed-text-v1.5'
+  embeddingModel: process.env.EMBEDDING_MODEL || ''
   },
   
   safeAnalyst: {
@@ -319,7 +319,7 @@ export const DEFAULT_AGENT_CONFIGS: AgentTypeConfigs = {
                        process.env.RISK_ANALYSTS_LLM_MAX_TOKENS || '2000')
   ,
   allowEmbeddingModel: false,
-  embeddingModel: 'text-embedding-nomic-embed-text-v1.5'
+  embeddingModel: process.env.EMBEDDING_MODEL || ''
   },
   
   neutralAnalyst: {
@@ -335,7 +335,7 @@ export const DEFAULT_AGENT_CONFIGS: AgentTypeConfigs = {
                        process.env.RISK_ANALYSTS_LLM_MAX_TOKENS || '2000')
   ,
   allowEmbeddingModel: false,
-  embeddingModel: 'text-embedding-nomic-embed-text-v1.5'
+  embeddingModel: process.env.EMBEDDING_MODEL || ''
   },
   
   portfolioManager: {
