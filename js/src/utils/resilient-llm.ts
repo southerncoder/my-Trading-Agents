@@ -21,6 +21,7 @@ import { createLogger } from './enhanced-logger';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { BaseMessage } from '@langchain/core/messages';
 import { CallbackManagerForLLMRun } from '@langchain/core/callbacks/manager';
+import { getMeter, ENABLE_OTEL } from '../observability/opentelemetry-setup';
 
 // Types for resilient LLM
 export interface LLMConfig {
@@ -82,8 +83,27 @@ export class LLMMetricsCollector {
   private responseTimes: number[] = [];
   private readonly maxResponseTimesSamples = 100;
 
+  // Optional OpenTelemetry instruments
+  private callCounter?: any;
+  private successCounter?: any;
+  private failureCounter?: any;
+
+  constructor() {
+    if (ENABLE_OTEL) {
+      try {
+        const meter = getMeter('resilient-llm');
+        this.callCounter = meter.createCounter('llm_calls_total', { description: 'Total LLM calls' } as any);
+        this.successCounter = meter.createCounter('llm_success_total', { description: 'Successful LLM calls' } as any);
+        this.failureCounter = meter.createCounter('llm_failure_total', { description: 'Failed LLM calls' } as any);
+      } catch (err) {
+        // If OpenTelemetry not available at runtime, continue with in-memory metrics
+      }
+    }
+  }
+
   recordCall(): void {
     this.metrics.totalCalls++;
+    try { this.callCounter?.add(1); } catch (err) { /* ignore */ }
   }
 
   recordSuccess(responseTime: number, tokensUsed?: number, cost?: number): void {
@@ -98,12 +118,14 @@ export class LLMMetricsCollector {
     if (cost) {
       this.metrics.estimatedCost += cost;
     }
+    try { this.successCounter?.add(1, { response_time_ms: responseTime }); } catch (err) { /* ignore */ }
   }
 
   recordFailure(error: string): void {
     this.metrics.failedCalls++;
     this.metrics.lastError = error;
     this.metrics.lastFailure = new Date();
+    try { this.failureCounter?.add(1, { error: error }); } catch (err) { /* ignore */ }
   }
 
   recordRetry(): void {

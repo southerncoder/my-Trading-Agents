@@ -18,6 +18,7 @@
 import pRetry from 'p-retry';
 import CircuitBreaker from 'opossum';
 import { createLogger } from './enhanced-logger';
+import { getMeter, ENABLE_OTEL } from '../observability/opentelemetry-setup';
 
 // Types for resilient dataflow
 export interface DataflowConfig {
@@ -74,21 +75,38 @@ export class DataflowMetricsCollector {
 
   private responseTimes: number[] = [];
   private readonly maxResponseTimesSamples = 100;
+  private requestCounter?: any;
+  private successCounter?: any;
+  private failureCounter?: any;
+
+  constructor() {
+    if (ENABLE_OTEL) {
+      try {
+        const meter = getMeter('resilient-dataflow');
+        this.requestCounter = meter.createCounter('dataflow_requests_total', { description: 'Total dataflow requests' } as any);
+        this.successCounter = meter.createCounter('dataflow_success_total', { description: 'Successful dataflow requests' } as any);
+        this.failureCounter = meter.createCounter('dataflow_failure_total', { description: 'Failed dataflow requests' } as any);
+      } catch (err) {}
+    }
+  }
 
   recordRequest(): void {
     this.metrics.totalRequests++;
+    try { this.requestCounter?.add(1); } catch (err) {}
   }
 
   recordSuccess(responseTime: number): void {
     this.metrics.successfulRequests++;
     this.metrics.lastSuccess = new Date();
     this.updateResponseTime(responseTime);
+    try { this.successCounter?.add(1, { response_time_ms: responseTime }); } catch (err) {}
   }
 
   recordFailure(error: string): void {
     this.metrics.failedRequests++;
     this.metrics.lastError = error;
     this.metrics.lastFailure = new Date();
+    try { this.failureCounter?.add(1, { error: error }); } catch (err) {}
   }
 
   recordRetry(): void {

@@ -1,5 +1,6 @@
 // Test enhanced logger to ensure no circular dependencies
-import { logger, createLogger, ErrorSeverity } from './src/utils/enhanced-logger.js';
+import { logger, createLogger } from './src/utils/enhanced-logger.js';
+import { ErrorSeverity } from './src/utils/error-handler.js';
 
 console.log('🧪 Testing Enhanced Logger...');
 

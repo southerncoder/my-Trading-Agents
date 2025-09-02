@@ -13,6 +13,7 @@
 import pRetry, { AbortError } from 'p-retry';
 import CircuitBreaker from 'opossum';
 import { logger } from './enhanced-logger.js';
+import { getMeter, ENABLE_OTEL } from '../observability/opentelemetry-setup';
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
 const ALLOW_STUB_EMBEDDER = (process.env.EMBEDDER_ALLOW_STUB || '').toLowerCase() === 'true';
@@ -59,6 +60,9 @@ class EmbedderMetricsCollector {
   private metrics: EmbedderMetrics;
   private responseTimes: number[] = [];
   private readonly maxResponseTimeHistory = 1000; // Keep last 1000 response times
+  private callCounter?: any;
+  private successCounter?: any;
+  private failureCounter?: any;
   
   constructor() {
     this.metrics = {
@@ -73,6 +77,14 @@ class EmbedderMetricsCollector {
       circuitBreakerState: 'CLOSED',
       responseTimes: []
     };
+    if (ENABLE_OTEL) {
+      try {
+        const meter = getMeter('resilient-embedder');
+        this.callCounter = meter.createCounter('embedder_calls_total', { description: 'Total embedder calls' } as any);
+        this.successCounter = meter.createCounter('embedder_success_total', { description: 'Successful embedder calls' } as any);
+        this.failureCounter = meter.createCounter('embedder_failure_total', { description: 'Failed embedder calls' } as any);
+      } catch (err) {}
+    }
   }
 
   recordCall(responseTime: number, success: boolean, circuitState: string): void {
@@ -98,6 +110,9 @@ class EmbedderMetricsCollector {
       throughput: this.metrics.currentThroughput,
       circuitState
     });
+    try { this.callCounter?.add(1); } catch (err) {}
+    if (success) { try { this.successCounter?.add(1); } catch (err) {} }
+    if (!success) { try { this.failureCounter?.add(1); } catch (err) {} }
   }
 
   private recordResponseTime(responseTime: number): void {
