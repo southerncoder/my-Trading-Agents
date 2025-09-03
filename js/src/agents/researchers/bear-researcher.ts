@@ -1,5 +1,6 @@
 
-import { logger } from '../../utils/enhanced-logger';
+import { createLogger } from '../../utils/enhanced-logger';
+import { withLLMResilience, OPENAI_LLM_CONFIG, createResilientLLM } from '../../utils/resilient-llm';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { StructuredTool } from '@langchain/core/tools';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
@@ -11,6 +12,9 @@ import { AgentState, AgentStateHelpers } from '../../types/agent-states';
  * Argues for negative investment thesis based on analyst reports
  */
 export class BearResearcher extends AbstractAgent {
+  private readonly logger = createLogger('agent', 'BearResearcher');
+  private readonly resilientLLM: BaseChatModel;
+
   constructor(llm: BaseChatModel, tools?: StructuredTool[]) {
     super(
       'Bear Researcher',
@@ -18,9 +22,29 @@ export class BearResearcher extends AbstractAgent {
       llm,
       tools
     );
+    
+    // Create resilient LLM wrapper with OpenAI-optimized configuration
+    this.resilientLLM = createResilientLLM(llm, OPENAI_LLM_CONFIG);
+    
+    this.logger.info('constructor', 'BearResearcher initialized with resilient LLM wrapper', {
+      llmType: llm.constructor.name,
+      hasTools: tools ? tools.length > 0 : false,
+      toolCount: tools ? tools.length : 0
+    });
   }
 
   async process(state: AgentState): Promise<Partial<AgentState>> {
+    this.logger.info('process', 'Starting bear research process', {
+      company: state.company_of_interest,
+      tradeDate: state.trade_date,
+      hasMarketReport: !!state.market_report,
+      hasSentimentReport: !!state.sentiment_report,
+      hasNewsReport: !!state.news_report,
+      hasFundamentalsReport: !!state.fundamentals_report,
+      currentDebateCount: state.investment_debate_state?.count || 0,
+      hasBullHistory: !!(state.investment_debate_state?.bull_history)
+    });
+
     try {
       // Create system prompt
       const systemPrompt = this.getSystemPrompt();
@@ -28,11 +52,27 @@ export class BearResearcher extends AbstractAgent {
       // Create human message with context from analyst reports and bull arguments
       const humanMessage = this.createResearchRequest(state);
       
-      // Invoke LLM
-      const response = await this.invokeLLM([
-        new SystemMessage(systemPrompt),
-        humanMessage,
-      ]);
+      this.logger.debug('process', 'Prepared LLM messages for bear research', {
+        systemPromptLength: systemPrompt.length,
+        humanMessageLength: humanMessage.content.toString().length
+      });
+
+      // Use resilient LLM wrapper for bear research
+      const response = await withLLMResilience(
+        'BearResearcher.research',
+        async () => {
+          return await this.resilientLLM.invoke([
+            new SystemMessage(systemPrompt),
+            humanMessage,
+          ]);
+        },
+        OPENAI_LLM_CONFIG
+      );
+
+      this.logger.info('process', 'LLM bear research completed successfully', {
+        responseType: typeof response.content,
+        hasToolCalls: response.tool_calls && response.tool_calls.length > 0
+      });
 
       // Extract bear argument from response
       let bearArgument = '';
@@ -52,6 +92,11 @@ export class BearResearcher extends AbstractAgent {
           .filter(text => text.length > 0)
           .join('\n');
       }
+
+      this.logger.info('process', 'Bear research argument extracted successfully', {
+        argumentLength: bearArgument.length,
+        company: state.company_of_interest
+      });
 
       // Update investment debate state
       const currentDebateState = state.investment_debate_state || AgentStateHelpers.createInitialInvestDebateState();
@@ -74,12 +119,16 @@ export class BearResearcher extends AbstractAgent {
         sender: this.name,
       };
     } catch (error) {
-      logger.error('agent', this.name, 'execution', `Error in ${this.name}`, { 
-        error: error instanceof Error ? error.message : String(error),
-        agentName: this.name,
-        operation: 'processMessage'
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      
+      this.logger.error('process', `Bear research failed for ${state.company_of_interest}`, {
+        error: errorMsg,
+        company: state.company_of_interest,
+        tradeDate: state.trade_date,
+        errorType: error instanceof Error ? error.constructor.name : 'Unknown'
       });
-      throw new Error(`${this.name} failed to process: ${error}`);
+      
+      throw new Error(`${this.name} failed to process: ${errorMsg}`);
     }
   }
 

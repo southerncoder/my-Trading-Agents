@@ -1,14 +1,31 @@
 # Copilot Instructions for TradingAgents
 
 ## Command Line Requirements
-**MANDATORY**: All commands MUST use PowerShell syntax.
+Use cross-shell friendly commands so contributors on bash/zsh/cmd/PowerShell can run them unchanged. Vite-node drives TS/ESM execution.
 
 ### Standards
-- **Primary Shell**: PowerShell 5.1+ or Core 7+
-- **File Operations**: PowerShell cmdlets (`Remove-Item`, `Copy-Item`, `New-Item`)
-- **Environment Variables**: `$env:VARIABLE_NAME` syntax
-- **Scripts**: All automation as `.ps1` files
-- **Container Integration**: Docker commands wrapped in PowerShell scripts
+- **Shells**: bash/zsh/cmd/PowerShell all supported; prefer `npm run` for portability
+- **Environment Variables**: Prefer `.env` files or `npm run` scripts; per-shell forms are acceptable when needed
+- **Service Scripts**: PowerShell scripts provided for Windows; other shells may run equivalent `docker compose` commands directly
+- **Node/TS Execution**: Use `npx vite-node` or npm scripts that call vite-node
+
+### Cross-Shell Command Chaining Rules
+- Prefer `npm run` scripts to avoid shell differences
+- `&&` works in bash/cmd and PowerShell 7+; in older PowerShell, use `;` or separate lines
+- Conditional chaining in PowerShell: `cmd1; if ($?) { cmd2 }`
+
+Examples:
+```
+# Portable: via npm scripts (any shell)
+npm run build
+npm test
+
+# Chain build then test (bash/cmd/PowerShell 7+)
+npm run build && npm test
+
+# PowerShell portable alternative
+npm run build; if ($?) { npm test }
+```
 
 ### Container-First Architecture
 - **Docker Mandatory**: All services run in containers
@@ -20,6 +37,7 @@
 - **TradingAgents**: Production-ready TypeScript multi-agent LLM trading framework
 - **Status**: ✅ 100% Complete - Production Ready with Enterprise Features (August 30, 2025)
 - **Build System**: Modern Vite-based TypeScript with extensionless imports and ES modules
+- **Execution**: Use vite-node for running TS/ESM scripts in dev/test
 - **Core**: TypeScript in `js/` with LangGraph workflows, modern dependency stack, and 100% test coverage
 - **Memory**: Official Zep Graphiti (`zepai/graphiti:latest`) Docker integration - episodes functional
 - **Performance**: 5 enterprise optimizations (15,000x speedup, 77% memory reduction)
@@ -92,6 +110,15 @@ npm run dev                      # Vite dev server (if needed)
 npm run cli                      # Interactive CLI (uses vite-node)
 ```
 
+### Running TS/ESM scripts with vite-node
+```powershell
+Set-Location js
+npx vite-node tests/config/basic-config.test.ts
+
+# Multiple commands: avoid &&
+npm run build; if ($?) { npx vite-node tests/integration/agent-memory.test.ts }
+```
+
 ### Testing & Validation
 ```powershell
 # Start services first (required for memory tests)
@@ -100,7 +127,7 @@ Set-Location py_zep\
 
 # Run comprehensive test suite (100% pass rate)
 Set-Location ..\js\
-npm run test:all                 # Complete test suite (9/9 tests)
+npm run test:all                 # Complete test suite
 npm run test-enhanced            # Enhanced graph workflow tests
 npm run test-components          # CLI component tests
 npm run test-langgraph           # LangGraph integration tests
@@ -165,10 +192,10 @@ The codebase and tests will read `.env.local` when present. Do not add concrete 
 
 ### Service Management Best Practices
 - **NEVER run services in integrated terminals** - always use dedicated terminal windows
-- **ALWAYS use PowerShell scripts** for service orchestration and automation
+- **Windows**: Use the provided PowerShell scripts for orchestration; **Other shells**: run equivalent `docker compose` commands
 - **ONLY use official Docker images** - zepai/graphiti:latest and neo4j:5.26.0
 - **ALWAYS include health checks** in container configurations
-- **Use `start-zep-services.ps1`** for official Zep Graphiti service management
+- **Use `start-zep-services.ps1`** for official Zep Graphiti service management on Windows
 - **Monitor container logs** through the dedicated service terminal
 - **Test service health** before running integration tests
 - **API Documentation**: Access Swagger docs at http://localhost:8000/docs

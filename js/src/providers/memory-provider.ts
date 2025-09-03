@@ -2,6 +2,8 @@ import { OpenAIEmbeddings } from '@langchain/openai';
 import { GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
 import { LLMProvider } from '../types/config';
 import { AgentLLMConfig } from '../types/agent-config';
+import { embedWithResilience, EmbedderRequest, EmbedderResponse } from '../utils/resilient-embedder.js';
+import { logger } from '../utils/enhanced-logger.js';
 
 /**
  * Abstract interface for memory/embedding providers
@@ -44,7 +46,7 @@ export class EmbeddingProviderFactory {
         // But only if API key is available
         if (config.apiKey || process.env.OPENAI_API_KEY) {
           try {
-            return new OpenAIMemoryProvider(config);
+            return new ResilientOpenAIMemoryProvider(config);
           } catch (error) {
             // If OpenAI fails, fall back to intelligent fallback
             return this.createFallbackProvider(config, config.provider);
@@ -56,7 +58,7 @@ export class EmbeddingProviderFactory {
         // Use Google embeddings for Google providers
         if (config.apiKey || process.env.GOOGLE_API_KEY) {
           try {
-            return new GoogleMemoryProvider(config);
+            return new ResilientGoogleMemoryProvider(config);
           } catch (error) {
             return this.createFallbackProvider(config, config.provider);
           }
@@ -66,10 +68,23 @@ export class EmbeddingProviderFactory {
       case 'anthropic':
         // Anthropic doesn't provide embeddings, use intelligent fallback
         return this.createFallbackProvider(config, 'anthropic');
-      case 'lm_studio':
+      case 'lm_studio': {
+        const baseURL = config.baseUrl || process.env.OPENAI_BASE_URL || process.env.LM_STUDIO_BASE_URL || process.env.LLM_BACKEND_URL;
+        // If LM Studio baseURL is available, treat as OpenAI-compatible
+        if (baseURL) {
+          const openaiCompat: AgentLLMConfig = { ...config, provider: 'openai', apiKey: config.apiKey || 'lm-studio', baseUrl: baseURL } as any;
+          try {
+            return new ResilientOpenAIMemoryProvider(openaiCompat);
+          } catch (error) {
+            return this.createFallbackProvider(config, config.provider);
+          }
+        }
+        // Otherwise, fall back to local simple embeddings
+        return new LocalMemoryProvider(config, config.provider);
+      }
       case 'ollama':
-        // Local providers may not support embeddings, use intelligent fallback
-        return this.createFallbackProvider(config, config.provider);
+        // Local provider; use local simple embeddings by default
+        return new LocalMemoryProvider(config, config.provider);
       default:
         return this.createFallbackProvider(config, 'unknown');
     }
@@ -129,31 +144,74 @@ export class EmbeddingProviderFactory {
 }
 
 /**
- * OpenAI-based memory provider
+ * Enhanced OpenAI-based memory provider with resilience
  */
-export class OpenAIMemoryProvider implements MemoryProvider {
+export class ResilientOpenAIMemoryProvider implements MemoryProvider {
   private embeddings: OpenAIEmbeddings;
+  private config: AgentLLMConfig;
 
   constructor(config: AgentLLMConfig) {
-    const apiKey = config.apiKey || process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      throw new Error('OpenAI API key is required for embeddings');
+    const baseURL = config.baseUrl || process.env.OPENAI_BASE_URL || process.env.LM_STUDIO_BASE_URL || process.env.LLM_BACKEND_URL;
+    const apiKey = config.apiKey || process.env.OPENAI_API_KEY || (baseURL ? 'lm-studio' : undefined);
+    if (!apiKey && !baseURL) {
+      throw new Error('OpenAI embeddings require an API key or a local OpenAI-compatible baseURL');
     }
 
+    this.config = config;
     this.embeddings = new OpenAIEmbeddings({
+      // Accept both cloud and local OpenAI-compatible servers (e.g., LM Studio)
+      // Use the naming style present elsewhere in the repo for consistency
       openAIApiKey: apiKey,
-      modelName: 'text-embedding-3-small',
+      modelName: config.model || 'text-embedding-3-small',
       batchSize: 512,
-      stripNewLines: true
-    });
+      stripNewLines: true,
+      ...(baseURL ? { baseURL } as any : {})
+    } as any);
   }
 
   async embedText(text: string): Promise<number[]> {
-    return await this.embeddings.embedQuery(text);
+    try {
+      // Use resilient embedder for enhanced reliability
+      const request: EmbedderRequest = {
+        text,
+        model: this.config.model || 'text-embedding-3-small'
+      };
+
+      const response = await embedWithResilience(request, {
+        retries: 3,
+        minTimeout: 1000,
+        maxTimeout: 10000
+      });
+
+      return response.embedding;
+    } catch (error) {
+      // Fallback to direct LangChain call if resilient embedder fails
+      logger.warn('system', 'memory-provider', 'openai-fallback', 'Resilient embedder failed, falling back to direct LangChain call', { 
+        error: error instanceof Error ? error.message : String(error) 
+      });
+      return await this.embeddings.embedQuery(text);
+    }
   }
 
   async embedTexts(texts: string[]): Promise<number[][]> {
-    return await this.embeddings.embedDocuments(texts);
+    // For batch operations, process each text individually with resilience
+    const results: number[][] = [];
+    
+    for (const text of texts) {
+      try {
+        const embedding = await this.embedText(text);
+        results.push(embedding);
+      } catch (error) {
+        logger.warn('system', 'memory-provider', 'openai-batch-error', 'Failed to embed text in batch operation', { 
+          textPreview: text.substring(0, 50),
+          error: error instanceof Error ? error.message : String(error) 
+        });
+        // Push empty embedding or fallback
+        results.push(new Array(1536).fill(0)); // OpenAI embedding size
+      }
+    }
+    
+    return results;
   }
 
   calculateSimilarity(embedding1: number[], embedding2: number[]): number {
@@ -161,7 +219,7 @@ export class OpenAIMemoryProvider implements MemoryProvider {
   }
 
   getProviderName(): string {
-    return 'openai';
+    return 'resilient-openai';
   }
 
   private cosineSimilarity(a: number[], b: number[]): number {
@@ -177,28 +235,67 @@ export class OpenAIMemoryProvider implements MemoryProvider {
 }
 
 /**
- * Google-based memory provider
+ * Enhanced Google-based memory provider with resilience
  */
-export class GoogleMemoryProvider implements MemoryProvider {
+export class ResilientGoogleMemoryProvider implements MemoryProvider {
   private embeddings: GoogleGenerativeAIEmbeddings;
+  private config: AgentLLMConfig;
 
   constructor(config: AgentLLMConfig) {
     if (!config.apiKey) {
       throw new Error('Google API key is required for embeddings');
     }
 
+    this.config = config;
     this.embeddings = new GoogleGenerativeAIEmbeddings({
       apiKey: config.apiKey,
-      modelName: 'embedding-001'
+      modelName: config.model || 'embedding-001'
     });
   }
 
   async embedText(text: string): Promise<number[]> {
-    return await this.embeddings.embedQuery(text);
+    try {
+      // Use resilient embedder for enhanced reliability
+      const request: EmbedderRequest = {
+        text,
+        model: this.config.model || 'embedding-001'
+      };
+
+      const response = await embedWithResilience(request, {
+        retries: 3,
+        minTimeout: 1000,
+        maxTimeout: 10000
+      });
+
+      return response.embedding;
+    } catch (error) {
+      // Fallback to direct LangChain call if resilient embedder fails
+      logger.warn('system', 'memory-provider', 'google-fallback', 'Resilient embedder failed, falling back to direct LangChain call', { 
+        error: error instanceof Error ? error.message : String(error) 
+      });
+      return await this.embeddings.embedQuery(text);
+    }
   }
 
   async embedTexts(texts: string[]): Promise<number[][]> {
-    return await this.embeddings.embedDocuments(texts);
+    // For batch operations, process each text individually with resilience
+    const results: number[][] = [];
+    
+    for (const text of texts) {
+      try {
+        const embedding = await this.embedText(text);
+        results.push(embedding);
+      } catch (error) {
+        logger.warn('system', 'memory-provider', 'google-batch-error', 'Failed to embed text in batch operation', { 
+          textPreview: text.substring(0, 50),
+          error: error instanceof Error ? error.message : String(error) 
+        });
+        // Push empty embedding or fallback
+        results.push(new Array(768).fill(0)); // Google embedding size
+      }
+    }
+    
+    return results;
   }
 
   calculateSimilarity(embedding1: number[], embedding2: number[]): number {
@@ -206,7 +303,7 @@ export class GoogleMemoryProvider implements MemoryProvider {
   }
 
   getProviderName(): string {
-    return 'google';
+    return 'resilient-google';
   }
 
   private cosineSimilarity(a: number[], b: number[]): number {
@@ -295,9 +392,9 @@ export class FallbackMemoryProvider implements MemoryProvider {
     
     // Use the provided config which should already be set up for the fallback provider
     if (config.provider === 'openai') {
-      this.provider = new OpenAIMemoryProvider(config);
+      this.provider = new ResilientOpenAIMemoryProvider(config);
     } else if (config.provider === 'google') {
-      this.provider = new GoogleMemoryProvider(config);
+      this.provider = new ResilientGoogleMemoryProvider(config);
     } else {
       // Ultimate fallback to local provider
       this.provider = new LocalMemoryProvider(config, this.originalProvider);
@@ -318,5 +415,98 @@ export class FallbackMemoryProvider implements MemoryProvider {
 
   getProviderName(): string {
     return `${this.originalProvider}-fallback-${this.provider.getProviderName()}`;
+  }
+}
+
+/**
+ * Original OpenAI-based memory provider (for backward compatibility)
+ */
+export class OpenAIMemoryProvider implements MemoryProvider {
+  private embeddings: OpenAIEmbeddings;
+
+  constructor(config: AgentLLMConfig) {
+    const apiKey = config.apiKey || process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new Error('OpenAI API key is required for embeddings');
+    }
+
+    this.embeddings = new OpenAIEmbeddings({
+      openAIApiKey: apiKey,
+      modelName: 'text-embedding-3-small',
+      batchSize: 512,
+      stripNewLines: true
+    });
+  }
+
+  async embedText(text: string): Promise<number[]> {
+    return await this.embeddings.embedQuery(text);
+  }
+
+  async embedTexts(texts: string[]): Promise<number[][]> {
+    return await this.embeddings.embedDocuments(texts);
+  }
+
+  calculateSimilarity(embedding1: number[], embedding2: number[]): number {
+    return this.cosineSimilarity(embedding1, embedding2);
+  }
+
+  getProviderName(): string {
+    return 'openai';
+  }
+
+  private cosineSimilarity(a: number[], b: number[]): number {
+    if (!a || !b || a.length !== b.length) return 0;
+    
+    const dotProduct = a.reduce((sum, val, i) => sum + val * (b[i] || 0), 0);
+    const magnitudeA = Math.sqrt(a.reduce((sum, val) => sum + val * val, 0));
+    const magnitudeB = Math.sqrt(b.reduce((sum, val) => sum + val * val, 0));
+    
+    if (magnitudeA === 0 || magnitudeB === 0) return 0;
+    return dotProduct / (magnitudeA * magnitudeB);
+  }
+}
+
+/**
+ * Original Google-based memory provider (for backward compatibility)
+ */
+export class GoogleMemoryProvider implements MemoryProvider {
+  private embeddings: GoogleGenerativeAIEmbeddings;
+
+  constructor(config: AgentLLMConfig) {
+    if (!config.apiKey) {
+      throw new Error('Google API key is required for embeddings');
+    }
+
+    this.embeddings = new GoogleGenerativeAIEmbeddings({
+      apiKey: config.apiKey,
+      modelName: 'embedding-001'
+    });
+  }
+
+  async embedText(text: string): Promise<number[]> {
+    return await this.embeddings.embedQuery(text);
+  }
+
+  async embedTexts(texts: string[]): Promise<number[][]> {
+    return await this.embeddings.embedDocuments(texts);
+  }
+
+  calculateSimilarity(embedding1: number[], embedding2: number[]): number {
+    return this.cosineSimilarity(embedding1, embedding2);
+  }
+
+  getProviderName(): string {
+    return 'google';
+  }
+
+  private cosineSimilarity(a: number[], b: number[]): number {
+    if (!a || !b || a.length !== b.length) return 0;
+    
+    const dotProduct = a.reduce((sum, val, i) => sum + val * (b[i] || 0), 0);
+    const magnitudeA = Math.sqrt(a.reduce((sum, val) => sum + val * val, 0));
+    const magnitudeB = Math.sqrt(b.reduce((sum, val) => sum + val * val, 0));
+    
+    if (magnitudeA === 0 || magnitudeB === 0) return 0;
+    return dotProduct / (magnitudeA * magnitudeB);
   }
 }

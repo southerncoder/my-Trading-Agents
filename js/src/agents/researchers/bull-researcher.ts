@@ -1,5 +1,6 @@
 
-import { logger } from '../../utils/enhanced-logger';
+import { createLogger } from '../../utils/enhanced-logger';
+import { withLLMResilience, OPENAI_LLM_CONFIG, createResilientLLM } from '../../utils/resilient-llm';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { StructuredTool } from '@langchain/core/tools';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
@@ -11,6 +12,9 @@ import { AgentState, AgentStateHelpers } from '../../types/agent-states';
  * Argues for positive investment thesis based on analyst reports
  */
 export class BullResearcher extends AbstractAgent {
+  private readonly logger = createLogger('agent', 'BullResearcher');
+  private readonly resilientLLM: BaseChatModel;
+
   constructor(llm: BaseChatModel, tools?: StructuredTool[]) {
     super(
       'Bull Researcher',
@@ -18,9 +22,28 @@ export class BullResearcher extends AbstractAgent {
       llm,
       tools
     );
+    
+    // Create resilient LLM wrapper with OpenAI-optimized configuration
+    this.resilientLLM = createResilientLLM(llm, OPENAI_LLM_CONFIG);
+    
+    this.logger.info('constructor', 'BullResearcher initialized with resilient LLM wrapper', {
+      llmType: llm.constructor.name,
+      hasTools: tools ? tools.length > 0 : false,
+      toolCount: tools ? tools.length : 0
+    });
   }
 
   async process(state: AgentState): Promise<Partial<AgentState>> {
+    this.logger.info('process', 'Starting bull research process', {
+      company: state.company_of_interest,
+      tradeDate: state.trade_date,
+      hasMarketReport: !!state.market_report,
+      hasSentimentReport: !!state.sentiment_report,
+      hasNewsReport: !!state.news_report,
+      hasFundamentalsReport: !!state.fundamentals_report,
+      currentDebateCount: state.investment_debate_state?.count || 0
+    });
+
     try {
       // Create system prompt
       const systemPrompt = this.getSystemPrompt();
@@ -28,11 +51,27 @@ export class BullResearcher extends AbstractAgent {
       // Create human message with context from analyst reports
       const humanMessage = this.createResearchRequest(state);
       
-      // Invoke LLM
-      const response = await this.invokeLLM([
-        new SystemMessage(systemPrompt),
-        humanMessage,
-      ]);
+      this.logger.debug('process', 'Prepared LLM messages for bull research', {
+        systemPromptLength: systemPrompt.length,
+        humanMessageLength: humanMessage.content.toString().length
+      });
+
+      // Use resilient LLM wrapper for bull research
+      const response = await withLLMResilience(
+        'BullResearcher.research',
+        async () => {
+          return await this.resilientLLM.invoke([
+            new SystemMessage(systemPrompt),
+            humanMessage,
+          ]);
+        },
+        OPENAI_LLM_CONFIG
+      );
+
+      this.logger.info('process', 'LLM bull research completed successfully', {
+        responseType: typeof response.content,
+        hasToolCalls: response.tool_calls && response.tool_calls.length > 0
+      });
 
       // Extract bull argument from response
       let bullArgument = '';
@@ -52,6 +91,11 @@ export class BullResearcher extends AbstractAgent {
           .filter(text => text.length > 0)
           .join('\n');
       }
+
+      this.logger.info('process', 'Bull research argument extracted successfully', {
+        argumentLength: bullArgument.length,
+        company: state.company_of_interest
+      });
 
       // Update investment debate state
       const currentDebateState = state.investment_debate_state || AgentStateHelpers.createInitialInvestDebateState();
@@ -74,12 +118,16 @@ export class BullResearcher extends AbstractAgent {
         sender: this.name,
       };
     } catch (error) {
-      logger.error('agent', this.name, 'execution', `Error in ${this.name}`, { 
-        error: error instanceof Error ? error.message : String(error),
-        agentName: this.name,
-        operation: 'processMessage'
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      
+      this.logger.error('process', `Bull research failed for ${state.company_of_interest}`, {
+        error: errorMsg,
+        company: state.company_of_interest,
+        tradeDate: state.trade_date,
+        errorType: error instanceof Error ? error.constructor.name : 'Unknown'
       });
-      throw new Error(`${this.name} failed to process: ${error}`);
+      
+      throw new Error(`${this.name} failed to process: ${errorMsg}`);
     }
   }
 
@@ -143,9 +191,19 @@ Be persuasive but fact-based. Use specific data points and examples from the ana
 
   canProcess(state: AgentState): boolean {
     // Bull researcher can process if analyst reports are available but investment debate hasn't concluded
-    return super.canProcess(state) && 
-           AgentStateHelpers.areAnalystReportsComplete(state) &&
-           !AgentStateHelpers.isInvestmentDebateComplete(state);
+    const canProcess = super.canProcess(state) && 
+                      AgentStateHelpers.areAnalystReportsComplete(state) &&
+                      !AgentStateHelpers.isInvestmentDebateComplete(state);
+    
+    this.logger.debug('canProcess', 'Evaluating if BullResearcher can process state', {
+      basicCanProcess: super.canProcess(state),
+      areAnalystReportsComplete: AgentStateHelpers.areAnalystReportsComplete(state),
+      isInvestmentDebateComplete: AgentStateHelpers.isInvestmentDebateComplete(state),
+      finalCanProcess: canProcess,
+      company: state.company_of_interest
+    });
+    
+    return canProcess;
   }
 
   private createResearchRequest(state: AgentState): HumanMessage {
@@ -157,6 +215,15 @@ Be persuasive but fact-based. Use specific data points and examples from the ana
       news_report, 
       fundamentals_report 
     } = state;
+    
+    this.logger.debug('createResearchRequest', 'Creating bull research request prompt', {
+      company: company_of_interest,
+      tradeDate: trade_date,
+      hasMarketReport: !!market_report,
+      hasSentimentReport: !!sentiment_report,
+      hasNewsReport: !!news_report,
+      hasFundamentalsReport: !!fundamentals_report
+    });
     
     const prompt = `Develop a comprehensive bullish investment thesis for ${company_of_interest} based on the analyst reports below.
 

@@ -81,7 +81,9 @@ async function testAgentSpecificMemoryConfiguration() {
 
     // Test with simulated OpenAI key to show provider preference
     console.log(`\n\n🔑 Testing with simulated OpenAI API key...`);
-    process.env.OPENAI_API_KEY = 'sk-fake-key-for-testing';
+  const simulatedOpenAIKey = process.env.OPENAI_API_KEY || 'sk-fake-key-for-testing';
+  const originalOpenAI = process.env.OPENAI_API_KEY;
+  process.env.OPENAI_API_KEY = simulatedOpenAIKey;
     
     const openaiConfig = testAgentConfigs.openai_agent;
     console.log(`   Agent: openai_agent`);

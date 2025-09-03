@@ -1,5 +1,6 @@
 
-import { logger } from '../../utils/enhanced-logger';
+import { createLogger } from '../../utils/enhanced-logger';
+import { withLLMResilience, OPENAI_LLM_CONFIG, createResilientLLM } from '../../utils/resilient-llm';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { StructuredTool } from '@langchain/core/tools';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
@@ -11,6 +12,9 @@ import { AgentState, AgentStateHelpers } from '../../types/agent-states';
  * Makes final trading decisions with comprehensive risk considerations
  */
 export class PortfolioManager extends AbstractAgent {
+  private readonly logger = createLogger('agent', 'PortfolioManager');
+  private readonly resilientLLM: BaseChatModel;
+
   constructor(llm: BaseChatModel, tools?: StructuredTool[]) {
     super(
       'Portfolio Manager',
@@ -18,67 +22,93 @@ export class PortfolioManager extends AbstractAgent {
       llm,
       tools
     );
+    
+    // Create resilient LLM wrapper with OpenAI-optimized configuration
+    this.resilientLLM = createResilientLLM(llm, OPENAI_LLM_CONFIG);
+    
+    this.logger.info('constructor', 'PortfolioManager initialized with resilient LLM wrapper', {
+      llmType: llm.constructor.name,
+      hasTools: tools ? tools.length > 0 : false,
+      toolCount: tools ? tools.length : 0
+    });
   }
 
   async process(state: AgentState): Promise<Partial<AgentState>> {
-    try {
-      // Create system prompt
-      const systemPrompt = this.getSystemPrompt();
-      
-      // Create human message with context from all risk analyses
-      const humanMessage = this.createPortfolioManagementRequest(state);
-      
-      // Invoke LLM
-      const response = await this.invokeLLM([
-        new SystemMessage(systemPrompt),
-        humanMessage,
-      ]);
+    this.logger.info('process', 'Starting portfolio management decision', {
+      company: state.company_of_interest,
+      tradeDate: state.trade_date,
+      hasTradingPlan: !!state.trader_investment_plan,
+      hasRiskyAnalysis: !!state.risk_debate_state?.current_risky_response,
+      hasSafeAnalysis: !!state.risk_debate_state?.current_safe_response,
+      hasNeutralAnalysis: !!state.risk_debate_state?.current_neutral_response,
+      riskDebateCount: state.risk_debate_state?.count || 0
+    });
 
-      // Extract portfolio decision from response
-      let portfolioDecision = '';
-      if (typeof response.content === 'string') {
-        portfolioDecision = response.content;
-      } else if (Array.isArray(response.content)) {
-        portfolioDecision = response.content
-          .map(item => {
-            if (typeof item === 'string') {
-              return item;
-            } else if (typeof item === 'object' && 'text' in item) {
-              return (item as any).text;
-            } else {
-              return '';
-            }
-          })
-          .filter(text => text.length > 0)
-          .join('\n');
-      }
+    return await withLLMResilience(
+      'portfolio_management',
+      async () => {
+        // Create system prompt
+        const systemPrompt = this.getSystemPrompt();
+        
+        // Create human message with context from all risk analyses
+        const humanMessage = this.createPortfolioManagementRequest(state);
+        
+        this.logger.debug('process', 'Invoking resilient LLM for portfolio decision', {
+          systemPromptLength: systemPrompt.length,
+          humanMessageLength: typeof humanMessage.content === 'string' ? humanMessage.content.length : 0
+        });
+        
+        // Invoke resilient LLM
+        const response = await this.resilientLLM.invoke([
+          new SystemMessage(systemPrompt),
+          humanMessage,
+        ]);
 
-      // Update risk debate state with final portfolio decision
-      const currentRiskState = state.risk_debate_state || AgentStateHelpers.createInitialRiskDebateState();
-      
-      const updatedRiskState = {
-        ...currentRiskState,
-        judge_decision: portfolioDecision,
-        history: `${currentRiskState.history}\n\nPORTFOLIO MANAGER DECISION:\n${portfolioDecision}`,
-      };
+        // Extract portfolio decision from response
+        let portfolioDecision = '';
+        if (typeof response.content === 'string') {
+          portfolioDecision = response.content;
+        } else if (Array.isArray(response.content)) {
+          portfolioDecision = response.content
+            .map(item => {
+              if (typeof item === 'string') {
+                return item;
+              } else if (typeof item === 'object' && 'text' in item) {
+                return (item as any).text;
+              } else {
+                return '';
+              }
+            })
+            .filter(text => text.length > 0)
+            .join('\n');
+        }
 
-      // Add response message to state
-      const updatedMessages = [...state.messages, response];
+        this.logger.info('process', 'Portfolio management decision completed', {
+          decisionLength: portfolioDecision.length,
+          company: state.company_of_interest
+        });
 
-      return {
-        messages: updatedMessages,
-        risk_debate_state: updatedRiskState,
-        final_trade_decision: portfolioDecision,
-        sender: this.name,
-      };
-    } catch (error) {
-      logger.error('agent', this.name, 'execution', `Error in ${this.name}`, { 
-        error: error instanceof Error ? error.message : String(error),
-        agentName: this.name,
-        operation: 'processMessage'
-      });
-      throw new Error(`${this.name} failed to process: ${error}`);
-    }
+        // Update risk debate state with final portfolio decision
+        const currentRiskState = state.risk_debate_state || AgentStateHelpers.createInitialRiskDebateState();
+        
+        const updatedRiskState = {
+          ...currentRiskState,
+          judge_decision: portfolioDecision,
+          history: `${currentRiskState.history}\n\nPORTFOLIO MANAGER DECISION:\n${portfolioDecision}`,
+        };
+
+        // Add response message to state
+        const updatedMessages = [...state.messages, response];
+
+        return {
+          messages: updatedMessages,
+          risk_debate_state: updatedRiskState,
+          final_trade_decision: portfolioDecision,
+          sender: this.name,
+        };
+      },
+      OPENAI_LLM_CONFIG
+    );
   }
 
   getSystemPrompt(): string {

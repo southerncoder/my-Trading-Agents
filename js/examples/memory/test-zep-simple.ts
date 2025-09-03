@@ -1,3 +1,5 @@
+// moved from tests/memory/test-zep-simple.ts
+// ...existing code...
 /**
  * Simple Zep Graphiti test without service dependency
  */

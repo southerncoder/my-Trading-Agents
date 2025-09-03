@@ -1,5 +1,11 @@
+
 <p align="center">
-  <img src="assets/TauricResearch.png" style="width: 60%; height: auto;">
+  <img src="https://avatars.githubusercontent.com/u/10604394?v=4" alt="SouthernCoder" width="100" style="border-radius: 50%;"/>
+</p>
+
+<p align="center">
+  <b>Maintained by <a href="https://github.com/southerncoder">SouthernCoder</a></b><br>
+  <sub>Originally created by Tauric Research</sub>
 </p>
 
 <div align="center" style="line-height: 1;">
@@ -24,6 +30,7 @@
 </div>
 
 ---
+
 
 # TradingAgents: Multi-Agents LLM Financial Trading Framework 
 
@@ -192,13 +199,20 @@ print(decision)
 
 You can view the full list of configurations in `tradingagents/default_config.py`.
 
+
 ## Contributing
 
-We welcome contributions from the community! Whether it's fixing a bug, improving documentation, or suggesting a new feature, your input helps make this project better. If you are interested in this line of research, please consider joining our open-source financial AI research community [Tauric Research](https://tauric.ai/).
+We welcome contributions from the community! Whether it's fixing a bug, improving documentation, or suggesting a new feature, your input helps make this project better. This repo is maintained by <a href="https://github.com/southerncoder">SouthernCoder</a>. If you are interested in this line of research, please consider joining our open-source financial AI research community <a href="https://tauric.ai/">Tauric Research</a> (original creators).
+
 
 ## Citation
 
 Please reference our work if you find *TradingAgents* provides you with some help :)
+
+---
+<p align="center">
+  <sub>Attribution: TradingAgents was originally developed by Tauric Research. All major contributions and ongoing maintenance are by <a href="https://github.com/southerncoder">SouthernCoder</a>.</sub>
+</p>
 
 ```
 @misc{xiao2025tradingagentsmultiagentsllmfinancial,

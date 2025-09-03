@@ -9,20 +9,28 @@ export default defineConfig({
   build: {
     target: 'node18',
     lib: {
-      entry: resolve(__dirname, 'src/index.ts'),
+      entry: {
+        index: resolve(__dirname, 'src/index.ts'),
+        'cli/main': resolve(__dirname, 'src/cli/main.ts')
+      },
       name: 'TradingAgents',
-      formats: ['es'],
-      fileName: 'index'
+      formats: ['es']
     },
     rollupOptions: {
       external: [
-        // Node.js built-ins
-        'fs', 'path', 'url', 'crypto', 'os', 'util', 'events', 'stream',
+        // Node.js built-ins (both node: and bare forms)
+        'fs', 'path', 'url', 'crypto', 'os', 'util', 'events', 'stream', 'async_hooks',
+        'child_process', 'readline', 'tty', 'process', 'buffer', 'string_decoder',
+        'node:fs', 'node:path', 'node:url', 'node:crypto', 'node:os', 'node:util', 
+        'node:events', 'node:stream', 'node:async_hooks', 'node:process', 'node:child_process',
+        'node:readline', 'node:tty', 'node:buffer', 'node:string_decoder',
         // npm packages
         '@langchain/core', '@langchain/openai', '@langchain/langgraph',
         '@langchain/community', 'langchain', 'winston', 'chalk', 'inquirer',
-        'ora', 'axios', 'dotenv', 'zod', 'commander'
-        , 'node-fetch'
+        'ora', 'axios', 'dotenv', 'zod', 'commander', 'node-fetch',
+        // Inquirer dependencies
+        '@inquirer/prompts', '@inquirer/core', '@inquirer/external-editor',
+        'chardet'
       ]
     },
     outDir: 'dist',

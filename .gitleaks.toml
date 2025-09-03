@@ -1,0 +1,20 @@
+# Gitleaks configuration for Trading Agents
+
+title = "Trading Agents Gitleaks Config"
+
+[allowlist]
+description = "Allow common placeholders and variable-based tokens to reduce false positives"
+regexes = [
+  "Bearer\\s+\\$[A-Z0-9_]+", # shell env bearer tokens
+  "your_[a-z0-9_]+",            # placeholders in .env.example and docs
+  "REDACTED",                   # explicit redactions
+  "dummy(?:_|-)key",            # dummy-key, dummy_key
+  "lm-studio"                   # non-secret keyword often flagged by wordlists
+]
+paths = [
+  "js/.env.example",
+  "py_zep/.env.example",
+  "py_zep/.env.local.example",
+  "js/tests/README.md",
+  "README.md"
+]

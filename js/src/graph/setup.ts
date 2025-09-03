@@ -14,6 +14,7 @@
 import { ChatOpenAI } from '@langchain/openai';
 import { ChatAnthropic } from '@langchain/anthropic';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+import { createLogger } from '../utils/enhanced-logger';
 
 import { Toolkit } from '../dataflows/interface';
 import { FinancialSituationMemory } from '../agents/utils/memory';
@@ -67,6 +68,7 @@ export class GraphSetup {
   private memories: GraphSetupConfig['memories'];
   private conditionalLogic: ConditionalLogic;
   private agentNodes: Record<string, AgentNode> = {};
+  private logger = createLogger('graph', 'GraphSetup');
 
   constructor(config: GraphSetupConfig) {
     this.quickThinkingLLM = config.quickThinkingLLM;
@@ -74,13 +76,29 @@ export class GraphSetup {
     this.toolkit = config.toolkit;
     this.memories = config.memories;
     this.conditionalLogic = config.conditionalLogic;
+    
+    this.logger.info('constructor', 'GraphSetup initialized', {
+      hasQuickThinkingLLM: !!config.quickThinkingLLM,
+      hasDeepThinkingLLM: !!config.deepThinkingLLM,
+      hasToolkit: !!config.toolkit,
+      hasMemories: !!config.memories,
+      hasConditionalLogic: !!config.conditionalLogic
+    });
   }
 
   /**
    * Set up all agent instances
    */
   setupAgents(selectedAnalysts: string[] = ['market', 'social', 'news', 'fundamentals']): Record<string, AgentNode> {
+    this.logger.info('setupAgents', 'Setting up agent nodes', {
+      selectedAnalysts,
+      analystsCount: selectedAnalysts.length
+    });
+
     if (selectedAnalysts.length === 0) {
+      this.logger.error('setupAgents', 'No analysts selected for setup', {
+        selectedAnalysts
+      });
       throw new Error('Trading Agents Graph Setup Error: no analysts selected!');
     }
 
@@ -175,6 +193,12 @@ export class GraphSetup {
       agent: new PortfolioManager(this.deepThinkingLLM, []),
       type: 'manager'
     };
+
+    this.logger.info('setupAgents', 'Agent setup completed successfully', {
+      totalAgents: Object.keys(this.agentNodes).length,
+      agentNames: Object.keys(this.agentNodes),
+      selectedAnalysts
+    });
 
     return this.agentNodes;
   }

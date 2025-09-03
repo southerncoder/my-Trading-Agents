@@ -2,6 +2,24 @@
 
 This folder contains the TypeScript implementation of the TradingAgents framework.
 
+## Cross-Shell + vite-node (Quick Start)
+
+- Use `npm run` scripts for portability across bash/cmd/PowerShell.
+- Chaining: `&&` works in bash/cmd and PowerShell 7+; on older PowerShell use `;` or separate lines.
+- Run TS/ESM directly with vite-node (shell-agnostic): `npx vite-node <file>`.
+
+Examples (any shell):
+```
+cd js
+npm install
+npm run build && npm test         # bash/cmd/PowerShell 7+
+# or PowerShell-compatible alternative
+npm run build; if ($?) { npm test }
+
+# Run a TS test/demo with vite-node
+npx vite-node tests/config/basic-config.test.ts
+```
+
 ## CLI
 
 The CLI entrypoint is `src/cli/main.ts` (built into `dist/cli/cli.js`). Use `createCLI()` to programmatically create the commander `Command` instance.

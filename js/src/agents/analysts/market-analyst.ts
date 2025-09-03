@@ -4,13 +4,16 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AbstractAgent } from '../base/index';
 import { AgentState } from '../../types/agent-states';
 import { createLogger } from '../../utils/enhanced-logger';
+import { withLLMResilience, OPENAI_LLM_CONFIG, createResilientLLM } from '../../utils/resilient-llm';
 
 /**
  * Market Analyst Agent
  * Analyzes market data, technical indicators, and price movements
  */
 export class MarketAnalyst extends AbstractAgent {
-    private readonly logger = createLogger('agent', 'MarketAnalyst');
+  private readonly logger = createLogger('agent', 'MarketAnalyst');
+  private readonly resilientLLM: BaseChatModel;
+
   constructor(llm: BaseChatModel, tools: StructuredTool[]) {
     super(
       'Market Analyst',
@@ -18,9 +21,24 @@ export class MarketAnalyst extends AbstractAgent {
       llm,
       tools
     );
+    
+    // Create resilient LLM wrapper with OpenAI-optimized configuration
+    this.resilientLLM = createResilientLLM(llm, OPENAI_LLM_CONFIG);
+    
+    this.logger.info('constructor', 'MarketAnalyst initialized with resilient LLM wrapper', {
+      llmType: llm.constructor.name,
+      hasTools: tools.length > 0,
+      toolCount: tools.length
+    });
   }
 
   async process(state: AgentState): Promise<Partial<AgentState>> {
+    this.logger.info('process', 'Starting market analysis process', {
+      company: state.company_of_interest,
+      tradeDate: state.trade_date,
+      hasMarketReport: !!state.market_report
+    });
+
     try {
       // Create system prompt
       const systemPrompt = this.getSystemPrompt();
@@ -28,11 +46,27 @@ export class MarketAnalyst extends AbstractAgent {
       // Create human message with context
       const humanMessage = this.createAnalysisRequest(state);
       
-      // Invoke LLM with tools
-      const response = await this.invokeLLM([
-        new SystemMessage(systemPrompt),
-        humanMessage,
-      ]);
+      this.logger.debug('process', 'Prepared LLM messages for market analysis', {
+        systemPromptLength: systemPrompt.length,
+        humanMessageLength: humanMessage.content.toString().length
+      });
+
+      // Use resilient LLM wrapper for analysis
+      const response = await withLLMResilience(
+        'MarketAnalyst.analyze',
+        async () => {
+          return await this.resilientLLM.invoke([
+            new SystemMessage(systemPrompt),
+            humanMessage,
+          ]);
+        },
+        OPENAI_LLM_CONFIG
+      );
+
+      this.logger.info('process', 'LLM analysis completed successfully', {
+        responseType: typeof response.content,
+        hasToolCalls: response.tool_calls && response.tool_calls.length > 0
+      });
 
       // Extract market report from response
       let marketReport = '';
@@ -53,6 +87,11 @@ export class MarketAnalyst extends AbstractAgent {
           .join('\n');
       }
 
+      this.logger.info('process', 'Market analysis extracted successfully', {
+        reportLength: marketReport.length,
+        company: state.company_of_interest
+      });
+
       // Add response message to state
       const updatedMessages = [...state.messages, response];
 
@@ -63,8 +102,15 @@ export class MarketAnalyst extends AbstractAgent {
       };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      this.logger.error('process', `Error in ${this.name}: ${errorMsg}`);
-      throw new Error(`${this.name} failed to process: ${error}`);
+      
+      this.logger.error('process', `Market analysis failed for ${state.company_of_interest}`, {
+        error: errorMsg,
+        company: state.company_of_interest,
+        tradeDate: state.trade_date,
+        errorType: error instanceof Error ? error.constructor.name : 'Unknown'
+      });
+      
+      throw new Error(`${this.name} failed to process: ${errorMsg}`);
     }
   }
 
@@ -116,11 +162,25 @@ Keep your analysis fact-based, concise, and actionable. Use market data tools wh
 
   canProcess(state: AgentState): boolean {
     // Market analyst can process if basic state is valid and no market report exists yet
-    return super.canProcess(state) && !state.market_report;
+    const canProcess = super.canProcess(state) && !state.market_report;
+    
+    this.logger.debug('canProcess', 'Evaluating if MarketAnalyst can process state', {
+      basicCanProcess: super.canProcess(state),
+      hasMarketReport: !!state.market_report,
+      finalCanProcess: canProcess,
+      company: state.company_of_interest
+    });
+    
+    return canProcess;
   }
 
   private createAnalysisRequest(state: AgentState): HumanMessage {
     const { company_of_interest, trade_date } = state;
+    
+    this.logger.debug('createAnalysisRequest', 'Creating market analysis request prompt', {
+      company: company_of_interest,
+      tradeDate: trade_date
+    });
     
     const prompt = `Perform a comprehensive market analysis for ${company_of_interest} as of ${trade_date}.
 

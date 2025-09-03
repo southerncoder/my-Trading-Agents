@@ -2,64 +2,97 @@ import axios from 'axios';
 import { TradingAgentsConfig } from '@/types/config';
 import { NewsItem, InsiderSentiment, InsiderTransaction } from '@/types/dataflows';
 import { createLogger } from '../utils/enhanced-logger.js';
+import { 
+  withDataflowResilience, 
+  FINNHUB_API_CONFIG, 
+  DataflowMetricsCollector 
+} from '../utils/resilient-dataflow.js';
 
 /**
  * Finnhub API wrapper for financial data
+ * Enhanced with resilient patterns for robust external API integration
  */
 export class FinnhubAPI {
   private config: TradingAgentsConfig;
   private apiKey: string;
   private logger = createLogger('dataflow', 'finnhub-api');
+  private metrics = new DataflowMetricsCollector();
 
   constructor(config: TradingAgentsConfig) {
     this.config = config;
     this.apiKey = config.finnhubApiKey || '';
+    
+    this.logger.info('constructor', 'Initializing Finnhub API', {
+      hasApiKey: !!this.apiKey
+    });
   }
 
   /**
-   * Get news for a ticker
+   * Get news for a ticker with resilient patterns
    */
   async getNews(ticker: string, currDate: string, lookBackDays: number): Promise<string> {
     if (!this.apiKey) {
+      this.logger.warn('api-key-missing', 'Finnhub API key not configured', { ticker });
       return 'Finnhub API key not configured';
     }
 
-    try {
-      const startDate = new Date(currDate);
-      const before = new Date(startDate);
-      before.setDate(before.getDate() - lookBackDays);
+    return withDataflowResilience(
+      `finnhub-news-${ticker}`,
+      async () => {
+        this.logger.info('get-news', `Fetching news for ${ticker} from Finnhub`, {
+          ticker,
+          currDate,
+          lookBackDays
+        });
 
-      const startTimestamp = Math.floor(before.getTime() / 1000);
-      const endTimestamp = Math.floor(startDate.getTime() / 1000);
+        const startDate = new Date(currDate);
+        const before = new Date(startDate);
+        before.setDate(before.getDate() - lookBackDays);
 
-      const url = `https://finnhub.io/api/v1/company-news?symbol=${ticker}&from=${before.toISOString().split('T')[0]}&to=${currDate}&token=${this.apiKey}`;
+        const startTimestamp = Math.floor(before.getTime() / 1000);
+        const endTimestamp = Math.floor(startDate.getTime() / 1000);
 
-      const response = await axios.get(url);
-      const newsData = response.data as NewsItem[];
+        const url = `https://finnhub.io/api/v1/company-news?symbol=${ticker}&from=${before.toISOString().split('T')[0]}&to=${currDate}&token=${this.apiKey}`;
 
-      if (!newsData || newsData.length === 0) {
-        return '';
-      }
+        const response = await axios.get(url);
+        const newsData = response.data as NewsItem[];
 
-      let combinedResult = '';
-      for (const entry of newsData) {
-        const currentNews = `### ${entry.headline} (${new Date(entry.date).toISOString().split('T')[0]})\n${entry.summary}`;
-        combinedResult += currentNews + '\n\n';
-      }
+        if (!newsData || newsData.length === 0) {
+          this.logger.warn('no-news-found', `No news found for ${ticker}`, {
+            ticker,
+            dateRange: { from: before.toISOString().split('T')[0], to: currDate }
+          });
+          return '';
+        }
 
-      return `## ${ticker} News, from ${before.toISOString().split('T')[0]} to ${currDate}:\n` + combinedResult;
-    } catch (error) {
-      this.logger.error('news-fetch-error', `Error fetching Finnhub news for ${ticker}`, {
+        this.logger.info('news-fetched', `News fetched successfully for ${ticker}`, {
+          ticker,
+          newsCount: newsData.length,
+          dateRange: { from: before.toISOString().split('T')[0], to: currDate }
+        });
+
+        let combinedResult = '';
+        for (const entry of newsData) {
+          const currentNews = `### ${entry.headline} (${new Date(entry.date).toISOString().split('T')[0]})\n${entry.summary}`;
+          combinedResult += currentNews + '\n\n';
+        }
+
+        return `## ${ticker} News, from ${before.toISOString().split('T')[0]} to ${currDate}:\n` + combinedResult;
+      },
+      FINNHUB_API_CONFIG
+    ).catch((error) => {
+      this.logger.error('news-fetch-failed', `Error fetching news for ${ticker}`, {
         ticker,
-        error: error instanceof Error ? error.message : String(error),
-        apiKey: this.apiKey ? 'present' : 'missing'
+        currDate,
+        lookBackDays,
+        error: error.message
       });
-      return `Error fetching news for ${ticker}: ${error}`;
-    }
+      return `Error fetching news for ${ticker}: ${error.message}`;
+    });
   }
 
   /**
-   * Get insider sentiment
+   * Get insider sentiment for a ticker with resilient patterns
    */
   async getInsiderSentiment(ticker: string, currDate: string, lookBackDays: number): Promise<string> {
     if (!this.apiKey) {

@@ -1,0 +1,490 @@
+﻿[
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\js\\secrets-diff.txt",
+        "Line":  3793,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "-OPENAI_API_KEY=sk-actual-development-key- **Fix**: Replaced all hardcoded URLs with environment variables",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\js\\secrets-diff.txt",
+        "Line":  3895,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "-OPENAI_API_KEY=sk-development-key-here### COMPLETED ACTIONS Γ£à",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\js\\secrets-diff.txt",
+        "Line":  6319,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "+    process.env.OPENAI_API_KEY = \u0027sk-fake-key-for-testing\u0027;",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\js\\secrets-diff.txt",
+        "Line":  6458,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "+    process.env.OPENAI_API_KEY = \u0027sk-fake-key-for-testing\u0027;",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\js\\secrets-diff.txt",
+        "Line":  7569,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "-OPENAI_API_KEY=sk-actual-development-key- **Fix**: Replaced all hardcoded URLs with environment variables",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\js\\secrets-diff.txt",
+        "Line":  7692,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "-OPENAI_API_KEY=sk-development-key-here### COMPLETED ACTIONS Γ£à",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\js\\secrets-diff.txt",
+        "Line":  9424,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "+OPENAI_API_KEY=sk-actual-development-key- **Fix**: Replaced all hardcoded URLs with environment variables",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\js\\secrets-diff.txt",
+        "Line":  9526,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "+OPENAI_API_KEY=sk-development-key-here### COMPLETED ACTIONS Γ£à",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\js\\secrets-diff.txt",
+        "Line":  10428,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "+OPENAI_API_KEY=sk-actual-development-key- **Fix**: Replaced all hardcoded URLs with environment variables",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\js\\secrets-diff.txt",
+        "Line":  10559,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "+OPENAI_API_KEY=sk-development-key-here### COMPLETED ACTIONS Γ£à",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\js\\secrets-diff.txt",
+        "Line":  18708,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "+    process.env.OPENAI_API_KEY = \u0027sk-fake-key-for-testing\u0027;",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\js\\secrets-diff.txt",
+        "Line":  18852,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "+    process.env.OPENAI_API_KEY = \u0027sk-fake-key-for-testing\u0027;",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\js\\secrets-diff.txt",
+        "Line":  18990,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "+    process.env.OPENAI_API_KEY = \u0027sk-fake-key-for-testing\u0027;",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\js\\tests\\integration\\agent-memory.test.ts",
+        "Line":  84,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "    process.env.OPENAI_API_KEY = \u0027sk-fake-key-for-testing\u0027;",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\js\\tests\\integration\\agent-memory-integration-test.ts",
+        "Line":  84,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "    process.env.OPENAI_API_KEY = \u0027sk-fake-key-for-testing\u0027;",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\js\\tests\\integration\\trading-graph-memory.test.ts",
+        "Line":  98,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "    process.env.OPENAI_API_KEY = \u0027sk-fake-key-for-testing\u0027;",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\js\\tests\\integration\\trading-graph-memory-test.ts",
+        "Line":  98,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "    process.env.OPENAI_API_KEY = \u0027sk-fake-key-for-testing\u0027;",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\js\\tests\\memory\\memory-fallback.test.ts",
+        "Line":  102,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "    process.env.OPENAI_API_KEY = \u0027sk-fake-key-for-testing\u0027;",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  522,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"-OPENAI_API_KEY=sk-actual-development-key- **Fix**: Replaced all hardcoded URLs with environment variables\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  534,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"-OPENAI_API_KEY=sk-development-key-here### COMPLETED ACTIONS Γ£à\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  732,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"+    process.env.OPENAI_API_KEY = \\u0027sk-fake-key-for-testing\\u0027;\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  756,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"+    process.env.OPENAI_API_KEY = \\u0027sk-fake-key-for-testing\\u0027;\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  882,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"-OPENAI_API_KEY=sk-actual-development-key- **Fix**: Replaced all hardcoded URLs with environment variables\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  906,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"-OPENAI_API_KEY=sk-development-key-here### COMPLETED ACTIONS Γ£à\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  1020,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"+OPENAI_API_KEY=sk-actual-development-key- **Fix**: Replaced all hardcoded URLs with environment variables\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  1032,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"+OPENAI_API_KEY=sk-development-key-here### COMPLETED ACTIONS Γ£à\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  1086,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"+OPENAI_API_KEY=sk-actual-development-key- **Fix**: Replaced all hardcoded URLs with environment variables\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  1104,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"+OPENAI_API_KEY=sk-development-key-here### COMPLETED ACTIONS Γ£à\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  1662,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"+    process.env.OPENAI_API_KEY = \\u0027sk-fake-key-for-testing\\u0027;\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  1686,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"+    process.env.OPENAI_API_KEY = \\u0027sk-fake-key-for-testing\\u0027;\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  1710,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"+    process.env.OPENAI_API_KEY = \\u0027sk-fake-key-for-testing\\u0027;\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  2040,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"    process.env.OPENAI_API_KEY = \\u0027sk-fake-key-for-testing\\u0027;\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  2064,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"    process.env.OPENAI_API_KEY = \\u0027sk-fake-key-for-testing\\u0027;\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  2088,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"    process.env.OPENAI_API_KEY = \\u0027sk-fake-key-for-testing\\u0027;\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  2112,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"    process.env.OPENAI_API_KEY = \\u0027sk-fake-key-for-testing\\u0027;\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  2160,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"    process.env.OPENAI_API_KEY = \\u0027sk-fake-key-for-testing\\u0027;\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  3582,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"        \\\"Context\\\":  \\\"-OPENAI_API_KEY=sk-actual-development-key- **Fix**: Replaced all hardcoded URLs with environment variables\\\"\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  3606,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"        \\\"Context\\\":  \\\"-OPENAI_API_KEY=sk-development-key-here### COMPLETED ACTIONS Γ£à\\\"\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  4038,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"        \\\"Context\\\":  \\\"+    process.env.OPENAI_API_KEY = \\\\u0027sk-fake-key-for-testing\\\\u0027;\\\"\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  4086,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"        \\\"Context\\\":  \\\"+    process.env.OPENAI_API_KEY = \\\\u0027sk-fake-key-for-testing\\\\u0027;\\\"\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  4374,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"        \\\"Context\\\":  \\\"-OPENAI_API_KEY=sk-actual-development-key- **Fix**: Replaced all hardcoded URLs with environment variables\\\"\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  4422,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"        \\\"Context\\\":  \\\"-OPENAI_API_KEY=sk-development-key-here### COMPLETED ACTIONS Γ£à\\\"\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  4698,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"        \\\"Context\\\":  \\\"+OPENAI_API_KEY=sk-actual-development-key- **Fix**: Replaced all hardcoded URLs with environment variables\\\"\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  4722,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"        \\\"Context\\\":  \\\"+OPENAI_API_KEY=sk-development-key-here### COMPLETED ACTIONS Γ£à\\\"\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  4830,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"        \\\"Context\\\":  \\\"+OPENAI_API_KEY=sk-actual-development-key- **Fix**: Replaced all hardcoded URLs with environment variables\\\"\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  4866,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"        \\\"Context\\\":  \\\"+OPENAI_API_KEY=sk-development-key-here### COMPLETED ACTIONS Γ£à\\\"\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  6042,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"        \\\"Context\\\":  \\\"+    process.env.OPENAI_API_KEY = \\\\u0027sk-fake-key-for-testing\\\\u0027;\\\"\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  6090,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"        \\\"Context\\\":  \\\"+    process.env.OPENAI_API_KEY = \\\\u0027sk-fake-key-for-testing\\\\u0027;\\\"\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  6138,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"        \\\"Context\\\":  \\\"+    process.env.OPENAI_API_KEY = \\\\u0027sk-fake-key-for-testing\\\\u0027;\\\"\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  6846,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"        \\\"Context\\\":  \\\"    process.env.OPENAI_API_KEY = \\\\u0027sk-fake-key-for-testing\\\\u0027;\\\"\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  6894,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"        \\\"Context\\\":  \\\"    process.env.OPENAI_API_KEY = \\\\u0027sk-fake-key-for-testing\\\\u0027;\\\"\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  6942,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"        \\\"Context\\\":  \\\"    process.env.OPENAI_API_KEY = \\\\u0027sk-fake-key-for-testing\\\\u0027;\\\"\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  6990,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"        \\\"Context\\\":  \\\"    process.env.OPENAI_API_KEY = \\\\u0027sk-fake-key-for-testing\\\\u0027;\\\"\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  7086,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"        \\\"Context\\\":  \\\"    process.env.OPENAI_API_KEY = \\\\u0027sk-fake-key-for-testing\\\\u0027;\\\"\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  7799,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Match\":  \"PRIVATE_KEY\",",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  7800,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"        \\\"Match\\\":  \\\"PRIVATE_KEY\\\",\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  7805,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Match\":  \"PRIVATE_KEY\",",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  7806,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"        \\\"Context\\\":  \\\"    \\\\u0027PRIVATE_KEY\\\\u0027,\\\"\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  7859,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Match\":  \"PRIVATE_KEY\",",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\secrets-scan-results.json",
+        "Line":  7860,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "        \"Context\":  \"    \\u0027PRIVATE_KEY\\u0027,\"",
+        "Snippet":  "[REDACTED]"
+    },
+    {
+        "Path":  "C:\\code\\PersonalDev\\my-Trading-Agents\\tools\\secret-scan.ps1",
+        "Line":  13,
+        "Type":  "Potential secret",
+        "Severity":  "low",
+        "Context":  "    \u0027PRIVATE_KEY\u0027,",
+        "Snippet":  "[REDACTED]"
+    }
+]

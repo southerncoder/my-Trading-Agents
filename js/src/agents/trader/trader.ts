@@ -3,13 +3,17 @@ import { StructuredTool } from '@langchain/core/tools';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AbstractAgent } from '../base';
 import { AgentState, AgentStateHelpers } from '../../types/agent-states';
-import { logger } from '../../utils/enhanced-logger';
+import { createLogger } from '../../utils/enhanced-logger';
+import { withLLMResilience, OPENAI_LLM_CONFIG, createResilientLLM } from '../../utils/resilient-llm';
 
 /**
  * Trader Agent
  * Creates concrete trading plans and strategies based on research recommendations
  */
 export class Trader extends AbstractAgent {
+  private readonly logger = createLogger('agent', 'Trader');
+  private readonly resilientLLM: BaseChatModel;
+
   constructor(llm: BaseChatModel, tools?: StructuredTool[]) {
     super(
       'Trader',
@@ -17,9 +21,25 @@ export class Trader extends AbstractAgent {
       llm,
       tools
     );
+    
+    // Create resilient LLM wrapper with OpenAI-optimized configuration
+    this.resilientLLM = createResilientLLM(llm, OPENAI_LLM_CONFIG);
+    
+    this.logger.info('constructor', 'Trader initialized with resilient LLM wrapper', {
+      llmType: llm.constructor.name,
+      hasTools: tools ? tools.length > 0 : false,
+      toolCount: tools ? tools.length : 0
+    });
   }
 
   async process(state: AgentState): Promise<Partial<AgentState>> {
+    this.logger.info('process', 'Starting trading strategy planning process', {
+      company: state.company_of_interest,
+      tradeDate: state.trade_date,
+      hasInvestmentPlan: !!state.investment_plan,
+      hasTradingPlan: !!state.trader_investment_plan
+    });
+
     try {
       // Create system prompt
       const systemPrompt = this.getSystemPrompt();
@@ -27,11 +47,27 @@ export class Trader extends AbstractAgent {
       // Create human message with context from research decision
       const humanMessage = this.createTradingRequest(state);
       
-      // Invoke LLM
-      const response = await this.invokeLLM([
-        new SystemMessage(systemPrompt),
-        humanMessage,
-      ]);
+      this.logger.debug('process', 'Prepared LLM messages for trading strategy planning', {
+        systemPromptLength: systemPrompt.length,
+        humanMessageLength: humanMessage.content.toString().length
+      });
+
+      // Use resilient LLM wrapper for trading strategy creation
+      const response = await withLLMResilience(
+        'Trader.createStrategy',
+        async () => {
+          return await this.resilientLLM.invoke([
+            new SystemMessage(systemPrompt),
+            humanMessage,
+          ]);
+        },
+        OPENAI_LLM_CONFIG
+      );
+
+      this.logger.info('process', 'LLM trading strategy planning completed successfully', {
+        responseType: typeof response.content,
+        hasToolCalls: response.tool_calls && response.tool_calls.length > 0
+      });
 
       // Extract trading plan from response
       let tradingPlan = '';
@@ -52,6 +88,11 @@ export class Trader extends AbstractAgent {
           .join('\n');
       }
 
+      this.logger.info('process', 'Trading strategy plan extracted successfully', {
+        planLength: tradingPlan.length,
+        company: state.company_of_interest
+      });
+
       // Add response message to state
       const updatedMessages = [...state.messages, response];
 
@@ -61,12 +102,16 @@ export class Trader extends AbstractAgent {
         sender: this.name,
       };
     } catch (error) {
-      logger.error('agent', this.name, 'execution', `Error in ${this.name}`, { 
-        error: error instanceof Error ? error.message : String(error),
-        agentName: this.name,
-        operation: 'processMessage'
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      
+      this.logger.error('process', `Trading strategy planning failed for ${state.company_of_interest}`, {
+        error: errorMsg,
+        company: state.company_of_interest,
+        tradeDate: state.trade_date,
+        errorType: error instanceof Error ? error.constructor.name : 'Unknown'
       });
-      throw new Error(`${this.name} failed to process: ${error}`);
+      
+      throw new Error(`${this.name} failed to process: ${errorMsg}`);
     }
   }
 
@@ -139,9 +184,19 @@ Be specific and actionable. Provide exact price levels, percentages, and timing 
 
   canProcess(state: AgentState): boolean {
     // Trader can process if investment research is complete but trading plan doesn't exist yet
-    return super.canProcess(state) && 
-           AgentStateHelpers.isInvestmentDebateComplete(state) &&
-           !AgentStateHelpers.isTradingPlanComplete(state);
+    const canProcess = super.canProcess(state) && 
+                      AgentStateHelpers.isInvestmentDebateComplete(state) &&
+                      !AgentStateHelpers.isTradingPlanComplete(state);
+    
+    this.logger.debug('canProcess', 'Evaluating if Trader can process state', {
+      basicCanProcess: super.canProcess(state),
+      isInvestmentDebateComplete: AgentStateHelpers.isInvestmentDebateComplete(state),
+      isTradingPlanComplete: AgentStateHelpers.isTradingPlanComplete(state),
+      finalCanProcess: canProcess,
+      company: state.company_of_interest
+    });
+    
+    return canProcess;
   }
 
   private createTradingRequest(state: AgentState): HumanMessage {
@@ -151,6 +206,13 @@ Be specific and actionable. Provide exact price levels, percentages, and timing 
       investment_plan,
       market_report 
     } = state;
+    
+    this.logger.debug('createTradingRequest', 'Creating trading strategy request prompt', {
+      company: company_of_interest,
+      tradeDate: trade_date,
+      hasInvestmentPlan: !!investment_plan,
+      hasMarketReport: !!market_report
+    });
     
     const prompt = `Create a comprehensive trading strategy for ${company_of_interest} based on the research recommendation below.
 

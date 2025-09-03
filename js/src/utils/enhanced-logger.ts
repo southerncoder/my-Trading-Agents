@@ -6,10 +6,22 @@
  */
 
 import winston from 'winston';
-import { TradingAgentError, ErrorSeverity } from './error-handler';
+import { emitLog } from '../observability/logs-bridge';
 
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'critical';
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 export type LogContext = 'agent' | 'dataflow' | 'graph' | 'cli' | 'test' | 'system';
+
+// Simplified error interface to avoid circular dependency
+export interface SimpleError extends Error {
+  type?: string;
+  retryable?: boolean;
+  retryCount?: number;
+  context?: {
+    component: string;
+    operation: string;
+    metadata?: Record<string, any>;
+  };
+}
 
 export interface LogEntry {
   timestamp: Date;
@@ -74,8 +86,9 @@ export class EnhancedLogger {
       formats.push(winston.format.json());
     } else {
       formats.push(
-        winston.format.colorize(),
-        winston.format.printf(({ timestamp, level, context, component, operation, message, metadata, traceId }) => {
+        winston.format.colorize({ all: true }),
+        winston.format.printf((info) => {
+          const { timestamp, level, context, component, operation, message, metadata, traceId } = info;
           let log = `${timestamp} [${level.toUpperCase()}] ${context}:${component}:${operation} - ${message}`;
           if (traceId) log += ` (trace: ${traceId})`;
           if (metadata && Object.keys(metadata).length > 0) {
@@ -158,14 +171,33 @@ export class EnhancedLogger {
     metadata?: Record<string, any>,
     traceId?: string
   ): void {
+    const entry = {
+      timestamp: new Date(),
+      level,
+      context,
+      component,
+      operation,
+      message,
+      metadata,
+      traceId: traceId || this.generateTraceId(),
+      sessionId: this.sessionId
+    };
+
     this.winston.log(level, message, {
       context,
       component,
       operation,
       metadata,
-      traceId: traceId || this.generateTraceId(),
+      traceId: entry.traceId,
       sessionId: this.sessionId
     });
+
+    // Async best-effort emit to OpenTelemetry logs bridge
+    try {
+      void emitLog(entry);
+    } catch (_err) {
+      // swallow errors from logging bridge
+    }
   }
 
   /**
@@ -187,28 +219,23 @@ export class EnhancedLogger {
     this.log('error', context, component, operation, message, metadata);
   }
 
-  public critical(context: LogContext, component: string, operation: string, message: string, metadata?: Record<string, any>): void {
-    this.log('critical', context, component, operation, message, metadata);
-  }
 
   /**
-   * Log TradingAgentError with full context
+   * Log error with full context  
    */
-  public logError(error: TradingAgentError, traceId?: string): void {
-    const level = this.severityToLevel(error.severity);
+  public logError(error: SimpleError, traceId?: string): void {
     this.log(
-      level,
+      'error',
       'system',
-      error.context.component,
-      error.context.operation,
+      error.context?.component || 'unknown',
+      error.context?.operation || 'unknown',
       error.message,
       {
         errorType: error.type,
-        severity: error.severity,
         stack: error.stack,
         retryable: error.retryable,
         retryCount: error.retryCount,
-        ...error.context.metadata
+        ...error.context?.metadata
       },
       traceId
     );
@@ -340,15 +367,6 @@ export class EnhancedLogger {
   /**
    * Utility methods
    */
-  private severityToLevel(severity: ErrorSeverity): LogLevel {
-    switch (severity) {
-      case ErrorSeverity.LOW: return 'warn';
-      case ErrorSeverity.MEDIUM: return 'error';
-      case ErrorSeverity.HIGH: return 'error';
-      case ErrorSeverity.CRITICAL: return 'critical';
-      default: return 'error';
-    }
-  }
 
   private generateSessionId(): string {
     return `sess_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -394,9 +412,7 @@ export class ContextLogger {
     this.parent.error(this.context, this.component, operation, message, metadata);
   }
 
-  public critical(operation: string, message: string, metadata?: Record<string, any>): void {
-    this.parent.critical(this.context, this.component, operation, message, metadata);
-  }
+  // Removed critical log method from ContextLogger
 
   public startTimer(operation: string): () => void {
     return this.parent.startTimer(this.context, this.component, operation);
