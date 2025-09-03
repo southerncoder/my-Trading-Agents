@@ -44,6 +44,31 @@ jobs:
     - name: Run tests
       working-directory: ./js
       run: npm test
+
+  otlp-collector-test:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: 'js/package-lock.json'
+
+    - name: Install dependencies
+      working-directory: ./js
+      run: npm ci
+
+    - name: Run OTLP collector integration test
+      working-directory: ./js
+      env:
+        ENABLE_OTEL: '1'
+        OTEL_EXPORTER_OTLP_LOGS_ENDPOINT: 'http://localhost:4319/v1/logs'
+      run: npm test -- tests/integration/otlp-logs-export.spec.ts --runInBand
       
     - name: Generate test coverage
       working-directory: ./js

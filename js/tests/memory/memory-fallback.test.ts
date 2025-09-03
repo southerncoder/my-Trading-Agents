@@ -99,24 +99,31 @@ async function testMemoryProviderSelection() {
 
     // Test with API key available (simulated)
     console.log(`\n\n📋 Testing: OpenAI Agent (with simulated API key)`);
-    process.env.OPENAI_API_KEY = 'sk-fake-key-for-testing';
-    
+    const simulatedOpenAIKey = process.env.OPENAI_API_KEY || 'sk-fake-key-for-testing';
+
     try {
       const config: AgentLLMConfig = {
         provider: 'openai',
         model: 'gpt-4-turbo-preview',
       };
-      
+
       const provider = EmbeddingProviderFactory.createProvider(config);
       console.log(`   ✅ Provider created (would use OpenAI if key was valid)`);
-      
+
       // This will fail with invalid key, but shows the provider selection logic works
       try {
-        await provider.embedText("test");
+        const originalKey = process.env.OPENAI_API_KEY;
+        process.env.OPENAI_API_KEY = simulatedOpenAIKey;
+        try {
+          await provider.embedText("test");
+        } catch (error) {
+          const errorMsg = error instanceof Error ? error.message : String(error);
+          console.log(`   📝 Expected error with fake key: ${errorMsg.substring(0, 100)}...`);
+          console.log(`   ✅ This confirms OpenAI provider was selected (not fallback)`);
+        }
+        if (originalKey) process.env.OPENAI_API_KEY = originalKey; else delete process.env.OPENAI_API_KEY;
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : String(error);
-        console.log(`   📝 Expected error with fake key: ${errorMsg.substring(0, 100)}...`);
-        console.log(`   ✅ This confirms OpenAI provider was selected (not fallback)`);
+        console.log(`   ❌ Unexpected error: ${error instanceof Error ? error.message : String(error)}`);
       }
     } catch (error) {
       console.log(`   ❌ Unexpected error: ${error instanceof Error ? error.message : String(error)}`);

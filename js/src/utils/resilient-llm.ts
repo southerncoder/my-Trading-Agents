@@ -22,6 +22,7 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { BaseMessage } from '@langchain/core/messages';
 import { CallbackManagerForLLMRun } from '@langchain/core/callbacks/manager';
 import { getMeter, ENABLE_OTEL } from '../observability/opentelemetry-setup';
+import tracingHelper from '../observability/tracing-helper';
 
 // Types for resilient LLM
 export interface LLMConfig {
@@ -87,6 +88,12 @@ export class LLMMetricsCollector {
   private callCounter?: any;
   private successCounter?: any;
   private failureCounter?: any;
+  private responseTimeHistogram?: any;
+  private tokensHistogram?: any;
+  private costHistogram?: any;
+  private tokenSamples: number[] = [];
+  private costSamples: number[] = [];
+  private readonly maxSampleHistory = 1000;
 
   constructor() {
     if (ENABLE_OTEL) {
@@ -95,6 +102,13 @@ export class LLMMetricsCollector {
         this.callCounter = meter.createCounter('llm_calls_total', { description: 'Total LLM calls' } as any);
         this.successCounter = meter.createCounter('llm_success_total', { description: 'Successful LLM calls' } as any);
         this.failureCounter = meter.createCounter('llm_failure_total', { description: 'Failed LLM calls' } as any);
+        try {
+          this.responseTimeHistogram = meter.createHistogram('llm_response_time_ms', { description: 'LLM response time in ms' } as any);
+          try { this.tokensHistogram = meter.createHistogram('llm_tokens_used', { description: 'LLM tokens used per call' } as any); } catch (e) { /* ignore */ }
+          try { this.costHistogram = meter.createHistogram('llm_estimated_cost_usd', { description: 'Estimated cost per call in USD' } as any); } catch (e) { /* ignore */ }
+        } catch (e) {
+          // ignore if histogram not available on meter implementation
+        }
       } catch (err) {
         // If OpenTelemetry not available at runtime, continue with in-memory metrics
       }
@@ -113,12 +127,19 @@ export class LLMMetricsCollector {
     
     if (tokensUsed) {
       this.metrics.totalTokensUsed += tokensUsed;
+      this.tokenSamples.push(tokensUsed);
+      if (this.tokenSamples.length > this.maxSampleHistory) this.tokenSamples.shift();
+      try { this.tokensHistogram?.record(tokensUsed); } catch (err) { /* ignore */ }
     }
     
     if (cost) {
       this.metrics.estimatedCost += cost;
+      this.costSamples.push(cost);
+      if (this.costSamples.length > this.maxSampleHistory) this.costSamples.shift();
+      try { this.costHistogram?.record(cost); } catch (err) { /* ignore */ }
     }
     try { this.successCounter?.add(1, { response_time_ms: responseTime }); } catch (err) { /* ignore */ }
+    try { this.responseTimeHistogram?.record(responseTime, { success: true }); } catch (err) { /* ignore */ }
   }
 
   recordFailure(error: string): void {
@@ -126,6 +147,7 @@ export class LLMMetricsCollector {
     this.metrics.lastError = error;
     this.metrics.lastFailure = new Date();
     try { this.failureCounter?.add(1, { error: error }); } catch (err) { /* ignore */ }
+    try { this.responseTimeHistogram?.record(0, { success: false, error }); } catch (err) { /* ignore */ }
   }
 
   recordRetry(): void {
@@ -154,7 +176,24 @@ export class LLMMetricsCollector {
   }
 
   getMetrics(): LLMMetrics {
-    return { ...this.metrics };
+    // compute percentiles for tokens and cost
+    const tokensSamples = [...this.tokenSamples].sort((a, b) => a - b);
+    const costSamples = [...this.costSamples].sort((a, b) => a - b);
+    const p95 = (arr: number[]) => arr.length ? arr[Math.floor(arr.length * 0.95)] : 0;
+    const p99 = (arr: number[]) => arr.length ? arr[Math.floor(arr.length * 0.99)] : 0;
+
+    return { 
+      ...this.metrics,
+      // Add percentile fields to the returned metrics object for visibility
+      // @ts-ignore - extend metrics for monitoring consumers
+      tokens_p95: p95(tokensSamples),
+      // @ts-ignore
+      tokens_p99: p99(tokensSamples),
+      // @ts-ignore
+      cost_p95: p95(costSamples),
+      // @ts-ignore
+      cost_p99: p99(costSamples)
+    } as any;
   }
 
   resetMetrics(): void {
@@ -227,6 +266,17 @@ export async function withLLMResilience<T>(
   const finalConfig = { ...defaultLLMConfig, ...config };
   const logger = createLogger('agent', 'ResilientLLM');
   const metrics = new LLMMetricsCollector();
+  let span: any | undefined;
+  let traceId: string | undefined;
+
+  if (ENABLE_OTEL) {
+    try {
+      span = tracingHelper.startSpan(operation, { attributes: { component: 'resilient-llm' } });
+      try { traceId = tracingHelper.getSpanTraceId(span); } catch (_e) { /* ignore */ }
+    } catch (err) {
+      logger.debug('otel-init-failed', 'Could not start tracer span', { error: String(err) });
+    }
+  }
   
   logger.info('operation-start', `Starting LLM ${operation}`, {
     maxRetries: finalConfig.maxRetries,
@@ -339,13 +389,19 @@ export async function withLLMResilience<T>(
       }
       
       metrics.recordSuccess(responseTime, tokensUsed, estimatedCost);
-      
+      if (span) {
+        tracingHelper.setSpanAttribute(span, 'response_time_ms', responseTime);
+        tracingHelper.setSpanAttribute(span, 'tokens_used', tokensUsed || 0);
+      }
       logger.info('operation-success', `LLM operation ${operation} completed successfully`, {
         responseTime,
         tokensUsed,
         estimatedCost,
-        metrics: metrics.getMetrics()
+        metrics: metrics.getMetrics(),
+        traceId
       });
+
+    if (span) { tracingHelper.setSpanStatus(span, { code: 1 }); }
 
       return result;
     } catch (error) {
@@ -356,11 +412,16 @@ export async function withLLMResilience<T>(
         metrics: metrics.getMetrics()
       });
 
+      if (span) {
+        tracingHelper.setSpanAttribute(span, 'error', llmError.message);
+        tracingHelper.setSpanStatus(span, { code: 2, message: llmError.message });
+      }
       logger.error('operation-failed', `LLM operation ${operation} failed`, {
         error: llmError.message,
         responseTime,
         circuitBreakerStats: circuitBreaker.stats,
-        metrics: metrics.getMetrics()
+        metrics: metrics.getMetrics(),
+        traceId
       });
 
       throw llmError;
@@ -378,6 +439,7 @@ export async function withLLMResilience<T>(
       return await resilientOperation();
     } finally {
       clearTimeout(timeoutId);
+      tracingHelper.endSpan(span);
     }
   } else {
     return await resilientOperation();

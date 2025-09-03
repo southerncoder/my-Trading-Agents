@@ -76,3 +76,14 @@ exports/
 **/*export*.html
 **/*export*.json
 migrate-log.txt
+
+# Additional secret / build patterns
+.venv/
+venv/
+dist/
+build/
+secrets-*.json
+secrets-*.txt
+*.key
+*.pem
+*.crt

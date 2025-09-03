@@ -14,6 +14,7 @@ import pRetry, { AbortError } from 'p-retry';
 import CircuitBreaker from 'opossum';
 import { logger } from './enhanced-logger.js';
 import { getMeter, ENABLE_OTEL } from '../observability/opentelemetry-setup';
+import tracingHelper from '../observability/tracing-helper';
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
 const ALLOW_STUB_EMBEDDER = (process.env.EMBEDDER_ALLOW_STUB || '').toLowerCase() === 'true';
@@ -63,6 +64,7 @@ class EmbedderMetricsCollector {
   private callCounter?: any;
   private successCounter?: any;
   private failureCounter?: any;
+  private responseTimeHistogram?: any;
   
   constructor() {
     this.metrics = {
@@ -83,7 +85,8 @@ class EmbedderMetricsCollector {
         this.callCounter = meter.createCounter('embedder_calls_total', { description: 'Total embedder calls' } as any);
         this.successCounter = meter.createCounter('embedder_success_total', { description: 'Successful embedder calls' } as any);
         this.failureCounter = meter.createCounter('embedder_failure_total', { description: 'Failed embedder calls' } as any);
-      } catch (err) {}
+        try { this.responseTimeHistogram = meter.createHistogram('embedder_response_time_ms', { description: 'Embedder response time in ms' } as any); } catch (e) { logger.debug('system','otel','histogram-create-failed','Could not create embedder histogram', { error: String(e) }); }
+      } catch (err) { logger.debug('system','otel','meter-init-failed','Could not initialize embedder meter', { error: String(err) }); }
     }
   }
 
@@ -94,8 +97,10 @@ class EmbedderMetricsCollector {
     if (success) {
       this.metrics.successCount++;
       this.recordResponseTime(responseTime);
+  try { this.responseTimeHistogram?.record(responseTime, { success: true }); } catch (e) { logger.debug('system','otel','histogram-record-failed','Could not record embedder response time', { error: String(e) }); }
     } else {
       this.metrics.failureCount++;
+  try { this.responseTimeHistogram?.record(responseTime, { success: false }); } catch (e) { logger.debug('system','otel','histogram-record-failed','Could not record embedder response time', { error: String(e) }); }
     }
 
     // Calculate current throughput (calls per minute)
@@ -110,9 +115,9 @@ class EmbedderMetricsCollector {
       throughput: this.metrics.currentThroughput,
       circuitState
     });
-    try { this.callCounter?.add(1); } catch (err) {}
-    if (success) { try { this.successCounter?.add(1); } catch (err) {} }
-    if (!success) { try { this.failureCounter?.add(1); } catch (err) {} }
+  try { this.callCounter?.add(1); } catch (err) { logger.debug('system','otel','counter-add-failed','Could not add to embedder call counter', { error: String(err) }); }
+  if (success) { try { this.successCounter?.add(1); } catch (err) { logger.debug('system','otel','counter-add-failed','Could not add to embedder success counter', { error: String(err) }); } }
+  if (!success) { try { this.failureCounter?.add(1); } catch (err) { logger.debug('system','otel','counter-add-failed','Could not add to embedder failure counter', { error: String(err) }); } }
   }
 
   private recordResponseTime(responseTime: number): void {
@@ -390,6 +395,17 @@ export async function embedWithResilience(
   const startTime = Date.now();
   const callId = `call_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
 
+  let span: any | undefined;
+  let traceId: string | undefined;
+  if (ENABLE_OTEL) {
+    try {
+      span = tracingHelper.startSpan('embedWithResilience', { attributes: { component: 'resilient-embedder', model: request.model || 'unknown' } });
+      try { traceId = tracingHelper.getSpanTraceId(span); } catch (_e) { /* ignore */ }
+    } catch (err) {
+      logger.debug('system', 'otel', 'otel-init-failed', 'Could not start embedder tracer span', { error: String(err) });
+    }
+  }
+
   logger.info('system', 'resilient-embedder', 'start', 'Starting resilient embedder call', {
     callId,
     textLength: request.text.length,
@@ -473,21 +489,24 @@ export async function embedWithResilience(
       options.signal = signal;
     }
 
-    const result = await pRetry(retryFunction, options) as EmbedderResponse;
+  const result = await pRetry(retryFunction, options) as EmbedderResponse;
 
     const totalTime = Date.now() - startTime;
     // Record successful call metrics
     const circuitState = (embedderCircuit as any).state || 'UNKNOWN';
     metricsCollector.recordCall(totalTime, true, circuitState);
-    
     logger.info('system', 'resilient-embedder', 'success', 'Resilient embedder call completed successfully', {
       callId,
       totalTime,
       embeddingLength: result.embedding.length,
       tokens: result.tokens,
       model: result.model,
-      circuitState
+      circuitState,
+      traceId
     });
+  if (span) { tracingHelper.setSpanAttribute(span, 'response_time_ms', totalTime); }
+  if (span) { tracingHelper.setSpanStatus(span, { code: 1 }); }
+  tracingHelper.endSpan(span);
 
     return result;
 
@@ -499,6 +518,8 @@ export async function embedWithResilience(
     // Record failed call metrics
     metricsCollector.recordCall(totalTime, false, circuitState);
     
+    if (span) { tracingHelper.setSpanAttribute(span, 'error', embedderError.message); }
+    if (span) { tracingHelper.setSpanStatus(span, { code: 2, message: embedderError.message }); }
     logger.error('system', 'resilient-embedder', 'final-failure', 'Resilient embedder call failed after all retries', {
       callId,
       totalTime,
@@ -506,8 +527,10 @@ export async function embedWithResilience(
       category: embedderError.category,
       statusCode: embedderError.statusCode,
       circuitState,
-      textLength: request.text.length
+      textLength: request.text.length,
+      traceId
     });
+    tracingHelper.endSpan(span);
 
     throw embedderError;
   }

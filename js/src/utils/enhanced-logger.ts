@@ -6,6 +6,7 @@
  */
 
 import winston from 'winston';
+import { emitLog } from '../observability/logs-bridge';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 export type LogContext = 'agent' | 'dataflow' | 'graph' | 'cli' | 'test' | 'system';
@@ -170,14 +171,33 @@ export class EnhancedLogger {
     metadata?: Record<string, any>,
     traceId?: string
   ): void {
+    const entry = {
+      timestamp: new Date(),
+      level,
+      context,
+      component,
+      operation,
+      message,
+      metadata,
+      traceId: traceId || this.generateTraceId(),
+      sessionId: this.sessionId
+    };
+
     this.winston.log(level, message, {
       context,
       component,
       operation,
       metadata,
-      traceId: traceId || this.generateTraceId(),
+      traceId: entry.traceId,
       sessionId: this.sessionId
     });
+
+    // Async best-effort emit to OpenTelemetry logs bridge
+    try {
+      void emitLog(entry);
+    } catch (_err) {
+      // swallow errors from logging bridge
+    }
   }
 
   /**

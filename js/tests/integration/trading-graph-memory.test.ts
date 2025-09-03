@@ -95,7 +95,9 @@ async function testTradingGraphMemoryIntegration() {
 
     // Demonstrate what happens with valid OpenAI key
     console.log(`\n\n🔑 Demonstrating OpenAI Provider Selection (with fake key)`);
-    process.env.OPENAI_API_KEY = 'sk-fake-key-for-testing';
+  const simulatedOpenAIKey = process.env.OPENAI_API_KEY || 'sk-fake-key-for-testing';
+  const originalOpenAI = process.env.OPENAI_API_KEY;
+  process.env.OPENAI_API_KEY = simulatedOpenAIKey;
     
     try {
       const bullConfig = enhancedConfigLoader.getAgentConfig('bull_researcher');

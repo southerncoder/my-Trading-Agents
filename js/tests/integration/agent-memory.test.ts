@@ -81,21 +81,29 @@ async function testAgentSpecificMemoryConfiguration() {
 
     // Test with simulated OpenAI key to show provider preference
     console.log(`\n\n🔑 Testing with simulated OpenAI API key...`);
-    process.env.OPENAI_API_KEY = 'sk-fake-key-for-testing';
-    
+    // Use a local test variable instead of mutating process.env directly
+    const simulatedOpenAIKey = process.env.OPENAI_API_KEY || 'sk-fake-key-for-testing';
+
     const openaiConfig = testAgentConfigs.openai_agent;
     console.log(`   Agent: openai_agent`);
     console.log(`   LLM Provider: ${openaiConfig.provider}`);
-    
+
     try {
       const provider = EmbeddingProviderFactory.createProvider(openaiConfig);
       console.log(`   ✅ Provider created (attempts OpenAI when available)`);
-      
-      // This will fail but confirms OpenAI selection
+
+      // This will fail but confirms OpenAI selection; set env temporarily when invoking provider
       try {
-        await provider.embedText("test");
+        const originalKey = process.env.OPENAI_API_KEY;
+        process.env.OPENAI_API_KEY = simulatedOpenAIKey;
+        try {
+          await provider.embedText("test");
+        } catch (error) {
+          console.log(`   📝 Expected OpenAI error (confirms provider selection): API key validation failed`);
+        }
+        if (originalKey) process.env.OPENAI_API_KEY = originalKey; else delete process.env.OPENAI_API_KEY;
       } catch (error) {
-        console.log(`   📝 Expected OpenAI error (confirms provider selection): API key validation failed`);
+        console.log(`   ✅ Falls back gracefully: ${error instanceof Error ? error.message : String(error)}`);
       }
     } catch (error) {
       console.log(`   ✅ Falls back gracefully: ${error instanceof Error ? error.message : String(error)}`);

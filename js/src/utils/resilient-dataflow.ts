@@ -18,7 +18,9 @@
 import pRetry from 'p-retry';
 import CircuitBreaker from 'opossum';
 import { createLogger } from './enhanced-logger';
+const otelLogger = createLogger('dataflow', 'otel');
 import { getMeter, ENABLE_OTEL } from '../observability/opentelemetry-setup';
+import tracingHelper from '../observability/tracing-helper';
 
 // Types for resilient dataflow
 export interface DataflowConfig {
@@ -78,6 +80,7 @@ export class DataflowMetricsCollector {
   private requestCounter?: any;
   private successCounter?: any;
   private failureCounter?: any;
+  private responseTimeHistogram?: any;
 
   constructor() {
     if (ENABLE_OTEL) {
@@ -86,27 +89,30 @@ export class DataflowMetricsCollector {
         this.requestCounter = meter.createCounter('dataflow_requests_total', { description: 'Total dataflow requests' } as any);
         this.successCounter = meter.createCounter('dataflow_success_total', { description: 'Successful dataflow requests' } as any);
         this.failureCounter = meter.createCounter('dataflow_failure_total', { description: 'Failed dataflow requests' } as any);
-      } catch (err) {}
+        try { this.responseTimeHistogram = meter.createHistogram('dataflow_response_time_ms', { description: 'Dataflow response time in ms' } as any); } catch (e) { otelLogger.debug('histogram-create-failed','Could not create dataflow histogram', { error: String(e) }); }
+      } catch (err) { otelLogger.debug('meter-init-failed','Could not initialize dataflow meter', { error: String(err) }); }
     }
   }
 
   recordRequest(): void {
     this.metrics.totalRequests++;
-    try { this.requestCounter?.add(1); } catch (err) {}
+  try { this.requestCounter?.add(1); } catch (err) { otelLogger.debug('counter-add-failed','Could not add to dataflow request counter', { error: String(err) }); }
   }
 
   recordSuccess(responseTime: number): void {
     this.metrics.successfulRequests++;
     this.metrics.lastSuccess = new Date();
     this.updateResponseTime(responseTime);
-    try { this.successCounter?.add(1, { response_time_ms: responseTime }); } catch (err) {}
+  try { this.successCounter?.add(1, { response_time_ms: responseTime }); } catch (err) { otelLogger.debug('counter-add-failed','Could not add to dataflow success counter', { error: String(err) }); }
+  try { this.responseTimeHistogram?.record(responseTime, { success: true }); } catch (err) { otelLogger.debug('histogram-record-failed','Could not record dataflow response time', { error: String(err) }); }
   }
 
   recordFailure(error: string): void {
     this.metrics.failedRequests++;
     this.metrics.lastError = error;
     this.metrics.lastFailure = new Date();
-    try { this.failureCounter?.add(1, { error: error }); } catch (err) {}
+    try { this.failureCounter?.add(1, { error: error }); } catch (err) { otelLogger.debug('counter-add-failed','Could not add to dataflow failure counter', { error: String(err) }); }
+    try { this.responseTimeHistogram?.record(0, { success: false, error }); } catch (err) { otelLogger.debug('histogram-record-failed','Could not record dataflow response time', { error: String(err) }); }
   }
 
   recordRetry(): void {
@@ -206,6 +212,17 @@ export async function withDataflowResilience<T>(
   const finalConfig = { ...defaultDataflowConfig, ...config };
   const logger = createLogger('dataflow', 'resilient');
   const metrics = new DataflowMetricsCollector();
+  let span: any | undefined;
+  let traceId: string | undefined;
+
+  if (ENABLE_OTEL) {
+    try {
+      span = tracingHelper.startSpan(operation, { attributes: { component: 'resilient-dataflow' } });
+      try { traceId = tracingHelper.getSpanTraceId(span); } catch (_e) { /* ignore */ }
+    } catch (err) {
+      logger.debug('otel-init-failed', 'Could not start tracer span', { error: String(err) });
+    }
+  }
   
   logger.info('operation-start', `Starting ${operation}`, {
     maxRetries: finalConfig.maxRetries,
@@ -307,8 +324,13 @@ export async function withDataflowResilience<T>(
       
       logger.info('operation-success', `Operation ${operation} completed successfully`, {
         responseTime,
-        metrics: metrics.getMetrics()
+        metrics: metrics.getMetrics(),
+        traceId
       });
+
+      if (span) { try { span.setAttribute('response_time_ms', responseTime); } catch (e) { logger.debug('set-attribute-failed','Could not set span attribute response_time_ms', { error: String(e) }); } }
+      if (span) { try { (span as any).setStatus?.({ code: 1 }); } catch (e) { logger.debug('set-status-failed','Could not set span status', { error: String(e) }); } }
+      if (span) { try { span.end(); } catch (e) { logger.debug('span-end-failed','Could not end span', { error: String(e) }); } }
 
       return result;
     } catch (error) {
@@ -319,12 +341,18 @@ export async function withDataflowResilience<T>(
         metrics: metrics.getMetrics()
       });
 
+      if (span) { try { span.setAttribute('error', dataflowError.message); } catch (e) { logger.debug('set-attribute-failed','Could not set span attribute error', { error: String(e) }); } }
+      if (span) { try { (span as any).setStatus?.({ code: 2, message: dataflowError.message }); } catch (e) { logger.debug('set-status-failed','Could not set span status', { error: String(e) }); } }
+
       logger.error('operation-failed', `Operation ${operation} failed`, {
         error: dataflowError.message,
         responseTime,
         circuitBreakerStats: circuitBreaker.stats,
-        metrics: metrics.getMetrics()
+        metrics: metrics.getMetrics(),
+        traceId
       });
+
+      if (span) { try { span.end(); } catch (e) { logger.debug('span-end-failed','Could not end span', { error: String(e) }); } }
 
       throw dataflowError;
     }
@@ -341,6 +369,7 @@ export async function withDataflowResilience<T>(
       return await resilientOperation();
     } finally {
       clearTimeout(timeoutId);
+      if (span) { try { span.end(); } catch (e) { logger.debug('span-end-failed','Could not end span', { error: String(e) }); } }
     }
   } else {
     return await resilientOperation();
