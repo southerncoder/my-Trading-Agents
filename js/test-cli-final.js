@@ -18,7 +18,7 @@ async function testCLI() {
     console.log('   ✅ CLI initializes without errors');
     console.log('   ✅ All commands are properly registered');
     console.log('   ✅ Configuration loads correctly');
-    console.log('   ✅ LM Studio port 9876 configured');
+    console.log('   ✅ LM Studio service configured');
     console.log('   ✅ Zep services accessible on port 8000');
     
     console.log('\n🚀 CLI is ready for interactive testing!');

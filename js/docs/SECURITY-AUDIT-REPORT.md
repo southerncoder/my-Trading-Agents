@@ -23,7 +23,7 @@
 ### Critical Issues Fixed
 | Issue | Risk Level | Resolution |
 |-------|------------|------------|
-| Hardcoded IP address `192.168.1.85:9876` | HIGH | Moved to `REMOTE_LM_STUDIO_URL` env var |
+| Hardcoded IP address `<REDACTED>` | HIGH | Moved to `REMOTE_LM_STUDIO_URL` env var |
 | Test API keys in source code | MEDIUM | Moved to environment variables |
 | Sensitive URLs in config files | MEDIUM | Environment variable configuration |
 

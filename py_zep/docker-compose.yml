@@ -32,20 +32,30 @@ services:
       NEO4J_URI: bolt://trading-agents-neo4j:7687
       NEO4J_USER: ${NEO4J_USER:-neo4j}
       NEO4J_PASSWORD: ${NEO4J_PASSWORD:-demo-password-change-me}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      EMBEDDER_API_KEY: ${EMBEDDER_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+      LM_STUDIO_URL: ${LM_STUDIO_URL:-}
       EMBEDDER_PROVIDER: ${EMBEDDER_PROVIDER:-openai}
-      MODEL_NAME: dolphin-2.9-llama3-8b
-      SMALL_MODEL_NAME: dolphin-2.9-llama3-8b
-      LLM_TEMPERATURE: 0.1
-      SEMAPHORE_LIMIT: 5
+      MODEL_NAME: ${OPENAI_MODEL:-dolphin-2.9-llama3-8b}
+      SMALL_MODEL_NAME: ${OPENAI_MODEL:-dolphin-2.9-llama3-8b}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-text-embedding-3-small}
+      LLM_TEMPERATURE: ${LLM_TEMPERATURE:-0.1}
+      SEMAPHORE_LIMIT: ${SEMAPHORE_LIMIT:-5}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
     env_file:
       - .env.local
     volumes:
       - ./secrets/simple-init.py:/init.py:ro
       - ./graph_service/zep_graphiti.py:/app/graph_service/zep_graphiti.py:ro
     command: ["python3", "/init.py", "uvicorn", "graph_service.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    # Keep secrets as fallback for production deployments
     secrets:
       - openai_api_key
       - embedder_api_key
+      - neo4j_user
+      - neo4j_password
     depends_on:
       neo4j:
         condition: service_healthy
@@ -71,3 +81,7 @@ secrets:
     file: ./secrets/openai_api_key.txt
   embedder_api_key:
     file: ./secrets/embedder_api_key.txt
+  neo4j_user:
+    file: ./secrets/neo4j_user.txt
+  neo4j_password:
+    file: ./secrets/neo4j_password.txt

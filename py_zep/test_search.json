@@ -1,0 +1,5 @@
+{
+  "query": "AAPL stock analysis",
+  "group_ids": ["test-group-simple"],
+  "max_facts": 10
+}

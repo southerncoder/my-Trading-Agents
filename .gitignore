@@ -24,6 +24,12 @@ eval_data/
 **/*-secrets.*
 **/*-credentials.*
 
+# Specifically exclude actual secret values but keep templates
+py_zep/secrets/*.txt
+!py_zep/secrets/*.example.txt
+py_zep/.env.local
+!py_zep/.env.example
+
 # API keys and configuration files
 **/api-keys.*
 **/config.local.*

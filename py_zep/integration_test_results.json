@@ -1,0 +1,59 @@
+{
+  "service_health": true,
+  "data_write_tests": [
+    {
+      "test": "write-test-1-episode",
+      "success": true,
+      "response": {
+        "message": "Messages added to processing queue",
+        "success": true
+      }
+    },
+    {
+      "test": "write-test-1-entity",
+      "success": false,
+      "response": null
+    },
+    {
+      "test": "write-test-2-episode",
+      "success": true,
+      "response": {
+        "message": "Messages added to processing queue",
+        "success": true
+      }
+    },
+    {
+      "test": "write-test-2-entity",
+      "success": false,
+      "response": null
+    }
+  ],
+  "data_retrieval_tests": [
+    {
+      "test": "episode-retrieval",
+      "success": true,
+      "response": []
+    },
+    {
+      "test": "memory-retrieval",
+      "success": false,
+      "response": null
+    }
+  ],
+  "search_tests": [
+    {
+      "test": "search-test-1",
+      "query": "AAPL stock analysis",
+      "success": false,
+      "response": null
+    },
+    {
+      "test": "search-test-2",
+      "query": "Tesla trading strategy",
+      "success": false,
+      "response": null
+    }
+  ],
+  "total_tests": 8,
+  "passed_tests": 3
+}

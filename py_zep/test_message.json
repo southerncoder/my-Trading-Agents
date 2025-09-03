@@ -1,0 +1,11 @@
+{
+  "group_id": "test-group-simple",
+  "messages": [
+    {
+      "content": "Test message for AAPL stock analysis",
+      "role_type": "user", 
+      "role": "tester",
+      "timestamp": "2025-09-02T23:59:00Z"
+    }
+  ]
+}
