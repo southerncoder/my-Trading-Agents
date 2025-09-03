@@ -51,11 +51,37 @@ class ZepGraphiti(Graphiti):
         )
         
         logger.debug("Generating name embedding", extra={"op": "save_entity_node", "uuid": uuid})
+        # Attempt to generate embedding with retry/backoff to reduce intermittent failures
+        async def _with_retries(coro, retries: int = 3, base_delay: float = 0.5):
+            last_err = None
+            for attempt in range(1, retries + 1):
+                try:
+                    return await coro()
+                except Exception as exc:
+                    last_err = exc
+                    wait = base_delay * (2 ** (attempt - 1))
+                    logger.warning("Embedder call failed, retrying", extra={
+                        "uuid": uuid,
+                        "attempt": attempt,
+                        "retries": retries,
+                        "error": str(exc),
+                        "wait": wait,
+                    })
+                    try:
+                        import asyncio
+                        await asyncio.sleep(wait)
+                    except Exception:
+                        pass
+            # all retries exhausted
+            if last_err is None:
+                raise RuntimeError("Embedder retry failed without exception")
+            raise last_err
+
         try:
-            await new_node.generate_name_embedding(self.embedder)
+            await _with_retries(lambda: new_node.generate_name_embedding(self.embedder))
             logger.debug("Name embedding generated", extra={"uuid": uuid})
         except Exception as e:
-            logger.exception("Name embedding failed", extra={
+            logger.exception("Name embedding failed after retries", extra={
                 "uuid": uuid,
                 "error": str(e),
                 "error_type": str(type(e)),
