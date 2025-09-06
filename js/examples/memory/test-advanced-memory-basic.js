@@ -86,7 +86,7 @@ async function testBasicSetup() {
     // Test 4: Memory provider import test
     console.log('\n📦 Test 4: Memory Provider Import');
     try {
-      const { ZepGraphitiMemoryProvider } = await import('../../src/providers/zep-graphiti-memory-provider.js');
+      const { ZepGraphitiMemoryProvider } = await import('../../src/providers/zep-graphiti-memory-provider-client.js');
       console.log('✅ ZepGraphitiMemoryProvider imported successfully');
       
       // Test basic provider creation

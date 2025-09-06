@@ -1,34 +1,52 @@
-# Quickstart: Running the Example
+# Advanced Memory & Learning System Examples
 
-This folder contains a runnable example for the Advanced Memory & Learning System using Zep Graphiti as the backend knowledge graph.
+This folder contains examples for the Advanced Memory & Learning System using Zep Graphiti's client-based architecture.
 
-## Example: `run-advanced-memory-example.ts`
+## Status: Updated for Client-Based Architecture
+The examples have been updated to use the new client-based Zep Graphiti integration. The deprecated HTTP-based examples have been moved to `legacy/http-implementation/`.
 
-- Demonstrates how to:
-  - Configure the ZepAdapter for your Zep Graphiti instance
-  - Initialize the `AdvancedMemoryLearningSystem`
-  - Submit a trading intelligence request and print the response
+## Running Client-Based Examples
 
 ### Prerequisites
 - Node.js 18+
-- Zep Graphiti running locally or remotely (set `ZEP_GRAPHITI_URL` and `ZEP_API_KEY` in your `.env.local`)
+- Zep Graphiti services running (see `py_zep/start-services-secure.ps1`)
+- Client-based memory provider configured
 - Install dependencies:
   ```sh
   cd js
   npm install
   ```
 
-### Running the Example
-From the `js` directory:
-```sh
-npx tsx src/memory/advanced/examples/run-advanced-memory-example.ts
+### Example Usage
+
+```typescript
+import { AdvancedMemoryLearningSystem } from '../index';
+import { createZepGraphitiMemory } from '../../../providers/zep-graphiti-memory-provider-client';
+
+// Initialize client-based memory provider
+const memoryProvider = await createZepGraphitiMemory({
+  sessionId: 'advanced-memory-session',
+  userId: 'trading-agent'
+}, {
+  provider: 'openai',
+  model: 'gpt-4o-mini',
+  temperature: 0.3,
+  maxTokens: 1000
+});
+
+// Use with advanced memory system
+const config = {
+  // Your configuration here
+};
+
+const system = new AdvancedMemoryLearningSystem(config, memoryProvider, console);
+await system.initialize();
 ```
 
-### What it does
-- Connects to Zep Graphiti using the adapter
-- Initializes the advanced memory system with a sample config
-- Sends a sample trading intelligence request (for AAPL)
-- Prints the structured response (market intelligence, risk, confidence, learning insights)
+### Integration Testing
+For validation testing, see:
+- `tests/test-client-memory-integration.ts` - Comprehensive client integration testing
+- Client-based examples demonstrate proper Graphiti client usage
 
 ---
 # Advanced Memory & Learning System

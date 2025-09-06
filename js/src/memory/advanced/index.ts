@@ -404,8 +404,8 @@ export class AdvancedMemoryLearningSystem {
 
   private async initializeZepConnection(): Promise<void> {
     try {
-      // Import the existing Zep provider
-      const { ZepGraphitiMemoryProvider } = await import('../../providers/zep-graphiti-memory-provider');
+      // Import the client-based Zep provider
+      const { ZepGraphitiMemoryProvider } = await import('../../providers/zep-graphiti-memory-provider-client');
       
       // Initialize the provider with config
       this.zepProvider = new ZepGraphitiMemoryProvider({

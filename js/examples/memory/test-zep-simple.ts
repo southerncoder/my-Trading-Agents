@@ -4,8 +4,8 @@
  * Simple Zep Graphiti test without service dependency
  */
 
-import { AgentLLMConfig } from '../src/types/agent-config';
-import { ZepGraphitiConfig, EpisodeType } from '../src/providers/zep-graphiti-memory-provider';
+import { AgentLLMConfig } from '../../src/types/agent-config';
+import { ZepGraphitiConfig, EpisodeType } from '../../src/providers/zep-graphiti-memory-provider-client';
 
 async function testSimple() {
   console.log('=== Simple Zep Graphiti Code Test ===');
@@ -24,7 +24,7 @@ async function testSimple() {
 
   // Test if we can import the memory provider class
   try {
-    const { createZepGraphitiMemory } = await import('../src/providers/zep-graphiti-memory-provider.js');
+    const { createZepGraphitiMemory } = await import('../../src/providers/zep-graphiti-memory-provider-client.js');
     console.log('✅ Successfully imported ZepGraphitiMemoryProvider');
     console.log('Available functions:', { createZepGraphitiMemory: typeof createZepGraphitiMemory, EpisodeType });
     
