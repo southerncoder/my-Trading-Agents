@@ -2,7 +2,7 @@
 
 ## 🎯 Test Summary
 **Date:** August 31, 2025  
-**Remote LM Studio:** 192.168.1.85:9876  
+**Remote LM Studio:** ${REMOTE_LM_STUDIO_URL}  
 **Test Duration:** 130.662 seconds  
 **Success Rate:** 100.0% (6/6 tests passed)
 

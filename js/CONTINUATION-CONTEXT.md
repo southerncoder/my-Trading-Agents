@@ -11,8 +11,8 @@ This file documents the minimum steps and environment variables required to set 
 Copy `.env.local.example` to `.env.local` and fill in the following values:
 
 - `LLM_PROVIDER` (e.g., `lm_studio`, `openai`, `anthropic`, `google`)
-- `LM_STUDIO_HOST` (if using LM Studio, e.g., `192.168.1.85`)
-- `LLM_BACKEND_URL` (e.g., `http://192.168.1.85:1234/v1`)
+- `LM_STUDIO_HOST` (if using LM Studio, e.g., `localhost` or `remote-host`)
+- `LLM_BACKEND_URL` (e.g., `http://localhost:1234/v1`)
 - `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY` (if using cloud LLMs)
 - `FINNHUB_API_KEY`, `ALPHA_VANTAGE_API_KEY`, `NEWS_API_KEY` (for financial data)
 - `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET`, `REDDIT_USERNAME`, `REDDIT_PASSWORD` (for Reddit integration)

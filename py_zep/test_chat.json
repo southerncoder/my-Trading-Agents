@@ -1,0 +1,10 @@
+{
+  "model": "microsoft/phi-4-mini-reasoning",
+  "messages": [
+    {
+      "role": "user",
+      "content": "hi"
+    }
+  ],
+  "max_tokens": 5
+}

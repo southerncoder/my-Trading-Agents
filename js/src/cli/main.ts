@@ -859,7 +859,7 @@ export async function createCLI(): Promise<Command> {
     .command('lmstudio:preload')
     .description('Preload a model on an LM Studio instance')
     .requiredOption('-m, --model <name>', 'Model name to preload')
-    .requiredOption('-h, --host <url>', 'LM Studio base URL (e.g., http://192.168.1.85:1234/v1)')
+    .requiredOption('-h, --host <url>', 'LM Studio base URL (e.g., http://localhost:1234/v1)')
     .action(async (opts: { model: string; host: string }) => {
       try {
         const { ModelProvider } = await import('../models/provider');

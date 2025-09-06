@@ -124,7 +124,7 @@ Example (PowerShell):
 
 ```powershell
 mkdir secrets
-Set-Content -Path secrets\lm_studio_url.txt -Value "http://192.168.1.85:1234/v1"
+Set-Content -Path secrets\lm_studio_url.txt -Value "http://localhost:1234/v1"
 Set-Content -Path secrets\openai_api_key.txt -Value "<PLACEHOLDER_OPENAI_API_KEY>"
 Set-Content -Path secrets\embedder_api_key.txt -Value "<PLACEHOLDER_EMBEDDER_API_KEY>"
 docker-compose up

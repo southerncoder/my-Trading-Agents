@@ -1,7 +1,7 @@
 /**
  * Simple Remote LM Studio Test
  * 
- * Basic connectivity and model testing for remote LM Studio at 192.168.1.85:9876
+ * Basic connectivity and model testing for remote LM Studio at ${REMOTE_LM_STUDIO_URL}
  */
 
 import {
