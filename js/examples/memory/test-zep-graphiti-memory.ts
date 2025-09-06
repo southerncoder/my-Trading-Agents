@@ -1,6 +1,6 @@
 // moved from tests/memory/test-zep-graphiti-memory.ts
 // ...existing code...
-import { createZepGraphitiMemory, ZepGraphitiConfig, EpisodeType } from '../../src/providers/zep-graphiti-memory-provider';
+import { createZepGraphitiMemory, ZepGraphitiConfig, EpisodeType } from '../../src/providers/zep-graphiti-memory-provider-client';
 import { AgentLLMConfig } from '../../src/types/agent-config';
 
 /**

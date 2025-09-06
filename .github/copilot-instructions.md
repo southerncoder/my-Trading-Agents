@@ -45,7 +45,7 @@ neo4j_uri = 'bolt://10.0.0.45:7687'       # Real IP - SECURITY VIOLATION
 
 ## Critical Rule: Always Use Graphiti Client
 
-**MANDATORY**: When writing code that interacts with Zep-Graphiti, ALWAYS use the official Graphiti client library instead of direct HTTP API calls.
+**MANDATORY**: When writing code that interacts with Zep-Graphiti, ALWAYS use the official Graphiti client library through the TypeScript client bridge instead of direct HTTP API calls.
 
 ### Why This Matters
 
@@ -55,101 +55,136 @@ neo4j_uri = 'bolt://10.0.0.45:7687'       # Real IP - SECURITY VIOLATION
 4. **Embedding Generation**: Proper embedding generation and storage is handled by the client
 5. **Graph Consistency**: The client maintains graph consistency and relationships
 
-### Correct Approach: Use Graphiti Client
+### Correct Approach: Use TypeScript Client Bridge
+
+```typescript
+// ✅ CORRECT - Use the client-based memory provider
+import { ZepGraphitiMemoryProvider, createZepGraphitiMemory } from '../providers/zep-graphiti-memory-provider-client';
+
+// Create client-based memory provider
+const memoryProvider = await createZepGraphitiMemory({
+  sessionId: 'trading-session',
+  userId: 'trading-agent'
+}, {
+  provider: 'openai',
+  model: 'gpt-4o-mini',
+  temperature: 0.3,
+  maxTokens: 1000
+});
+
+// Add episodes using client bridge
+await memoryProvider.addEpisode(
+  'Trading Analysis', 
+  'Market analysis content',
+  EpisodeType.ANALYSIS,
+  { recommendation: 'Buy signal detected' }
+);
+
+// Search using client bridge
+const results = await memoryProvider.searchMemories(
+  'What should I do about rising interest rates?',
+  { maxResults: 10 }
+);
+```
+
+### Python Client Bridge Integration
+
+The TypeScript integration uses `graphiti_ts_bridge.py` to provide seamless access to the Python Graphiti client:
 
 ```python
+# This is handled automatically by the TypeScript bridge
 from graphiti_core import Graphiti
 from graphiti_core.llm_client import LLMConfig, OpenAIClient
 from graphiti_core.embedder.openai import OpenAIEmbedder, OpenAIEmbedderConfig
 from graphiti_core.nodes import EpisodeType
 from datetime import datetime, timezone
 
-# Initialize Graphiti client
-llm_config = LLMConfig(
-    api_key=os.getenv('OPENAI_API_KEY', 'dummy-key'),
-    base_url=os.getenv('OPENAI_BASE_URL', 'http://host.docker.internal:1234/v1'),
-    model='dolphin-2.9-llama3-8b'
-)
-llm_client = OpenAIClient(config=llm_config)
-
-embedder_config = OpenAIEmbedderConfig(
-    api_key=os.getenv('OPENAI_API_KEY', 'dummy-key'),
-    base_url=os.getenv('OPENAI_BASE_URL', 'http://host.docker.internal:1234/v1'),
-    embedding_model='text-embedding-qwen3-embedding-4b',
-    embedding_dim=2560
-)
-embedder = OpenAIEmbedder(config=embedder_config)
-
+# Bridge automatically configures client with proper settings
 graphiti = Graphiti(
     neo4j_uri,
-    neo4j_user,
+    neo4j_user, 
     neo4j_password,
     llm_client=llm_client,
     embedder=embedder
-)
-
-# Add episodes using client
-await graphiti.add_episode(
-    name="episode_name",
-    episode_body="episode content",
-    source=EpisodeType.text,
-    reference_time=datetime.now(timezone.utc),
-    source_description="description"
-)
-
-# Search using client
-results = await graphiti.search(
-    query="search query",
-    num_results=10
 )
 ```
 
 ### INCORRECT Approach: Direct HTTP Calls
 
-```python
-# ❌ NEVER DO THIS - bypasses client logic
-response = requests.post("http://localhost:8000/messages", json={...})
-search_response = requests.post("http://localhost:8000/search", json={...})
+```typescript
+// ❌ NEVER DO THIS - bypasses client logic
+const response = await fetch("http://localhost:8000/messages", {
+  method: 'POST',
+  body: JSON.stringify({...})
+});
+const searchResponse = await fetch("http://localhost:8000/search", {
+  method: 'POST', 
+  body: JSON.stringify({...})
+});
 ```
 
-### Key Client Methods to Use
+### Key Client Bridge Methods to Use
 
-1. **Adding Data**:
-   - `await graphiti.add_episode()` - Add episodes (text, messages, events)
-   - `await graphiti.add_episode_bulk()` - Bulk episode addition
+1. **TypeScript Interface**:
+   - `createZepGraphitiMemory()` - Factory for client-based provider
+   - `memoryProvider.addEpisode()` - Add episodes through client bridge
+   - `memoryProvider.searchMemories()` - Search through client bridge
+   - `memoryProvider.testConnection()` - Health check through bridge
 
-2. **Searching**:
-   - `await graphiti.search()` - Semantic search with proper ranking
-   - `await graphiti._search()` - Internal search with specific configs
+2. **Enhanced Financial Memory**:
+   - `EnhancedFinancialMemory` - Wrapper for compatibility with existing interfaces
+   - `addSituations()` - Compatible with FinancialSituationMemory interface
+   - `getMemories()` - Compatible memory retrieval
+   - `getProviderInfo()` - Provider information and metrics
 
-3. **Maintenance**:
-   - `await graphiti.build_indices_and_constraints()` - Initialize graph
-   - `await clear_data(graphiti.driver)` - Clear graph data
-
+3. **Client Bridge Features**:
+   - Automatic Python client initialization
+   - Cross-language type safety
+   - Enterprise logging and error handling
+   - Circuit breaker patterns for reliability
 ### Configuration Best Practices
 
-1. **Use Environment Variables**: Always use env vars for configuration
-2. **Proper LLM Client**: Use OpenAIClient with correct config
-3. **Embedder Setup**: Configure embedder with correct dimensions
-4. **Error Handling**: Wrap client calls in try-catch blocks
+1. **Use Client-Based Provider**: Always use `zep-graphiti-memory-provider-client.ts` 
+2. **Environment Variables**: Configure through env vars for flexibility
+3. **TypeScript Bridge**: Let bridge handle Python client configuration
+4. **Error Handling**: Client bridge includes enterprise-grade error handling
+5. **Logging**: Structured logging built into client bridge operations
 
 ### Integration Testing
 
 When testing Zep-Graphiti integration:
 
-1. Use the Graphiti client for all data operations
-2. Allow processing time after adding episodes (2-3 seconds)
-3. Test search functionality using client methods
-4. Verify data persistence through client queries
+1. **Use Client Bridge**: Always test through TypeScript client bridge
+2. **Test Connection**: Use `memoryProvider.testConnection()` for health checks
+3. **Episode Processing**: Allow time for client-side processing after adding episodes
+4. **Search Validation**: Test search functionality through client bridge methods
+5. **Integration Tests**: Use `tests/test-client-memory-integration.ts` as reference
+
+### Architecture Overview
+
+```
+TypeScript Trading Agents
+         ↓
+zep-graphiti-memory-provider-client.ts
+         ↓  
+GraphitiClientBridge
+         ↓
+graphiti_ts_bridge.py (Python bridge)
+         ↓
+Official Graphiti Python Client
+         ↓
+Neo4j Database
+```
 
 ### Remember
 
-- Direct HTTP calls will appear to work but will miss crucial processing
-- Search functionality specifically requires client-side processing
-- Entity extraction and relationship building happen in the client
-- Always import and use the official Graphiti classes and methods
+- **Legacy Cleanup**: HTTP-based implementations are archived in `legacy/http-implementation/`
+- **Client Processing**: All data processing happens in the Python client, not HTTP endpoints
+- **Search Indexing**: Client-side search indexing ensures proper discoverability
+- **Entity Extraction**: Automatic entity and relationship extraction through client
+- **Enterprise Features**: Circuit breakers, retry logic, and structured logging included
 
-**This rule applies to ALL code that interacts with Zep-Graphiti services.**
+**This rule applies to ALL new code that interacts with Zep-Graphiti services.**
 
 ## Command Line Requirements
 Use cross-shell friendly commands so contributors on bash/zsh/cmd/PowerShell can run them unchanged. Vite-node drives TS/ESM execution.
@@ -349,7 +384,7 @@ The codebase and tests will read `.env.local` when present. Do not add concrete 
 - **Use `start-zep-services.ps1`** for official Zep Graphiti service management on Windows
 - **Monitor container logs** through the dedicated service terminal
 - **Test service health** before running integration tests
-- **API Documentation**: Access Swagger docs at http://localhost:8000/docs
+- **API Documentation**: Access Swagger docs at http://localhost:8000/docs (for infrastructure verification only - use client bridge for development)
 
 ## Technical Innovations & Lessons Learned
 
@@ -408,15 +443,15 @@ The codebase and tests will read `.env.local` when present. Do not add concrete 
 
 ### Containerized Memory Architecture
 - **Challenge**: Complex Zep Graphiti Python service integration with TypeScript agents
-- **Solution**: Full containerization with Docker Compose, PowerShell orchestration scripts
-- **Achievement**: Production-ready containerized memory service with Neo4j backend
-- **Benefits**: Complete service isolation, automated terminal management, HTTP API bridge
+- **Solution**: Full containerization with Docker Compose, TypeScript client bridge for seamless integration
+- **Achievement**: Production-ready containerized memory service with client-based architecture
+- **Benefits**: Complete service isolation, automated terminal management, client-based data processing
 
 ### Context7 Documentation Integration & Neo4j Version Management
 - **Challenge**: Zep Graphiti entity creation failing due to Neo4j version incompatibility
 - **Solution**: Used Context7 to verify official Zep Graphiti documentation requirements
 - **Achievement**: Confirmed Neo4j 5.26+ requirement and updated Docker Compose accordingly
-- **Impact**: Entity node creation working, but embedding API compatibility with LM Studio remains
+- **Impact**: Entity node creation working through client bridge, full compatibility achieved
 
 ### Production Readiness Validation & Code Quality
 - **Challenge**: Ensuring enterprise-grade code quality and zero security vulnerabilities
