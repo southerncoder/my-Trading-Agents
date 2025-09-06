@@ -1,0 +1,35 @@
+# Secrets and credentials
+secrets/
+*.secret
+*.key
+.env
+.env.local
+.env.production
+
+# Neo4j data
+neo4j_data/
+neo4j_logs/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.coverage
+.pytest_cache/
+
+# Logs
+*.log
+logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

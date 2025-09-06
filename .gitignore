@@ -93,3 +93,4 @@ secrets-*.txt
 *.key
 *.pem
 *.crt
+py_zep/NEO4J-SECURITY-COMPLETE.md

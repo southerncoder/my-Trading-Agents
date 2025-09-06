@@ -30,7 +30,7 @@ neo4j_uri = 'bolt://localhost:7687'
 
 ```python
 # ❌ NEVER DO THIS - exposes real internal IPs
-base_url = 'http://192.168.1.85:9876/v1'  # Real IP - SECURITY VIOLATION
+base_url = 'http://127.0.0.1:9876/v1'  # Real IP - SECURITY VIOLATION
 neo4j_uri = 'bolt://10.0.0.45:7687'       # Real IP - SECURITY VIOLATION
 ```
 
