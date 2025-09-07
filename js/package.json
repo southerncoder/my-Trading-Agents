@@ -7,7 +7,7 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite-node src/index.ts",
-    "start": "node dist/index.js",
+    "start": "node dist/cli/main.js",
     "watch": "vite build --watch",
     "cli": "node cli.js",
     "cli:menu": "node cli.js menu",
@@ -73,7 +73,6 @@
     "audit:deps": "npm outdated",
     "clean": "rimraf dist",
     "prebuild": "npm run clean",
-    "prepare": "npm run build",
     "smoke": "npm run type-check && npm test || true"
   },
   "bin": {
@@ -88,15 +87,16 @@
     "@langchain/openai": "^0.6.9",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/auto-instrumentations-node": "^0.62.2",
+    "@opentelemetry/exporter-logs-otlp-http": "^0.203.0",
     "@opentelemetry/exporter-metrics-otlp-proto": "^0.203.0",
     "@opentelemetry/exporter-trace-otlp-proto": "^0.203.0",
     "@opentelemetry/resources": "^2.0.1",
+    "@opentelemetry/sdk-logs": "^0.203.0",
     "@opentelemetry/sdk-metrics": "^2.0.1",
     "@opentelemetry/sdk-node": "^0.203.0",
     "@opentelemetry/semantic-conventions": "^1.36.0",
-  "@opentelemetry/sdk-logs": "^0.203.0",
-  "@opentelemetry/exporter-logs-otlp-http": "^0.203.0",
     "@types/opossum": "^8.1.9",
+    "alphavantage": "^2.5.0",
     "axios": "^1.11.0",
     "boxen": "^8.0.1",
     "chalk": "^5.6.0",
@@ -118,6 +118,11 @@
     "ora": "^8.2.0",
     "p-retry": "^7.0.0",
     "redis": "^5.8.2",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.4",
+    "vite-node": "^3.2.4",
+    "vite-tsconfig-paths": "^5.1.4",
     "winston": "^3.17.0",
     "yahoo-finance2": "^2.13.3"
   },
@@ -133,16 +138,11 @@
     "jest": "^30.0.5",
     "nodemon": "^3.1.10",
     "prettier": "^3.6.2",
-    "rimraf": "^6.0.1",
     "ts-jest": "^29.4.1",
     "ts-node": "^10.9.2",
     "tsc-alias": "^1.8.16",
     "tsconfig-paths": "^4.2.0",
-    "tsx": "^4.20.5",
-    "typescript": "^5.9.2",
-    "vite": "^6.3.5",
-    "vite-node": "^3.2.4",
-    "vite-tsconfig-paths": "^5.1.4"
+    "tsx": "^4.20.5"
   },
   "keywords": [
     "trading",
@@ -161,6 +161,6 @@
     "url": "https://github.com/southerncoder/my-Trading-Agents.git"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.0.0"
   }
 }

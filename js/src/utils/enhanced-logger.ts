@@ -8,7 +8,7 @@
 import winston from 'winston';
 import { emitLog } from '../observability/logs-bridge';
 
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'critical';
 export type LogContext = 'agent' | 'dataflow' | 'graph' | 'cli' | 'test' | 'system';
 
 // Simplified error interface to avoid circular dependency

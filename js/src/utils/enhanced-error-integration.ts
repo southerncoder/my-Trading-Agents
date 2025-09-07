@@ -142,9 +142,10 @@ export class EnhancedDataFlowWrapper {
         { maxAttempts: 2, baseDelay: 2000 }
       );
     } catch (error) {
-      // Fallback to empty array for news data
+      // TODO: Implement proper news data fallback system
+      // Should include cached news data, alternative news providers, and graceful degradation
       globalErrorManager.handleError(error, context).catch(() => {});
-      return [];
+      throw new Error(`News data unavailable for ${ticker}. Need to implement news provider failover and caching system.`);
     }
   }
 
@@ -163,9 +164,10 @@ export class EnhancedDataFlowWrapper {
         { maxAttempts: 2, baseDelay: 1500 }
       );
     } catch (error) {
-      // Fallback to empty object for social data
+      // TODO: Implement proper social media data fallback system  
+      // Should include cached sentiment data, alternative social providers, and sentiment trend analysis
       globalErrorManager.handleError(error, context).catch(() => {});
-      return {};
+      throw new Error(`Social media data unavailable for ${ticker}. Need to implement social media provider failover and sentiment caching system.`);
     }
   }
 
@@ -180,9 +182,10 @@ export class EnhancedDataFlowWrapper {
     try {
       return await circuitBreaker.execute(() => this.dataFlow.fetchFundamentals(ticker));
     } catch (error) {
-      // Fallback to basic data structure for fundamentals
+      // TODO: Implement proper fundamentals data fallback system
+      // Should include cached financial data, alternative data providers, and financial metrics calculation
       globalErrorManager.handleError(error, context).catch(() => {});
-      return { price: 0, change: 0, volume: 0 };
+      throw new Error(`Fundamentals data unavailable for ${ticker}. Need to implement financial data provider failover and caching system.`);
     }
   }
 }

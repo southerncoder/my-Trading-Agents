@@ -1,22 +1,24 @@
 # Copilot Instructions for TradingAgents
 
-## Critical Security Rule: Never Include Real IP Addresses
+## Critical Security Rule: Never Include Real Network Information
 
-**MANDATORY**: Never include real IP addresses in source code, test files, documentation, or any repository files.
+**MANDATORY**: Never include real IP addresses, usernames, passwords, client IDs, or other sensitive network information in source code, test files, documentation, or any repository files.
 
 ### Why This Matters
 
-1. **Security Policy Violation**: Exposing internal IP addresses creates security vulnerabilities
+1. **Security Policy Violation**: Exposing internal network details creates security vulnerabilities
 2. **Network Topology Exposure**: Real IPs reveal internal network structure
-3. **Attack Surface**: Hardcoded IPs provide attack vectors for malicious actors
-4. **Privacy Concerns**: Internal addresses should never be public
+3. **Attack Surface**: Hardcoded credentials provide attack vectors for malicious actors
+4. **Privacy Concerns**: Personal/internal information should never be public
+5. **Professional Standards**: Public repositories must maintain security hygiene
 
-### Correct Approach: Use Environment Variables or Generic Examples
+### Correct Approach: Use Environment Variables and Generic Examples
 
 ```python
 # ✅ CORRECT - Use environment variables
 REMOTE_LM_STUDIO_URL = os.getenv('REMOTE_LM_STUDIO_URL', 'http://localhost:1234')
 NEO4J_URI = os.getenv('NEO4J_URI', 'bolt://localhost:7687')
+REDDIT_CLIENT_ID = os.getenv('REDDIT_CLIENT_ID', 'your_client_id_here')
 
 # ✅ CORRECT - Use localhost in examples
 base_url = 'http://localhost:1234/v1'
@@ -24,24 +26,81 @@ neo4j_uri = 'bolt://localhost:7687'
 
 # ✅ CORRECT - Use generic examples in documentation
 # Example: Connect to your LM Studio server at http://your-server:1234
+# Set REDDIT_CLIENT_ID=your_actual_client_id in .env.local
 ```
 
-### INCORRECT Approach: Hardcoded Real IPs
+### INCORRECT Approach: Hardcoded Real Information
 
 ```python
-# ❌ NEVER DO THIS - exposes real internal IPs
+# ❌ NEVER DO THIS - exposes real sensitive information
 base_url = 'http://127.0.0.1:9876/v1'  # Real IP - SECURITY VIOLATION
-neo4j_uri = 'bolt://10.0.0.45:7687'       # Real IP - SECURITY VIOLATION
+reddit_client_id = 'abc123realid'      # Real client ID - SECURITY VIOLATION
+username = 'real_username'              # Real username - SECURITY VIOLATION
 ```
 
 ### Security Best Practices
 
-1. **Environment Variables**: Always use env vars for network endpoints
+1. **Environment Variables**: Always use env vars for network endpoints and credentials
 2. **Localhost Examples**: Use localhost or 127.0.0.1 in code examples
-3. **Generic Documentation**: Use placeholders like "your-server" in docs
-4. **Configuration Files**: Keep real IPs in .env files (gitignored)
+3. **Generic Documentation**: Use placeholders like "your-server", "your_client_id" in docs
+4. **Configuration Files**: Keep real values in .env.local files (gitignored)
+5. **Documentation Sanitization**: Replace real values with placeholders in all docs
 
 **This rule applies to ALL files in the repository including source code, tests, documentation, and configuration examples.**
+
+## File Organization Best Practices
+
+**MANDATORY**: Follow established file organization patterns for maintainability and clarity.
+
+### Component-Based Organization
+
+When working with related functionality, organize files into component-specific folders:
+
+```
+docs/
+├── reddit/           # Reddit integration documentation
+├── zep-graphiti/     # Zep-Graphiti memory system docs
+└── market-data/      # Market data provider documentation
+
+js/src/providers/
+├── reddit/           # Reddit-specific providers
+├── zep-graphiti/     # Zep-Graphiti memory providers
+└── market-data/      # Market data providers
+
+js/tests/
+├── reddit/           # Reddit integration tests
+├── zep-graphiti/     # Zep-Graphiti tests
+└── integration/      # Cross-component integration tests
+
+js/examples/
+├── reddit/           # Reddit usage examples
+├── zep-graphiti/     # Memory system examples
+└── market-data/      # Data provider examples
+```
+
+### File Organization Principles
+
+1. **Component Isolation**: Group related files (providers, tests, docs, examples) by functional component
+2. **Clear Naming**: Use descriptive folder names that match the component/feature
+3. **Import Path Updates**: Always update import statements when moving files
+4. **Documentation Co-location**: Keep component docs near component code
+5. **Test Organization**: Mirror source structure in test directories
+
+### When Moving Files
+
+1. **Plan the Organization**: Identify all related files before moving
+2. **Update Import Paths**: Fix all import statements to reflect new locations
+3. **Verify Functionality**: Test that moved files still work correctly
+4. **Update Documentation**: Ensure docs reflect new file locations
+5. **Maintain Legacy Paths**: Consider creating legacy archives for major refactors
+
+### Benefits of Good Organization
+
+- **Improved Navigation**: Easier to find related files
+- **Better Maintainability**: Clear separation of concerns
+- **Enhanced Collaboration**: Team members can quickly locate relevant code
+- **Reduced Coupling**: Component isolation reduces cross-dependencies
+- **Simplified Testing**: Component-specific test organization
 
 ## Critical Rule: Always Use Graphiti Client
 
@@ -220,36 +279,28 @@ npm run build; if ($?) { npm test }
 - **Health Monitoring**: All containers include health checks
 
 ## Project Overview
-- **TradingAgents**: Production-ready TypeScript multi-agent LLM trading framework
-- **Status**: ✅ 100% Complete - Production Ready with Enterprise Features (August 30, 2025)
+- **TradingAgents**: TypeScript multi-agent LLM trading framework (In Active Development)
+- **Status**: 🚧 Core Infrastructure Complete - Production Features in Development
 - **Build System**: Modern Vite-based TypeScript with extensionless imports and ES modules
-- **Execution**: Use vite-node for running TS/ESM scripts in dev/test
-- **Core**: TypeScript in `js/` with LangGraph workflows, modern dependency stack, and 100% test coverage
-- **Memory**: Official Zep Graphiti (`zepai/graphiti:latest`) Docker integration - episodes functional
-- **Performance**: 5 enterprise optimizations (15,000x speedup, 77% memory reduction)
-- **CLI**: Interactive interface with modern inquirer 12.x and real-time progress tracking
-- **Agents**: 12 specialized trading agents with enterprise-grade structured logging
-- **Container Infrastructure**: Official Docker-based services with PowerShell orchestration scripts
-- **Dependencies**: Fully modernized - ESLint 9.x, Chalk 5.x, Inquirer 12.x, Winston 3.17.x, Vite 5.x
-- **Integration**: ONLY official Docker images (zepai/graphiti:latest, neo4j:5.26.0) - zero custom code
-- **Security**: Zero vulnerabilities (npm audit), all secrets externalized, production-ready
-- **Quality**: All tests passing (9/9), lint issues resolved, TypeScript compilation clean
+- **Core**: TypeScript in `js/` with LangGraph workflows and enhanced memory system
+- **Memory**: Official Zep Graphiti (`zepai/graphiti:latest`) Docker integration with client-based architecture
+- **CLI**: Interactive interface with modern dependency stack
+- **Agents**: 12 specialized trading agents with structured logging
+- **Quality**: Tests passing, zero vulnerabilities, comprehensive enhanced memory algorithms implemented
+
+**Current Development Focus**: Several core components still contain placeholder implementations and require completion before production deployment.
 
 ## Architecture & Key Components
 
 ### Container Infrastructure
-- **Official Zep Graphiti Service**: `zepai/graphiti:latest` - Official Docker image from Zep AI
-- **Neo4j Database**: `neo4j:5.26.0` - Official Neo4j Docker container (Context7 verified requirement)
-- **Docker Compose**: `py_zep/docker-compose.yml` - Multi-service orchestration with health checks
-- **Service Scripts**: `py_zep/start-zep-services.ps1` - PowerShell automation for terminal-based service management
-- **API Endpoints**: http://localhost:8000 (Zep Graphiti), http://localhost:7474 (Neo4j)
-- **Zero Custom Code**: No custom or 3rd party source code - only official images and configuration
-- **LM Studio Integration**: Embedding model support with OPENAI_BASE_URL configuration
-- **Episode Storage**: Working memory persistence for trading session context
+- **Official Zep Graphiti Service**: `zepai/graphiti:latest` with client-based TypeScript integration
+- **Neo4j Database**: `neo4j:5.26.0` for knowledge graph storage
+- **Docker Compose**: Multi-service orchestration with health checks
+- **Service Scripts**: PowerShell automation for service management
 
 ### Core Orchestration
-- **Enhanced Trading Graph**: `js/src/graph/enhanced-trading-graph.ts` - Main orchestrator with LangGraph integration
-- **Dual Execution Modes**: Seamless switching between traditional and LangGraph workflows
+- **Enhanced Trading Graph**: `js/src/graph/enhanced-trading-graph.ts` - Main orchestrator with placeholder implementations in progress
+- **Dual Execution Modes**: Traditional and LangGraph workflows
 
 ### Agent Implementation (12 Total)
 - **Analysts (4)**: Market, Social, News, Fundamentals
@@ -258,25 +309,18 @@ npm run build; if ($?) { npm test }
 - **Trader (1)**: Trading strategy execution
 
 ### Interactive CLI System
-- **Main Interface**: `js/src/cli/main.ts` - Complete user experience orchestration with inquirer 12.x
-- **Terminal UI**: Colored output with chalk 5.x, progress tracking, result formatting
-- **Configuration**: Advanced config management with save/load capabilities
-
-### Enterprise Performance Optimization Suite
-- **Parallel Execution**: `js/src/graph/enhanced-trading-graph.ts` - 4-phase parallel workflow, 15,000x speedup
-- **Intelligent Caching**: `js/src/performance/intelligent-cache.ts` - LRU cache with TTL, 14.3% hit rate
-- **Lazy Loading**: `js/src/performance/lazy-factory.ts` - On-demand instantiation, 77% memory reduction
-- **State Optimization**: `js/src/performance/state-optimization.ts` - Efficient diffing, 21% compression
-- **Connection Pooling**: `js/src/performance/connection-pooling.ts` - HTTP reuse, 100% connection reuse rate
+- **Main Interface**: `js/src/cli/main.ts` - User experience orchestration with inquirer 12.x
+- **Terminal UI**: Progress tracking and result formatting
+- **Configuration**: Config management with save/load capabilities
 
 ### Modern Dependency Stack (August 2025)
-- **Vite 5.x**: Modern build system with native ES modules and TypeScript support
-- **ESLint 9.34.0**: Flat config format with full TypeScript integration
-- **Chalk 5.6.0**: ESM imports for colorized console output
-- **Inquirer 12.9.4**: Modern prompt system with individual functions
-- **Winston 3.17.0**: Enterprise-grade structured logging with trace correlation
-- **Axios 1.11.0**: Latest HTTP client with security enhancements
-- **LangChain 0.3.x**: Updated with all breaking changes resolved
+- **Vite 5.x**: Modern build system with ES modules
+- **ESLint 9.34.0**: Flat config with TypeScript integration
+- **Chalk 5.6.0**: ESM imports for colorized output
+- **Inquirer 12.9.4**: Modern prompt system
+- **Winston 3.17.0**: Structured logging with trace correlation
+- **Axios 1.11.0**: HTTP client with security enhancements
+- **LangChain 0.3.x**: Updated with breaking changes resolved
 - **TypeScript 5.x**: Extensionless imports compatible with modern bundlers
 
 ## Developer Workflows
@@ -341,50 +385,31 @@ The codebase and tests will read `.env.local` when present. Do not add concrete 
 
 ## Current Status & Recent Achievements
 
-### ✅ August 30, 2025 - Vite Migration & 100% Test Coverage Complete
-- **Modern Build System**: Complete migration to Vite 5.x with native ES module support
-- **Extensionless Imports**: All TypeScript imports converted to modern bundler-compatible format
-- **Test Suite Excellence**: 100% test pass rate (9/9 tests) with comprehensive coverage
-- **Module Resolution**: Modern bundler-based approach replacing legacy ts-node/tsx execution
-- **Performance**: All tests run via vite-node for consistent build/test environment
-- **Import Standardization**: All legacy dist/ imports converted to src/ imports across test suite
+### ✅ August 30, 2025 - Vite Migration & Test Coverage Complete
+- **Modern Build System**: Complete migration to Vite 5.x with ES module support
+- **Test Suite**: 100% test pass rate (9/9 tests) with comprehensive coverage
+- **Module Resolution**: Modern bundler-based approach with vite-node
+- **Import Standardization**: All imports converted to src/ paths
 - **Constructor Fixes**: Resolved EnhancedTradingAgentsGraph instantiation issues
-- **ESLint Integration**: Full Node.js globals support for scripts and test files
 
-### ✅ August 28, 2025 - Production Ready Complete
-- **Final Validation**: All core workflows tested and operational
-- **Code Quality**: Lint issues resolved, TypeScript compilation clean
+### ✅ August 28, 2025 - Infrastructure Complete
+- **Official Docker Integration**: `zepai/graphiti:latest` with client-based architecture
 - **Security Audit**: 0 vulnerabilities found, all secrets externalized
-- **Memory Integration**: Episodes working, entity creation (LM Studio compatibility pending)
-- **Neo4j 5.26.0**: Upgraded per Context7 documentation requirements
-- **Git Integration**: All changes committed, production-ready codebase
-- **Documentation**: Complete roadmap and handoff materials created
+- **Memory Integration**: Episodes working through client bridge
+- **Neo4j 5.26.0**: Upgraded per documentation requirements
 
-### ✅ August 28, 2025 - Official Docker Integration Complete
-- **Official Images Only**: All custom/3rd party Zep source code removed per requirements
-- **Zep Graphiti Integration**: Official `zepai/graphiti:latest` Docker image integrated
-- **API Updates**: Service endpoint updated to port 8000 with /healthcheck endpoint
-- **PowerShell Automation**: Updated scripts for official Docker configuration
-- **Integration Testing**: Created test suite and verified all functionality
-- **Documentation**: Comprehensive completion report and updated instructions
-
-### ✅ August 2025 Modernization Complete
-- **LangChain 0.3 Migration**: Complete migration with all breaking changes resolved
-- **Dependency Modernization**: ESLint 9.x, Chalk 5.x, Inquirer 12.x, Winston 3.17.x, Axios 1.11.0
-- **Enterprise Logging**: Winston-based structured logging across 9+ agent files
-- **Security Status**: Zero vulnerabilities confirmed via npm audit
-- **Build System**: Modern TypeScript with automated ES module imports
-- **CLI Modernization**: Complete inquirer 12.x migration with 35+ prompts converted
+### ✅ August 2025 - Modernization Complete
+- **LangChain 0.3 Migration**: All breaking changes resolved
+- **Dependency Modernization**: ESLint 9.x, Chalk 5.x, Inquirer 12.x, Winston 3.17.x
+- **Enterprise Logging**: Winston-based structured logging
+- **CLI Modernization**: Inquirer 12.x migration with 35+ prompts converted
 
 ### Service Management Best Practices
-- **NEVER run services in integrated terminals** - always use dedicated terminal windows
-- **Windows**: Use the provided PowerShell scripts for orchestration; **Other shells**: run equivalent `docker compose` commands
-- **ONLY use official Docker images** - zepai/graphiti:latest and neo4j:5.26.0
-- **ALWAYS include health checks** in container configurations
-- **Use `start-zep-services.ps1`** for official Zep Graphiti service management on Windows
-- **Monitor container logs** through the dedicated service terminal
-- **Test service health** before running integration tests
-- **API Documentation**: Access Swagger docs at http://localhost:8000/docs (for infrastructure verification only - use client bridge for development)
+- **Use dedicated terminal windows** for services
+- **Windows**: Use PowerShell scripts; **Other shells**: use `docker compose`
+- **Official Docker images only**: zepai/graphiti:latest and neo4j:5.26.0
+- **Include health checks** in container configurations
+- **Use client bridge for development** (not direct API calls)
 
 ## Technical Innovations & Lessons Learned
 
@@ -430,6 +455,24 @@ The codebase and tests will read `.env.local` when present. Do not add concrete 
   - Trace ID correlation for request tracking across workflows
   - Rich metadata and performance timing for debugging
   - Development-friendly colorized console with production-ready structured logs
+- **Solution**: Migrated from legacy .eslintrc to modern flat config
+- **Achievement**: Full TypeScript integration with modern linting rules
+
+### Inquirer 12.x API Restructure
+- **Challenge**: Complete API breaking change from object-based to function-based prompts
+- **Solution**: Converted 35+ CLI prompts to new individual function format
+- **Impact**: Modern, maintainable CLI interface with better TypeScript support
+
+### Enterprise-Grade Structured Logging System
+- **Challenge**: Console statements throughout codebase unsuitable for production
+- **Solution**: Comprehensive Winston-based structured logging with trace correlation
+- **Implementation**: `js/src/utils/enhanced-logger.ts` with context-aware child loggers
+- **Achievement**: 43 console statements replaced across 9+ agent files with zero breaking changes
+- **Production Benefits**: 
+  - JSON structured output for enterprise monitoring
+  - Trace ID correlation for request tracking across workflows
+  - Rich metadata and performance timing for debugging
+  - Development-friendly colorized console with production-ready structured logs
 
 ### Enterprise Performance Optimization Suite
 - **Challenge**: Multi-agent framework needed production-level performance
@@ -438,26 +481,11 @@ The codebase and tests will read `.env.local` when present. Do not add concrete 
   - Parallel Execution: 15,000x speedup (16ms vs 240s sequential)
   - Intelligent Caching: LRU with TTL, 14.3% hit rate, automatic cleanup
   - Lazy Loading: 77% memory reduction through on-demand instantiation
-  - State Optimization: 21% memory compression with efficient diffing
-  - Connection Pooling: 100% connection reuse rate across all APIs
-
 ### Containerized Memory Architecture
 - **Challenge**: Complex Zep Graphiti Python service integration with TypeScript agents
 - **Solution**: Full containerization with Docker Compose, TypeScript client bridge for seamless integration
 - **Achievement**: Production-ready containerized memory service with client-based architecture
 - **Benefits**: Complete service isolation, automated terminal management, client-based data processing
-
-### Context7 Documentation Integration & Neo4j Version Management
-- **Challenge**: Zep Graphiti entity creation failing due to Neo4j version incompatibility
-- **Solution**: Used Context7 to verify official Zep Graphiti documentation requirements
-- **Achievement**: Confirmed Neo4j 5.26+ requirement and updated Docker Compose accordingly
-- **Impact**: Entity node creation working through client bridge, full compatibility achieved
-
-### Production Readiness Validation & Code Quality
-- **Challenge**: Ensuring enterprise-grade code quality and zero security vulnerabilities
-- **Solution**: Comprehensive lint fixing, security audit, and test validation
-- **Achievement**: All core workflows passing, 0 vulnerabilities, clean TypeScript compilation
-- **Impact**: System ready for production deployment with enterprise-grade standards
 ## Integration & External Dependencies
 
 ### Core Technologies
@@ -548,17 +576,11 @@ const result = await graph.analyzeAndDecide('AAPL', '2025-08-24');
 
 ---
 
----
-
-**Project Status**: ✅ Production Ready - 100% Complete Implementation with Enterprise Performance Optimizations + Official Docker Integration + Vite Build System
+**Project Status**: 🚧 Core Infrastructure Complete - Production Features in Development
 **Last Updated**: August 30, 2025 
 **Recent Achievements**: Vite migration complete, 100% test coverage (9/9 tests), extensionless imports, modern build system, constructor fixes, comprehensive test suite validation
 **Next Steps**: Enhanced Memory & Learning System implementation or Production Infrastructure development from comprehensive roadmap
-**Current Status**: All systems operational, zero blocking issues, ready for production deployment or feature expansion
-### Logging Best Practices (Production-Ready)
-- **NEVER use console statements** in production code (CLI interface excepted for user output)
-- Use `createLogger(context, component)` for structured logging with rich metadata
-- Include trace IDs for request correlation across complex workflows
+**Current Development Focus**: Several core components still contain placeholder implementations and require completion before production deployment.
 - Add performance timing with `logger.startTimer()` for operation metrics
 - Provide contextual metadata in all log entries for debugging and monitoring
 - Use appropriate log levels: debug, info, warn, error, critical
@@ -626,6 +648,3 @@ const result = await graph.analyzeAndDecide('AAPL', '2025-08-24');
 - **Availability**: 99.9% uptime, <2GB RAM per agent
 - **Coverage**: 5+ asset classes, 10+ external APIs
 - **Innovation**: 2 experimental features/quarter, 20% quarterly optimization gains
-**Last Updated**: August 30, 2025 
-**Recent Achievements**: Vite migration complete with 100% test coverage, extensionless imports standardized, modern build system operational, comprehensive LangChain 0.3 migration, dependency modernization (ESLint 9.x, Chalk 5.x, Inquirer 12.x, Winston 3.17.x, Vite 5.x), enterprise-grade structured logging, zero-vulnerability security status
-**Next Steps**: Enhanced Memory & Learning System implementation or Production Infrastructure development from comprehensive roadmap

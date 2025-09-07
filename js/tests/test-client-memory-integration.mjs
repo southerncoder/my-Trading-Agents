@@ -3,8 +3,8 @@
  * Tests compatibility with FinancialSituationMemory interface
  */
 
-import { createZepGraphitiMemory, EnhancedFinancialMemory } from '../src/providers/zep-graphiti-memory-provider-client';
-import { createPrePopulatedMemory } from '../src/agents/utils/memory';
+import { createZepGraphitiMemory, EnhancedFinancialMemory } from './src/providers/zep-graphiti-memory-provider-client.js';
+import { createPrePopulatedMemory } from './src/agents/utils/memory.js';
 
 async function testClientMemoryIntegration() {
   console.log('🧪 Testing Client-Based Memory Provider Integration\n');
@@ -20,7 +20,7 @@ async function testClientMemoryIntegration() {
     };
 
     const agentConfig = {
-      llmProvider: 'lm_studio' as const,
+      llmProvider: 'lm_studio',
       openaiApiKey: 'test-key',
       backendUrl: 'http://localhost:1234/v1',
       quickThinkLlm: 'dolphin-2.9-llama3-8b'
@@ -114,7 +114,7 @@ async function testClientMemoryIntegration() {
   }
 }
 
-async function testInterfaceCompatibility(memoryProvider: any) {
+async function testInterfaceCompatibility(memoryProvider) {
   // Test all required interface methods exist
   const requiredMethods = [
     'getMemories',

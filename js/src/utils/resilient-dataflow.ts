@@ -488,3 +488,15 @@ export const FINNHUB_API_CONFIG: DataflowConfig = {
     name: 'finnhub-api'
   }
 };
+
+export const ALPHA_VANTAGE_CONFIG: DataflowConfig = {
+  maxRetries: 2,
+  retryDelay: 5000, // Longer delay due to strict rate limits
+  timeout: 20000,
+  circuitBreakerConfig: {
+    timeout: 20000,
+    errorThresholdPercentage: 30, // Lower threshold due to API limits
+    resetTimeout: 60000, // Longer reset for rate limit recovery
+    name: 'alpha-vantage'
+  }
+};

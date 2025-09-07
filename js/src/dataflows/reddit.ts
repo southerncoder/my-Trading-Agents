@@ -1,6 +1,16 @@
+/**
+ * Reddit API for Social Trading Data
+ * 
+ * Provides social sentiment analysis from Reddit for trading decisions.
+ * Integrates with subreddits like r/investing, r/stocks, r/wallstreetbets
+ * for market sentiment and discussion trends.
+ * 
+ * Uses isolated Reddit service with native API integration for security.
+ */
+
+import { redditServiceClient } from '../clients/reddit-service-client';
 import { TradingAgentsConfig } from '@/types/config';
 import { RedditPost } from '@/types/dataflows';
-import axios from 'axios';
 import { createLogger } from '../utils/enhanced-logger.js';
 import { 
   withDataflowResilience, 
@@ -8,103 +18,275 @@ import {
   DataflowMetricsCollector 
 } from '../utils/resilient-dataflow.js';
 
-// Reddit API interfaces
-interface RedditApiResponse {
-  data: {
-    children: Array<{
-      data: {
-        id: string;
-        title: string;
-        selftext: string;
-        score: number;
-        num_comments: number;
-        created_utc: number;
-        url: string;
-        subreddit: string;
-        author: string;
-        permalink: string;
-      };
+export interface RedditSentimentAnalysis {
+  symbol: string;
+  sentiment: 'bullish' | 'bearish' | 'neutral';
+  confidence: number;
+  mentions: number;
+  posts: RedditPost[];
+  analysis: {
+    total_score: number;
+    average_sentiment: number;
+    trending_topics: string[];
+    volume_trend: 'increasing' | 'decreasing' | 'stable';
+    subreddit_breakdown: Record<string, {
+      mentions: number;
+      average_score: number;
+      sentiment: 'bullish' | 'bearish' | 'neutral';
     }>;
   };
 }
 
+export interface RedditConfig {
+  userAgent: string;
+  clientId: string;
+  clientSecret: string;
+  refreshToken?: string;
+  username?: string;
+  password?: string;
+}
+
 /**
- * Reddit API wrapper using official Reddit API for social sentiment analysis
+ * Reddit API wrapper using snoowrap with OAuth for social sentiment analysis
  * Enhanced with resilient patterns for robust external API integration
+ * 
+ * TODO: Core Social Media Integration Improvements Needed:
+ * =======================================================
+ * 
+ * 1. MULTIPLE SOCIAL MEDIA PROVIDERS:
+ *    - Add Twitter/X API for financial discussions
+ *    - Add StockTwits API for trader sentiment
+ *    - Add Discord financial communities monitoring
+ *    - Add Telegram financial channels integration
+ *    - Add YouTube financial content analysis
+ *    - Implement cross-platform sentiment aggregation
+ * 
+ * 2. ENHANCED SENTIMENT ANALYSIS:
+ *    - Add real-time sentiment scoring algorithms
+ *    - Implement emotion detection (fear, greed, optimism)
+ *    - Add influencer sentiment weighting
+ *    - Add viral content detection and impact measurement
+ *    - Implement sentiment trend analysis and prediction
+ * 
+ * 3. ADVANCED SOCIAL MONITORING:
+ *    - Add mentions tracking across platforms
+ *    - Implement hashtag and keyword trend analysis
+ *    - Add social volume and engagement metrics
+ *    - Add bot detection and filtering algorithms
+ *    - Implement pump-and-dump scheme detection
+ * 
+ * 4. SOCIAL DATA CACHING & PROCESSING:
+ *    - Implement Redis-based social data caching
+ *    - Add local social database with analytics
+ *    - Add social data archival for historical analysis
+ *    - Add real-time social alerts and notifications
+ * 
+ * 5. FINANCIAL COMMUNITY INTEGRATION:
+ *    - Add r/wallstreetbets specialized monitoring
+ *    - Add r/investing and r/SecurityAnalysis tracking
+ *    - Add FinTwit (Financial Twitter) influencer tracking
+ *    - Add Discord trading communities monitoring
+ *    - Add Telegram premium trading groups integration
+ * 
+ * 6. SOCIAL ANALYTICS & INSIGHTS:
+ *    - Add social sentiment correlation with price movements
+ *    - Implement social momentum indicators
+ *    - Add crowd psychology analysis
+ *    - Add social trading signals generation
+ *    - Implement social risk assessment metrics
  */
 export class RedditAPI {
   private config: TradingAgentsConfig;
-  private accessToken: string | null = null;
-  private tokenExpiry: Date | null = null;
+  private redditClient = redditServiceClient;
+  private redditConfig: RedditConfig | null = null;
   private logger = createLogger('dataflow', 'reddit-api');
   private metrics = new DataflowMetricsCollector();
+  
+  // Popular trading-related subreddits
+  private readonly tradingSubreddits = [
+    'investing',
+    'stocks',
+    'SecurityAnalysis',
+    'ValueInvesting',
+    'financialindependence',
+    'StockMarket',
+    'wallstreetbets',  // Note: High volatility content
+    'options',
+    'pennystocks',
+    'dividends'
+  ];
 
   constructor(config: TradingAgentsConfig) {
     this.config = config;
     
-    this.logger.info('constructor', 'Initializing Reddit API', {
-      hasClientId: !!process.env.REDDIT_CLIENT_ID,
-      hasClientSecret: !!process.env.REDDIT_CLIENT_SECRET
+    // Check if Reddit is enabled via feature switch
+    const redditEnabled = process.env.REDDIT_ENABLED?.toLowerCase() === 'true';
+    
+    if (!redditEnabled) {
+      this.logger.info('constructor', 'Reddit API disabled via REDDIT_ENABLED feature switch', {
+        enabled: false,
+        featureSwitch: process.env.REDDIT_ENABLED || 'undefined'
+      });
+      return; // Skip initialization if disabled
+    }
+    
+    this.initializeRedditConfig();
+    
+    this.logger.info('constructor', 'Initializing Reddit service client', {
+      enabled: true,
+      serviceUrl: process.env.REDDIT_SERVICE_URL || 'http://reddit-service:3001'
+    });
+    
+    // Initialize service connection (async, but don't wait)
+    this.initRedditAPI().catch(error => {
+      this.logger.warn('constructor', 'Failed to initialize Reddit service connection', {
+        error: error.message
+      });
+    });
+  }
+
+  private initializeRedditConfig(): void {
+    // Load Reddit OAuth configuration from environment variables
+    const clientId = process.env.REDDIT_CLIENT_ID;
+    const clientSecret = process.env.REDDIT_CLIENT_SECRET;
+    const refreshToken = process.env.REDDIT_REFRESH_TOKEN;
+    const username = process.env.REDDIT_USERNAME;
+    const password = process.env.REDDIT_PASSWORD;
+    const userAgent = process.env.REDDIT_USER_AGENT || 'TradingAgents:v1.0.0 (by /u/your_username)';
+
+    if (!clientId || !clientSecret) {
+      this.logger.warn('config-missing', 'Reddit OAuth credentials not configured', {
+        hasClientId: !!clientId,
+        hasClientSecret: !!clientSecret,
+        suggestion: 'Set REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET environment variables'
+      });
+      return;
+    }
+
+    // Store basic config for logging purposes (service client handles authentication)
+    this.redditConfig = {
+      userAgent,
+      clientId,
+      clientSecret,
+      ...(refreshToken && { refreshToken }),
+      ...(username && { username }),
+      ...(password && { password })
+    };
+  }
+
+  /**
+   * Initialize Reddit service client connection
+   */
+  private async initRedditAPI() {
+    try {
+      // Check if Reddit service is healthy
+      const isHealthy = await this.redditClient.healthCheck();
+      if (isHealthy) {
+        this.logger.info('service-init', 'Reddit service connection established');
+      } else {
+        this.logger.warn('service-unhealthy', 'Reddit service is not responding properly');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error('service-init-failed', 'Failed to connect to Reddit service', {
+        error: errorMessage,
+        suggestion: 'Ensure Reddit service is running and accessible'
+      });
+    }
+  }
+
+  /**
+   * Get posts from specified subreddits for ticker symbols
+   */
+  async getPosts(symbols: string[]): Promise<RedditPost[]> {
+    // Check if Reddit is enabled
+    const redditEnabled = process.env.REDDIT_ENABLED?.toLowerCase() === 'true';
+    if (!redditEnabled) {
+      this.logger.info('reddit-disabled', 'Reddit API disabled via feature switch', {
+        symbols,
+        enabled: false
+      });
+      return [];
+    }
+
+    // Check if Reddit service is available
+    const isHealthy = await this.redditClient.healthCheck();
+    if (!isHealthy) {
+      this.logger.warn('reddit-service-unavailable', 'Reddit service not available, cannot fetch posts');
+      return [];
+    }
+
+    return withDataflowResilience(
+      `reddit-posts-${symbols.join('-')}`,
+      async () => {
+        const posts: RedditPost[] = [];
+        
+        for (const symbol of symbols) {
+          try {
+            // Search for posts mentioning the symbol
+            const searchResults = await this.searchSymbolMentions(symbol);
+            posts.push(...searchResults);
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            this.logger.error('symbol-search-failed', `Failed to search for ${symbol}`, {
+              symbol,
+              error: errorMessage
+            });
+          }
+        }
+
+        this.logger.info('posts-fetched', 'Reddit posts fetched successfully', {
+          symbolCount: symbols.length,
+          postCount: posts.length
+        });
+
+        return posts.sort((a, b) => b.score - a.score).slice(0, 50); // Top 50 posts
+      },
+      REDDIT_API_CONFIG
+    ).catch((error) => {
+      this.logger.error('posts-fetch-failed', 'Failed to fetch Reddit posts', {
+        symbols,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return [];
     });
   }
 
   /**
-   * Get Reddit client credentials token (for read-only access) with resilient patterns
+   * Search for posts mentioning a specific symbol across trading subreddits
    */
-  private async getAccessToken(): Promise<string | null> {
-    return withDataflowResilience(
-      'reddit-access-token',
-      async () => {
-        const clientId = process.env.REDDIT_CLIENT_ID;
-        const clientSecret = process.env.REDDIT_CLIENT_SECRET;
+  private async searchSymbolMentions(symbol: string): Promise<RedditPost[]> {
+    const posts: RedditPost[] = [];
+    
+    for (const subredditName of this.tradingSubreddits) {
+      try {
+        // Search for the symbol in the subreddit using service client
+        const searchResults = await this.redditClient.searchPosts(symbol, {
+          subreddit: subredditName,
+          sort: 'relevance',
+          timeframe: 'week',
+          limit: 10
+        });
 
-        if (!clientId || !clientSecret) {
-          this.logger.warn('credentials-missing', 'Reddit API credentials not configured', {
-            clientId: clientId ? 'present' : 'missing',
-            clientSecret: clientSecret ? 'present' : 'missing'
-          });
-          return null;
-        }
-
-        // Check if current token is still valid
-        if (this.accessToken && this.tokenExpiry && new Date() < this.tokenExpiry) {
-          this.logger.debug('token-valid', 'Using existing valid access token');
-          return this.accessToken;
-        }
-
-        this.logger.info('token-fetch', 'Fetching new Reddit access token');
-
-        // Get new token using client credentials flow
-        const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+        posts.push(...searchResults);
         
-        const response = await axios.post('https://www.reddit.com/api/v1/access_token', 
-          'grant_type=client_credentials',
-          {
-            headers: {
-              'Authorization': `Basic ${auth}`,
-              'Content-Type': 'application/x-www-form-urlencoded',
-              'User-Agent': 'TradingAgents/1.0 by YourUsername'
-            }
-          }
-        );
-
-        this.accessToken = response.data.access_token;
-        this.tokenExpiry = new Date(Date.now() + (response.data.expires_in * 1000) - 60000); // 1 min buffer
-        
-        this.logger.info('token-fetched', 'Reddit access token fetched successfully', {
-          expiresIn: response.data.expires_in,
-          tokenExpiry: this.tokenExpiry.toISOString()
+        this.logger.debug('subreddit-searched', `Searched r/${subredditName} for ${symbol}`, {
+          symbol,
+          subreddit: subredditName,
+          resultsCount: searchResults.length
         });
         
-        return this.accessToken;
-      },
-      REDDIT_API_CONFIG
-    ).catch((error) => {
-      this.logger.error('token-error', 'Error getting Reddit access token', {
-        error: error.message
-      });
-      return null;
-    });
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        this.logger.warn('subreddit-search-failed', `Failed to search r/${subredditName}`, {
+          subreddit: subredditName,
+          symbol,
+          error: errorMessage
+        });
+      }
+    }
+
+    return posts;
   }
 
   /**
@@ -119,6 +301,11 @@ export class RedditAPI {
           lookBackDays,
           maxLimitPerDay
         });
+
+        const isHealthy = await this.redditClient.healthCheck();
+        if (!isHealthy) {
+          return this.getFallbackGlobalNews(startDate);
+        }
 
         const globalPosts = await this.fetchGlobalPosts(startDate, lookBackDays, maxLimitPerDay);
         
@@ -158,7 +345,7 @@ export class RedditAPI {
       REDDIT_API_CONFIG
     ).catch((error) => {
       this.logger.error('global-news-error', 'Error fetching Reddit global news', {
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         startDate,
         lookBackDays
       });
@@ -179,6 +366,11 @@ export class RedditAPI {
           lookBackDays,
           maxLimitPerDay
         });
+
+        const isHealthy = await this.redditClient.healthCheck();
+        if (!isHealthy) {
+          return this.getFallbackNews(ticker, startDate);
+        }
 
         const companyPosts = await this.fetchCompanyPosts(ticker, startDate, lookBackDays, maxLimitPerDay);
         
@@ -223,222 +415,252 @@ export class RedditAPI {
         ticker,
         startDate,
         lookBackDays,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       });
       return this.getFallbackNews(ticker, startDate);
     });
   }
 
   /**
-   * Fetch global posts from Reddit
+   * Fetch global posts from Reddit using snoowrap
    */
   private async fetchGlobalPosts(startDate: string, lookBackDays: number, maxLimitPerDay: number): Promise<RedditPost[]> {
-    const accessToken = await this.getAccessToken();
+    const posts: RedditPost[] = [];
+    const subreddits = ['investing', 'SecurityAnalysis', 'economics', 'finance', 'StockMarket'];
     
-    if (!accessToken) {
-      return this.getMockGlobalPosts();
-    }
+    for (const subredditName of subreddits) {
+      try {
+        const subredditPosts = await this.redditClient.getSubredditPosts(subredditName, {
+          sort: 'hot',
+          limit: Math.min(maxLimitPerDay, 10)
+        });
 
-    try {
-      const posts: RedditPost[] = [];
-      const subreddits = ['investing', 'SecurityAnalysis', 'economics', 'finance', 'StockMarket'];
-      
-      for (const subreddit of subreddits) {
-        try {
-          const response = await axios.get<RedditApiResponse>(
-            `https://oauth.reddit.com/r/${subreddit}/hot`,
-            {
-              params: {
-                limit: Math.min(maxLimitPerDay, 10)
-              },
-              headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'User-Agent': 'TradingAgents/1.0 by YourUsername'
-              }
-            }
-          );
-
-          const subredditPosts = response.data.data.children.map(item => ({
-            id: item.data.id,
-            title: item.data.title,
-            content: item.data.selftext || '',
-            score: item.data.score,
-            numComments: item.data.num_comments,
-            createdUtc: new Date(item.data.created_utc * 1000).toISOString(),
-            url: item.data.permalink,
-            subreddit: item.data.subreddit,
-            author: item.data.author
-          }));
-
-          posts.push(...subredditPosts);
-        } catch (subError) {
-          console.warn(`Error fetching from r/${subreddit}:`, subError);
-        }
+        posts.push(...subredditPosts);
+      } catch (error) {
+        this.logger.warn('subreddit-fetch-failed', `Failed to fetch from r/${subredditName}`, {
+          subreddit: subredditName,
+          error: error instanceof Error ? error.message : String(error)
+        });
       }
-
-      // Filter recent posts and sort by score
-      const recentCutoff = new Date();
-      recentCutoff.setDate(recentCutoff.getDate() - lookBackDays);
-      
-      return posts
-        .filter(post => new Date(post.createdUtc) >= recentCutoff)
-        .sort((a, b) => b.score - a.score)
-        .slice(0, maxLimitPerDay);
-    } catch (error) {
-      console.error('Error fetching Reddit global posts:', error);
-      return this.getMockGlobalPosts();
     }
+
+    // Filter recent posts and sort by score
+    const recentCutoff = new Date();
+    recentCutoff.setDate(recentCutoff.getDate() - lookBackDays);
+    
+    return posts
+      .filter(post => new Date(post.createdUtc) >= recentCutoff)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, maxLimitPerDay);
   }
 
   /**
-   * Fetch company-specific posts from Reddit
+   * Fetch company-specific posts from Reddit using service client
    */
   private async fetchCompanyPosts(ticker: string, _startDate: string, lookBackDays: number, maxLimitPerDay: number): Promise<RedditPost[]> {
-    const accessToken = await this.getAccessToken();
+    const posts: RedditPost[] = [];
+    const subreddits = ['investing', 'stocks', 'SecurityAnalysis', 'ValueInvesting'];
     
-    if (!accessToken) {
-      return this.getMockCompanyPosts(ticker);
+    for (const subredditName of subreddits) {
+      try {
+        const searchResults = await this.redditClient.searchPosts(ticker, {
+          subreddit: subredditName,
+          sort: 'relevance',
+          timeframe: lookBackDays <= 7 ? 'week' : 'month',
+          limit: Math.min(maxLimitPerDay, 25)
+        });
+
+        posts.push(...searchResults);
+      } catch (error) {
+        this.logger.warn('company-search-failed', `Failed to search r/${subredditName} for ${ticker}`, {
+          subreddit: subredditName,
+          ticker,
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
+    }
+
+    // Sort by score and take top posts
+    return posts
+      .sort((a, b) => b.score - a.score)
+      .slice(0, maxLimitPerDay * 2);
+  }
+
+  /**
+   * TODO: Implement comprehensive social media sentiment fallback
+   * 
+   * This method should provide:
+   * - Cached social sentiment data for offline analysis
+   * - Alternative sentiment data sources integration
+   * - Sentiment trend analysis from multiple platforms
+   * - Social media backup providers configuration
+   */
+  private getFallbackNews(ticker: string, startDate: string): string {
+    this.logger.warn('reddit-fallback-unavailable', `Reddit fallback data unavailable for ${ticker}`, {
+      ticker,
+      startDate,
+      reason: 'No social media data providers configured'
+    });
+
+    return `## ${ticker} Social Media Data Unavailable\n\n**Reddit data not accessible** - Configure REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET environment variables.\n\n*TODO: Implement alternative social media data providers and sentiment caching.*`;
+  }
+
+  /**
+   * TODO: Implement global social sentiment aggregation fallback
+   * 
+   * This method should provide:
+   * - Cached global sentiment data for offline analysis
+   * - Economic news sentiment from alternative sources
+   * - Market sentiment indicators from backup providers
+   * - Financial forum sentiment aggregation
+   */
+  private getFallbackGlobalNews(startDate: string): string {
+    this.logger.warn('reddit-global-fallback-unavailable', 'Reddit global fallback data unavailable', {
+      startDate,
+      reason: 'No social media data providers configured'
+    });
+
+    return `## Global Social Media Data Unavailable\n\n**Reddit data not accessible** - Configure REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET environment variables.\n\n*TODO: Implement alternative global sentiment data providers and trend analysis.*`;
+  }
+
+  /**
+   * Test connection to Reddit API
+   */
+  async testConnection(): Promise<boolean> {
+    // Check if Reddit is enabled
+    const redditEnabled = process.env.REDDIT_ENABLED?.toLowerCase() === 'true';
+    if (!redditEnabled) {
+      this.logger.info('test-connection-disabled', 'Reddit API disabled via feature switch', {
+        enabled: false
+      });
+      return false;
     }
 
     try {
-      const posts: RedditPost[] = [];
-      const subreddits = ['investing', 'stocks', 'SecurityAnalysis', 'ValueInvesting', ticker.toLowerCase()];
-      
-      for (const subreddit of subreddits) {
-        try {
-          const response = await axios.get<RedditApiResponse>(
-            `https://oauth.reddit.com/r/${subreddit}/search`,
-            {
-              params: {
-                q: ticker,
-                sort: 'relevance',
-                t: lookBackDays <= 7 ? 'week' : 'month',
-                limit: Math.min(maxLimitPerDay, 25)
-              },
-              headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'User-Agent': 'TradingAgents/1.0 by YourUsername'
-              }
-            }
-          );
-
-          const subredditPosts = response.data.data.children.map(item => ({
-            id: item.data.id,
-            title: item.data.title,
-            content: item.data.selftext || '',
-            score: item.data.score,
-            numComments: item.data.num_comments,
-            createdUtc: new Date(item.data.created_utc * 1000).toISOString(),
-            url: item.data.permalink,
-            subreddit: item.data.subreddit,
-            author: item.data.author
-          }));
-
-          posts.push(...subredditPosts);
-        } catch (subError) {
-          console.warn(`Error fetching from r/${subreddit}:`, subError);
-        }
+      // Test connection to Reddit service
+      const isHealthy = await this.redditClient.healthCheck();
+      if (isHealthy) {
+        this.logger.info('test-connection-success', 'Reddit service connection successful');
+        return true;
+      } else {
+        this.logger.warn('test-connection-unhealthy', 'Reddit service is not healthy');
+        return false;
       }
-
-      // Sort by score and take top posts
-      return posts
-        .sort((a, b) => b.score - a.score)
-        .slice(0, maxLimitPerDay * 2);
     } catch (error) {
-      console.error('Error fetching Reddit company posts:', error);
-      return this.getMockCompanyPosts(ticker);
+      this.logger.error('test-connection-error', 'Reddit service connection failed', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return false;
     }
   }
 
   /**
-   * Mock company posts for fallback
+   * Analyze sentiment for a ticker symbol using Reddit data
    */
-  private getMockCompanyPosts(ticker: string): RedditPost[] {
-    return [
-      {
-        id: 'sample1',
-        title: `${ticker} Analysis and Discussion`,
-        content: `Discussion about ${ticker} stock performance and future prospects.`,
-        score: 150,
-        numComments: 45,
-        createdUtc: new Date().toISOString(),
-        url: '/r/investing/sample1',
-        subreddit: 'investing',
-        author: 'investor123'
-      },
-      {
-        id: 'sample2',
-        title: `${ticker} Earnings Discussion`,
-        content: `Analysis of ${ticker} latest earnings report and market implications.`,
-        score: 98,
-        numComments: 32,
-        createdUtc: new Date().toISOString(),
-        url: '/r/stocks/sample2',
-        subreddit: 'stocks',
-        author: 'analyst456'
-      }
-    ];
-  }
+  async analyzeSentiment(symbol: string): Promise<RedditSentimentAnalysis> {
+    // Check if Reddit is enabled
+    const redditEnabled = process.env.REDDIT_ENABLED?.toLowerCase() === 'true';
+    if (!redditEnabled) {
+      this.logger.info('reddit-sentiment-disabled', 'Reddit sentiment analysis disabled via feature switch', {
+        symbol,
+        enabled: false
+      });
+      
+      return {
+        symbol,
+        sentiment: 'neutral',
+        confidence: 0,
+        mentions: 0,
+        posts: [],
+        analysis: {
+          total_score: 0,
+          average_sentiment: 0,
+          trending_topics: ['Reddit disabled'],
+          volume_trend: 'stable',
+          subreddit_breakdown: {}
+        }
+      };
+    }
 
-  /**
-   * Mock global posts for fallback
-   */
-  private getMockGlobalPosts(): RedditPost[] {
-    return [
-      {
-        id: 'global1',
-        title: 'Market Update: Global Economic Trends',
-        content: 'Discussion of current global economic trends affecting markets.',
-        score: 200,
-        numComments: 67,
-        createdUtc: new Date().toISOString(),
-        url: '/r/investing/global1',
-        subreddit: 'investing',
-        author: 'economicwatcher'
-      },
-      {
-        id: 'global2',
-        title: 'Federal Reserve Policy Impact on Markets',
-        content: 'Analysis of how Fed policy changes are affecting investment strategies.',
-        score: 175,
-        numComments: 43,
-        createdUtc: new Date().toISOString(),
-        url: '/r/SecurityAnalysis/global2',
-        subreddit: 'SecurityAnalysis',
-        author: 'fedwatcher'
-      }
-    ];
-  }
-
-  /**
-   * Fallback news when API is unavailable
-   */
-  private getFallbackNews(ticker: string, startDate: string): string {
-    const posts = this.getMockCompanyPosts(ticker);
+    const posts = await this.getPosts([symbol]);
     
-    let newsStr = '';
-    for (const post of posts) {
-      newsStr += `### ${post.title} (r/${post.subreddit})\n\n`;
-      newsStr += `Score: ${post.score} | Comments: ${post.numComments}\n\n`;
-      newsStr += `${post.content}\n\n`;
+    if (posts.length === 0) {
+      return {
+        symbol,
+        sentiment: 'neutral',
+        confidence: 0,
+        mentions: 0,
+        posts: [],
+        analysis: {
+          total_score: 0,
+          average_sentiment: 0,
+          trending_topics: [],
+          volume_trend: 'stable',
+          subreddit_breakdown: {}
+        }
+      };
     }
 
-    return `## ${ticker} News Reddit (Fallback Data):\n\n${newsStr}\n\n*Note: Using fallback data. Configure REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET for live Reddit data.*`;
-  }
-
-  /**
-   * Fallback global news when API is unavailable
-   */
-  private getFallbackGlobalNews(startDate: string): string {
-    const posts = this.getMockGlobalPosts();
+    // Basic sentiment analysis based on post scores and keywords
+    const totalScore = posts.reduce((sum, post) => sum + post.score, 0);
+    const averageScore = totalScore / posts.length;
     
-    let newsStr = '';
+    // Simple keyword-based sentiment (can be enhanced with proper NLP)
+    const bullishKeywords = ['buy', 'bullish', 'long', 'pump', 'moon', 'rocket', 'positive', 'growth'];
+    const bearishKeywords = ['sell', 'bearish', 'short', 'dump', 'crash', 'negative', 'decline', 'fall'];
+    
+    let sentimentScore = 0;
+    
     for (const post of posts) {
-      newsStr += `### ${post.title} (r/${post.subreddit})\n\n`;
-      newsStr += `Score: ${post.score} | Comments: ${post.numComments}\n\n`;
-      newsStr += `${post.content}\n\n`;
+      const text = (post.title + ' ' + post.content).toLowerCase();
+      const bullishCount = bullishKeywords.filter(keyword => text.includes(keyword)).length;
+      const bearishCount = bearishKeywords.filter(keyword => text.includes(keyword)).length;
+      
+      sentimentScore += (bullishCount - bearishCount) * Math.log(post.score + 1);
     }
 
-    return `## Global News Reddit (Fallback Data):\n\n${newsStr}\n\n*Note: Using fallback data. Configure REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET for live Reddit data.*`;
+    const sentiment: 'bullish' | 'bearish' | 'neutral' = 
+      sentimentScore > 0 ? 'bullish' : 
+      sentimentScore < 0 ? 'bearish' : 'neutral';
+
+    const confidence = Math.min(Math.abs(sentimentScore) / posts.length, 1);
+
+    // Subreddit breakdown
+    const subredditBreakdown: Record<string, any> = {};
+    for (const post of posts) {
+      const subreddit = post.subreddit || 'unknown';
+      if (!subredditBreakdown[subreddit]) {
+        subredditBreakdown[subreddit] = {
+          mentions: 0,
+          average_score: 0,
+          sentiment: 'neutral'
+        };
+      }
+      subredditBreakdown[subreddit].mentions++;
+      subredditBreakdown[subreddit].average_score += post.score;
+    }
+
+    // Calculate averages
+    for (const subreddit in subredditBreakdown) {
+      const data = subredditBreakdown[subreddit];
+      data.average_score = data.average_score / data.mentions;
+      data.sentiment = data.average_score > averageScore ? 'bullish' : 
+                     data.average_score < averageScore ? 'bearish' : 'neutral';
+    }
+
+    return {
+      symbol,
+      sentiment,
+      confidence,
+      mentions: posts.length,
+      posts: posts.slice(0, 20), // Top 20 posts
+      analysis: {
+        total_score: totalScore,
+        average_sentiment: sentimentScore / posts.length,
+        trending_topics: [], // TODO: Extract trending topics from post titles
+        volume_trend: 'stable', // TODO: Compare with historical data
+        subreddit_breakdown: subredditBreakdown
+      }
+    };
   }
 }
