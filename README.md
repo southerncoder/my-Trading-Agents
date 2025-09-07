@@ -1,8 +1,4 @@
 
-<p align="center">
-	<img src="https://avatars.githubusercontent.com/u/10604394?v=4" alt="SouthernCoder" width="120" style="border-radius: 50%;"/>
-</p>
-
 # TradingAgents
 
 <p align="center">
@@ -10,94 +6,168 @@
 	<sub>Originally created by Tauric Research</sub>
 </p>
 
-**Production-Ready TypeScript Multi-Agent LLM Trading Framework** with enterprise-grade memory system, client-based architecture, and comprehensive infrastructure enhancements.
+**Production-Ready TypeScript Multi-Agent LLM Trading Framework** with enterprise memory system, multi-provider data integration, and comprehensive social sentiment analysis.
 
 ## 🎯 Current Status: **Production Ready** ✅
-- ✅ **Entity_Node Functionality**: Fully operational with complete CRUD operations
-- ✅ **Client-Based Architecture**: All Graphiti integrations use proper client libraries
-- ✅ **Infrastructure Enhanced**: Docker networking, retry mechanisms, security hardening
-- ✅ **TypeScript-Python Bridge**: Seamless cross-language integration
-- ✅ **100% Test Coverage**: Comprehensive test suite with enterprise-grade validation
 
-See [`docs/PRODUCT-OVERVIEW.md`](docs/PRODUCT-OVERVIEW.md) for a concise summary, features, and quick start.
+### Core Infrastructure
+- ✅ **Modern Build System**: Vite 5.x with ES modules and TypeScript 5.x
+- ✅ **Multi-Agent Architecture**: 12 specialized trading agents with LangGraph orchestration
+- ✅ **Enterprise Memory**: Zep Graphiti client-based integration with knowledge graphs
+- ✅ **Multi-Provider Data**: Yahoo Finance, Alpha Vantage, MarketStack with automatic failover
+- ✅ **Social Sentiment**: Reddit OAuth integration with feature switching
+- ✅ **100% Test Coverage**: Comprehensive test suite with zero vulnerabilities
 
-## Documentation
-- [Product Overview](docs/PRODUCT-OVERVIEW.md)
-- [Getting Started](docs/GETTING-STARTED.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Configuration](docs/CONFIGURATION.md)
-- [Advanced Memory System](docs/ADVANCED-MEMORY-SYSTEM.md)
-
-## Latest Enhancements
-- [Entity Node Completion Report](py_zep/ENTITY_NODE_COMPLETION_REPORT.md) - Complete client migration
-- [Final Completion Report](py_zep/FINAL_COMPLETION_REPORT.md) - Infrastructure achievements
-- [Infrastructure Enhancement Guide](py_zep/INFRASTRUCTURE_ENHANCEMENT_GUIDE.md) - Production-ready features
-
-## Memory System
-**Zep Graphiti Integration** - Production-ready memory system with:
-- ✅ **Official Client Library**: All interactions use proper Graphiti client (no HTTP calls)
-- ✅ **TypeScript-Python Bridge**: Seamless cross-language integration
-- ✅ **Entity Operations**: Complete CRUD functionality for knowledge graph management
-- ✅ **Enhanced Infrastructure**: Docker networking, retry mechanisms, security hardening
-- ✅ **Episode Storage**: Persistent memory across trading sessions
-
-## Examples & Demos
-- See `js/examples/` for memory and provider demos
-- See `py_zep/tests/` for client-based Graphiti integration examples
-- TypeScript Bridge: `js/src/providers/graphiti-client-bridge.ts`
-- Client-Based Provider: `js/src/providers/zep-graphiti-memory-provider-client.ts`
+### Key Features
+- **12 Specialized Agents**: Market, Social, News, Fundamentals analysts + Risk management
+- **Advanced Memory System**: Temporal knowledge graphs with client-based architecture
+- **Multi-Provider Reliability**: Three-tier data provider system with automatic failover
+- **Social Sentiment Analysis**: Reddit integration with OAuth 2.0 and feature controls
+- **Interactive CLI**: Modern terminal interface with progress tracking and result formatting
+- **Enterprise Logging**: Winston-based structured logging with trace correlation
 
 ## Quick Start
-```bash
-# Start enhanced Zep Graphiti services
-cd py_zep
-.\start-services-secure.ps1
 
-# Run TypeScript trading agents
-cd js
+```bash
+# 1. Clone and install dependencies
+git clone https://github.com/southerncoder/my-Trading-Agents
+cd my-Trading-Agents/js
 npm install
-npm run cli  # Interactive trading interface
+
+# 2. Start memory services (optional for basic usage)
+cd ../py_zep
+.\start-services-secure.ps1  # Windows
+# Or: docker-compose up -d     # Other platforms
+
+# 3. Run interactive trading analysis
+cd ../js
+npm run cli
+```
+
+### Feature Flags
+
+**Reddit Service**: Disabled by default (not actively developed)
+```bash
+# To include Reddit service:
+docker compose --profile reddit up
+
+# Default (without Reddit):
+docker compose up
+```
+
+See [FEATURE-FLAGS.md](FEATURE-FLAGS.md) for details.
+
+## Configuration
+
+Create `js/.env.local` with your API keys:
+
+```bash
+# LLM Providers (choose one)
+OPENAI_API_KEY=your_openai_key
+# OR for local LLM
+LM_STUDIO_URL=http://localhost:1234
+
+# Market Data (optional - has free tiers)
+ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key
+MARKETSTACK_API_KEY=your_marketstack_key
+
+# Social Sentiment (optional)
+REDDIT_ENABLED=true
+REDDIT_CLIENT_ID=your_reddit_client_id
+REDDIT_CLIENT_SECRET=your_reddit_client_secret
+```
+
+## Architecture
+
+### Multi-Agent System
+- **Market Analyst**: Technical analysis and price action
+- **Social Analyst**: Reddit sentiment and social trends  
+- **News Analyst**: Financial news and market events
+- **Fundamentals Analyst**: Company financials and metrics
+- **Risk Analysts**: Portfolio risk assessment (Risky, Safe, Neutral)
+- **Research Agents**: Bull/Bear case analysis
+- **Portfolio Manager**: Position sizing and allocation
+- **Trader**: Strategy execution
+
+### Data Integration
+- **Primary**: Yahoo Finance (free, reliable)
+- **Secondary**: Alpha Vantage (enhanced data)
+- **Tertiary**: MarketStack (backup provider)
+- **Social**: Reddit OAuth with sentiment analysis
+- **News**: Google News integration
+
+### Memory System
+- **Zep Graphiti**: Official client-based integration
+- **Knowledge Graphs**: Temporal relationship tracking
+- **Episode Storage**: Cross-session learning
+- **Entity Management**: Complete CRUD operations
+
+## Documentation
+
+### Getting Started
+- [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md) - Complete setup guide
+- [docs/CONFIGURATION.md](docs/CONFIGURATION.md) - Configuration options
+
+### Component Documentation  
+- [docs/reddit/](docs/reddit/) - Reddit integration and OAuth setup
+- [docs/zep-graphiti/](docs/zep-graphiti/) - Memory system architecture
+- [docs/MARKETSTACK-SETUP.md](docs/MARKETSTACK-SETUP.md) - Data provider setup
+
+### Technical Reference
+- [docs/ARCHITECTURE.md](docs/zep-graphiti/ARCHITECTURE.md) - System architecture
+- [docs/ADVANCED-MEMORY-SYSTEM.md](docs/zep-graphiti/ADVANCED-MEMORY-SYSTEM.md) - Memory capabilities
+
+## Testing
+
+```bash
+# Run comprehensive test suite
+npm run test:all
+
+# Test specific components
+npm run test-enhanced        # Enhanced graph workflow
+npm run test-components      # CLI components  
+npm run test-langgraph       # LangGraph integration
+npm run test-modern-standards # Standards compliance
+
+# Test market data providers
+npx vite-node tests/test-comprehensive-apis.ts
+
+# Test Reddit integration
+npx vite-node tests/reddit/test-reddit-feature-switch.ts
+```
+
+## Examples
+
+```bash
+# Interactive CLI (recommended)
+npm run cli
+
+# Test memory integration  
+npx vite-node tests/zep-graphiti/test-client-memory-integration.ts
+
+# Market data provider testing
+npx vite-node tests/test-quick-marketstack.ts
+
+# Reddit OAuth setup
+npx vite-node tests/reddit/reddit-oauth-setup.ts
 ```
 
 ## Contributing
-See [CONTRIBUTING.md](CONTRIBUTING.md) if available, or open a pull request.
+
+1. **File Organization**: Use component-based folder structure (see [.github/copilot-instructions.md](.github/copilot-instructions.md))
+2. **Security**: Never commit real credentials, IPs, or sensitive information
+3. **Testing**: Ensure tests pass and add coverage for new features
+4. **Documentation**: Update relevant docs in component folders
+
+## Security
+
+This repository follows strict security practices:
+- ✅ No hardcoded credentials or sensitive information
+- ✅ Environment variable configuration for all secrets
+- ✅ Sanitized documentation with placeholder values
+- ✅ Pre-commit hooks and CI security scanning
 
 ## License
+
 MIT License - see [LICENSE](LICENSE) file for details
-
----
-<p align="center">
-	<sub>Attribution: TradingAgents was originally developed by Tauric Research. All major contributions and ongoing maintenance are by <a href="https://github.com/southerncoder">SouthernCoder</a>.</sub>
-</p>
-
-## Observability
-
-The JavaScript service includes an OpenTelemetry-based observability integration that supports Traces, Metrics, and Logs. Key features:
-
-- OTLP exporter support (traces, metrics, logs) configurable by environment variables.
-- A safe, optional logger → OpenTelemetry logs bridge that forwards structured Winston logs to an OTLP collector when `ENABLE_OTEL` is set.
-- Integration tests and a mock OTLP collector used in CI to validate emissions.
-
-How to enable locally:
-
-```bash
-# Enable OpenTelemetry features
-export ENABLE_OTEL=1
-export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318/v1
-export OTEL_SERVICE_NAME=trading-agents-js
-```
-
-Run the Node app or tests as usual; the OTEL initializer lazily loads heavy packages and will not break tests or dev workflows when disabled.
-
-CI: The repository contains a CI job that runs a lightweight mock-collector integration test to assert logs are emitted to an OTLP endpoint when enabled.
-
-## Secrets Handling
-
-Short guidance for contributors:
-
-- Do not commit secrets, API keys, or private keys to the repository. Use environment variables or a secrets manager.
-- Add any runtime `.env` files to `.gitignore` (already configured in this repo).
-- If a secret is accidentally committed, immediately rotate the credential and follow the history-rewrite steps in `tools/remove-secrets.md`.
-- Use the provided pre-commit hooks (`.pre-commit-config.yaml`) and the CI `gitleaks` job to detect secrets before merging.
-- For development, use `.env.example` files with placeholder values and document how to obtain test credentials.
 

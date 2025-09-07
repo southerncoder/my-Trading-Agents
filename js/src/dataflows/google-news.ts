@@ -30,6 +30,51 @@ interface NewsApiResponse {
 /**
  * Google News API wrapper using NewsAPI.org
  * Enhanced with resilient patterns for robust external API integration
+ * 
+ * TODO: Core News Integration Improvements Needed:
+ * ===============================================
+ * 
+ * 1. MULTIPLE NEWS PROVIDERS:
+ *    - Add NewsAPI.org integration (primary)
+ *    - Add Alpha Vantage News integration
+ *    - Add Finnhub News API integration
+ *    - Add Benzinga News API integration
+ *    - Add MarketWatch RSS feeds
+ *    - Add Bloomberg Terminal API (enterprise)
+ *    - Implement provider failover and load balancing
+ * 
+ * 2. ENHANCED NEWS PROCESSING:
+ *    - Add real-time news sentiment analysis
+ *    - Implement news relevance scoring algorithms
+ *    - Add news categorization (earnings, M&A, regulatory, etc.)
+ *    - Add news impact prediction models
+ *    - Implement news deduplication across sources
+ * 
+ * 3. SOCIAL MEDIA NEWS INTEGRATION:
+ *    - Add Twitter/X financial news monitoring
+ *    - Add LinkedIn financial news feeds
+ *    - Add StockTwits integration for trader sentiment
+ *    - Add Reddit WSB and investing subreddit monitoring
+ *    - Add Discord financial community monitoring
+ * 
+ * 4. NEWS CACHING & ARCHIVAL:
+ *    - Implement Redis-based news caching
+ *    - Add local news database with full-text search
+ *    - Add news archival for historical analysis
+ *    - Add news clustering and trending detection
+ * 
+ * 5. ALTERNATIVE NEWS SOURCES:
+ *    - Add SEC filing monitoring (8-K, 10-K, 10-Q)
+ *    - Add earnings call transcript analysis
+ *    - Add analyst report summaries
+ *    - Add economic calendar integration
+ *    - Add central bank communications monitoring
+ * 
+ * 6. REAL-TIME NEWS STREAMING:
+ *    - Add WebSocket connections for live news feeds
+ *    - Implement push notifications for breaking news
+ *    - Add news alert system with filtering
+ *    - Add market-moving news detection algorithms
  */
 export class GoogleNewsAPI {
   private config: TradingAgentsConfig;
@@ -146,36 +191,25 @@ export class GoogleNewsAPI {
   }
 
   /**
-   * Fallback news data when API is unavailable
+   * TODO: Implement proper news data fallback system
+   * 
+   * This method should:
+   * - Integrate with multiple news data providers (NewsAPI, AlphaVantage News, Finnhub News)
+   * - Implement news data caching and archival
+   * - Add sentiment analysis integration
+   * - Support RSS feeds as backup sources
+   * - Add news relevance scoring
+   * - Implement content deduplication
+   * - Add source credibility scoring
    */
   private getFallbackNews(query: string, currDate: string): string {
-    this.logger.info('fallback-news', `Generating fallback news for ${query}`, {
+    this.logger.warn('fallback-news-unavailable', `News data unavailable for ${query}`, {
       query,
       currDate,
-      reason: 'API unavailable'
+      reason: 'NEWS_API_KEY not configured and no fallback providers implemented'
     });
 
-    const fallbackArticles = [
-      {
-        title: `Market Analysis: ${query} Trading Activity`,
-        source: 'Financial News',
-        description: `Recent trading activity and market sentiment analysis for ${query}.`,
-        date: currDate
-      },
-      {
-        title: `${query} Industry Update`,
-        source: 'Market Watch',
-        description: `Latest developments and industry trends affecting ${query} sector.`,
-        date: currDate
-      }
-    ];
-
-    let newsStr = '';
-    for (const article of fallbackArticles) {
-      newsStr += `### ${article.title} (${article.source}, ${article.date})\n\n${article.description}\n\n`;
-    }
-
-    return `## ${query} News (Fallback Data):\n\n${newsStr}\n\n*Note: Using fallback data due to API limitations. Configure NEWS_API_KEY environment variable for live news data.*`;
+    return `## ${query} News:\n\n**News service unavailable** - Configure NEWS_API_KEY environment variable or implement alternative news data providers.\n\n*TODO: Add fallback news providers and local news cache.*`;
   }
 
   /**

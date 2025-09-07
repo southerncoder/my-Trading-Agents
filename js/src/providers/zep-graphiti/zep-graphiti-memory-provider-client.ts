@@ -1,6 +1,6 @@
-import { AgentLLMConfig } from '../types/agent-config';
-import { MemoryMatch } from '../agents/utils/memory';
-import { createLogger } from '../utils/enhanced-logger';
+import { AgentLLMConfig } from '../../types/agent-config';
+import { MemoryMatch } from '../../agents/utils/memory';
+import { createLogger } from '../../utils/enhanced-logger';
 import { GraphitiClientBridge, createGraphitiClientBridge } from './graphiti-client-bridge';
 
 /**

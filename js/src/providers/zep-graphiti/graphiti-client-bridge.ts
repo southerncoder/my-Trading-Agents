@@ -1,6 +1,6 @@
 import { spawn } from 'child_process';
 import * as path from 'path';
-import { createLogger } from '../utils/enhanced-logger';
+import { createLogger } from '../../utils/enhanced-logger';
 
 /**
  * TypeScript interface to Python Graphiti client via bridge

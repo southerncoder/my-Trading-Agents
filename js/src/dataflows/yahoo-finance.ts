@@ -11,6 +11,43 @@ import {
 /**
  * Yahoo Finance API wrapper using the official node-yahoo-finance2 library
  * Enhanced with resilient patterns for robust external API integration
+ * 
+ * FREE PROVIDER: Yahoo Finance (node-yahoo-finance2) - Primary real-time data source
+ * 
+ * TODO: Premium Data Provider Integration (Future Enhancement):
+ * =============================================================
+ * 
+ * 1. PAID STREAMING SERVICES (Hold for Budget Approval):
+ *    - Financial Modeling Prep WebSocket API ($79/month)
+ *      * WebSocket endpoints: wss://websockets.financialmodelingprep.com
+ *      * Real-time stocks, forex, crypto streaming
+ *      * Professional-grade market data with low latency
+ *    - Alpaca Markets WebSocket Streaming (Institutional)
+ *      * WebSocket endpoint: wss://stream.data.alpaca.markets
+ *      * Real-time trades, quotes, bars for stocks/crypto/options
+ *      * Regulated broker with institutional data quality
+ *    - Barchart MarketData API (Enterprise)
+ *      * Comprehensive asset class coverage (stocks, futures, forex)
+ *      * Note: Pending deprecation - migrating to Openfeed protocol
+ * 
+ * 2. ENHANCED CACHING SYSTEM (Next Phase):
+ *    - Implement Redis-based distributed caching
+ *    - Add local SQLite caching for offline functionality
+ *    - Add data compression and storage optimization
+ *    - Implement cache warming strategies
+ *    - Add cache expiration and refresh logic
+ * 
+ * 3. ALTERNATIVE DATA SOURCES (Premium Features):
+ *    - Add earnings calendar integration
+ *    - Add options data and volatility surface
+ *    - Add insider trading and institutional ownership data
+ *    - Add ESG scores and alternative metrics
+ * 
+ * 4. PERFORMANCE OPTIMIZATION (Production Ready):
+ *    - Add request batching and bulk operations
+ *    - Implement connection pooling and keep-alive
+ *    - Add rate limiting compliance and queue management
+ *    - Add parallel data fetching for multiple symbols
  */
 export class YahooFinanceAPI {
   private config: TradingAgentsConfig;
@@ -263,7 +300,15 @@ export class YahooFinanceAPI {
   }
 
   /**
-   * Get data from local cache (fallback method)
+   * TODO: Implement proper historical data caching and fallback system
+   * 
+   * This method should:
+   * - Implement proper local data cache management
+   * - Add data validation and integrity checks  
+   * - Support multiple data formats (CSV, JSON, Parquet)
+   * - Add data compression for storage efficiency
+   * - Implement cache expiration and refresh logic
+   * - Add backup data source integration
    */
   private async getDataOffline(symbol: string, startDate: string, endDate: string): Promise<string> {
     return withDataflowResilience(
@@ -319,62 +364,9 @@ export class YahooFinanceAPI {
         error: error.message
       });
       
-      // Return minimal mock data as last resort
-      return this.generateMockData(symbol, startDate, endDate);
+      // TODO: Replace with proper error handling
+      throw new Error(`Historical data not available for ${symbol}. Need to implement data caching and backup providers.`);
     });
-  }
-
-  /**
-   * Generate mock data as absolute fallback
-   */
-  private generateMockData(symbol: string, startDate: string, endDate: string): string {
-    this.logger.warn('generate-mock-data', `Generating mock data for ${symbol}`, {
-      symbol,
-      startDate,
-      endDate,
-      reason: 'all other data sources failed'
-    });
-
-    const basePrice = 100 + Math.random() * 200; // Random base price between 100-300
-    
-    const header = `# Mock data for ${symbol.toUpperCase()} from ${startDate} to ${endDate}\n`;
-    const timestamp = `# Generated on: ${new Date().toISOString().slice(0, 19).replace('T', ' ')}\n\n`;
-    let csvData = 'Date,Open,High,Low,Close,Adj Close,Volume\n';
-    
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    
-    let currentPrice = basePrice;
-    let recordCount = 0;
-    
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      // Skip weekends
-      if (d.getDay() === 0 || d.getDay() === 6) continue;
-      
-      const dateStr = d.toISOString().split('T')[0];
-      const dailyChange = (Math.random() - 0.5) * 0.1; // ±5% daily change
-      
-      const open = currentPrice;
-      const close = currentPrice * (1 + dailyChange);
-      const high = Math.max(open, close) * (1 + Math.random() * 0.02);
-      const low = Math.min(open, close) * (1 - Math.random() * 0.02);
-      const volume = Math.floor(500000 + Math.random() * 2000000);
-      
-      csvData += `${dateStr},${open.toFixed(2)},${high.toFixed(2)},${low.toFixed(2)},${close.toFixed(2)},${close.toFixed(2)},${volume}\n`;
-      
-      currentPrice = close;
-      recordCount++;
-    }
-    
-    this.logger.info('mock-data-generated', `Mock data generated for ${symbol}`, {
-      symbol,
-      startDate,
-      endDate,
-      recordsGenerated: recordCount,
-      basePrice: basePrice.toFixed(2)
-    });
-    
-    return header + timestamp + csvData;
   }
 
   /**

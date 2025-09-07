@@ -287,15 +287,8 @@ export class EnhancedTradingGraph extends TradingAgentsGraph {
               };
             }
             
-            // Fallback with error info
-            return { 
-              ticker, 
-              price: 100, 
-              volume: 1000000, 
-              data: historicalData,
-              source: 'yahoo-finance-fallback',
-              error: 'Unable to parse latest data from API response' 
-            };
+            // TODO: Implement proper error handling with data provider failover
+            throw new Error(`Market data not available for ${ticker}. Unable to parse API response - need to implement data validation and backup providers.`);
           } catch (error) {
             // Use proper error logging instead of console.error
             await globalErrorManager.handleError(
@@ -303,13 +296,8 @@ export class EnhancedTradingGraph extends TradingAgentsGraph {
               createErrorContext('enhanced-trading-graph', 'fetchMarketData', { ticker })
             );
             
-            return { 
-              ticker, 
-              price: 100, 
-              volume: 1000, 
-              error: `Failed to fetch real data: ${error instanceof Error ? error.message : 'Unknown error'}`,
-              source: 'error-fallback'
-            };
+            // TODO: Implement comprehensive error handling with provider failover
+            throw new Error(`Market data fetch failed for ${ticker}: ${error instanceof Error ? error.message : 'Unknown error'}. Need to implement backup data providers.`);
           }
         },
         fetchNewsData: async (ticker: string) => {
@@ -365,42 +353,30 @@ export class EnhancedTradingGraph extends TradingAgentsGraph {
               createErrorContext('enhanced-trading-graph', 'fetchNewsData', { ticker })
             );
             
-            return { 
-              ticker, 
-              news: [
-                { title: `${ticker} Market Update`, source: 'Fallback News' }
-              ], 
-              error: `Failed to fetch news: ${error instanceof Error ? error.message : 'Unknown error'}`,
-              source: 'news-fallback'
-            };
+            // TODO: Implement news provider failover and caching system
+            throw new Error(`News data fetch failed for ${ticker}: ${error instanceof Error ? error.message : 'Unknown error'}. Need to implement backup news providers and caching.`);
           }
         },
         fetchSocialData: async (ticker: string) => {
-          try {
-            // In production, this would fetch real social media data
-            const socialData = {
-              sentiment: 0.65 + Math.random() * 0.3,
-              mentions: Math.floor(100 + Math.random() * 900),
-              posts: [`Discussion about ${ticker} future prospects`, `${ticker} technical analysis thread`]
-            };
-            return { ticker, socialData, source: 'reddit-real' };
-          } catch (error) {
-            return { ticker, socialData: {}, error: 'Failed to fetch social data' };
-          }
+          // TODO: Implement real social media data integration
+          // This should integrate with:
+          // - Reddit API for community sentiment
+          // - Twitter API for social mentions and sentiment
+          // - Discord financial communities monitoring
+          // - StockTwits for trader sentiment
+          // - News sentiment analysis aggregation
+          throw new Error(`Social media data not implemented for ${ticker}. Need to integrate with social media APIs and sentiment analysis providers.`);
         },
         fetchFundamentals: async (ticker: string) => {
-          try {
-            // In production, this would fetch real fundamentals
-            const fundamentals = {
-              pe: 15 + Math.random() * 20,
-              eps: 2.5 + Math.random() * 7.5,
-              revenue: (100 + Math.random() * 400) * 1000000,
-              netIncome: (10 + Math.random() * 40) * 1000000
-            };
-            return { ticker, ...fundamentals, source: 'simfin-real' };
-          } catch (error) {
-            return { ticker, pe: 15, eps: 5.2, error: 'Failed to fetch fundamentals' };
-          }
+          // TODO: Implement real fundamentals data integration
+          // This should integrate with:
+          // - SimFin API for financial statements
+          // - Alpha Vantage fundamentals API
+          // - Financial Modeling Prep API
+          // - Yahoo Finance fundamentals
+          // - SEC Edgar API for filings
+          // - Quandl for economic data
+          throw new Error(`Fundamentals data not implemented for ${ticker}. Need to integrate with financial data providers.`);
         }
       };
       

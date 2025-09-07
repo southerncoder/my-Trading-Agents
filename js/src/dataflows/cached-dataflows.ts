@@ -9,6 +9,9 @@ export * from './cached-reddit';
 
 // Re-export original APIs for backward compatibility
 export * from './yahoo-finance';
+export * from './alpha-vantage';
+export * from './marketstack';
+export * from './unified-market-data';
 export * from './finnhub';
 export * from './reddit';
 export * from './google-news';
@@ -21,6 +24,7 @@ import { CachedYahooFinanceAPI } from './cached-yahoo-finance';
 import { CachedFinnhubAPI } from './cached-finnhub';
 import { CachedRedditAPI } from './cached-reddit';
 import { GoogleNewsAPI } from './google-news';
+import { UnifiedMarketDataProvider } from './unified-market-data';
 import { TradingAgentsConfig } from '@/types/config';
 import { createLogger } from '../utils/enhanced-logger';
 
@@ -47,6 +51,18 @@ export class CachedDataflowsFactory {
    */
   createYahooFinanceAPI(): CachedYahooFinanceAPI {
     return new CachedYahooFinanceAPI(this.config, this.cacheEnabled);
+  }
+
+  /**
+   * Create unified market data provider (primary recommendation)
+   * Combines Yahoo Finance + Alpha Vantage with automatic failover
+   */
+  createUnifiedMarketDataProvider(): UnifiedMarketDataProvider {
+    logger.info('createUnifiedMarketDataProvider', 'Creating unified market data provider', {
+      primaryProvider: 'Yahoo Finance',
+      backupProvider: 'Alpha Vantage'
+    });
+    return new UnifiedMarketDataProvider(this.config);
   }
 
   /**

@@ -10,11 +10,11 @@ export default defineConfig({
     target: 'node18',
     lib: {
       entry: {
-        index: resolve(__dirname, 'src/index.ts'),
-        'cli/main': resolve(__dirname, 'src/cli/main.ts')
+        'cli/main': resolve(__dirname, 'src/cli/main.ts'),
+        'cli/shutdown-hook': resolve(__dirname, 'src/cli/shutdown-hook.ts')
       },
-      name: 'TradingAgents',
-      formats: ['es']
+      formats: ['es'],
+      fileName: (format, entryName) => `${entryName}.js`
     },
     rollupOptions: {
       external: [

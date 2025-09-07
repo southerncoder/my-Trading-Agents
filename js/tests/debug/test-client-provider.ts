@@ -4,8 +4,8 @@
  * This test verifies that the provider works with the Python client bridge
  */
 
-import { createZepGraphitiMemory, ZepGraphitiConfig, EpisodeType } from './src/providers/zep-graphiti-memory-provider-client';
-import { AgentLLMConfig } from './src/types/agent-config';
+import { createZepGraphitiMemory, ZepGraphitiConfig, EpisodeType } from '../../src/providers/zep-graphiti/zep-graphiti-memory-provider-client';
+import { AgentLLMConfig } from '../../src/types/agent-config';
 
 async function testClientBasedProvider() {
   console.log('🧠 Testing Client-Based Zep Graphiti Memory Provider');
