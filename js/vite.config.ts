@@ -11,7 +11,11 @@ export default defineConfig({
     lib: {
       entry: {
         'cli/main': resolve(__dirname, 'src/cli/main.ts'),
-        'cli/shutdown-hook': resolve(__dirname, 'src/cli/shutdown-hook.ts')
+        'cli/shutdown-hook': resolve(__dirname, 'src/cli/shutdown-hook.ts'),
+        'graph/enhanced-trading-graph': resolve(__dirname, 'src/graph/enhanced-trading-graph.ts'),
+        'graph/trading-graph': resolve(__dirname, 'src/graph/trading-graph.ts'),
+        'graph/langgraph-setup': resolve(__dirname, 'src/graph/langgraph-setup.ts'),
+        'utils/health-monitor': resolve(__dirname, 'src/utils/health-monitor.ts')
       },
       formats: ['es'],
       fileName: (format, entryName) => `${entryName}.js`

@@ -180,7 +180,7 @@ export class ReinforcementLearningEngine {
   /**
    * Get insights from reinforcement learning analysis
    */
-  async getInsights(examples: ReinforcementLearningState[]): Promise<any[]> {
+  async getInsights(_examples: ReinforcementLearningState[]): Promise<any[]> {
     try {
       if (this.qTable.size === 0) {
         return [{

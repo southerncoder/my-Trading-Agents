@@ -14,15 +14,14 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { ChatOpenAI } from '@langchain/openai';
-import { ChatAnthropic } from '@langchain/anthropic';
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
-
+import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { TradingAgentsConfig, createConfig } from '../config/index';
 import { enhancedConfigLoader } from '../config/enhanced-loader';
 import { Toolkit } from '../dataflows/interface';
 import { AgentState } from '../types/agent-states';
 import { FinancialSituationMemory } from '../agents/utils/memory';
+import { LLMProviderFactory } from '../providers/llm-factory';
+import { AgentLLMConfig } from '../types/agent-config';
 
 // Graph components
 import { ConditionalLogic, createConditionalLogic } from './conditional-logic';
@@ -32,7 +31,7 @@ import { SignalProcessor, createSignalProcessor } from './signal-processing';
 import { GraphSetup, createGraphSetup, AgentNode } from './setup';
 import { createLogger } from '../utils/enhanced-logger';
 
-export type LLMProvider = ChatOpenAI | ChatAnthropic | ChatGoogleGenerativeAI;
+export type LLMProvider = BaseChatModel;
 
 export interface TradingAgentsGraphConfig {
   selectedAnalysts?: string[];
@@ -85,9 +84,6 @@ export class TradingAgentsGraph {
     this.config = options.config || createConfig();
     this.selectedAnalysts = options.selectedAnalysts || ['market', 'social', 'news', 'fundamentals'];
 
-    // Initialize LLMs
-    this.initializeLLMs();
-
     // Create necessary directories
     this.createDirectories();
 
@@ -97,19 +93,51 @@ export class TradingAgentsGraph {
     // Initialize memories
     this.initializeMemories();
 
-    // Initialize components
-    this.initializeComponents();
+    // Note: LLMs, components, and graph setup will be initialized asynchronously
+    // via the initializeAsync() method that must be called after construction
+  }
 
-    // Set up the graph
-    this.setupGraph();
+  /**
+   * Async initialization of LLMs and dependent components
+   * This must be called after construction and before using the graph
+   */
+  public async initializeAsync(): Promise<void> {
+    try {
+      await this.initializeLLMs();
+      this.initializeComponents();
+      this.setupGraph();
+      this.logger.info('initializeAsync', 'TradingAgentsGraph fully initialized');
+    } catch (error) {
+      this.logger.error('initializeAsync', 'Failed to initialize TradingAgentsGraph', { error });
+      throw error;
+    }
   }
 
   /**
    * Initialize LLM providers based on configuration
    */
-  private initializeLLMs(): void {
+  private async initializeLLMs(): Promise<void> {
     const provider = this.config.llmProvider.toLowerCase();
 
+    // Create deep thinking LLM config
+    const deepThinkConfig: AgentLLMConfig = {
+      provider: provider as any,
+      model: this.config.deepThinkLlm,
+      temperature: 0.3,
+      maxTokens: 2048,
+      baseUrl: this.config.backendUrl
+    };
+
+    // Create quick thinking LLM config
+    const quickThinkConfig: AgentLLMConfig = {
+      provider: provider as any,
+      model: this.config.quickThinkLlm,
+      temperature: 0.7,
+      maxTokens: 1024,
+      baseUrl: this.config.backendUrl
+    };
+
+    // Set API keys based on provider
     switch (provider) {
       case 'openai':
       case 'ollama':
@@ -117,59 +145,37 @@ export class TradingAgentsGraph {
         if (!this.config.openaiApiKey) {
           throw new Error('OpenAI API key is required for OpenAI provider');
         }
-        this.deepThinkingLLM = new ChatOpenAI({
-          modelName: this.config.deepThinkLlm,
-          openAIApiKey: this.config.openaiApiKey,
-          configuration: {
-            baseURL: this.config.backendUrl
-          }
-        });
-        this.quickThinkingLLM = new ChatOpenAI({
-          modelName: this.config.quickThinkLlm,
-          openAIApiKey: this.config.openaiApiKey,
-          configuration: {
-            baseURL: this.config.backendUrl
-          }
-        });
+        deepThinkConfig.apiKey = this.config.openaiApiKey;
+        quickThinkConfig.apiKey = this.config.openaiApiKey;
         break;
 
       case 'anthropic':
         if (!this.config.anthropicApiKey) {
           throw new Error('Anthropic API key is required for Anthropic provider');
         }
-        this.deepThinkingLLM = new ChatAnthropic({
-          modelName: this.config.deepThinkLlm,
-          anthropicApiKey: this.config.anthropicApiKey,
-          clientOptions: {
-            baseURL: this.config.backendUrl
-          }
-        });
-        this.quickThinkingLLM = new ChatAnthropic({
-          modelName: this.config.quickThinkLlm,
-          anthropicApiKey: this.config.anthropicApiKey,
-          clientOptions: {
-            baseURL: this.config.backendUrl
-          }
-        });
+        deepThinkConfig.apiKey = this.config.anthropicApiKey;
+        quickThinkConfig.apiKey = this.config.anthropicApiKey;
         break;
 
       case 'google':
         if (!this.config.googleApiKey) {
           throw new Error('Google API key is required for Google provider');
         }
-        this.deepThinkingLLM = new ChatGoogleGenerativeAI({
-          model: this.config.deepThinkLlm,
-          apiKey: this.config.googleApiKey
-        });
-        this.quickThinkingLLM = new ChatGoogleGenerativeAI({
-          model: this.config.quickThinkLlm,
-          apiKey: this.config.googleApiKey
-        });
+        deepThinkConfig.apiKey = this.config.googleApiKey;
+        quickThinkConfig.apiKey = this.config.googleApiKey;
+        break;
+
+      case 'lm_studio':
+        // LM Studio doesn't require API key
         break;
 
       default:
         throw new Error(`Unsupported LLM provider: ${provider}`);
     }
+
+    // Create LLMs using factory
+    this.deepThinkingLLM = await LLMProviderFactory.createLLM(deepThinkConfig);
+    this.quickThinkingLLM = await LLMProviderFactory.createLLM(quickThinkConfig);
   }
 
   /**
@@ -674,8 +680,18 @@ export class TradingAgentsGraph {
 }
 
 /**
- * Create a new TradingAgentsGraph instance
+ * Create a new TradingAgentsGraph instance with async initialization
  */
-export function createTradingAgentsGraph(options?: TradingAgentsGraphConfig): TradingAgentsGraph {
+export async function createTradingAgentsGraph(options?: TradingAgentsGraphConfig): Promise<TradingAgentsGraph> {
+  const graph = new TradingAgentsGraph(options);
+  await graph.initializeAsync();
+  return graph;
+}
+
+/**
+ * Create a new TradingAgentsGraph instance (synchronous constructor only)
+ * Note: You must call initializeAsync() before using the graph
+ */
+export function createTradingAgentsGraphSync(options?: TradingAgentsGraphConfig): TradingAgentsGraph {
   return new TradingAgentsGraph(options);
 }

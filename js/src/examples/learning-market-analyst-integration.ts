@@ -1,4 +1,5 @@
-import { ChatOpenAI } from '@langchain/openai';
+import { BaseChatModel } from '@langchain/core/language_models/chat_models';
+import { LLMProviderFactory } from '../providers/llm-factory.js';
 import { LearningMarketAnalyst } from '../agents/analysts/learning-market-analyst';
 import { AgentState } from '../types/agent-states';
 import { createLogger } from '../utils/enhanced-logger';
@@ -20,15 +21,17 @@ export class LearningMarketAnalystIntegrationExample {
   /**
    * Helper to create LLM with proper API key validation
    */
-  private createLLM(temperature: number = 0.3): ChatOpenAI {
+  private createLLM(temperature: number = 0.3): BaseChatModel {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
       throw new Error('OPENAI_API_KEY environment variable is required');
     }
-    return new ChatOpenAI({
-      modelName: 'gpt-4o-mini',
-      temperature,
-      openAIApiKey: apiKey
+
+    return LLMProviderFactory.createLLM({
+      provider: 'openai',
+      model: 'gpt-4o-mini',
+      apiKey: apiKey,
+      temperature: temperature
     });
   }
 
@@ -188,11 +191,7 @@ export class LearningMarketAnalystIntegrationExample {
   async exampleLearningPerformanceMonitoring(): Promise<void> {
     this.logger.info('exampleLearningPerformanceMonitoring', 'Starting performance monitoring example');
 
-    const llm = new ChatOpenAI({
-      modelName: 'gpt-4o-mini',
-      temperature: 0.3,
-      openAIApiKey: process.env.OPENAI_API_KEY
-    });
+    const llm = this.createLLM(0.3);
 
     const analyst = new LearningMarketAnalyst(llm, []);
 

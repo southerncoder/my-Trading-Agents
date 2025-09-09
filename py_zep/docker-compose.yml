@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   neo4j:
     image: neo4j:5.26.0
@@ -77,3 +75,15 @@ secrets:
     file: ./secrets/neo4j_password.txt
   lm_studio_url:
     file: ./secrets/lm_studio_url.txt
+  marketstack_api_key:
+    file: ./secrets/marketstack_api_key.txt
+  reddit_client_id:
+    file: ./secrets/reddit_client_id.txt
+  reddit_client_secret:
+    file: ./secrets/reddit_client_secret.txt
+  reddit_refresh_token:
+    file: ./secrets/reddit_refresh_token.txt
+  reddit_username:
+    file: ./secrets/reddit_username.txt
+  reddit_password:
+    file: ./secrets/reddit_password.txt

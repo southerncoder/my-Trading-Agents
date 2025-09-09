@@ -21,6 +21,7 @@
 ### Key Features
 - **12 Specialized Agents**: Market, Social, News, Fundamentals analysts + Risk management
 - **Advanced Memory System**: Temporal knowledge graphs with client-based architecture
+- **Learning Capabilities**: LearningMarketAnalyst with supervised/unsupervised learning
 - **Multi-Provider Reliability**: Three-tier data provider system with automatic failover
 - **Social Sentiment Analysis**: Reddit integration with OAuth 2.0 and feature controls
 - **Interactive CLI**: Modern terminal interface with progress tracking and result formatting
@@ -78,31 +79,41 @@ REDDIT_CLIENT_ID=your_reddit_client_id
 REDDIT_CLIENT_SECRET=your_reddit_client_secret
 ```
 
-## Architecture
+## Architecture Overview
 
-### Multi-Agent System
-- **Market Analyst**: Technical analysis and price action
-- **Social Analyst**: Reddit sentiment and social trends  
-- **News Analyst**: Financial news and market events
-- **Fundamentals Analyst**: Company financials and metrics
-- **Risk Analysts**: Portfolio risk assessment (Risky, Safe, Neutral)
-- **Research Agents**: Bull/Bear case analysis
-- **Portfolio Manager**: Position sizing and allocation
-- **Trader**: Strategy execution
+```mermaid
+graph TB
+    CLI[💻 CLI] --> ETG[🎯 Trading Graph]
+    ETG --> AGENTS[🤖 12 Agents]
+    AGENTS --> LEARNING[🧠 Learning System]
+    AGENTS --> DATA[📊 Data Integration]
+    DATA --> APIS[🌐 External APIs]
+    LEARNING --> MEMORY[🧠 Zep Graphiti]
+    MEMORY --> NEO4J[(Neo4j)]
+    ETG --> LLM[🤖 LLM Providers]
 
-### Data Integration
-- **Primary**: Yahoo Finance (free, reliable)
-- **Secondary**: Alpha Vantage (enhanced data)
-- **Tertiary**: MarketStack (backup provider)
-- **Social**: Reddit OAuth with sentiment analysis
-- **News**: Google News integration
+    classDef primary fill:#e3f2fd,stroke:#1976d2
+    classDef secondary fill:#f3e5f5,stroke:#7b1fa2
+    classDef tertiary fill:#e8f5e8,stroke:#388e3c
 
-### Memory System
-- **Zep Graphiti**: Official client-based integration
-- **Knowledge Graphs**: Temporal relationship tracking
-- **Episode Storage**: Cross-session learning
-- **Entity Management**: Complete CRUD operations
-- **LM Studio Integration**: Model checking and locking for embeddings
+    class CLI,ETG primary
+    class AGENTS,LEARNING,DATA secondary
+    class APIS,MEMORY,NEO4J,LLM tertiary
+```
+
+**Key Components:**
+- **12 Specialized Agents**: Market analysis, research, risk management, trading
+- **Advanced Learning**: ML-based pattern recognition and performance optimization
+- **Multi-Provider Data**: Yahoo Finance, Alpha Vantage, Google News, Reddit
+- **Enterprise Memory**: Zep Graphiti knowledge graphs with Neo4j
+- **Containerized**: Docker orchestration with health monitoring
+
+### Learning System
+- **LearningMarketAnalyst**: Enhanced market analyst with integrated learning
+- **Performance Learning Layer**: ML-based performance pattern recognition
+- **Temporal Reasoning**: Cross-session learning and insight accumulation
+- **Pattern Recognition**: Advanced market regime detection
+- **Reinforcement Learning**: Strategy optimization through feedback loops
 
 ### LM Studio Special Features
 - **Model Verification**: Automatically checks if models are loaded before use
@@ -123,8 +134,11 @@ REDDIT_CLIENT_SECRET=your_reddit_client_secret
 - [docs/MARKETSTACK-SETUP.md](docs/MARKETSTACK-SETUP.md) - Data provider setup
 
 ### Technical Reference
-- [docs/ARCHITECTURE.md](docs/zep-graphiti/ARCHITECTURE.md) - System architecture
-- [docs/ADVANCED-MEMORY-SYSTEM.md](docs/zep-graphiti/ADVANCED-MEMORY-SYSTEM.md) - Memory capabilities
+- [docs/ARCHITECTURE-OVERVIEW.md](docs/ARCHITECTURE-OVERVIEW.md) - High-level system architecture
+- [docs/SYSTEM-ARCHITECTURE.md](docs/SYSTEM-ARCHITECTURE.md) - Detailed system architecture with Mermaid diagrams
+- [docs/COMPONENT-INTERACTIONS.md](docs/COMPONENT-INTERACTIONS.md) - Component interaction flows and dependencies
+- [docs/LEARNING-SYSTEM.md](docs/LEARNING-SYSTEM.md) - Advanced learning system documentation
+- [docs/zep-graphiti/ARCHITECTURE.md](docs/zep-graphiti/ARCHITECTURE.md) - Memory system architecture
 
 ## Testing
 
@@ -159,6 +173,9 @@ npx vite-node tests/test-quick-marketstack.ts
 
 # Reddit OAuth setup
 npx vite-node tests/reddit/reddit-oauth-setup.ts
+
+# Learning system examples
+npx vite-node examples/learning-market-analyst-integration.ts
 ```
 
 ## Contributing

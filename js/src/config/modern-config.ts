@@ -6,6 +6,9 @@
 
 import { AsyncLocalStorage } from 'async_hooks';
 import { AsyncLocalStorageProviderSingleton } from "@langchain/core/singletons";
+import { BaseChatModel } from '@langchain/core/language_models/chat_models';
+import { LLMProviderFactory } from '../providers/llm-factory.js';
+import { LLMProvider } from '../types/config.js';
 import process from 'process';
 
 // Types for modern configuration
@@ -78,24 +81,19 @@ export class ModernConfigLoader {
     /**
      * Create a modern chat model using ChatOpenAI as fallback
      */
-    async createChatModel(overrides = {}) {
+    async createChatModel(overrides = {}): Promise<BaseChatModel> {
         const config = { ...this.getLLMConfig(), ...overrides };
         
         try {
-            // Import the ChatOpenAI class dynamically
-            const { ChatOpenAI } = await import('@langchain/openai');
-            
-            const chatModel = new ChatOpenAI({
+            // Use LLMProviderFactory for consistent LLM creation
+            return LLMProviderFactory.createLLM({
+                provider: config.provider as LLMProvider,
                 model: config.model,
+                apiKey: config.apiKey,
+                baseUrl: config.baseURL,
                 temperature: config.temperature,
-                maxTokens: config.maxTokens,
-                openAIApiKey: config.apiKey,
-                configuration: {
-                    baseURL: config.baseURL
-                }
+                maxTokens: config.maxTokens
             });
-
-            return chatModel;
         } catch (error: any) {
             throw new Error(`Modern chat model creation failed: ${error.message}`);
         }

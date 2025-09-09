@@ -405,7 +405,7 @@ export class StrategyManager {
         worstStrategy,
         averageHoldingPeriod
       };
-    } catch (error) {
+    } catch (_error) {
       // Return conservative metrics on calculation error
       return {
         totalReturn: 0,

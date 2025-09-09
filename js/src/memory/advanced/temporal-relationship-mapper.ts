@@ -768,7 +768,7 @@ export class SectorRotationAnalyzer {
   /**
    * Extract time series data from Zep facts
    */
-  private extractTimeSeriesFromFacts(facts: any[], entityId: string): Array<{ date: string; value: number }> {
+  private extractTimeSeriesFromFacts(facts: any[], _entityId: string): Array<{ date: string; value: number }> {
     const timeSeriesData: Array<{ date: string; value: number }> = [];
     
     for (const fact of facts) {
@@ -797,7 +797,7 @@ export class SectorRotationAnalyzer {
             value: value
           });
         }
-      } catch (error) {
+      } catch (_error) {
         // Skip invalid facts
         continue;
       }

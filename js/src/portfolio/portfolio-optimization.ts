@@ -12,8 +12,35 @@
  * - Performance-based portfolio adjustments
  * - Multi-objective optimization (return, risk, diversification)
  *
- * Integration Capabilities:
- * - Works with learning system for strategy refinement
+ * Integration Capab  private app  private applyLearningBasedAdjustments(
+    currentWeights: Record<string, number>,
+    learningInsights: {
+      strategy_performance: Map<string, number>;
+      risk_adjustments: Map<string, number>;
+      market_regime_weights: Record<string, number>;
+    },
+    _marketConditions: {
+      volatility_regime: 'low' | 'normal' | 'high';
+      market_trend: 'bull' | 'bear' | 'sideways';
+    }
+  ): {
+    weights: Record<string, number>;
+    reason: string;
+  } {Adjustments(
+    currentWeights: Record<string, number>,
+    learningInsights: {
+      strategy_performance: Map<string, number>;
+      risk_adjustments: Map<string, number>;
+      market_regime_weights: Record<string, number>;
+    },
+    _marketConditions: {
+      volatility_regime: 'low' | 'normal' | 'high';
+      market_trend: 'bull' | 'bear' | 'sideways';
+    }
+  ): {
+    weights: Record<string, number>;
+    reason: string;
+  } {Works with learning system for strategy refinement
  * - Integrates with risk management for constraint optimization
  * - Supports performance analytics for optimization validation
  * - Enables adaptive learning for dynamic allocation adjustments
@@ -582,7 +609,7 @@ export class PortfolioOptimizationEngine {
       risk_adjustments: Map<string, number>;
       market_regime_weights: Record<string, number>;
     },
-    marketConditions: {
+    _marketConditions: {
       volatility_regime: 'low' | 'normal' | 'high';
       market_trend: 'bull' | 'bear' | 'sideways';
     }

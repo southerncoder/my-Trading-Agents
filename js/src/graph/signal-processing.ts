@@ -11,13 +11,11 @@
  * - Handle edge cases and error scenarios
  */
 
-import { ChatOpenAI } from '@langchain/openai';
-import { ChatAnthropic } from '@langchain/anthropic';
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { BaseMessage, HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { createLogger } from '../utils/enhanced-logger';
 
-export type LLMProvider = ChatOpenAI | ChatAnthropic | ChatGoogleGenerativeAI;
+export type LLMProvider = BaseChatModel;
 
 /**
  * SignalProcessor class extracts actionable trading decisions from agent outputs

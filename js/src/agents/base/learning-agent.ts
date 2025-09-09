@@ -10,7 +10,7 @@ import {
 import {
   ReinforcementLearningEngine
 } from '../../learning/reinforcement-engine';
-import { LearningExample, LearningInsight, ReinforcementLearningState } from '../../learning/learning-types';
+import { LearningExample, ReinforcementLearningState } from '../../learning/learning-types';
 import { createLogger } from '../../utils/enhanced-logger';
 
 /**

@@ -10,7 +10,7 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { ChatOpenAI } from '@langchain/openai';
 import { LMStudioManager } from './lmstudio-manager';
 import { createLogger } from '../utils/enhanced-logger';
-import { getLMStudioBaseUrl, getLMStudioAdminUrl } from '../utils/docker-secrets';
+import { getLMStudioBaseUrl } from '../utils/docker-secrets';
 import { ModelConfig } from './provider';
 
 const logger = createLogger('system', 'LMStudioSingleton');

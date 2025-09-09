@@ -140,38 +140,14 @@ export class PooledYahooFinanceAPI {
    * Get offline data (fallback when online is disabled)
    */
   private async getDataOffline(symbol: string, startDate: string, endDate: string): Promise<string> {
-    this.logger.info('getDataOffline', 'Using offline mode for Yahoo Finance', {
+    this.logger.info('getDataOffline', 'Offline mode requested but no cached data available', {
       symbol,
       startDate,
       endDate
     });
 
-    // Return mock data for offline mode
-    const mockData = {
-      symbol,
-      period: `${startDate} to ${endDate}`,
-      data: [
-        {
-          date: startDate,
-          open: '150.00',
-          high: '155.00',
-          low: '148.00',
-          close: '153.00',
-          volume: 1000000
-        },
-        {
-          date: endDate,
-          open: '153.00',
-          high: '158.00',
-          low: '151.00',
-          close: '156.00',
-          volume: 1200000
-        }
-      ],
-      note: 'This is mock data for offline mode'
-    };
-
-    return JSON.stringify(mockData, null, 2);
+    // No offline data available - return informative error
+    throw new Error(`Offline mode not supported. Yahoo Finance data for ${symbol} is not available. Please enable online mode or ensure the Yahoo Finance service is running.`);
   }
 
   /**
