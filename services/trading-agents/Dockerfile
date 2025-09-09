@@ -44,6 +44,10 @@ COPY --from=builder --chown=trading:nodejs /app/package.json ./
 # Copy CLI entry point
 COPY --chown=trading:nodejs cli.js ./
 
+# Create data directories with proper permissions
+RUN mkdir -p /app/.tradingagents /app/data /app/logs /app/exports && \
+    chown -R trading:nodejs /app/.tradingagents /app/data /app/logs /app/exports
+
 # Switch to non-root user
 USER trading
 
@@ -53,5 +57,5 @@ EXPOSE 3000
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
 
-# Default command
-CMD ["node", "cli.js", "--help"]
+# Default command - run interactive menu
+CMD ["node", "cli.js", "menu"]

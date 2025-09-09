@@ -27,22 +27,22 @@ jobs:
       with:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
-        cache-dependency-path: 'js/package-lock.json'
+        cache-dependency-path: 'services/trading-agents/package-lock.json'
         
     - name: Install dependencies
-      working-directory: ./js
+      working-directory: ./services/trading-agents
       run: npm ci
       
     - name: Run linting
-      working-directory: ./js
+      working-directory: ./services/trading-agents
       run: npm run lint || true  # Don't fail if linting not configured yet
       
     - name: Run type checking
-      working-directory: ./js
+      working-directory: ./services/trading-agents
       run: npm run build
       
     - name: Run tests
-      working-directory: ./js
+      working-directory: ./services/trading-agents
       run: npm test
 
   otlp-collector-test:
@@ -57,28 +57,28 @@ jobs:
       with:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
-        cache-dependency-path: 'js/package-lock.json'
+        cache-dependency-path: 'services/trading-agents/package-lock.json'
 
     - name: Install dependencies
-      working-directory: ./js
+      working-directory: ./services/trading-agents
       run: npm ci
 
     - name: Run OTLP collector integration test
-      working-directory: ./js
+      working-directory: ./services/trading-agents
       env:
         ENABLE_OTEL: '1'
         OTEL_EXPORTER_OTLP_LOGS_ENDPOINT: 'http://localhost:4319/v1/logs'
       run: npm test -- tests/integration/otlp-logs-export.spec.ts --runInBand
       
     - name: Generate test coverage
-      working-directory: ./js
+      working-directory: ./services/trading-agents
       run: npm run test:coverage || true  # Don't fail if coverage not configured
       
     - name: Upload coverage to Codecov
       if: success()
       uses: codecov/codecov-action@v3
       with:
-        directory: ./js
+        directory: ./services/trading-agents
         fail_ci_if_error: false
 
   # Security Scan Job
@@ -91,7 +91,7 @@ jobs:
       uses: actions/checkout@v4
       
     - name: Run security audit
-      working-directory: ./js
+      working-directory: ./services/trading-agents
       run: npm audit --audit-level moderate
       
     - name: Run Snyk to check for vulnerabilities
@@ -100,7 +100,7 @@ jobs:
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       with:
-        args: --project-name=trading-agents --file=js/package.json
+        args: --project-name=trading-agents --file=services/trading-agents/package.json
 
   # Build Docker Image Job
   build:
@@ -140,8 +140,8 @@ jobs:
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
       with:
-        context: ./js
-        file: ./js/Dockerfile
+        context: ./services/trading-agents
+        file: ./services/trading-agents/Dockerfile
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}

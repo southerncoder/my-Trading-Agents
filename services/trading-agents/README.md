@@ -73,7 +73,7 @@ Design note: The `ModelProvider` is intentionally generic. Do not hardcode provi
 
 ## Tests
 
-Test files live in `js/tests/`. Use the project's npm scripts to run tests:
+Test files live in `services/trading-agents/tests/`. Use the project's npm scripts to run tests:
 
 ```powershell
 cd js

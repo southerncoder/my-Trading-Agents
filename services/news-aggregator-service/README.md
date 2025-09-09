@@ -1,6 +1,34 @@
 # News Aggregator Service
 
-A unified news aggregation service that consolidates multiple news providers (Google News, Yahoo Finance, Bing News, NewsAPI) with intelligent provider selection, fallback logic, and caching for improved reliability and performance.
+A unified news aggregation service that consolidates multiple news providers (Google News, Yahoo Finance, Brave News, NewsAPI) with intelligent provider selection, fallback logic, and caching for improved reliability and performance.
+
+## ⚠️ Important Update: Bing News API Deprecation
+
+**As of August 11, 2025, Microsoft has retired the Bing Search APIs**, including Bing News Search API. This service has been updated to use **Brave News API** as a replacement.
+
+### Migration Details
+- **Deprecated**: Bing News API (retired August 11, 2025)
+- **Replacement**: Brave News API (privacy-focused, reliable alternative)
+- **No Action Required**: The service automatically uses Brave News as the primary provider
+- **Backward Compatibility**: All existing API endpoints remain unchanged
+
+### What Changed
+- Bing News provider replaced with Brave News provider
+- Provider priority updated: Brave News → Google News → NewsAPI → Yahoo Finance
+- All existing functionality preserved
+- No breaking changes to the API
+
+### Environment Variables Update
+Replace `BING_NEWS_API_KEY` with `BRAVE_NEWS_API_KEY` in your `.env.local` file:
+```bash
+# Old (deprecated)
+BING_NEWS_API_KEY=your_bing_api_key
+
+# New (required)
+BRAVE_NEWS_API_KEY=your_brave_api_key
+```
+
+Get your Brave API key from: https://api-dashboard.search.brave.com/
 
 ## Features
 
@@ -122,22 +150,29 @@ Get cache performance statistics and hit rates.
 | `NODE_ENV` | Environment mode | `production` | No |
 | `LOG_LEVEL` | Logging level | `info` | No |
 | `PORT` | Service port | `3004` | No |
+| `BRAVE_NEWS_API_KEY` | Brave News API key | - | Yes |
 | `NEWS_API_KEY` | NewsAPI key | - | Yes |
-| `BING_NEWS_API_KEY` | Bing News API key | - | No |
 | `YAHOO_FINANCE_API_KEY` | Yahoo Finance API key | - | No |
 | `CACHE_TTL_SECONDS` | Cache TTL in seconds | `300` | No |
 | `QUOTE_CACHE_TTL_SECONDS` | Quote cache TTL | `60` | No |
+| `BRAVE_NEWS_RATE_LIMIT` | Brave News rate limit | `100` | No |
 | `NEWSAPI_RATE_LIMIT` | NewsAPI rate limit | `100` | No |
-| `BING_NEWS_RATE_LIMIT` | Bing News rate limit | `100` | No |
 | `YAHOO_FINANCE_RATE_LIMIT` | Yahoo Finance rate limit | `2000` | No |
 
 ### API Keys Setup
 
-1. **NewsAPI**: Get your free API key from [newsapi.org](https://newsapi.org/)
-2. **Bing News API**: Get your API key from [Microsoft Bing APIs](https://www.microsoft.com/en-us/bing/apis/bing-news-search-api)
+1. **Brave News API**: Get your API key from [Brave API Dashboard](https://api-dashboard.search.brave.com/)
+2. **NewsAPI**: Get your free API key from [newsapi.org](https://newsapi.org/)
 3. **Yahoo Finance**: No API key required for basic operations
 
 ## Provider Details
+
+### Brave News (Primary)
+- **Endpoint**: `/api/news/search?q={query}&provider=brave`
+- **Features**: Privacy-focused news search, real-time updates, diverse sources
+- **Rate Limit**: Based on Brave API plan
+- **Fallback**: Automatic fallback to other providers
+- **API Key**: Required (`BRAVE_NEWS_API_KEY`)
 
 ### Google News (via NewsAPI)
 - **Endpoint**: `/api/news/search?q={query}&provider=google`
@@ -150,12 +185,6 @@ Get cache performance statistics and hit rates.
 - **Features**: Financial news, stock quotes, market data
 - **Rate Limit**: 2000 requests/minute
 - **Fallback**: Automatic fallback to NewsAPI
-
-### Bing News
-- **Endpoint**: `/api/news/search?q={query}&provider=bing`
-- **Features**: Web search integration, diverse sources
-- **Rate Limit**: 100 requests/minute
-- **Fallback**: Automatic fallback to other providers
 
 ### NewsAPI Direct
 - **Endpoint**: `/api/news/search?q={query}&provider=newsapi`
@@ -193,10 +222,11 @@ services/news-aggregator-service/
 ├── src/
 │   ├── index.js              # Main service file
 │   ├── providers/            # Provider implementations
+│   │   ├── brave-news.js     # Brave News API provider
 │   │   ├── google-news.js
 │   │   ├── yahoo-finance.js
-│   │   ├── bing-news.js
-│   │   └── newsapi.js
+│   │   ├── newsapi.js
+│   │   └── bing-news.js      # Legacy Bing provider (deprecated)
 │   ├── utils/
 │   │   ├── cache.js
 │   │   ├── health-monitor.js

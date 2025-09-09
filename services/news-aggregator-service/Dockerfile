@@ -21,10 +21,10 @@ RUN addgroup -g 1001 -S nodejs && \
 
 # Copy source code and health check script
 COPY src/ ./src/
-COPY healthcheck.js ./healthcheck.js
+COPY healthcheck.cjs ./healthcheck.cjs
 
 # Make health check script executable
-RUN chmod +x healthcheck.js
+RUN chmod +x healthcheck.cjs
 
 # Change ownership of the app directory
 RUN chown -R newsaggregator:nodejs /app
@@ -35,7 +35,7 @@ EXPOSE 3004
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD node healthcheck.js
+    CMD node healthcheck.cjs
 
 # Start the application
 ENTRYPOINT ["dumb-init", "--"]

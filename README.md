@@ -60,7 +60,7 @@ See [FEATURE-FLAGS.md](FEATURE-FLAGS.md) for details.
 
 ## Configuration
 
-Create `js/.env.local` with your API keys:
+Create `services/trading-agents/.env.local` with your API keys:
 
 ```bash
 # LLM Providers (choose one)
