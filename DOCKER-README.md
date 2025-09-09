@@ -119,61 +119,15 @@ LOG_LEVEL=info
 NEO4J_USER=neo4j
 NEO4J_PASSWORD=your_secure_password_here
 
-# LM Studio Configuration
-LM_STUDIO_URL=http://your-lm-studio-server:1234
-OPENAI_API_KEY=your_openai_key_or_lm_studio_key
-
-# Reddit Integration
-REDDIT_ENABLED=true
-REDDIT_SERVICE_URL=http://reddit-service:3001
+# LLM Configuration
+OPENAI_API_KEY=your_openai_key
+LM_STUDIO_BASE_URL=http://your-lm-studio-server:1234/v1
 ```
 
-#### `py_zep/.env.local` (Zep Graphiti Service)
-```bash
-# OpenAI/LM Studio Configuration
-OPENAI_API_KEY=your_openai_key_or_lm_studio_key
-OPENAI_BASE_URL=http://your-lm-studio-server:1234/v1
-
-# Embedding Configuration
-EMBEDDING_MODEL=text-embedding-3-small
-EMBEDDING_PROVIDER=openai
-
-# Neo4j Connection (configured automatically)
-NEO4J_URI=bolt://trading-agents-neo4j:7687
-NEO4J_USER=neo4j
-NEO4J_PASSWORD=your_secure_password_here
-```
-
-#### `services/reddit-service/.env.local` (Reddit Service)
-```bash
-# Reddit API Configuration
-REDDIT_CLIENT_ID=your_reddit_client_id
-REDDIT_CLIENT_SECRET=your_reddit_client_secret
-REDDIT_USER_AGENT=TradingAgents:v1.0.0 (by /u/your_username)
-
-# Optional: Reddit OAuth
-REDDIT_REFRESH_TOKEN=your_refresh_token
-REDDIT_USERNAME=your_username
-REDDIT_PASSWORD=your_password
-
-# Service Configuration
-PORT=3001
-NODE_ENV=production
-LOG_LEVEL=info
-```
-
-### Optional: Docker Secrets
-
-For production deployments, you can use Docker secrets instead of environment files:
-
-```bash
-# Create secret files
-echo "your_openai_key" > py_zep/secrets/openai_api_key.txt
-echo "your_embedding_key" > py_zep/secrets/embedder_api_key.txt
-echo "neo4j" > py_zep/secrets/neo4j_user.txt
-echo "your_password" > py_zep/secrets/neo4j_password.txt
-echo "http://your-lm-studio:1234" > py_zep/secrets/lm_studio_url.txt
-```
+**🔐 Centralized Secret Management:**
+- All secrets are managed through the main `.env.local` file
+- Docker deployments use Docker secrets for secure credential management
+- No scattered service-specific `.env.local` files
 
 ## 📊 Service Management
 
@@ -190,7 +144,6 @@ docker compose logs -f
 # Specific service
 docker compose logs -f neo4j
 docker compose logs -f zep-graphiti
-docker compose logs -f reddit-service
 docker compose logs -f trading-agents
 ```
 
@@ -212,12 +165,6 @@ docker compose down
 docker compose down -v
 ```
 
-### Scale Services (if needed)
-```bash
-# Scale Reddit service for high load
-docker compose up --scale reddit-service=3
-```
-
 ## 🌐 Service URLs
 
 Once all services are running:
@@ -226,13 +173,11 @@ Once all services are running:
 |---------|-----|---------|
 | Neo4j Browser | http://localhost:7474 | Database management |
 | Zep Graphiti API | http://localhost:8000 | Memory service API |
-| Reddit Service | http://localhost:3001 | Sentiment analysis API |
-| Reddit Service Health | http://localhost:3001/health | Health check |
+| Trading Agents CLI | - | Interactive application |
 
 ### API Documentation
 
 - **Zep Graphiti**: http://localhost:8000/docs (Swagger UI)
-- **Reddit Service**: http://localhost:3001/docs (when implemented)
 
 ## 🔧 Troubleshooting
 
@@ -244,7 +189,7 @@ Once all services are running:
 docker --version
 
 # Check for port conflicts
-netstat -an | findstr "7474\|7687\|8000\|3001"
+netstat -an | findstr "7474\|7687\|8000"
 
 # Check logs for errors
 docker compose logs
@@ -260,15 +205,6 @@ docker compose logs zep-graphiti
 
 # Test Neo4j connection
 docker compose exec neo4j cypher-shell -u neo4j -p your_password "RETURN 1"
-```
-
-**Reddit service authentication:**
-```bash
-# Check Reddit service environment
-docker compose exec reddit-service env | grep REDDIT
-
-# Test Reddit service health
-curl http://localhost:3001/health
 ```
 
 ### Performance Tuning

@@ -2,7 +2,78 @@
 
 ## 🎯 Overview
 
-TradingAgents uses a sophisticated 4-tier environment variable hierarchy that allows fine-grained control over LLM providers and models for each agent type, plus comprehensive directory path configuration for secure deployment.
+TradingAgents uses a 4-tier environment variable hierarchy for fine-grained control over LLM providers and models for each agent type, plus comprehensive directory path configuration for secure deployment.
+
+## 🔐 Centralized Secret Management
+
+### Docker Secrets Integration
+
+TradingAgents uses **centralized secret management** with Docker secrets for production deployments:
+
+**✅ Benefits:**
+- **Single Source of Truth**: All secrets consolidated in main `.env.local`
+- **Docker Secrets**: Secure secret management for containerized deployments
+- **No Scattered Files**: Eliminates service-specific `.env.local` files
+
+**📁 Secret File Structure:**
+```
+.env.local                    # Main configuration file (development)
+docker/secrets/               # Docker secrets directory
+├── openai_api_key.txt        # OpenAI API key
+├── anthropic_api_key.txt     # Anthropic API key
+└── neo4j_password.txt        # Neo4j database password
+```
+
+**🔧 Migration from Service-Specific Files:**
+
+The system has been migrated from scattered `.env.local` files to centralized configuration:
+
+```bash
+# ❌ OLD: Scattered configuration (removed)
+services/trading-agents/.env.local
+services/google-news-service/.env.local
+services/reddit-service/.env.local
+
+# ✅ NEW: Centralized configuration
+.env.local                           # Main configuration
+docker/secrets/                      # Docker secrets
+```
+
+### Environment Variable Loading
+
+The system automatically loads configuration from the main `.env.local` file:
+
+```typescript
+// Configuration automatically loaded from .env.local
+const config = {
+  openaiApiKey: process.env.OPENAI_API_KEY,
+  redditClientId: process.env.REDDIT_CLIENT_ID,
+  marketstackApiKey: process.env.MARKETSTACK_API_KEY,
+  // ... all other secrets
+};
+```
+
+### Docker Secrets Usage
+
+For Docker deployments, secrets are mounted as files:
+
+```yaml
+# docker-compose.yml
+services:
+  trading-agents:
+    secrets:
+      - openai_api_key
+      - reddit_client_id
+    environment:
+      - OPENAI_API_KEY_FILE=/run/secrets/openai_api_key
+      - REDDIT_CLIENT_ID_FILE=/run/secrets/reddit_client_id
+```
+
+**🔒 Security Best Practices:**
+- Store actual secrets only in main `.env.local` (git-ignored)
+- Use Docker secrets for containerized deployments
+- Never commit real API keys to version control
+- Use environment-specific secret management in production
 
 ## 📁 Directory Configuration
 
@@ -15,7 +86,6 @@ All directory paths are configurable via environment variables for security and 
 TRADINGAGENTS_EXPORTS_DIR=/path/to/exports        # Export outputs directory
 TRADINGAGENTS_RESULTS_DIR=/path/to/results        # Trading analysis results
 TRADINGAGENTS_DATA_DIR=/path/to/data              # Data storage and cache
-TRADINGAGENTS_CACHE_DIR=/path/to/cache            # Application cache
 TRADINGAGENTS_LOGS_DIR=/path/to/logs              # Logging output
 TRADINGAGENTS_PROJECT_DIR=/path/to/project        # Project root directory
 ```
@@ -26,13 +96,11 @@ TRADINGAGENTS_PROJECT_DIR=/path/to/project        # Project root directory
 - Zero hardcoded paths in source code
 - Environment-specific directory configuration
 - Secure path resolution and validation
-- No sensitive path information in git repository
 
 **⚙️ Flexibility Benefits:**
 - Support for both relative and absolute paths
 - Intelligent fallback to default directories
 - Cross-platform path handling
-- Easy deployment configuration
 
 **📋 Default Behavior:**
 ```typescript
@@ -41,7 +109,6 @@ TRADINGAGENTS_PROJECT_DIR=/path/to/project        # Project root directory
   exportsDir: './exports',
   resultsDir: './results', 
   dataDir: './data',
-  cacheDir: './cache',
   logsDir: './logs',
   projectDir: process.cwd()
 }
@@ -51,32 +118,18 @@ TRADINGAGENTS_PROJECT_DIR=/path/to/project        # Project root directory
 
 **Development Environment:**
 ```bash
-# .env.local
 TRADINGAGENTS_EXPORTS_DIR=./exports
 TRADINGAGENTS_RESULTS_DIR=./results
 TRADINGAGENTS_DATA_DIR=./data
-TRADINGAGENTS_CACHE_DIR=./cache
 TRADINGAGENTS_LOGS_DIR=./logs
 ```
 
 **Production Environment:**
 ```bash
-# Production deployment
 TRADINGAGENTS_EXPORTS_DIR=/var/lib/tradingagents/exports
 TRADINGAGENTS_RESULTS_DIR=/var/lib/tradingagents/results
 TRADINGAGENTS_DATA_DIR=/var/lib/tradingagents/data
-TRADINGAGENTS_CACHE_DIR=/tmp/tradingagents/cache
 TRADINGAGENTS_LOGS_DIR=/var/log/tradingagents
-```
-
-**Docker Environment:**
-```bash
-# Docker deployment
-TRADINGAGENTS_EXPORTS_DIR=/app/data/exports
-TRADINGAGENTS_RESULTS_DIR=/app/data/results
-TRADINGAGENTS_DATA_DIR=/app/data/storage
-TRADINGAGENTS_CACHE_DIR=/app/cache
-TRADINGAGENTS_LOGS_DIR=/app/logs
 ```
 
 ## 🏗️ Configuration Hierarchy
@@ -92,10 +145,7 @@ The system processes configuration in this priority order:
 
 ## 🔧 Configuration Levels
 
-### 1. Individual Agent Configuration
-
-Override settings for specific agents:
-
+### Individual Agent Configuration
 ```bash
 # Market Analyst specific settings
 MARKET_ANALYST_LLM_PROVIDER=openai
@@ -108,30 +158,15 @@ NEWS_ANALYST_LLM_PROVIDER=anthropic
 NEWS_ANALYST_LLM_MODEL=claude-3-5-sonnet-20241022
 NEWS_ANALYST_LLM_TEMPERATURE=0.3
 NEWS_ANALYST_LLM_MAX_TOKENS=3000
-
-# Social Analyst specific settings
-SOCIAL_ANALYST_LLM_PROVIDER=google
-SOCIAL_ANALYST_LLM_MODEL=gemini-1.5-pro
 ```
 
 **Available Individual Agents:**
-- `MARKET_ANALYST_*`
-- `NEWS_ANALYST_*` 
-- `SOCIAL_ANALYST_*`
-- `FUNDAMENTALS_ANALYST_*`
-- `BULL_RESEARCHER_*`
-- `BEAR_RESEARCHER_*`
-- `RESEARCH_MANAGER_*`
-- `RISKY_ANALYST_*`
-- `SAFE_ANALYST_*`
-- `NEUTRAL_ANALYST_*`
-- `PORTFOLIO_MANAGER_*`
-- `TRADER_*`
+- `MARKET_ANALYST_*`, `NEWS_ANALYST_*`, `SOCIAL_ANALYST_*`
+- `FUNDAMENTALS_ANALYST_*`, `BULL_RESEARCHER_*`, `BEAR_RESEARCHER_*`
+- `RESEARCH_MANAGER_*`, `RISKY_ANALYST_*`, `SAFE_ANALYST_*`
+- `NEUTRAL_ANALYST_*`, `PORTFOLIO_MANAGER_*`, `TRADER_*`
 
-### 2. Group-Level Configuration
-
-Configure entire agent groups:
-
+### Group-Level Configuration
 ```bash
 # All Analysts (Market, News, Social, Fundamentals)
 ANALYSTS_LLM_PROVIDER=openai
@@ -144,45 +179,15 @@ RESEARCHERS_LLM_PROVIDER=anthropic
 RESEARCHERS_LLM_MODEL=claude-3-5-sonnet-20241022
 RESEARCHERS_LLM_TEMPERATURE=0.6
 RESEARCHERS_LLM_MAX_TOKENS=4000
-
-# All Managers (Research Manager, Portfolio Manager)
-MANAGERS_LLM_PROVIDER=openai
-MANAGERS_LLM_MODEL=gpt-4o
-MANAGERS_LLM_TEMPERATURE=0.5
-MANAGERS_LLM_MAX_TOKENS=3000
-
-# All Risk Analysts (Risky, Safe, Neutral)
-RISK_ANALYSTS_LLM_PROVIDER=google
-RISK_ANALYSTS_LLM_MODEL=gemini-1.5-pro
-RISK_ANALYSTS_LLM_TEMPERATURE=0.7
-RISK_ANALYSTS_LLM_MAX_TOKENS=3500
 ```
 
-### 3. Global Default Configuration
-
-System-wide defaults for all agents:
-
+### Global Default Configuration
 ```bash
-# Default provider and model for all agents
+# System-wide defaults
 DEFAULT_LLM_PROVIDER=openai
 DEFAULT_LLM_MODEL=local-model
 DEFAULT_LLM_TEMPERATURE=0.7
 DEFAULT_LLM_MAX_TOKENS=3000
-
-```
-
-### 4. Hardcoded Fallbacks
-
-Built into the code as final safety net:
-
-```typescript
-// Hardcoded in src/types/agent-config.ts
-const fallbacks = {
-  provider: 'anthropic',
-  model: 'claude-3-5-sonnet-20241022',
-  temperature: 0.7,
-  maxTokens: 3000
-};
 ```
 
 ## 🌐 Provider Configuration
@@ -194,11 +199,7 @@ OPENAI_BASE_URL=https://api.openai.com/v1  # Optional override
 OPENAI_DEFAULT_MODEL=gpt-4o-mini
 ```
 
-**Available Models:**
-- `gpt-4o`
-- `gpt-4o-mini` 
-- `o1-mini`
-- `gpt-4-turbo`
+**Available Models:** `gpt-4o`, `gpt-4o-mini`, `o1-mini`, `gpt-4-turbo`
 
 ### Anthropic Configuration
 ```bash
@@ -207,69 +208,23 @@ ANTHROPIC_BASE_URL=https://api.anthropic.com  # Optional override
 ANTHROPIC_DEFAULT_MODEL=claude-3-5-sonnet-20241022
 ```
 
-**Available Models:**
-- `claude-3-5-sonnet-20241022`
-- `claude-3-haiku-20240307`
-- `claude-3-opus-20240229`
+**Available Models:** `claude-3-5-sonnet-20241022`, `claude-3-haiku-20240307`, `claude-3-opus-20240229`
 
 ### LM Studio Configuration
 ```bash
-# LM Studio base URL (must include /v1 for OpenAI compatibility)
 LM_STUDIO_BASE_URL=http://localhost:1234/v1
-
-# LM Studio admin URL (optional, for automatic model loading)
-LM_STUDIO_ADMIN_URL=http://localhost:1234
-
-# Model cache TTL (optional, defaults to 30 seconds)
-LM_STUDIO_MODEL_CACHE_TTL_MS=30000
+LM_STUDIO_ADMIN_URL=http://localhost:1234  # Optional
+LM_STUDIO_MODEL_CACHE_TTL_MS=30000         # Optional
 ```
 
-**Available Models:**
-- `nomic-embed-text` (recommended for embeddings)
-- `all-minilm` (lightweight alternative)
-- `sentence-transformers` (general purpose)
-
-**⚠️ LM Studio Special Behavior:**
-- **Model Checking**: Automatically verifies models are loaded before use
-- **Model Locking**: Prevents concurrent model operations on the same instance
-- **Automatic Loading**: Can request model loads via admin API if configured
-- **Caching**: Caches model availability to reduce API calls
-- **Timeout Handling**: Configurable timeouts for model loading operations
-
-**🔧 Model Loading Process:**
-1. Check if model is already loaded (cached)
-2. If not loaded, attempt to load via admin API (if configured)
-3. Poll model availability until loaded or timeout
-4. Cache successful loads to avoid repeated checks
-5. Allow embedding operations only after model confirmation
-
-**📋 Configuration Examples:**
-
-**Basic Local Setup:**
-```bash
-LM_STUDIO_BASE_URL=http://localhost:1234/v1
-# Admin URL optional for manual model loading
-```
-
-**Remote LM Studio with Auto-Loading:**
-```bash
-LM_STUDIO_BASE_URL=http://remote-server:1234/v1
-LM_STUDIO_ADMIN_URL=http://remote-server:1234
-```
-
-**High-Performance Setup:**
-```bash
-LM_STUDIO_BASE_URL=http://localhost:1234/v1
-LM_STUDIO_ADMIN_URL=http://localhost:1234
-LM_STUDIO_MODEL_CACHE_TTL_MS=60000  # Longer cache for performance
-```
+**Features:** Model verification, concurrent safety, auto-loading, performance caching, timeout protection
 
 
 ## 📋 Configuration Examples
 
-### Example 1: Multi-Provider Setup
+### Multi-Provider Setup
 ```bash
-# Use different providers for different purposes
+# Different providers for different purposes
 ANALYSTS_LLM_PROVIDER=openai          # Fast analysis
 ANALYSTS_LLM_MODEL=gpt-4o-mini
 
@@ -283,31 +238,18 @@ TRADER_LLM_PROVIDER=openai           # Final decisions
 TRADER_LLM_MODEL=gpt-4o
 ```
 
-### Example 2: Cost-Optimized Cloud Setup
+### Cost-Optimized Setup
 ```bash
-# Use cost-effective models
-ANALYSTS_LLM_PROVIDER=openai
-ANALYSTS_LLM_MODEL=gpt-4o-mini         # Cheaper for analysis
-
-RESEARCHERS_LLM_PROVIDER=openai
-RESEARCHERS_LLM_MODEL=gpt-4o-mini      # Budget-friendly research
-
-# Use premium model only for final decisions
-PORTFOLIO_MANAGER_LLM_PROVIDER=openai
-PORTFOLIO_MANAGER_LLM_MODEL=gpt-4o     # Premium for important decisions
-```
-
-### Example 4: Performance-Optimized Setup
-```bash
-# Fast models for real-time analysis
+# Cost-effective models for analysis
 ANALYSTS_LLM_PROVIDER=openai
 ANALYSTS_LLM_MODEL=gpt-4o-mini
-ANALYSTS_LLM_TEMPERATURE=0.1           # Lower temperature for consistency
 
-# High-quality models for research
-RESEARCHERS_LLM_PROVIDER=anthropic
-RESEARCHERS_LLM_MODEL=claude-3-5-sonnet-20241022
-RESEARCHERS_LLM_TEMPERATURE=0.8        # Higher temperature for creativity
+RESEARCHERS_LLM_PROVIDER=openai
+RESEARCHERS_LLM_MODEL=gpt-4o-mini
+
+# Premium model for final decisions
+PORTFOLIO_MANAGER_LLM_PROVIDER=openai
+PORTFOLIO_MANAGER_LLM_MODEL=gpt-4o
 ```
 
 ## ⚙️ Advanced Configuration
@@ -348,35 +290,15 @@ console.log('Configuration loaded:', Object.keys(DEFAULT_AGENT_CONFIGS));
 - Use secure paths with appropriate permissions
 - Ensure export directories are not publicly accessible
 - Validate all directory paths before use
-- Use absolute paths in production environments
 
 ### Environment Separation
 ```bash
 # Development
 .env.local          # Local development settings
-.env.example        # Template with example values
-
-# Staging  
-.env.staging        # Staging environment
 
 # Production
 # Use cloud secret management or environment variables
 # Never store production secrets in files
-```
-
-### Path Security Best Practices
-```bash
-# ✅ Good: Environment variables
-TRADINGAGENTS_EXPORTS_DIR=/secure/path/exports
-
-# ❌ Bad: Hardcoded paths in source
-const exportPath = '/hardcoded/path/exports';
-
-# ✅ Good: Relative paths in development
-TRADINGAGENTS_EXPORTS_DIR=./exports
-
-# ✅ Good: Absolute paths in production
-TRADINGAGENTS_EXPORTS_DIR=/var/lib/tradingagents/exports
 ```
 
 ## 🚨 Troubleshooting

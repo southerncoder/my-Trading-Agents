@@ -33,7 +33,7 @@ function checkHealth() {
         try {
           const healthData = JSON.parse(data);
 
-          if (res.statusCode === 200 && healthData.status === 'healthy') {
+          if (res.statusCode === 200 && (healthData.status === 'healthy' || healthData.status === 'degraded')) {
             console.log('✅ Service is healthy');
             resolve(true);
           } else {

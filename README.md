@@ -35,49 +35,52 @@ git clone https://github.com/southerncoder/my-Trading-Agents
 cd my-Trading-Agents/js
 npm install
 
-# 2. Start memory services (optional for basic usage)
-cd ../py_zep
-.\start-services-secure.ps1  # Windows
-# Or: docker-compose up -d     # Other platforms
+# 2. Configure environment (copy and edit .env.local)
+cp .env.example .env.local
 
-# 3. Run interactive trading analysis
+# 3. Start services (optional for basic usage)
+cd ../py_zep
+.\start-zep-services.ps1
+
+# 4. Run interactive trading analysis
 cd ../js
 npm run cli
 ```
 
 ### Feature Flags
 
-**Reddit Service**: Disabled by default (not actively developed)
+**Reddit Service**: Disabled by default
 ```bash
 # To include Reddit service:
 docker compose --profile reddit up
-
-# Default (without Reddit):
-docker compose up
 ```
-
-See [FEATURE-FLAGS.md](FEATURE-FLAGS.md) for details.
 
 ## Configuration
 
-Create `js/.env.local` with your API keys:
+Create `.env.local` in the project root with your API keys:
 
 ```bash
-# LLM Providers (choose one)
+# LLM Providers (choose one or more)
 OPENAI_API_KEY=your_openai_key
-# OR for local LLM
+ANTHROPIC_API_KEY=your_anthropic_key
+GOOGLE_API_KEY=your_google_key
+
+# Local LLM (optional)
 LM_STUDIO_BASE_URL=http://localhost:1234/v1
-LM_STUDIO_ADMIN_URL=http://localhost:1234  # Optional, for auto model loading
 
 # Market Data (optional - has free tiers)
 ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key
 MARKETSTACK_API_KEY=your_marketstack_key
 
 # Social Sentiment (optional)
-REDDIT_ENABLED=true
 REDDIT_CLIENT_ID=your_reddit_client_id
 REDDIT_CLIENT_SECRET=your_reddit_client_secret
 ```
+
+**🔐 Centralized Secret Management:**
+- All secrets are managed through the main `.env.local` file
+- Docker deployments use Docker secrets for secure credential management
+- See [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for detailed setup
 
 ## Architecture Overview
 
@@ -108,36 +111,16 @@ graph TB
 - **Enterprise Memory**: Zep Graphiti knowledge graphs with Neo4j
 - **Containerized**: Docker orchestration with health monitoring
 
-### Learning System
-- **LearningMarketAnalyst**: Enhanced market analyst with integrated learning
-- **Performance Learning Layer**: ML-based performance pattern recognition
-- **Temporal Reasoning**: Cross-session learning and insight accumulation
-- **Pattern Recognition**: Advanced market regime detection
-- **Reinforcement Learning**: Strategy optimization through feedback loops
-
-### LM Studio Special Features
-- **Model Verification**: Automatically checks if models are loaded before use
-- **Concurrent Safety**: Prevents multiple processes from loading the same model simultaneously
-- **Auto Model Loading**: Can automatically request model loads via admin API
-- **Performance Caching**: Caches model availability to reduce API overhead
-- **Timeout Protection**: Configurable timeouts prevent hanging on model operations
-
 ## Documentation
 
 ### Getting Started
 - [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md) - Complete setup guide
 - [docs/CONFIGURATION.md](docs/CONFIGURATION.md) - Configuration options
 
-### Component Documentation  
-- [docs/reddit/](docs/reddit/) - Reddit integration and OAuth setup
-- [docs/zep-graphiti/](docs/zep-graphiti/) - Memory system architecture
-- [docs/MARKETSTACK-SETUP.md](docs/MARKETSTACK-SETUP.md) - Data provider setup
-
-### Technical Reference
-- [docs/ARCHITECTURE-OVERVIEW.md](docs/ARCHITECTURE-OVERVIEW.md) - High-level system architecture
-- [docs/SYSTEM-ARCHITECTURE.md](docs/SYSTEM-ARCHITECTURE.md) - Detailed system architecture with Mermaid diagrams
-- [docs/COMPONENT-INTERACTIONS.md](docs/COMPONENT-INTERACTIONS.md) - Component interaction flows and dependencies
-- [docs/LEARNING-SYSTEM.md](docs/LEARNING-SYSTEM.md) - Advanced learning system documentation
+### Architecture & Components
+- [docs/ARCHITECTURE-OVERVIEW.md](docs/ARCHITECTURE-OVERVIEW.md) - System architecture
+- [docs/SYSTEM-ARCHITECTURE.md](docs/SYSTEM-ARCHITECTURE.md) - Detailed architecture with diagrams
+- [docs/COMPONENT-INTERACTIONS.md](docs/COMPONENT-INTERACTIONS.md) - Component interactions
 - [docs/zep-graphiti/ARCHITECTURE.md](docs/zep-graphiti/ARCHITECTURE.md) - Memory system architecture
 
 ## Testing

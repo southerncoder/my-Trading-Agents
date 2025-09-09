@@ -1,11 +1,16 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import NewsAPI from 'newsapi';
-import yahooFinance from 'yahoo-finance2';
 import winston from 'winston';
 import dotenv from 'dotenv';
 import NodeCache from 'node-cache';
+
+// Import provider modules
+import BingNewsProvider from './providers/bing-news.js';
+import BraveNewsProvider from './providers/brave-news.js';
+import NewsAPIProvider from './providers/newsapi.js';
+import YahooFinanceProvider from './providers/yahoo-finance.js';
+import GoogleNewsProvider from './providers/google-news.js';
 
 // Load environment variables
 dotenv.config();
@@ -36,11 +41,12 @@ const cache = new NodeCache({ stdTTL: 300 }); // 5 minutes default TTL
 const app = express();
 const PORT = process.env.PORT || 3004;
 
-// Provider configurations
+// Provider configurations (keeping for backward compatibility)
 const PROVIDERS = {
   GOOGLE_NEWS: 'google-news',
   YAHOO_FINANCE: 'yahoo-finance',
   BING_NEWS: 'bing-news',
+  BRAVE_NEWS: 'brave-news',
   NEWSAPI: 'newsapi'
 };
 
@@ -49,20 +55,18 @@ const providerStatus = {
   [PROVIDERS.GOOGLE_NEWS]: { healthy: false, lastChecked: null, consecutiveFailures: 0 },
   [PROVIDERS.YAHOO_FINANCE]: { healthy: false, lastChecked: null, consecutiveFailures: 0 },
   [PROVIDERS.BING_NEWS]: { healthy: false, lastChecked: null, consecutiveFailures: 0 },
+  [PROVIDERS.BRAVE_NEWS]: { healthy: false, lastChecked: null, consecutiveFailures: 0 },
   [PROVIDERS.NEWSAPI]: { healthy: false, lastChecked: null, consecutiveFailures: 0 }
 };
 
 // Initialize providers
-let newsapi = null;
-if (process.env.NEWS_API_KEY) {
-  try {
-    newsapi = new NewsAPI(process.env.NEWS_API_KEY);
-    providerStatus[PROVIDERS.NEWSAPI].healthy = true;
-    logger.info('NewsAPI initialized successfully');
-  } catch (error) {
-    logger.error('Failed to initialize NewsAPI', { error: error.message });
-  }
-}
+const providers = {
+  'bing-news': new BingNewsProvider(),
+  'brave-news': new BraveNewsProvider(),
+  'newsapi': new NewsAPIProvider(),
+  'yahoo-finance': new YahooFinanceProvider(),
+  'google-news': new GoogleNewsProvider()
+};
 
 // Middleware
 app.use(helmet());
@@ -81,68 +85,51 @@ app.use((req, res, next) => {
 });
 
 // Provider health check function
-async function checkProviderHealth(provider) {
+async function checkProviderHealth(providerName) {
   try {
     const now = Date.now();
-    const lastChecked = providerStatus[provider].lastChecked;
+    const lastChecked = providerStatus[providerName].lastChecked;
 
     // Skip check if done recently (within 30 seconds)
     if (lastChecked && (now - lastChecked) < 30000) {
-      return providerStatus[provider].healthy;
+      return providerStatus[providerName].healthy;
     }
 
-    providerStatus[provider].lastChecked = now;
+    providerStatus[providerName].lastChecked = now;
 
-    switch (provider) {
-      case PROVIDERS.GOOGLE_NEWS:
-        // Test with a simple query
-        if (newsapi) {
-          await newsapi.v2.everything({ q: 'test', pageSize: 1 });
-          providerStatus[provider].healthy = true;
-          providerStatus[provider].consecutiveFailures = 0;
-        }
-        break;
-
-      case PROVIDERS.YAHOO_FINANCE:
-        // Test with a simple quote
-        await yahooFinance.quote('AAPL');
-        providerStatus[provider].healthy = true;
-        providerStatus[provider].consecutiveFailures = 0;
-        break;
-
-      case PROVIDERS.BING_NEWS:
-        // Bing News API test (placeholder - would need Bing API key)
-        if (process.env.BING_NEWS_API_KEY) {
-          providerStatus[provider].healthy = true;
-          providerStatus[provider].consecutiveFailures = 0;
-        }
-        break;
-
-      case PROVIDERS.NEWSAPI:
-        if (newsapi) {
-          await newsapi.v2.everything({ q: 'test', pageSize: 1 });
-          providerStatus[provider].healthy = true;
-          providerStatus[provider].consecutiveFailures = 0;
-        }
-        break;
+    const provider = providers[providerName];
+    if (!provider) {
+      providerStatus[providerName].healthy = false;
+      return false;
     }
 
-    logger.info(`Provider ${provider} health check`, {
-      healthy: providerStatus[provider].healthy,
-      consecutiveFailures: providerStatus[provider].consecutiveFailures
+    // Use provider's built-in health check
+    const healthResult = await provider.healthCheck();
+    providerStatus[providerName].healthy = healthResult.healthy;
+
+    if (healthResult.healthy) {
+      providerStatus[providerName].consecutiveFailures = 0;
+    } else {
+      providerStatus[providerName].consecutiveFailures++;
+    }
+
+    logger.info(`Provider ${providerName} health check`, {
+      healthy: healthResult.healthy,
+      message: healthResult.message,
+      consecutiveFailures: providerStatus[providerName].consecutiveFailures
     });
 
   } catch (error) {
-    providerStatus[provider].healthy = false;
-    providerStatus[provider].consecutiveFailures++;
+    providerStatus[providerName].healthy = false;
+    providerStatus[providerName].consecutiveFailures++;
 
-    logger.warn(`Provider ${provider} health check failed`, {
+    logger.warn(`Provider ${providerName} health check failed`, {
       error: error.message,
-      consecutiveFailures: providerStatus[provider].consecutiveFailures
+      consecutiveFailures: providerStatus[providerName].consecutiveFailures
     });
   }
 
-  return providerStatus[provider].healthy;
+  return providerStatus[providerName].healthy;
 }
 
 // Get best available provider for a given operation
@@ -150,9 +137,9 @@ async function getBestProvider(operation) {
   const candidates = [];
 
   // Check all providers for the operation
-  for (const provider of Object.values(PROVIDERS)) {
-    if (await checkProviderHealth(provider)) {
-      candidates.push(provider);
+  for (const [providerName, provider] of Object.entries(providers)) {
+    if (await checkProviderHealth(providerName)) {
+      candidates.push(providerName);
     }
   }
 
@@ -223,8 +210,8 @@ app.get('/api/news', async (req, res) => {
       return res.json(cachedResult);
     }
 
-    // Try providers in order of preference
-    const providers = [PROVIDERS.GOOGLE_NEWS, PROVIDERS.NEWSAPI, PROVIDERS.BING_NEWS];
+    // Try providers in order of preference (Brave News first, then others)
+    const providers = [PROVIDERS.BRAVE_NEWS, PROVIDERS.GOOGLE_NEWS, PROVIDERS.NEWSAPI, PROVIDERS.BING_NEWS];
     let result = null;
     let usedProvider = null;
 
@@ -289,7 +276,7 @@ app.get('/api/financial-news/:symbol', async (req, res) => {
     }
 
     // Try Yahoo Finance first for financial news, then fall back to news providers
-    const providers = [PROVIDERS.YAHOO_FINANCE, PROVIDERS.GOOGLE_NEWS, PROVIDERS.NEWSAPI];
+    const providers = [PROVIDERS.YAHOO_FINANCE, PROVIDERS.BRAVE_NEWS, PROVIDERS.GOOGLE_NEWS, PROVIDERS.NEWSAPI];
     let result = null;
     let usedProvider = null;
 
@@ -404,20 +391,42 @@ app.get('/api/quote/:symbol', async (req, res) => {
 });
 
 // Provider-specific fetch function
-async function fetchFromProvider(provider, operation, params) {
-  switch (provider) {
-    case PROVIDERS.GOOGLE_NEWS:
-    case PROVIDERS.NEWSAPI:
-      return await fetchFromNewsAPI(operation, params);
+async function fetchFromProvider(providerName, operation, params) {
+  const provider = providers[providerName];
+  if (!provider) {
+    throw new Error(`Unknown provider: ${providerName}`);
+  }
 
-    case PROVIDERS.YAHOO_FINANCE:
-      return await fetchFromYahooFinance(operation, params);
+  switch (operation) {
+    case 'news':
+      return await provider.searchNews(params);
 
-    case PROVIDERS.BING_NEWS:
-      return await fetchFromBingNews(operation, params);
+    case 'financial-news':
+      if (providerName === 'yahoo-finance') {
+        return await provider.searchFinancialNews(params.symbol, params);
+      } else {
+        // For other providers, search with financial terms
+        const financialQuery = `${params.symbol} stock OR ${params.symbol} shares OR ${params.symbol} market OR ${params.symbol} trading`;
+        return await provider.searchNews({ ...params, query: financialQuery });
+      }
+
+    case 'quote':
+      if (providerName === 'yahoo-finance') {
+        return await provider.getQuote(params.symbol);
+      } else {
+        throw new Error(`Provider ${providerName} does not support quote operations`);
+      }
+
+    case 'top-headlines':
+      if (provider.getTopHeadlines) {
+        return await provider.getTopHeadlines(params);
+      } else {
+        // Fallback to regular search
+        return await provider.searchNews({ ...params, sortBy: 'popularity' });
+      }
 
     default:
-      throw new Error(`Unknown provider: ${provider}`);
+      throw new Error(`Unsupported operation: ${operation}`);
   }
 }
 
@@ -527,8 +536,6 @@ async function fetchFromBingNews(operation, params) {
   // For now, return a placeholder error
   throw new Error('Bing News API not yet implemented - requires API key configuration');
 }
-
-// Error handling middleware
 app.use((error, req, res, next) => {
   logger.error('Unhandled error', {
     error: error.message,

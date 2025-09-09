@@ -1,6 +1,21 @@
-version: '3.8'
+# =====================================================================================
+# Trading Agents - Consolidated Docker Compose Configuration
+# =====================================================================================
+# This file consolidates all services into a single, comprehensive setup while
+# maintaining clear separation of concerns across different layers.
+#
+# Architecture Layers:
+# 1. Database Layer: Neo4j for knowledge graph storage
+# 2. AI/Memory Layer: Zep-Graphiti for enhanced memory and AI processing
+# 3. Data Services Layer: Reddit and News aggregation services
+# 4. Application Layer: Main trading agents application
+# =====================================================================================
 
 services:
+  # ============================================================================
+  # DATABASE LAYER
+  # ============================================================================
+
   # Neo4j Database for Knowledge Graph Storage
   neo4j:
     image: neo4j:5.26.0
@@ -25,6 +40,10 @@ services:
       start_period: 60s
     restart: unless-stopped
 
+  # ============================================================================
+  # AI/MEMORY LAYER
+  # ============================================================================
+
   # Zep Graphiti Memory Service
   zep-graphiti:
     image: zepai/graphiti:latest
@@ -35,33 +54,45 @@ services:
       NEO4J_URI: bolt://trading-agents-neo4j:7687
       NEO4J_USER: ${NEO4J_USER:-neo4j}
       NEO4J_PASSWORD: ${NEO4J_PASSWORD}
-    env_file:
-      - py_zep/.env.local
-    volumes:
-      - ./py_zep/secrets/enhanced-init.py:/init.py:ro
-      - ./py_zep/graph_service/zep_graphiti.py:/app/graph_service/zep_graphiti.py:ro
-      - ./py_zep/secrets/start-wrapper.sh:/start-wrapper.sh:ro
-    command: ["/bin/sh", "/start-wrapper.sh", "python3", "/init.py"]
+      EMBEDDER_PROVIDER: openai
+      OPENAI_BASE_URL: ${LM_STUDIO_BASE_URL}
+    # Use centralized secrets instead of env_file
     secrets:
       - openai_api_key
       - embedder_api_key
       - neo4j_user
       - neo4j_password
       - lm_studio_url
-      - lmstudio_remote
-      - lmstudio_remote
+      - lm_studio_remote_url
+      - brave_news_api_key
+      - news_api_key
+      - reddit_client_id
+      - reddit_client_secret
+      - reddit_refresh_token
+      - reddit_username
+      - reddit_password
+      - marketstack_api_key
+    volumes:
+      - ./py_zep/secrets/enhanced-init.py:/init.py:ro
+      - ./py_zep/graph_service/zep_graphiti.py:/app/graph_service/zep_graphiti.py:ro
+      - ./py_zep/secrets/start-wrapper.sh:/start-wrapper.sh:ro
+    command: ["/bin/sh", "/start-wrapper.sh", "python3", "/init.py"]
     depends_on:
       neo4j:
         condition: service_healthy
     networks:
       - trading-agents
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/docs || exit 1"]
+      test: ["CMD", "python3", "-c", "import socket; s=socket.socket(); s.connect(('localhost',8000)); s.close()"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
     restart: unless-stopped
+
+  # ============================================================================
+  # DATA SERVICES LAYER
+  # ============================================================================
 
   # Reddit Sentiment Analysis Service (FEATURE-FLAGGED)
   reddit-service:
@@ -78,9 +109,14 @@ services:
       - PORT=3001
       - LOG_LEVEL=info
 
-    # Environment file for Reddit API credentials
-    env_file:
-      - ./services/reddit-service/.env.local
+    # Use centralized secrets instead of env_file
+    secrets:
+      - reddit_client_id
+      - reddit_client_secret
+      - reddit_refresh_token
+      - reddit_username
+      - reddit_password
+      - reddit_service_api_key
 
     ports:
       - "3001:3001"
@@ -130,9 +166,11 @@ services:
       - LOG_LEVEL=info
       - PORT=3004
 
-    # Environment file for API credentials
-    env_file:
-      - ./services/news-aggregator-service/.env.local
+    # Use centralized secrets instead of env_file
+    secrets:
+      - brave_news_api_key
+      - news_api_key
+      - yahoo_finance_api_key
 
     ports:
       - "3004:3004"
@@ -149,7 +187,7 @@ services:
 
     # Health check
     healthcheck:
-      test: ["CMD", "node", "healthcheck.js"]
+      test: ["CMD", "node", "healthcheck.cjs"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -167,10 +205,14 @@ services:
     networks:
       - trading-agents
 
+  # ============================================================================
+  # APPLICATION LAYER
+  # ============================================================================
+
   # Main Trading Agents Application
   trading-agents:
     build:
-      context: ./js
+      context: ./services/trading-agents
       dockerfile: Dockerfile
       target: production
     image: trading-agents:latest
@@ -187,13 +229,30 @@ services:
       - NEO4J_USER=${NEO4J_USER:-neo4j}
       - NEO4J_PASSWORD=${NEO4J_PASSWORD}
 
-    env_file:
-      - ./js/.env.local
+    # Use centralized secrets instead of env_file
+    secrets:
+      - openai_api_key
+      - anthropic_api_key
+      - google_api_key
+      - embedder_api_key
+      - brave_news_api_key
+      - news_api_key
+      - finnhub_api_key
+      - alpha_vantage_api_key
+      - marketstack_api_key
+      - reddit_client_id
+      - reddit_client_secret
+      - reddit_refresh_token
+      - reddit_username
+      - reddit_password
+      - neo4j_user
+      - neo4j_password
 
     volumes:
       - ./data:/app/data:rw
       - ./logs:/app/logs:rw
-      - ./js/config:/app/config:ro
+      - ./exports:/app/exports:rw
+      - ./services/trading-agents/config:/app/config:ro
 
     depends_on:
       neo4j:
@@ -229,6 +288,10 @@ services:
     networks:
       - trading-agents
 
+# ============================================================================
+# NETWORKS
+# ============================================================================
+
 networks:
   # Internal network for Reddit service (only created when reddit profile is active)
   reddit-network:
@@ -245,6 +308,10 @@ networks:
       config:
         - subnet: 172.20.0.0/16
 
+# ============================================================================
+# VOLUMES
+# ============================================================================
+
 volumes:
   # Neo4j data persistence
   neo4j_data:
@@ -258,16 +325,59 @@ volumes:
   trading-logs:
     driver: local
 
+# ============================================================================
+# SECRETS - Centralized Secret Management
+# ============================================================================
+
 secrets:
+  # OpenAI and AI Provider Secrets
   openai_api_key:
-    file: ./py_zep/secrets/openai_api_key.txt
+    file: ./docker/secrets/openai_api_key.txt
+  anthropic_api_key:
+    file: ./docker/secrets/anthropic_api_key.txt
+  google_api_key:
+    file: ./docker/secrets/google_api_key.txt
   embedder_api_key:
-    file: ./py_zep/secrets/embedder_api_key.txt
+    file: ./docker/secrets/embedder_api_key.txt
+
+  # News and Data Provider Secrets
+  brave_news_api_key:
+    file: ./docker/secrets/brave_news_api_key.txt
+  news_api_key:
+    file: ./docker/secrets/news_api_key.txt
+  yahoo_finance_api_key:
+    file: ./docker/secrets/yahoo_finance_api_key.txt
+
+  # Market Data Provider Secrets
+  finnhub_api_key:
+    file: ./docker/secrets/finnhub_api_key.txt
+  alpha_vantage_api_key:
+    file: ./docker/secrets/alpha_vantage_api_key.txt
+  marketstack_api_key:
+    file: ./docker/secrets/marketstack_api_key.txt
+
+  # Reddit API Secrets
+  reddit_client_id:
+    file: ./docker/secrets/reddit_client_id.txt
+  reddit_client_secret:
+    file: ./docker/secrets/reddit_client_secret.txt
+  reddit_refresh_token:
+    file: ./docker/secrets/reddit_refresh_token.txt
+  reddit_username:
+    file: ./docker/secrets/reddit_username.txt
+  reddit_password:
+    file: ./docker/secrets/reddit_password.txt
+  reddit_service_api_key:
+    file: ./docker/secrets/reddit_service_api_key.txt
+
+  # Database Secrets
   neo4j_user:
-    file: ./py_zep/secrets/neo4j_user.txt
+    file: ./docker/secrets/neo4j_user.txt
   neo4j_password:
-    file: ./py_zep/secrets/neo4j_password.txt
+    file: ./docker/secrets/neo4j_password.txt
+
+  # LM Studio Configuration
   lm_studio_url:
-    file: ./py_zep/secrets/lm_studio_url.txt
-  lmstudio_remote:
-    file: ./docker/secrets/lmstudio-remote
+    file: ./docker/secrets/lm_studio_url.txt
+  lm_studio_remote_url:
+    file: ./docker/secrets/lm_studio_remote_url.txt
