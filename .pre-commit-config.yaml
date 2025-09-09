@@ -1,11 +1,5 @@
 repos:
-  - repo: https://github.com/Yelp/detect-secrets
-    rev: v1.4.0
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.0
     hooks:
-      - id: detect-secrets
-        args: ["--baseline", ".secrets.baseline"]
-  - repo: https://github.com/zricethezav/gitleaks
-    rev: v8.4.0
-    hooks:
-      - id: gitleaks-pre-commit
-        args: ["--path", "."]
+      - id: gitleaks
