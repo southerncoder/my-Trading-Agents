@@ -27,7 +27,7 @@ import { createLogger } from '../utils/enhanced-logger';
 const logger = createLogger('dataflow', 'marketstack');
 
 // Dynamic import for ESM compatibility
-let stockdata: any = null;
+const stockdata: any = null;
 
 async function getStockDataClient() {
   if (!stockdata) {

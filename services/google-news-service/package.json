@@ -1,0 +1,32 @@
+{
+  "name": "google-news-service",
+  "version": "1.0.0",
+  "description": "Google News API service for TradingAgents using NewsAPI",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "news",
+    "newsapi",
+    "google-news",
+    "trading",
+    "financial-news"
+  ],
+  "author": "TradingAgents",
+  "license": "MIT",
+  "dependencies": {
+    "newsapi": "^2.4.1",
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "winston": "^3.13.0",
+    "dotenv": "^16.4.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -20,10 +20,12 @@ async function testClientMemoryIntegration() {
     };
 
     const agentConfig = {
-      llmProvider: 'lm_studio' as const,
-      openaiApiKey: 'test-key',
-      backendUrl: 'http://localhost:1234/v1',
-      quickThinkLlm: 'dolphin-2.9-llama3-8b'
+      provider: 'lm_studio' as const,
+      model: 'dolphin-2.9-llama3-8b',
+      apiKey: process.env.OPENAI_API_KEY || 'test-key-placeholder',
+      baseUrl: 'http://localhost:1234/v1',
+      temperature: 0.3,
+      maxTokens: 1000
     };
 
     const clientMemoryProvider = await createZepGraphitiMemory(zepConfig, agentConfig);
@@ -104,7 +106,7 @@ async function testClientMemoryIntegration() {
     console.log('   ✅ Compatible with existing trading system');
 
   } catch (error) {
-    console.error('\n❌ Integration test failed:', error.message);
+    console.error('\n❌ Integration test failed:', error instanceof Error ? error.message : String(error));
     console.error('\nDebug info:');
     console.error('- Make sure Zep Graphiti services are running');
     console.error('- Check Python environment is activated');
@@ -158,7 +160,7 @@ async function testInterfaceCompatibility(memoryProvider: any) {
 
     console.log('   ✅ Method signatures compatible');
   } catch (error) {
-    throw new Error(`Interface compatibility test failed: ${error.message}`);
+    throw new Error(`Interface compatibility test failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 

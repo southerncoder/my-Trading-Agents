@@ -28,7 +28,7 @@ export class SimFinAPI {
       const statement = await this.fetchFinancialStatement(ticker, freq, currDate, 'balance-sheet');
       
       if (!statement) {
-        return 'No balance sheet available before the given current date.';
+        return `No balance sheet data available for ${ticker}. Please ensure SimFin API key is configured or CSV data files are present.`;
       }
 
       return `## ${freq} balance sheet for ${ticker} released on ${statement.publishDate}:\n` +
@@ -48,7 +48,7 @@ export class SimFinAPI {
       const statement = await this.fetchFinancialStatement(ticker, freq, currDate, 'cashflow');
       
       if (!statement) {
-        return 'No cash flow statement available before the given current date.';
+        return `No cash flow statement data available for ${ticker}. Please ensure SimFin API key is configured or CSV data files are present.`;
       }
 
       return `## ${freq} cash flow statement for ${ticker} released on ${statement.publishDate}:\n` +
@@ -68,7 +68,7 @@ export class SimFinAPI {
       const statement = await this.fetchFinancialStatement(ticker, freq, currDate, 'income');
       
       if (!statement) {
-        return 'No income statement available before the given current date.';
+        return `No income statement data available for ${ticker}. Please ensure SimFin API key is configured or CSV data files are present.`;
       }
 
       return `## ${freq} income statement for ${ticker} released on ${statement.publishDate}:\n` +
@@ -100,11 +100,11 @@ export class SimFinAPI {
         return await this.fetchFromSimFinAPI(ticker, freq, currDate, statementType);
       }
 
-      // Fallback to realistic mock data based on company size/sector
-      return this.generateRealisticMockData(ticker, statementType);
+      // No data sources available - return null instead of mock data
+      return null;
     } catch (error) {
       console.error(`Error fetching ${statementType} for ${ticker}:`, error);
-      return this.generateRealisticMockData(ticker, statementType);
+      return null;
     }
   }
 
@@ -284,48 +284,6 @@ export class SimFinAPI {
       shareholderEquity: latest.totalEquity || latest.shareholderEquity || 0,
       ...latest // Include all other fields
     };
-  }
-
-  /**
-   * Generate realistic mock data based on company characteristics
-   */
-  private generateRealisticMockData(ticker: string, statementType: string): FinancialStatement {
-    // Create realistic mock data based on ticker characteristics
-    const companySize = this.estimateCompanySize(ticker);
-    const baseRevenue = companySize.revenue;
-    const baseAssets = companySize.assets;
-
-    return {
-      reportDate: '2024-12-31',
-      publishDate: '2025-01-15',
-      ticker: ticker,
-      currency: 'USD',
-      revenue: baseRevenue * (0.9 + Math.random() * 0.2), // ±10% variation
-      netIncome: baseRevenue * (0.05 + Math.random() * 0.1), // 5-15% net margin
-      totalAssets: baseAssets * (0.9 + Math.random() * 0.2),
-      totalLiabilities: baseAssets * (0.3 + Math.random() * 0.3), // 30-60% leverage
-      shareholderEquity: baseAssets * (0.4 + Math.random() * 0.2), // 40-60% equity
-      operatingIncome: baseRevenue * (0.08 + Math.random() * 0.12), // 8-20% operating margin
-      grossProfit: baseRevenue * (0.25 + Math.random() * 0.25), // 25-50% gross margin
-      note: `Mock data generated for ${ticker} - ${statementType}`
-    };
-  }
-
-  /**
-   * Estimate company size based on ticker
-   */
-  private estimateCompanySize(ticker: string): { revenue: number; assets: number } {
-    // Rough estimates based on common tickers
-    const largeCaps = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA'];
-    const midCaps = ['CRM', 'NFLX', 'ADBE', 'INTC', 'AMD', 'PYPL'];
-    
-    if (largeCaps.includes(ticker.toUpperCase())) {
-      return { revenue: 200_000_000_000, assets: 350_000_000_000 }; // $200B revenue, $350B assets
-    } else if (midCaps.includes(ticker.toUpperCase())) {
-      return { revenue: 20_000_000_000, assets: 50_000_000_000 }; // $20B revenue, $50B assets
-    } else {
-      return { revenue: 2_000_000_000, assets: 5_000_000_000 }; // $2B revenue, $5B assets
-    }
   }
 
   /**

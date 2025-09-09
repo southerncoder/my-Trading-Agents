@@ -56,7 +56,7 @@ async function main() {
             category: 'CLI Core',
             tests: [
                 { name: 'CLI Integration', path: 'tests/cli/test-cli-integration.js' },
-                { name: 'CLI Debug Features', path: 'tests/test-cli-debug.js' },
+                { name: 'CLI Debug Features', path: 'tests/cli/test-cli-debug.js' },
                 { name: 'CLI Simple Operations', path: 'tests/cli/test-cli-simple.js' }
             ]
         },
@@ -67,7 +67,7 @@ async function main() {
             tests: [
                 { name: 'Complete System Test', path: 'tests/integration/test-complete-system.js' },
                 { name: 'Modern System Test', path: 'tests/integration/test-complete-modern-system.js' },
-                { name: 'Final Integration Test', path: 'tests/test-final-integration.js' }
+                { name: 'Final Integration Test', path: 'tests/integration/test-end-to-end-workflow.js' }
             ]
         },
         

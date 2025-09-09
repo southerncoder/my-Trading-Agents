@@ -13,15 +13,13 @@
  * - Track performance patterns over time
  */
 
-import { ChatOpenAI } from '@langchain/openai';
-import { ChatAnthropic } from '@langchain/anthropic';
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { BaseMessage, HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { AgentState } from '../types/agent-states';
 import { FinancialSituationMemory } from '../agents/utils/memory';
 import { createLogger } from '../utils/enhanced-logger';
 
-export type LLMProvider = ChatOpenAI | ChatAnthropic | ChatGoogleGenerativeAI;
+export type LLMProvider = BaseChatModel;
 
 export interface ReflectionResult {
   component: string;

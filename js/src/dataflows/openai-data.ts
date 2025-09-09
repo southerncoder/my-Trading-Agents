@@ -1,13 +1,14 @@
-import { ChatOpenAI } from '@langchain/openai';
+import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { TradingAgentsConfig } from '../types/config';
 import { createLogger } from '../utils/enhanced-logger.js';
+import { LLMProviderFactory } from '../providers/llm-factory.js';
 
 /**
  * OpenAI-powered data analysis API
  */
 export class OpenAIDataAPI {
   private config: TradingAgentsConfig;
-  private client: ChatOpenAI;
+  private client: BaseChatModel;
   private logger = createLogger('dataflow', 'openai-data-api');
 
   constructor(config: TradingAgentsConfig) {
@@ -16,12 +17,12 @@ export class OpenAIDataAPI {
       throw new Error('OpenAI API key is required for OpenAI data analysis');
     }
 
-    this.client = new ChatOpenAI({
-      modelName: config.quickThinkLlm,
-      openAIApiKey: config.openaiApiKey,
-      configuration: {
-        baseURL: config.backendUrl,
-      },
+    // Use LLMProviderFactory to create the client
+    this.client = LLMProviderFactory.createLLM({
+      provider: 'openai',
+      model: config.quickThinkLlm,
+      apiKey: config.openaiApiKey,
+      baseUrl: config.backendUrl
     });
   }
 

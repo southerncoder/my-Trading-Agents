@@ -11,13 +11,11 @@
 
 import { 
   BaseTradingStrategy, 
-  ITradingStrategy, 
   MarketData, 
   TradingSignal, 
   SignalType, 
   SignalStrength, 
-  StrategyConfig,
-  RiskLevel 
+  StrategyConfig
 } from './base-strategy';
 import { TradingAgentsConfig } from '../config';
 import { createLogger } from '../utils/enhanced-logger.js';
@@ -61,7 +59,7 @@ export class MovingAverageCrossoverStrategy extends BaseTradingStrategy {
    * TODO: Implement multi-timeframe confirmation
    * TODO: Add adaptive thresholds based on market volatility
    */
-  async analyze(marketData: MarketData[], currentPosition?: number): Promise<TradingSignal[]> {
+  async analyze(marketData: MarketData[], _currentPosition?: number): Promise<TradingSignal[]> {
     const signals: TradingSignal[] = [];
 
     if (marketData.length < this.slowPeriod + 5) {
@@ -234,7 +232,7 @@ export class MovingAverageCrossoverStrategy extends BaseTradingStrategy {
    * TODO: Implement sophisticated volume analysis
    * TODO: Add volume-price trend (VPT) confirmation
    */
-  private confirmWithVolume(data: MarketData[], direction: 'BUY' | 'SELL'): boolean {
+  private confirmWithVolume(data: MarketData[], _direction: 'BUY' | 'SELL'): boolean {
     if (data.length < 5) return true; // Default to confirmed if insufficient data
     
     // Simple volume confirmation: current volume > average volume
@@ -344,7 +342,7 @@ export class MACDStrategy extends BaseTradingStrategy {
    * TODO: Implement zero-line crossover analysis
    * TODO: Add histogram momentum analysis
    */
-  async analyze(marketData: MarketData[], currentPosition?: number): Promise<TradingSignal[]> {
+  async analyze(marketData: MarketData[], _currentPosition?: number): Promise<TradingSignal[]> {
     const signals: TradingSignal[] = [];
 
     if (marketData.length < this.slowPeriod + this.signalPeriod + 5) {
@@ -365,7 +363,7 @@ export class MACDStrategy extends BaseTradingStrategy {
       
       const prevMACD = macdData.macd[macdData.macd.length - 2]!;
       const prevSignal = macdData.signal[macdData.signal.length - 2]!;
-      const prevHistogram = macdData.histogram[macdData.histogram.length - 2]!;
+      const _prevHistogram = macdData.histogram[macdData.histogram.length - 2]!;
 
       // Signal line crossover
       const bullishCrossover = prevMACD <= prevSignal && currentMACD > currentSignal;
@@ -517,7 +515,7 @@ export class MACDStrategy extends BaseTradingStrategy {
    * 
    * TODO: Implement more sophisticated strength calculation
    */
-  private calculateMACDStrength(macdData: { macd: number[], signal: number[], histogram: number[] }, direction: 'BUY' | 'SELL'): SignalStrength {
+  private calculateMACDStrength(macdData: { macd: number[], signal: number[], histogram: number[] }, _direction: 'BUY' | 'SELL'): SignalStrength {
     if (macdData.histogram.length < 2) return SignalStrength.MODERATE;
     
     const currentHist = macdData.histogram[macdData.histogram.length - 1]!;
@@ -617,7 +615,7 @@ export class RSIMomentumStrategy extends BaseTradingStrategy {
    * TODO: Add RSI trend line break analysis
    * TODO: Add multi-timeframe RSI confirmation
    */
-  async analyze(marketData: MarketData[], currentPosition?: number): Promise<TradingSignal[]> {
+  async analyze(marketData: MarketData[], _currentPosition?: number): Promise<TradingSignal[]> {
     const signals: TradingSignal[] = [];
 
     if (marketData.length < this.rsiPeriod + 5) {

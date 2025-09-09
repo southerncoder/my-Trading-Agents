@@ -11,9 +11,7 @@
  * - Provide graph validation and statistics
  */
 
-import { ChatOpenAI } from '@langchain/openai';
-import { ChatAnthropic } from '@langchain/anthropic';
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { createLogger } from '../utils/enhanced-logger';
 
 import { Toolkit } from '../dataflows/interface';
@@ -35,7 +33,7 @@ import {
   PortfolioManager
 } from '../agents/index';
 
-export type LLMProvider = ChatOpenAI | ChatAnthropic | ChatGoogleGenerativeAI;
+export type LLMProvider = BaseChatModel;
 
 export interface GraphSetupConfig {
   selectedAnalysts: string[];

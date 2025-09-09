@@ -359,7 +359,7 @@ export class PatternRecognitionEngine {
   private analyzePatternConfluence(
     marketPatterns: MarketPattern[],
     signalPatterns: TradingSignalPattern[],
-    behavioralPatterns: BehavioralPattern[]
+    _behavioralPatterns: BehavioralPattern[]
   ): any {
     
     let bullishCount = 0;
