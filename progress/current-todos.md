@@ -1,5 +1,14 @@
 # Current Todos (Updated 2025-09-08)
 
+## ✅ COMPLETED - Documentation Consolidation (Merged to Main)
+- [x] **Documentation Consolidation**: Centralized secret management documentation implemented
+  - ✅ Consolidated all .env.local references across documentation files
+  - ✅ Removed scattered configuration references and established cross-references
+  - ✅ Streamlined zep-graphiti/ARCHITECTURE.md to reduce verbosity
+  - ✅ Updated README.md, docs/GETTING-STARTED.md, docs/CONFIGURATION.md, DOCKER-README.md
+  - ✅ Consolidated docs/IMPLEMENTATION-COMPLETE.md from detailed specs to high-level summary
+  - ✅ Merged to main branch successfully
+
 ## 🧠 Medium Priority - Memory System
 - [x] Implement similarity calculation algorithms in `context-retrieval-layer.ts`
 - [x] Add feature importance and accuracy metrics in `performance-learning-layer.ts`
@@ -30,6 +39,7 @@
 - ✅ **README Updates**: Learning system capabilities added to main documentation
 - ✅ **Project Checklist**: Learning system components added and status updated
 - ✅ **Examples Integration**: Learning system examples added to README
+
 ### Zep Services Infrastructure
 - ✅ Re-run ingestion `/entity-node` test while streaming logs to capture any 500 errors and full tracebacks - **NO 500 ERRORS FOUND**
 - ✅ Harden `py_zep/secrets/start-wrapper.sh` JSON parsing for `/v1/models` listing with comprehensive error handling and validation
@@ -71,6 +81,7 @@ Completed (high level):
 - **Security & Stability**: All issues resolved, services production-ready
 - **Testing & Validation**: Complete end-to-end testing validated
 - **Documentation**: Professional, comprehensive, and up-to-date
+- **Documentation Consolidation**: Centralized secrets management implemented
 
 ### 🚀 **READY FOR DEPLOYMENT**
 The TradingAgents framework is now 100% production-ready with:
@@ -80,6 +91,7 @@ The TradingAgents framework is now 100% production-ready with:
 - ✅ Robust error handling and service stability
 - ✅ Complete documentation and examples
 - ✅ Security audit passed, all secrets properly managed
+- ✅ Documentation consolidation with centralized secrets management
 
 ### 📈 **NEXT PHASE: ENHANCEMENT & OPTIMIZATION**
 With core production readiness achieved, focus can now shift to:
@@ -87,28 +99,4 @@ With core production readiness achieved, focus can now shift to:
 - Performance optimizations and scaling improvements
 - Additional data source integrations
 - User experience enhancements
-### Zep Services Retry Logic
-- ✅ Added retry/backoff logic and improved error logging around embedder calls in `py_zep/utils/enhanced_retry.py`
-- ✅ Implemented configurable retry policies in `py_zep/utils/retry_integration.py`
-
-### Core Placeholders
-- ✅ Created actual RiskManager class that integrates existing risk analysts (portfolio-manager, risky-analyst, safe-analyst, neutral-analyst) in `js/src/agents/risk-mgmt/risk-manager.ts`
-- ✅ Implemented real technical indicators calculations (RSI, MACD, SMA, EMA, Bollinger Bands, ATR, Ichimoku, Stochastic RSI, Fibonacci) in `js/src/dataflows/technical-indicators.ts`
-- ✅ Replaced OpenAI data placeholders with actual web search integration using LLM prompts in `js/src/dataflows/openai-data.ts`
-
-### Data Integration APIs
-- ✅ Implemented Yahoo Finance API integration to replace placeholder in `js/src/dataflows/yahoo-finance.ts`
-- ✅ Added Google News API integration in `js/src/dataflows/google-news.ts`
-- ✅ Implemented Reddit API integration for social sentiment in `js/src/dataflows/reddit.ts`
-- [ ] Add SimFin data file reading for fundamental analysis in `simfin.ts` (still pending)
-
-Completed (high level):
-- start-wrapper cleaned and installed
-- docker-compose Neo4j URI fixed
-- persisting embedder settings in `.env.local`
-- verified direct embedder `/v1/embeddings` calls
-- Zep Services retry logic implementation
-- RiskManager class with full risk analyst integration
-- Real technical indicators calculations
-- OpenAI web search integration
-- Yahoo Finance, Google News, and Reddit API integrations
+- SimFin integration for enhanced fundamental analysis
