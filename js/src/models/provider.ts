@@ -15,6 +15,7 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { TradingAgentsConfig } from '../types/config';
 import { getLMStudioSingleton } from './lmstudio-singleton';
 import { createLogger } from '../utils/enhanced-logger';
+import { getLMStudioBaseUrl } from '../utils/docker-secrets';
 
 const logger = createLogger('system', 'ModelProvider');
 
@@ -71,12 +72,15 @@ export class ModelProvider {
 
     switch (config.provider) {
       case 'lm_studio': {
+        // Ensure baseURL has /v1 suffix for API compatibility
+        const lmStudioBaseUrl = config.baseURL || getLMStudioBaseUrl();
+
         // Use singleton pattern for LM Studio
-        const singleton = getLMStudioSingleton(config.baseURL);
+        const singleton = getLMStudioSingleton(lmStudioBaseUrl);
         model = await singleton.getModel(config);
         logger.info('createModelAsync', 'Created LM Studio model via singleton', {
           modelName: config.modelName,
-          baseURL: config.baseURL
+          baseURL: lmStudioBaseUrl
         });
         break;
       }

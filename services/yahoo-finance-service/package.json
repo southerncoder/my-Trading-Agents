@@ -1,0 +1,31 @@
+{
+  "name": "yahoo-finance-service",
+  "version": "1.0.0",
+  "description": "Yahoo Finance API service for TradingAgents",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "yahoo-finance",
+    "trading",
+    "api",
+    "financial-data"
+  ],
+  "author": "TradingAgents",
+  "license": "MIT",
+  "dependencies": {
+    "yahoo-finance2": "^2.4.2",
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "winston": "^3.13.0",
+    "dotenv": "^16.4.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

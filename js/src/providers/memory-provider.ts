@@ -4,6 +4,7 @@ import { LLMProvider } from '../types/config';
 import { AgentLLMConfig } from '../types/agent-config';
 import { embedWithResilience, EmbedderRequest, EmbedderResponse } from '../utils/resilient-embedder.js';
 import { logger } from '../utils/enhanced-logger.js';
+import { LMStudioMemoryProvider } from './lmstudio-memory-provider';
 
 /**
  * Abstract interface for memory/embedding providers
@@ -70,13 +71,17 @@ export class EmbeddingProviderFactory {
         return this.createFallbackProvider(config, 'anthropic');
       case 'lm_studio': {
         const baseURL = config.baseUrl || process.env.OPENAI_BASE_URL || process.env.LM_STUDIO_BASE_URL || process.env.LLM_BACKEND_URL;
-        // If LM Studio baseURL is available, treat as OpenAI-compatible
+        // If LM Studio baseURL is available, use dedicated LM Studio memory provider with model checking
         if (baseURL) {
-          const openaiCompat: AgentLLMConfig = { ...config, provider: 'openai', apiKey: config.apiKey || 'lm-studio', baseUrl: baseURL } as any;
           try {
-            return new ResilientOpenAIMemoryProvider(openaiCompat);
+            return new LMStudioMemoryProvider(config);
           } catch (error) {
-            return this.createFallbackProvider(config, config.provider);
+            logger.warn('system', 'memory-provider', 'lmstudio-fallback', 'LM Studio memory provider failed, falling back to OpenAI-compatible', {
+              error: error instanceof Error ? error.message : String(error)
+            });
+            // Fall back to OpenAI-compatible provider
+            const openaiCompat: AgentLLMConfig = { ...config, provider: 'openai', apiKey: config.apiKey || 'lm-studio', baseUrl: baseURL } as any;
+            return new ResilientOpenAIMemoryProvider(openaiCompat);
           }
         }
         // Otherwise, fall back to local simple embeddings

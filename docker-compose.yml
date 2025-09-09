@@ -48,6 +48,8 @@ services:
       - neo4j_user
       - neo4j_password
       - lm_studio_url
+      - lmstudio_remote
+      - lmstudio_remote
     depends_on:
       neo4j:
         condition: service_healthy
@@ -114,6 +116,57 @@ services:
       - reddit-network
       - trading-agents
 
+  # Unified News Aggregator Service
+  news-aggregator:
+    build:
+      context: ./services/news-aggregator-service
+      dockerfile: Dockerfile
+    image: news-aggregator-service:latest
+    container_name: trading-news-aggregator
+    restart: unless-stopped
+
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=info
+      - PORT=3004
+
+    # Environment file for API credentials
+    env_file:
+      - ./services/news-aggregator-service/.env.local
+
+    ports:
+      - "3004:3004"
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "node", "healthcheck.js"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    # Security settings
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+      - /app/news-aggregator-service.log:rw,noexec,nosuid,size=50m
+
+    # Network isolation
+    networks:
+      - trading-agents
+
   # Main Trading Agents Application
   trading-agents:
     build:
@@ -128,6 +181,7 @@ services:
       - NODE_ENV=production
       - LOG_LEVEL=info
       - REDDIT_SERVICE_URL=http://reddit-service:3001
+      - NEWS_AGGREGATOR_URL=http://news-aggregator:3004
       - ZEP_GRAPHITI_URL=http://zep-graphiti:8000
       - NEO4J_URI=bolt://neo4j:7687
       - NEO4J_USER=${NEO4J_USER:-neo4j}
@@ -146,6 +200,8 @@ services:
         condition: service_healthy
       zep-graphiti:
         condition: service_started
+      news-aggregator:
+        condition: service_healthy
       # reddit-service dependency removed - will only be included when --profile reddit is used
 
     deploy:
@@ -213,3 +269,5 @@ secrets:
     file: ./py_zep/secrets/neo4j_password.txt
   lm_studio_url:
     file: ./py_zep/secrets/lm_studio_url.txt
+  lmstudio_remote:
+    file: ./docker/secrets/lmstudio-remote

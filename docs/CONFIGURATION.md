@@ -212,17 +212,57 @@ ANTHROPIC_DEFAULT_MODEL=claude-3-5-sonnet-20241022
 - `claude-3-haiku-20240307`
 - `claude-3-opus-20240229`
 
-### Google Configuration
+### LM Studio Configuration
 ```bash
-GOOGLE_API_KEY=your_google_api_key
-GOOGLE_BASE_URL=https://generativelanguage.googleapis.com  # Optional
-GOOGLE_DEFAULT_MODEL=gemini-1.5-pro
+# LM Studio base URL (must include /v1 for OpenAI compatibility)
+LM_STUDIO_BASE_URL=http://localhost:1234/v1
+
+# LM Studio admin URL (optional, for automatic model loading)
+LM_STUDIO_ADMIN_URL=http://localhost:1234
+
+# Model cache TTL (optional, defaults to 30 seconds)
+LM_STUDIO_MODEL_CACHE_TTL_MS=30000
 ```
 
 **Available Models:**
-- `gemini-1.5-pro`
-- `gemini-1.5-flash`
-- `gemini-pro`
+- `nomic-embed-text` (recommended for embeddings)
+- `all-minilm` (lightweight alternative)
+- `sentence-transformers` (general purpose)
+
+**⚠️ LM Studio Special Behavior:**
+- **Model Checking**: Automatically verifies models are loaded before use
+- **Model Locking**: Prevents concurrent model operations on the same instance
+- **Automatic Loading**: Can request model loads via admin API if configured
+- **Caching**: Caches model availability to reduce API calls
+- **Timeout Handling**: Configurable timeouts for model loading operations
+
+**🔧 Model Loading Process:**
+1. Check if model is already loaded (cached)
+2. If not loaded, attempt to load via admin API (if configured)
+3. Poll model availability until loaded or timeout
+4. Cache successful loads to avoid repeated checks
+5. Allow embedding operations only after model confirmation
+
+**📋 Configuration Examples:**
+
+**Basic Local Setup:**
+```bash
+LM_STUDIO_BASE_URL=http://localhost:1234/v1
+# Admin URL optional for manual model loading
+```
+
+**Remote LM Studio with Auto-Loading:**
+```bash
+LM_STUDIO_BASE_URL=http://remote-server:1234/v1
+LM_STUDIO_ADMIN_URL=http://remote-server:1234
+```
+
+**High-Performance Setup:**
+```bash
+LM_STUDIO_BASE_URL=http://localhost:1234/v1
+LM_STUDIO_ADMIN_URL=http://localhost:1234
+LM_STUDIO_MODEL_CACHE_TTL_MS=60000  # Longer cache for performance
+```
 
 
 ## 📋 Configuration Examples

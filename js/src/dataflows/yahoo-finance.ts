@@ -1,78 +1,38 @@
 import { TradingAgentsConfig } from '@/types/config';
-import yahooFinance from 'yahoo-finance2';
+import axios from 'axios';
 import { createLogger } from '../utils/enhanced-logger.js';
-import { 
-  withDataflowResilience, 
-  YAHOO_FINANCE_CONFIG, 
-  createResilientDataflowWrapper,
-  DataflowMetricsCollector 
+import {
+  withDataflowResilience,
+  YAHOO_FINANCE_CONFIG,
+  DataflowMetricsCollector
 } from '../utils/resilient-dataflow.js';
 
 /**
- * Yahoo Finance API wrapper using the official node-yahoo-finance2 library
+ * Yahoo Finance API wrapper using dedicated Yahoo Finance service
  * Enhanced with resilient patterns for robust external API integration
- * 
- * FREE PROVIDER: Yahoo Finance (node-yahoo-finance2) - Primary real-time data source
- * 
- * TODO: Premium Data Provider Integration (Future Enhancement):
- * =============================================================
- * 
- * 1. PAID STREAMING SERVICES (Hold for Budget Approval):
- *    - Financial Modeling Prep WebSocket API ($79/month)
- *      * WebSocket endpoints: wss://websockets.financialmodelingprep.com
- *      * Real-time stocks, forex, crypto streaming
- *      * Professional-grade market data with low latency
- *    - Alpaca Markets WebSocket Streaming (Institutional)
- *      * WebSocket endpoint: wss://stream.data.alpaca.markets
- *      * Real-time trades, quotes, bars for stocks/crypto/options
- *      * Regulated broker with institutional data quality
- *    - Barchart MarketData API (Enterprise)
- *      * Comprehensive asset class coverage (stocks, futures, forex)
- *      * Note: Pending deprecation - migrating to Openfeed protocol
- * 
- * 2. ENHANCED CACHING SYSTEM (Next Phase):
- *    - Implement Redis-based distributed caching
- *    - Add local SQLite caching for offline functionality
- *    - Add data compression and storage optimization
- *    - Implement cache warming strategies
- *    - Add cache expiration and refresh logic
- * 
- * 3. ALTERNATIVE DATA SOURCES (Premium Features):
- *    - Add earnings calendar integration
- *    - Add options data and volatility surface
- *    - Add insider trading and institutional ownership data
- *    - Add ESG scores and alternative metrics
- * 
- * 4. PERFORMANCE OPTIMIZATION (Production Ready):
- *    - Add request batching and bulk operations
- *    - Implement connection pooling and keep-alive
- *    - Add rate limiting compliance and queue management
- *    - Add parallel data fetching for multiple symbols
+ *
+ * FREE PROVIDER: Yahoo Finance Service (Dedicated microservice)
+ *
+ * This service now uses the dedicated yahoo-finance-service Docker container
+ * which provides better isolation, scalability, and error handling.
  */
 export class YahooFinanceAPI {
   private config: TradingAgentsConfig;
   private logger = createLogger('dataflow', 'yahoo-finance');
   private metrics = new DataflowMetricsCollector();
+  private serviceUrl: string;
 
   constructor(config: TradingAgentsConfig) {
     this.config = config;
-    
+    this.serviceUrl = process.env.YAHOO_FINANCE_URL || 'http://localhost:3002';
+
     this.logger.info('constructor', 'Initializing Yahoo Finance API', {
-      concurrency: 3,
-      timeout: 10000
-    });
-    
-    // Configure global settings for yahoo-finance2
-    yahooFinance.setGlobalConfig({
-      queue: {
-        concurrency: 3, // Limit concurrent requests
-        timeout: 10000  // 10 second timeout
-      }
+      serviceUrl: this.serviceUrl
     });
   }
 
   /**
-   * Get historical stock data using the official Yahoo Finance library
+   * Get historical stock data using the dedicated Yahoo Finance service
    */
   async getData(symbol: string, startDate: string, endDate: string, online: boolean = true): Promise<string> {
     this.logger.info('get-data', `Getting data for ${symbol}`, {
@@ -90,7 +50,7 @@ export class YahooFinanceAPI {
   }
 
   /**
-   * Get data using yahoo-finance2 library with resilient patterns
+   * Get data using the dedicated Yahoo Finance service
    */
   private async getDataOnline(symbol: string, startDate: string, endDate: string): Promise<string> {
     return withDataflowResilience(
@@ -102,71 +62,64 @@ export class YahooFinanceAPI {
           endDate
         });
 
-        // Use yahoo-finance2 historical endpoint
-        const queryOptions = {
-          period1: startDate,
-          period2: endDate,
-          interval: '1d' as const
-        };
+        const response = await axios.get(`${this.serviceUrl}/api/historical/${symbol}`, {
+          params: { startDate, endDate },
+          timeout: 30000,
+          headers: {
+            'User-Agent': 'TradingAgents/1.0'
+          }
+        });
 
-        const result = await yahooFinance.historical(symbol, queryOptions);
-
-        if (!result || result.length === 0) {
-          this.logger.warn('no-data-found', `No historical data found for ${symbol}`, {
-            symbol,
-            startDate,
-            endDate,
-            resultLength: 0
-          });
-          return `No historical data found for ${symbol} between ${startDate} and ${endDate}`;
+        if (response.data.status !== 'success') {
+          throw new Error(`Yahoo Finance service error: ${response.data.message || 'Unknown error'}`);
         }
 
         this.logger.info('data-fetched', `Historical data fetched successfully for ${symbol}`, {
           symbol,
-          recordCount: result.length,
-          dateRange: { startDate, endDate }
+          responseSize: response.data.length
         });
 
-        // Convert to CSV format with header
-        const header = `# Stock data for ${symbol.toUpperCase()} from ${startDate} to ${endDate}\n`;
-        const timestamp = `# Data retrieved on: ${new Date().toISOString().slice(0, 19).replace('T', ' ')}\n\n`;
-        let csvData = 'Date,Open,High,Low,Close,Adj Close,Volume\n';
-        
-        for (const row of result) {
-          const date = row.date.toISOString().split('T')[0];
-          csvData += `${date},${row.open},${row.high},${row.low},${row.close},${row.adjClose || row.close},${row.volume}\n`;
-        }
-
-        return header + timestamp + csvData;
+        return response.data;
       },
       YAHOO_FINANCE_CONFIG
     ).catch(async (error) => {
-      this.logger.error('get-data-online-failed', `Yahoo Finance API failed for ${symbol}`, {
+      this.logger.error('get-data-online-failed', `Yahoo Finance service failed for ${symbol}`, {
         symbol,
         startDate,
         endDate,
         error: error.message
       });
-      
-      // Fallback to cached data if API fails
+
+      // Fallback to cached data if service fails
       return this.getDataOffline(symbol, startDate, endDate);
     });
   }
 
   /**
-   * Get quote data for a symbol with resilient patterns
+   * Get quote data for a symbol using the dedicated service
    */
   async getQuote(symbol: string): Promise<any> {
     return withDataflowResilience(
       `yahoo-finance-quote-${symbol}`,
       async () => {
         this.logger.info('get-quote', `Fetching quote for ${symbol}`, { symbol });
-        const quote = await yahooFinance.quote(symbol);
-        this.logger.info('quote-fetched', `Quote fetched successfully for ${symbol}`, {
-          symbol,
-          hasQuote: !!quote
+
+        const response = await axios.get(`${this.serviceUrl}/api/quote/${symbol}`, {
+          timeout: 10000,
+          headers: {
+            'User-Agent': 'TradingAgents/1.0'
+          }
         });
-        return quote;
+
+        if (response.data.status !== 'success') {
+          throw new Error(`Yahoo Finance service error: ${response.data.message || 'Unknown error'}`);
+        }
+
+        this.logger.info('quote-fetched', `Quote fetched successfully for ${symbol}`, {
+          symbol
+        });
+
+        return response.data.data;
       },
       YAHOO_FINANCE_CONFIG
     ).catch((error) => {
@@ -179,7 +132,7 @@ export class YahooFinanceAPI {
   }
 
   /**
-   * Get multiple quotes at once with resilient patterns
+   * Get multiple quotes at once using the dedicated service
    */
   async getQuotes(symbols: string[]): Promise<any[]> {
     return withDataflowResilience(
@@ -189,13 +142,27 @@ export class YahooFinanceAPI {
           symbols,
           symbolCount: symbols.length
         });
-        const quotes = await yahooFinance.quote(symbols);
-        const result = Array.isArray(quotes) ? quotes : [quotes];
+
+        const response = await axios.post(`${this.serviceUrl}/api/quotes`, {
+          symbols
+        }, {
+          timeout: 15000,
+          headers: {
+            'User-Agent': 'TradingAgents/1.0',
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.data.status !== 'success') {
+          throw new Error(`Yahoo Finance service error: ${response.data.message || 'Unknown error'}`);
+        }
+
         this.logger.info('quotes-fetched', `Quotes fetched successfully`, {
           symbols,
-          quotesCount: result.length
+          quotesCount: response.data.data.length
         });
-        return result;
+
+        return response.data.data;
       },
       YAHOO_FINANCE_CONFIG
     ).catch((error) => {
@@ -209,7 +176,7 @@ export class YahooFinanceAPI {
   }
 
   /**
-   * Get comprehensive quote summary with additional data using resilient patterns
+   * Get comprehensive quote summary using the dedicated service
    */
   async getQuoteSummary(symbol: string, modules: string[] = ['price', 'summaryDetail', 'defaultKeyStatistics']): Promise<any> {
     return withDataflowResilience(
@@ -219,15 +186,25 @@ export class YahooFinanceAPI {
           symbol,
           modules
         });
-        const summary = await yahooFinance.quoteSummary(symbol, {
-          modules: modules as any
+
+        const response = await axios.get(`${this.serviceUrl}/api/quote-summary/${symbol}`, {
+          params: { modules: modules.join(',') },
+          timeout: 15000,
+          headers: {
+            'User-Agent': 'TradingAgents/1.0'
+          }
         });
+
+        if (response.data.status !== 'success') {
+          throw new Error(`Yahoo Finance service error: ${response.data.message || 'Unknown error'}`);
+        }
+
         this.logger.info('quote-summary-fetched', `Quote summary fetched successfully for ${symbol}`, {
           symbol,
-          modules,
-          hasSummary: !!summary
+          modules
         });
-        return summary;
+
+        return response.data.data;
       },
       YAHOO_FINANCE_CONFIG
     ).catch((error) => {
@@ -241,19 +218,32 @@ export class YahooFinanceAPI {
   }
 
   /**
-   * Search for symbols with resilient patterns
+   * Search for symbols using the dedicated service
    */
   async search(query: string): Promise<any> {
     return withDataflowResilience(
       `yahoo-finance-search-${query}`,
       async () => {
         this.logger.info('search', `Searching for symbols with query: ${query}`, { query });
-        const results = await yahooFinance.search(query);
+
+        const response = await axios.get(`${this.serviceUrl}/api/search`, {
+          params: { q: query },
+          timeout: 10000,
+          headers: {
+            'User-Agent': 'TradingAgents/1.0'
+          }
+        });
+
+        if (response.data.status !== 'success') {
+          throw new Error(`Yahoo Finance service error: ${response.data.message || 'Unknown error'}`);
+        }
+
         this.logger.info('search-complete', `Search completed for query: ${query}`, {
           query,
-          resultsCount: results?.length || 0
+          resultsCount: response.data.data?.length || 0
         });
-        return results;
+
+        return response.data.data;
       },
       YAHOO_FINANCE_CONFIG
     ).catch((error) => {
@@ -266,7 +256,7 @@ export class YahooFinanceAPI {
   }
 
   /**
-   * Get fundamental data time series with resilient patterns
+   * Get fundamental data using the dedicated service
    */
   async getFundamentals(symbol: string, startDate: string): Promise<any> {
     return withDataflowResilience(
@@ -278,14 +268,26 @@ export class YahooFinanceAPI {
           startDate,
           modules
         });
-        const fundamentals = await yahooFinance.quoteSummary(symbol, { modules });
+
+        const response = await axios.get(`${this.serviceUrl}/api/quote-summary/${symbol}`, {
+          params: { modules: modules.join(',') },
+          timeout: 15000,
+          headers: {
+            'User-Agent': 'TradingAgents/1.0'
+          }
+        });
+
+        if (response.data.status !== 'success') {
+          throw new Error(`Yahoo Finance service error: ${response.data.message || 'Unknown error'}`);
+        }
+
         this.logger.info('fundamentals-fetched', `Fundamentals fetched successfully for ${symbol}`, {
           symbol,
           startDate,
-          modules,
-          hasFundamentals: !!fundamentals
+          modules
         });
-        return fundamentals;
+
+        return response.data.data;
       },
       YAHOO_FINANCE_CONFIG
     ).catch((error) => {
@@ -300,15 +302,7 @@ export class YahooFinanceAPI {
   }
 
   /**
-   * TODO: Implement proper historical data caching and fallback system
-   * 
-   * This method should:
-   * - Implement proper local data cache management
-   * - Add data validation and integrity checks  
-   * - Support multiple data formats (CSV, JSON, Parquet)
-   * - Add data compression for storage efficiency
-   * - Implement cache expiration and refresh logic
-   * - Add backup data source integration
+   * Get data from offline cache as fallback
    */
   private async getDataOffline(symbol: string, startDate: string, endDate: string): Promise<string> {
     return withDataflowResilience(
@@ -326,7 +320,7 @@ export class YahooFinanceAPI {
 
         const filePath = path.join(this.config.dataDir, 'market_data', 'price_data', `${symbol}-YFin-data-2015-01-01-2025-03-25.csv`);
         const data = await fs.readFile(filePath, 'utf-8');
-        
+
         // Parse CSV and filter by date range
         const lines = data.split('\n');
         const headers = lines[0];
@@ -363,9 +357,8 @@ export class YahooFinanceAPI {
         endDate,
         error: error.message
       });
-      
-      // TODO: Replace with proper error handling
-      throw new Error(`Historical data not available for ${symbol}. Need to implement data caching and backup providers.`);
+
+      throw new Error(`Historical data not available for ${symbol}. Yahoo Finance service unavailable and no cached data found.`);
     });
   }
 

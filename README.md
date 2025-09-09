@@ -65,7 +65,8 @@ Create `js/.env.local` with your API keys:
 # LLM Providers (choose one)
 OPENAI_API_KEY=your_openai_key
 # OR for local LLM
-LM_STUDIO_URL=http://localhost:1234
+LM_STUDIO_BASE_URL=http://localhost:1234/v1
+LM_STUDIO_ADMIN_URL=http://localhost:1234  # Optional, for auto model loading
 
 # Market Data (optional - has free tiers)
 ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key
@@ -101,6 +102,14 @@ REDDIT_CLIENT_SECRET=your_reddit_client_secret
 - **Knowledge Graphs**: Temporal relationship tracking
 - **Episode Storage**: Cross-session learning
 - **Entity Management**: Complete CRUD operations
+- **LM Studio Integration**: Model checking and locking for embeddings
+
+### LM Studio Special Features
+- **Model Verification**: Automatically checks if models are loaded before use
+- **Concurrent Safety**: Prevents multiple processes from loading the same model simultaneously
+- **Auto Model Loading**: Can automatically request model loads via admin API
+- **Performance Caching**: Caches model availability to reduce API overhead
+- **Timeout Protection**: Configurable timeouts prevent hanging on model operations
 
 ## Documentation
 

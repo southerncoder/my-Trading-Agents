@@ -1,7 +1,9 @@
 import { createLogger } from '../utils/enhanced-logger';
+import { getLMStudioAdminUrl } from '../utils/docker-secrets';
 
 const DEFAULT_POLL_INTERVAL_MS = 2000;
 const DEFAULT_TIMEOUT_MS = 120000; // 2 minutes
+const TEST_TIMEOUT_MS = 5000; // 5 seconds for tests
 
 export class LMStudioManager {
   private static logger = createLogger('system', 'LMStudioManager');
@@ -44,9 +46,11 @@ export class LMStudioManager {
     baseUrl: string,
     options?: { adminUrl?: string; pollIntervalMs?: number; timeoutMs?: number }
   ): Promise<void> {
-    const adminUrl = options?.adminUrl || process.env.LM_STUDIO_ADMIN_URL;
+    const adminUrl = options?.adminUrl || getLMStudioAdminUrl();
     const pollInterval = options?.pollIntervalMs || DEFAULT_POLL_INTERVAL_MS;
-    const timeoutMs = options?.timeoutMs || DEFAULT_TIMEOUT_MS;
+    // Use shorter timeout in test environments to prevent hanging
+    const isTestEnv = process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID !== undefined;
+    const timeoutMs = options?.timeoutMs || (isTestEnv ? TEST_TIMEOUT_MS : DEFAULT_TIMEOUT_MS);
 
     this.logger.info('ensureModelLoaded', 'Ensuring LM Studio model is loaded', { modelName, baseUrl, adminUrl });
 
@@ -251,7 +255,13 @@ export class LMStudioManager {
     const ensureOpts: { adminUrl?: string; pollIntervalMs?: number; timeoutMs?: number } = {};
     if (adminUrl) ensureOpts.adminUrl = adminUrl;
     if (options?.pollIntervalMs) ensureOpts.pollIntervalMs = options.pollIntervalMs;
-    if (options?.timeoutMs) ensureOpts.timeoutMs = options.timeoutMs;
+    // Use shorter timeout in test environments
+    const isTestEnv = process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID !== undefined;
+    if (options?.timeoutMs) {
+      ensureOpts.timeoutMs = options.timeoutMs;
+    } else if (isTestEnv) {
+      ensureOpts.timeoutMs = TEST_TIMEOUT_MS;
+    }
     await this.ensureModelLoaded(targetModel, baseUrl, ensureOpts);
 
     // Optionally request unload of previous model

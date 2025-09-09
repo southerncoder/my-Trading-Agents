@@ -10,6 +10,7 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { ChatOpenAI } from '@langchain/openai';
 import { LMStudioManager } from './lmstudio-manager';
 import { createLogger } from '../utils/enhanced-logger';
+import { getLMStudioBaseUrl, getLMStudioAdminUrl } from '../utils/docker-secrets';
 import { ModelConfig } from './provider';
 
 const logger = createLogger('system', 'LMStudioSingleton');
@@ -195,8 +196,9 @@ const singletonInstances: Map<string, LMStudioSingleton> = new Map();
  * Get or create LM Studio singleton for a specific base URL
  */
 export function getLMStudioSingleton(baseUrl?: string): LMStudioSingleton {
-  const url = baseUrl || process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1';
-  
+  // Use the provided baseUrl or get the properly formatted one with /v1 suffix
+  const url = baseUrl || getLMStudioBaseUrl();
+
   if (!singletonInstances.has(url)) {
     logger.info('getLMStudioSingleton', 'Creating new LM Studio singleton', { baseUrl: url });
     singletonInstances.set(url, new LMStudioSingleton(url));
