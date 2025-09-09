@@ -27,7 +27,7 @@ const getRemoteLMStudioBaseURL = (): string => {
     throw new Error(
       '🚨 SECURITY ERROR: REMOTE_LM_STUDIO_URL environment variable is required.\n' +
       'Set REMOTE_LM_STUDIO_URL=http://your-lm-studio-server:port/v1\n' +
-      'Example: REMOTE_LM_STUDIO_URL=http://192.168.1.100:8080/v1\n' +
+      'Example: REMOTE_LM_STUDIO_URL=http://192.168.100.100:8080/v1\n' +
       'Note: LM Studio does NOT run on port 1234 by default'
     );
   }

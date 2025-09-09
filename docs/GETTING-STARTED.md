@@ -70,39 +70,24 @@ The TradingAgents framework includes a sophisticated AI/ML memory system with:
 
 ### Environment Variables
 
-Copy `.env.example` to `.env.local` and configure:
+Copy `.env.example` to `.env.local` and configure your API keys:
 
 ```bash
-# Global defaults
-DEFAULT_LLM_PROVIDER=openai
-DEFAULT_LLM_MODEL=gpt-4o-mini
-DEFAULT_LLM_TEMPERATURE=0.7
-DEFAULT_LLM_MAX_TOKENS=3000
+# Required: Choose your LLM provider(s)
+OPENAI_API_KEY=your_openai_api_key
+# OR for local LLM
+LM_STUDIO_BASE_URL=http://localhost:1234/v1
 
-# API Keys (only needed for cloud providers)
-OPENAI_API_KEY=your_openai_api_key_here
-ANTHROPIC_API_KEY=your_anthropic_api_key_here
-GOOGLE_API_KEY=your_google_api_key_here
+# Optional: Additional providers
+ANTHROPIC_API_KEY=your_anthropic_key
+GOOGLE_API_KEY=your_google_key
 
-# LM Studio Configuration (for local inference)
-LM_STUDIO_BASE_URL=http://your_host_ip:1234/v1
+# Optional: Market data providers
+ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key
+MARKETSTACK_API_KEY=your_marketstack_key
 ```
 
-### Agent-Specific Configuration
-
-Override settings for specific agents or groups:
-
-```bash
-# Group-level overrides
-ANALYSTS_LLM_PROVIDER=openai
-ANALYSTS_LLM_MODEL=gpt-4o-mini
-RESEARCHERS_LLM_PROVIDER=anthropic
-RESEARCHERS_LLM_MODEL=claude-3-5-sonnet-20241022
-
-# Individual agent overrides (highest priority)
-MARKET_ANALYST_LLM_PROVIDER=google
-MARKET_ANALYST_LLM_MODEL=gemini-1.5-pro
-```
+**📖 For detailed configuration options, see [CONFIGURATION.md](CONFIGURATION.md)**
 
 ## 🎯 Running Your First Analysis
 
@@ -141,32 +126,21 @@ npm run cli:historical
 
 ### Local Inference Configuration
 
-1. **Install LM Studio**
-   - Download from [LM Studio website](https://lmstudio.ai/)
-   - Load your preferred models (recommended: 7B-13B parameters)
-
-2. **Configure Network Access**
+1. **Install LM Studio** from [lmstudio.ai](https://lmstudio.ai/)
+2. **Load models** and enable API server on port 1234
+3. **Configure environment**:
    ```bash
-   # In LM Studio, enable API server
-   # Set port to 1234
-   # Allow network access for remote connections
-   ```
-
-3. **Update Environment**
-   ```bash
-   LM_STUDIO_BASE_URL=http://your_host_ip:1234/v1
+   LM_STUDIO_BASE_URL=http://localhost:1234/v1
    DEFAULT_LLM_PROVIDER=openai
-   DEFAULT_LLM_MODEL=gpt-4o-mini
    ```
 
 ## 🔍 Example Analysis Flow
 
 ### Sample Configuration
 ```bash
-# Use mix of providers for best results
-ANALYSTS_LLM_PROVIDER=openai          # Fast, reliable analysis
+# Mix providers for optimal results
+ANALYSTS_LLM_PROVIDER=openai          # Fast analysis
 RESEARCHERS_LLM_PROVIDER=anthropic    # Deep reasoning
-RISK_ANALYSTS_LLM_PROVIDER=openai  # Cloud inference
 TRADER_LLM_PROVIDER=openai           # Quick decisions
 ```
 
@@ -188,29 +162,21 @@ TRADER_LLM_PROVIDER=openai           # Quick decisions
 
 ### Development Mode
 ```bash
-# Run with hot reload
-npm run dev
-
-# TypeScript development
-npm run cli    # Uses tsx for TypeScript execution
+npm run dev    # Hot reload development
+npm run cli    # Interactive CLI with TypeScript
 ```
 
 ### Production Build
 ```bash
-# Build for production
-npm run build
-
-# Run compiled version
-node dist/cli/main.js
+npm run build  # Build for production
+npm test       # Run test suite
 ```
 
 ### Testing
 ```bash
-# Run test suite
-npm test
-
-# End-to-end validation
-node test-end-to-end-workflow.js
+npm run test:all              # Complete test suite
+npm run test-enhanced         # Enhanced graph workflow tests
+npm run test-langgraph        # LangGraph integration tests
 ```
 
 ## 🔒 Security Best Practices
@@ -219,12 +185,10 @@ node test-end-to-end-workflow.js
 - Never commit API keys to version control
 - Use `.env.local` for sensitive configuration
 - Rotate API keys regularly
-- Use environment-specific key management
 
 ### Network Security
-- Configure LM Studio firewall rules
+- Configure firewall rules for LM Studio
 - Use HTTPS for production deployments
-- Implement rate limiting for API calls
 
 ## 🚨 Troubleshooting
 

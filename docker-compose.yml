@@ -83,7 +83,7 @@ services:
     networks:
       - trading-agents
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/docs || exit 1"]
+      test: ["CMD", "python3", "-c", "import socket; s=socket.socket(); s.connect(('localhost',8000)); s.close()"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -251,6 +251,7 @@ services:
     volumes:
       - ./data:/app/data:rw
       - ./logs:/app/logs:rw
+      - ./exports:/app/exports:rw
       - ./services/trading-agents/config:/app/config:ro
 
     depends_on:

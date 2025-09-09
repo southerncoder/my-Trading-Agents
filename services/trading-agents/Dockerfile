@@ -48,6 +48,9 @@ COPY --chown=trading:nodejs cli.js ./
 RUN mkdir -p /app/.tradingagents /app/data /app/logs /app/exports && \
     chown -R trading:nodejs /app/.tradingagents /app/data /app/logs /app/exports
 
+# Create symlink for compatibility
+RUN ln -sf /app/exports /exports
+
 # Switch to non-root user
 USER trading
 
