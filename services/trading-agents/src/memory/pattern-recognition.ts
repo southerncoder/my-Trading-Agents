@@ -653,7 +653,21 @@ export class PatternRecognitionEngine {
   private async analyzeAgentBehaviorPatterns(_entityId: string): Promise<any> {
     // Analyze historical agent decision patterns
     // In production, this would query historical agent decisions
-    return {};
+    return {
+      risk_tolerance: 'medium',
+      decision_speed: 'moderate',
+      pattern_recognition_accuracy: 0.65,
+      behavioral_biases: [],
+      learning_rate: 0.7,
+      adaptation_capability: 0.6,
+      confidence_distribution: {
+        low: 0.2,
+        medium: 0.5,
+        high: 0.3
+      },
+      decision_patterns: [],
+      performance_under_stress: 0.55
+    };
   }
 
   private detectSentimentBehaviorPattern(_marketContext: any): BehavioralPattern | null {

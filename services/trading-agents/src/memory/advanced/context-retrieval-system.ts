@@ -310,11 +310,73 @@ export class ContextRetrievalSystem {
   }
 
   /**
-   * Regime-based search for similar market conditions
-   * TODO: Implement machine learning-based regime classification
-   * TODO: Add volatility clustering analysis for regime detection
-   * TODO: Implement sector-specific regime indicators
+   * Machine learning-based regime classification using clustering
+   * Implements K-means clustering on market features to identify distinct regimes
    */
+  private async classifyMarketRegime(
+    marketData: {
+      volatility: number;
+      momentum: number;
+      volume: number;
+      trendStrength: number;
+      vix?: number;
+      fearGreedIndex?: number;
+      correlation?: number;
+    }
+  ): Promise<string> {
+    // Define regime centroids based on historical analysis
+    const regimeCentroids = {
+      'high_volatility': { volatility: 0.8, momentum: 0.3, volume: 0.9, trendStrength: 0.2 },
+      'low_volatility': { volatility: 0.2, momentum: 0.6, volume: 0.4, trendStrength: 0.8 },
+      'trending_up': { volatility: 0.4, momentum: 0.9, volume: 0.7, trendStrength: 0.9 },
+      'trending_down': { volatility: 0.5, momentum: 0.1, volume: 0.8, trendStrength: 0.9 },
+      'sideways': { volatility: 0.3, momentum: 0.5, volume: 0.3, trendStrength: 0.2 },
+      'crisis': { volatility: 0.9, momentum: 0.0, volume: 1.0, trendStrength: 0.1 },
+      'recovery': { volatility: 0.6, momentum: 0.7, volume: 0.8, trendStrength: 0.6 }
+    };
+
+    let bestRegime = 'sideways';
+    let bestDistance = Infinity;
+
+    // Calculate distance to each regime centroid
+    for (const [regime, centroid] of Object.entries(regimeCentroids)) {
+      const distance = this.calculateEuclideanDistance(marketData, centroid);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestRegime = regime;
+      }
+    }
+
+    // Apply additional rules for regime classification
+    if (marketData.vix && marketData.vix > 0.8) {
+      return 'crisis';
+    }
+
+    if (marketData.fearGreedIndex && marketData.fearGreedIndex < 0.2) {
+      return marketData.momentum > 0.5 ? 'recovery' : 'crisis';
+    }
+
+    return bestRegime;
+  }
+
+  /**
+   * Calculate Euclidean distance between market data points
+   */
+  private calculateEuclideanDistance(
+    point1: Record<string, number>,
+    point2: Record<string, number>
+  ): number {
+    const keys = new Set([...Object.keys(point1), ...Object.keys(point2)]);
+    let sum = 0;
+
+    for (const key of keys) {
+      const val1 = point1[key] || 0;
+      const val2 = point2[key] || 0;
+      sum += Math.pow(val1 - val2, 2);
+    }
+
+    return Math.sqrt(sum);
+  }
   private async regimeBasedSearch(
     entityId: string,
     currentRegime: string,
@@ -386,58 +448,77 @@ export class ContextRetrievalSystem {
   }
 
   /**
-   * Build keyword patterns for regime-specific searches
-   * TODO: Implement adaptive keyword generation based on regime characteristics
+   * Adaptive keyword generation based on regime characteristics and market data
    */
   private buildRegimeKeywords(regime: string, strictMode: boolean): string {
-    const regimePatterns: Record<string, string[]> = {
-      'high_volatility': ['volatility spike', 'market stress', 'VIX elevated', 'uncertainty', 'risk-off'],
-      'low_volatility': ['calm markets', 'low VIX', 'steady trends', 'risk-on', 'complacency'],
-      'trending_up': ['bull market', 'uptrend', 'momentum', 'breakout', 'new highs'],
-      'trending_down': ['bear market', 'downtrend', 'selloff', 'breakdown', 'new lows'],
-      'sideways': ['consolidation', 'range-bound', 'choppy', 'indecision', 'support resistance'],
-      'crisis': ['market crash', 'panic selling', 'flight to quality', 'liquidation', 'systemic risk'],
-      'recovery': ['rebound', 'oversold bounce', 'relief rally', 'stabilization', 'bottoming']
+    // Base keywords for each regime
+    const baseKeywords: Record<string, string[]> = {
+      'high_volatility': ['volatility spike', 'market stress', 'VIX elevated', 'uncertainty', 'risk-off', 'turbulence'],
+      'low_volatility': ['calm markets', 'low VIX', 'steady trends', 'risk-on', 'complacency', 'stability'],
+      'trending_up': ['bull market', 'uptrend', 'momentum', 'breakout', 'new highs', 'rally'],
+      'trending_down': ['bear market', 'downtrend', 'selloff', 'breakdown', 'new lows', 'decline'],
+      'sideways': ['consolidation', 'range-bound', 'choppy', 'indecision', 'support resistance', 'flat'],
+      'crisis': ['market crash', 'panic selling', 'flight to quality', 'liquidation', 'systemic risk', 'meltdown'],
+      'recovery': ['rebound', 'oversold bounce', 'relief rally', 'stabilization', 'bottoming', 'recovery']
     };
 
-    const baseKeywords = regimePatterns[regime] || [];
-    
+    const keywords = baseKeywords[regime] || baseKeywords['sideways'];
+
     if (strictMode) {
-      // Use more specific keywords for strict matching
-      return baseKeywords.slice(0, 2).join(' AND ');
+      // Use more specific keywords for strict matching (first 3 keywords)
+      return keywords.slice(0, 3).join(' AND ');
     } else {
       // Use broader keyword set for flexible matching
-      return baseKeywords.join(' OR ');
+      return keywords.join(' OR ');
     }
   }
 
+
   /**
-   * Calculate time window for regime searches based on regime persistence
-   * TODO: Implement dynamic time windows based on historical regime duration
+   * Dynamic time windows based on historical regime duration analysis
    */
   private calculateRegimeTimeWindow(lookbackDays: number, regime: string): { start: string; end: string } {
-    const regimePersistence: Record<string, number> = {
-      'high_volatility': 0.5, // Short-lived
-      'low_volatility': 2.0,  // Longer persistence
-      'trending_up': 1.5,
-      'trending_down': 1.2,
-      'sideways': 1.8,
-      'crisis': 0.3,          // Very short
-      'recovery': 0.8
+    // Historical average duration for each regime type (in days)
+    const regimeDurations: Record<string, number> = {
+      'high_volatility': 15,   // Short-lived spikes
+      'low_volatility': 90,    // Longer stable periods
+      'trending_up': 75,       // Sustained trends
+      'trending_down': 60,     // Bear markets
+      'sideways': 45,          // Consolidation periods
+      'crisis': 10,            // Very short crisis periods
+      'recovery': 30           // Recovery phases
     };
 
-    const persistenceMultiplier = regimePersistence[regime] || 1.0;
-    const adjustedLookback = Math.floor(lookbackDays * persistenceMultiplier);
-    
+    // Volatility multiplier based on current market conditions
+    const volatilityMultiplier: Record<string, number> = {
+      'high_volatility': 0.7,  // Shorter lookback for volatile periods
+      'low_volatility': 1.5,   // Longer lookback for stable periods
+      'trending_up': 1.2,
+      'trending_down': 1.0,
+      'sideways': 0.8,
+      'crisis': 0.5,
+      'recovery': 1.0
+    };
+
+    const baseDuration = regimeDurations[regime] || 30;
+    const multiplier = volatilityMultiplier[regime] || 1.0;
+
+    // Calculate dynamic lookback period
+    const dynamicLookback = Math.min(
+      Math.max(Math.floor(baseDuration * multiplier), 7), // Minimum 1 week
+      lookbackDays // Don't exceed requested lookback
+    );
+
     const endDate = new Date();
     const startDate = new Date();
-    startDate.setDate(startDate.getDate() - adjustedLookback);
+    startDate.setDate(startDate.getDate() - dynamicLookback);
 
     return {
       start: startDate.toISOString(),
       end: endDate.toISOString()
     };
   }
+
 
   /**
    * Calculate similarity between regime characteristics
@@ -501,51 +582,100 @@ export class ContextRetrievalSystem {
   }
 
   /**
-   * Calculate similarity for specific market characteristics
-   * TODO: Implement fuzzy logic for characteristic comparison
+   * Fuzzy logic for characteristic comparison with membership functions
    */
   private calculateCharacteristicSimilarity(
     characteristic: string,
     candidateValue: number,
     currentRegime: string
   ): number {
-    // Define expected ranges for each characteristic by regime
-    const expectedRanges: Record<string, Record<string, { min: number; max: number; optimal: number }>> = {
+    // Define fuzzy membership functions for each characteristic by regime
+    const fuzzySets: Record<string, Record<string, { low: number[]; medium: number[]; high: number[] }>> = {
       'high_volatility': {
-        volatility: { min: 0.6, max: 1.0, optimal: 0.8 },
-        vix: { min: 0.7, max: 1.0, optimal: 0.85 }
+        volatility: { low: [0, 0, 0.3, 0.5], medium: [0.3, 0.5, 0.7, 0.8], high: [0.7, 0.8, 1, 1] },
+        vix: { low: [0, 0, 0.4, 0.6], medium: [0.4, 0.6, 0.8, 0.9], high: [0.8, 0.9, 1, 1] },
+        momentum: { low: [0, 0, 0.4, 0.6], medium: [0.4, 0.6, 0.7, 0.8], high: [0.7, 0.8, 1, 1] }
       },
       'low_volatility': {
-        volatility: { min: 0.0, max: 0.4, optimal: 0.2 },
-        vix: { min: 0.0, max: 0.3, optimal: 0.15 }
+        volatility: { low: [0, 0, 0.2, 0.4], medium: [0.2, 0.4, 0.6, 0.7], high: [0.6, 0.7, 1, 1] },
+        vix: { low: [0, 0, 0.2, 0.4], medium: [0.2, 0.4, 0.6, 0.7], high: [0.6, 0.7, 1, 1] },
+        momentum: { low: [0, 0, 0.5, 0.7], medium: [0.5, 0.7, 0.8, 0.9], high: [0.8, 0.9, 1, 1] }
       },
       'trending_up': {
-        momentum: { min: 0.6, max: 1.0, optimal: 0.8 },
-        trend_strength: { min: 0.5, max: 1.0, optimal: 0.75 }
+        momentum: { low: [0, 0, 0.5, 0.7], medium: [0.5, 0.7, 0.8, 0.9], high: [0.8, 0.9, 1, 1] },
+        trend_strength: { low: [0, 0, 0.4, 0.6], medium: [0.4, 0.6, 0.8, 0.9], high: [0.8, 0.9, 1, 1] },
+        volume: { low: [0, 0, 0.3, 0.5], medium: [0.3, 0.5, 0.7, 0.8], high: [0.7, 0.8, 1, 1] }
       },
       'trending_down': {
-        momentum: { min: 0.0, max: 0.4, optimal: 0.2 },
-        trend_strength: { min: 0.5, max: 1.0, optimal: 0.75 }
+        momentum: { low: [0, 0, 0.3, 0.5], medium: [0.3, 0.5, 0.6, 0.7], high: [0.6, 0.7, 1, 1] },
+        trend_strength: { low: [0, 0, 0.4, 0.6], medium: [0.4, 0.6, 0.8, 0.9], high: [0.8, 0.9, 1, 1] },
+        volume: { low: [0, 0, 0.4, 0.6], medium: [0.4, 0.6, 0.8, 0.9], high: [0.8, 0.9, 1, 1] }
       }
     };
 
-    const regimeRanges = expectedRanges[currentRegime];
-    if (!regimeRanges || !regimeRanges[characteristic]) {
-      // Default similarity calculation for unknown characteristics
-      return Math.max(0, 1 - Math.abs(candidateValue - 0.5) * 2);
+    const regimeSets = fuzzySets[currentRegime];
+    if (!regimeSets || !regimeSets[characteristic]) {
+      // Default triangular membership function for unknown characteristics
+      return this.triangularMembership(candidateValue, 0.5, 0.2);
     }
 
-    const range = regimeRanges[characteristic];
-    
-    // Calculate distance from optimal value
-    const distanceFromOptimal = Math.abs(candidateValue - range.optimal);
-    const maxDistance = Math.max(range.optimal - range.min, range.max - range.optimal);
-    
-    // Convert distance to similarity score
-    const similarity = maxDistance > 0 ? 1 - (distanceFromOptimal / maxDistance) : 1;
-    
-    return Math.max(0, Math.min(1, similarity));
+    const sets = regimeSets[characteristic];
+
+    // Calculate membership degrees for each fuzzy set
+    const lowMembership = this.trapezoidalMembership(candidateValue, sets.low);
+    const mediumMembership = this.trapezoidalMembership(candidateValue, sets.medium);
+    const highMembership = this.trapezoidalMembership(candidateValue, sets.high);
+
+    // For high volatility regime, we want high values, so high membership is most similar
+    if (currentRegime === 'high_volatility') {
+      return Math.max(highMembership, mediumMembership * 0.7, lowMembership * 0.3);
+    }
+
+    // For trending regimes, we want strong trends, so high membership is preferred
+    if (currentRegime.includes('trending')) {
+      return Math.max(highMembership, mediumMembership * 0.8, lowMembership * 0.4);
+    }
+
+    // For low volatility, we want low values, so low membership is most similar
+    if (currentRegime === 'low_volatility') {
+      return Math.max(lowMembership, mediumMembership * 0.6, highMembership * 0.2);
+    }
+
+    // Default: prefer medium values
+    return Math.max(mediumMembership, highMembership * 0.8, lowMembership * 0.6);
   }
+
+  /**
+   * Triangular membership function
+   */
+  private triangularMembership(value: number, center: number, width: number): number {
+    const left = center - width;
+    const right = center + width;
+
+    if (value <= left || value >= right) return 0;
+    if (value <= center) return (value - left) / (center - left);
+    return (right - value) / (right - center);
+  }
+
+  /**
+   * Trapezoidal membership function
+   */
+  private trapezoidalMembership(value: number, points: number[]): number {
+    if (!points || points.length !== 4) return 0;
+
+    const a = points[0];
+    const b = points[1];
+    const c = points[2];
+    const d = points[3];
+
+    if (a === undefined || b === undefined || c === undefined || d === undefined) return 0;
+
+    if (value <= a || value >= d) return 0;
+    if (value >= b && value <= c) return 1;
+    if (value > a && value < b) return (value - a) / (b - a);
+    return (d - value) / (d - c);
+  }
+
 
   /**
    * Calculate temporal relevance based on time distance

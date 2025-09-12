@@ -62,20 +62,32 @@ docs/
 ├── zep-graphiti/     # Zep-Graphiti memory system docs
 └── market-data/      # Market data provider documentation
 
-js/src/providers/
-├── reddit/           # Reddit-specific providers
-├── zep-graphiti/     # Zep-Graphiti memory providers
-└── market-data/      # Market data providers
+services/trading-agents/src/
+├── providers/
+│   ├── reddit/           # Reddit-specific providers
+│   ├── zep-graphiti/     # Zep-Graphiti memory providers
+│   └── market-data/      # Market data providers
+├── memory/
+│   ├── advanced/         # Advanced memory implementations
+│   └── providers/        # Memory provider interfaces
+├── graph/                # LangGraph workflow implementations
+├── cli/                  # CLI interface components
+├── utils/                # Utility functions and helpers
+└── tests/                # Test files
 
-js/tests/
-├── reddit/           # Reddit integration tests
-├── zep-graphiti/     # Zep-Graphiti tests
-└── integration/      # Cross-component integration tests
+js/
+├── src/
+│   ├── providers/        # Legacy provider implementations
+│   ├── graph/           # Graph workflow implementations
+│   ├── cli/             # CLI components
+│   └── utils/           # Utility functions
+├── tests/               # Test files
+└── examples/            # Usage examples
 
-js/examples/
-├── reddit/           # Reddit usage examples
-├── zep-graphiti/     # Memory system examples
-└── market-data/      # Data provider examples
+py_zep/
+├── graphiti/            # Zep Graphiti Python service
+├── scripts/             # Python utility scripts
+└── tests/               # Python tests
 ```
 
 ### File Organization Principles
@@ -299,7 +311,7 @@ npm run build; if ($?) { npm test }
 - **Service Scripts**: PowerShell automation for service management
 
 ### Core Orchestration
-- **Enhanced Trading Graph**: `js/src/graph/enhanced-trading-graph.ts` - Main orchestrator with placeholder implementations in progress
+- **Enhanced Trading Graph**: `services/trading-agents/src/graph/enhanced-trading-graph.ts` - Main orchestrator with placeholder implementations in progress
 - **Dual Execution Modes**: Traditional and LangGraph workflows
 
 ### Agent Implementation (12 Total)
@@ -309,7 +321,7 @@ npm run build; if ($?) { npm test }
 - **Trader (1)**: Trading strategy execution
 
 ### Interactive CLI System
-- **Main Interface**: `js/src/cli/main.ts` - User experience orchestration with inquirer 12.x
+- **Main Interface**: `services/trading-agents/src/cli/main.ts` - User experience orchestration with inquirer 12.x
 - **Terminal UI**: Progress tracking and result formatting
 - **Configuration**: Config management with save/load capabilities
 
@@ -332,21 +344,34 @@ Set-Location py_zep\
 .\start-zep-services.ps1 -Build  # First time or after changes
 .\start-zep-services.ps1         # Subsequent starts
 
-# TypeScript development with Vite
-Set-Location js\
+# TypeScript development (Main Service)
+Set-Location services\trading-agents\
 npm install
 npm run build                    # Vite build
 npm run dev                      # Vite dev server (if needed)
+npm run cli                      # Interactive CLI (uses vite-node)
+
+# Alternative: Legacy JS development
+Set-Location js\
+npm install
+npm run build                    # Vite build
 npm run cli                      # Interactive CLI (uses vite-node)
 ```
 
 ### Running TS/ESM scripts with vite-node
 ```powershell
-Set-Location js
-npx vite-node tests/config/basic-config.test.ts
+# Main service scripts
+Set-Location services\trading-agents
+npx vite-node src/tests/config/basic-config.test.ts
+npx vite-node src/tests/integration/agent-memory.test.ts
 
 # Multiple commands: avoid &&
-npm run build; if ($?) { npx vite-node tests/integration/agent-memory.test.ts }
+npm run build; if ($?) { npx vite-node src/tests/integration/agent-memory.test.ts }
+
+# Legacy JS scripts
+Set-Location ..\js
+npx vite-node tests/config/basic-config.test.ts
+npx vite-node tests/integration/agent-memory.test.ts
 ```
 
 ### Testing & Validation
@@ -356,12 +381,18 @@ Set-Location py_zep\
 .\start-zep-services.ps1
 
 # Run comprehensive test suite (100% pass rate)
-Set-Location ..\js\
+Set-Location ..\services\trading-agents\
 npm run test:all                 # Complete test suite
 npm run test-enhanced            # Enhanced graph workflow tests
 npm run test-components          # CLI component tests
 npm run test-langgraph           # LangGraph integration tests
 npm run test-modern-standards    # Modern standards compliance
+npm run build                    # Verify TypeScript compilation
+npm run lint                     # ESLint validation
+
+# Alternative: Test legacy JS components
+Set-Location ..\js\
+npm run test:all                 # Complete test suite
 npm run build                    # Verify TypeScript compilation
 npm run lint                     # ESLint validation
 ```
@@ -448,25 +479,7 @@ The codebase and tests will read `.env.local` when present. Do not add concrete 
 ### Enterprise-Grade Structured Logging System
 - **Challenge**: Console statements throughout codebase unsuitable for production
 - **Solution**: Comprehensive Winston-based structured logging with trace correlation
-- **Implementation**: `js/src/utils/enhanced-logger.ts` with context-aware child loggers
-- **Achievement**: 43 console statements replaced across 9+ agent files with zero breaking changes
-- **Production Benefits**: 
-  - JSON structured output for enterprise monitoring
-  - Trace ID correlation for request tracking across workflows
-  - Rich metadata and performance timing for debugging
-  - Development-friendly colorized console with production-ready structured logs
-- **Solution**: Migrated from legacy .eslintrc to modern flat config
-- **Achievement**: Full TypeScript integration with modern linting rules
-
-### Inquirer 12.x API Restructure
-- **Challenge**: Complete API breaking change from object-based to function-based prompts
-- **Solution**: Converted 35+ CLI prompts to new individual function format
-- **Impact**: Modern, maintainable CLI interface with better TypeScript support
-
-### Enterprise-Grade Structured Logging System
-- **Challenge**: Console statements throughout codebase unsuitable for production
-- **Solution**: Comprehensive Winston-based structured logging with trace correlation
-- **Implementation**: `js/src/utils/enhanced-logger.ts` with context-aware child loggers
+- **Implementation**: `services/trading-agents/src/utils/enhanced-logger.ts` with context-aware child loggers
 - **Achievement**: 43 console statements replaced across 9+ agent files with zero breaking changes
 - **Production Benefits**: 
   - JSON structured output for enterprise monitoring
@@ -591,7 +604,7 @@ const result = await graph.analyzeAndDecide('AAPL', '2025-08-24');
 - Advanced temporal reasoning with Zep Graphiti temporal knowledge graphs
 - Cross-session learning and market pattern recognition capabilities
 - Agent performance analytics and memory-driven trading insights
-- Implementation: `js/src/memory/`, `js/src/learning/`, `js/src/patterns/`
+- Implementation: `services/trading-agents/src/memory/`, `services/trading-agents/src/learning/`, `services/trading-agents/src/patterns/`
 
 ### 🏗️ Production Infrastructure (Priority: Very High)
 - Multi-environment Docker orchestration with Kubernetes support
@@ -607,14 +620,14 @@ const result = await graph.analyzeAndDecide('AAPL', '2025-08-24');
 - Trading signal generation with confidence scoring and risk assessment
 - Multi-asset support (crypto, forex, commodities, bonds, options)
 - Technical analysis integration (chart patterns, indicators, momentum)
-- Implementation: `js/src/portfolio/`, `js/src/backtesting/`, `js/src/signals/`
+- Implementation: `services/trading-agents/src/portfolio/`, `services/trading-agents/src/backtesting/`, `services/trading-agents/src/signals/`
 
 ### 🎨 Enhanced User Experience (Priority: Medium)
 - Web dashboard with React/Vue.js and real-time updates
 - Advanced visualization using Chart.js/D3.js for market analytics
 - Automated report generation with PDF/HTML templates
 - Mobile Progressive Web App with offline capabilities
-- Implementation: `web/`, `js/src/visualization/`, `js/src/reports/`
+- Implementation: `web/`, `services/trading-agents/src/visualization/`, `services/trading-agents/src/reports/`
 
 ### 🔌 Integration & API Expansion (Priority: Medium)
 - Additional data sources (Bloomberg, Alpha Vantage, IEX Cloud)
@@ -624,7 +637,7 @@ const result = await graph.analyzeAndDecide('AAPL', '2025-08-24');
 - Third-party analytics integration (TradingView, Yahoo Finance Pro)
 - Economic calendar integration (earnings, Fed announcements)
 - Alternative data sources (satellite data, ESG metrics)
-- Implementation: `js/src/integrations/`, `js/src/sentiment/`, `js/src/webhooks/`
+- Implementation: `services/trading-agents/src/integrations/`, `services/trading-agents/src/sentiment/`, `services/trading-agents/src/webhooks/`
 
 ### 🔬 Research & Development (Priority: Future)
 - LLM fine-tuning on financial data for domain-specific performance
@@ -634,7 +647,7 @@ const result = await graph.analyzeAndDecide('AAPL', '2025-08-24');
 - Causal AI for understanding market cause-and-effect relationships
 - Synthetic data generation for scenario testing
 - Quantum computing integration for portfolio optimization
-- Implementation: `research/`, `js/src/experimental/`, `models/`
+- Implementation: `research/`, `services/trading-agents/src/experimental/`, `models/`
 
 ### 📊 Development Phases
 1. **Phase 1 (Weeks 1-4)**: Enhanced Intelligence - Memory, Learning, Portfolio Optimization
