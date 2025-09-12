@@ -3,15 +3,18 @@
  * Tests compatibility with FinancialSituationMemory interface
  */
 
+import { createLogger } from '../../src/utils/enhanced-logger';
 import { createZepGraphitiMemory, EnhancedFinancialMemory } from '../../src/providers/zep-graphiti/zep-graphiti-memory-provider-client';
 import { createPrePopulatedMemory } from '../../src/agents/utils/memory';
 
 async function testClientMemoryIntegration() {
-  console.log('🧪 Testing Client-Based Memory Provider Integration\n');
+  const logger = createLogger('test', 'ClientMemoryIntegration');
+
+  logger.info('integration_test', '🧪 Testing Client-Based Memory Provider Integration');
 
   try {
     // Test 1: Create client-based memory provider
-    console.log('1. Creating client-based Zep Graphiti memory provider...');
+    logger.info('create_provider', '1. Creating client-based Zep Graphiti memory provider...');
     
     const zepConfig = {
       sessionId: 'test-integration-session',
@@ -29,36 +32,36 @@ async function testClientMemoryIntegration() {
     };
 
     const clientMemoryProvider = await createZepGraphitiMemory(zepConfig, agentConfig);
-    console.log('✅ Client-based memory provider created successfully');
+    logger.info('create_provider', '✅ Client-based memory provider created successfully');
 
     // Test 2: Test connection
-    console.log('\n2. Testing connection to Zep Graphiti services...');
+    logger.info('test_connection', '2. Testing connection to Zep Graphiti services...');
     const isConnected = await clientMemoryProvider.testConnection();
     
     if (!isConnected) {
-      console.log('⚠️  Zep Graphiti services not running - using fallback validation');
-      console.log('   To run full test: Start services with py_zep/start-services-secure.ps1');
+      logger.warn('test_connection', 'Zep Graphiti services not running - using fallback validation');
+      logger.info('test_connection', 'To run full test: Start services with py_zep/start-services-secure.ps1');
       
       // Still test interface compatibility
-      console.log('\n3. Testing interface compatibility (without live services)...');
-      await testInterfaceCompatibility(clientMemoryProvider);
+      logger.info('test_compatibility', '3. Testing interface compatibility (without live services)...');
+      await testInterfaceCompatibility(clientMemoryProvider, logger);
       return;
     }
     
-    console.log('✅ Connected to Zep Graphiti services');
+    logger.info('test_connection', '✅ Connected to Zep Graphiti services');
 
     // Test 3: Interface compatibility with FinancialSituationMemory
-    console.log('\n3. Testing interface compatibility...');
-    await testInterfaceCompatibility(clientMemoryProvider);
+    logger.info('test_compatibility', '3. Testing interface compatibility...');
+    await testInterfaceCompatibility(clientMemoryProvider, logger);
 
     // Test 4: Create EnhancedFinancialMemory wrapper
-    console.log('\n4. Testing EnhancedFinancialMemory wrapper...');
+    logger.info('test_enhanced_memory', '4. Testing EnhancedFinancialMemory wrapper...');
     const enhancedMemory = new EnhancedFinancialMemory('test-enhanced', agentConfig, zepConfig);
     await enhancedMemory.initialize();
-    console.log('✅ EnhancedFinancialMemory initialized successfully');
+    logger.info('test_enhanced_memory', '✅ EnhancedFinancialMemory initialized successfully');
 
     // Test 5: Add financial situations
-    console.log('\n5. Testing addSituations compatibility...');
+    logger.info('test_add_situations', '5. Testing addSituations compatibility...');
     await enhancedMemory.addSituations([
       [
         'High inflation with rising interest rates affecting tech stocks',
@@ -69,54 +72,59 @@ async function testClientMemoryIntegration() {
         'Implement hedging strategies and increase cash allocation for opportunities'
       ]
     ]);
-    console.log('✅ Financial situations added successfully');
+    logger.info('test_add_situations', '✅ Financial situations added successfully');
 
     // Test 6: Search for memory matches
-    console.log('\n6. Testing memory search functionality...');
+    logger.info('test_memory_search', '6. Testing memory search functionality...');
     const memoryMatches = await enhancedMemory.getMemories('What should I do about rising interest rates?', 2);
-    console.log(`✅ Found ${memoryMatches.length} memory matches`);
+    logger.info('test_memory_search', `✅ Found ${memoryMatches.length} memory matches`, { matchCount: memoryMatches.length });
     
     memoryMatches.forEach((match, index) => {
-      console.log(`   Match ${index + 1}:`);
-      console.log(`     Situation: ${match.matchedSituation}`);
-      console.log(`     Recommendation: ${match.recommendation}`);
-      console.log(`     Similarity: ${match.similarityScore?.toFixed(3) || 'N/A'}`);
+      logger.info('test_memory_search', `Match ${index + 1}:`, {
+        situation: match.matchedSituation,
+        recommendation: match.recommendation,
+        similarity: match.similarityScore?.toFixed(3) || 'N/A'
+      });
     });
 
     // Test 7: Compare with traditional memory
-    console.log('\n7. Testing compatibility with traditional FinancialSituationMemory...');
+    logger.info('test_traditional_memory', '7. Testing compatibility with traditional FinancialSituationMemory...');
     const traditionalMemory = await createPrePopulatedMemory('traditional-test', agentConfig);
     
-    console.log(`   Traditional memory count: ${traditionalMemory.count()}`);
-    console.log(`   Enhanced memory provider: ${enhancedMemory.getProviderName()}`);
-    console.log(`   Traditional memory provider: ${traditionalMemory.getProviderName()}`);
+    logger.info('test_traditional_memory', `Traditional memory count: ${traditionalMemory.count()}`, {
+      traditionalCount: traditionalMemory.count(),
+      enhancedProvider: enhancedMemory.getProviderName(),
+      traditionalProvider: traditionalMemory.getProviderName()
+    });
 
     // Test 8: Interface method compatibility
-    console.log('\n8. Testing interface method compatibility...');
+    logger.info('test_interface_methods', '8. Testing interface method compatibility...');
     const providerInfo = enhancedMemory.getProviderInfo();
-    console.log(`   Provider info: ${JSON.stringify(providerInfo, null, 2)}`);
+    logger.info('test_interface_methods', 'Provider info retrieved', { providerInfo });
     
-    console.log('\n🎉 All integration tests passed!');
-    console.log('\n📋 Summary:');
-    console.log('   ✅ Client-based memory provider created');
-    console.log('   ✅ Connection to Zep Graphiti services working');
-    console.log('   ✅ Interface compatibility confirmed');
-    console.log('   ✅ EnhancedFinancialMemory wrapper functional');
-    console.log('   ✅ Memory operations working correctly');
-    console.log('   ✅ Compatible with existing trading system');
+    logger.info('test_summary', '🎉 All integration tests passed!');
+    logger.info('test_summary', '📋 Summary:');
+    logger.info('test_summary', '✅ Client-based memory provider created');
+    logger.info('test_summary', '✅ Connection to Zep Graphiti services working');
+    logger.info('test_summary', '✅ Interface compatibility confirmed');
+    logger.info('test_summary', '✅ EnhancedFinancialMemory wrapper functional');
+    logger.info('test_summary', '✅ Memory operations working correctly');
+    logger.info('test_summary', '✅ Compatible with existing trading system');
 
   } catch (error) {
-    console.error('\n❌ Integration test failed:', error instanceof Error ? error.message : String(error));
-    console.error('\nDebug info:');
-    console.error('- Make sure Zep Graphiti services are running');
-    console.error('- Check Python environment is activated');
-    console.error('- Verify Docker containers are healthy');
-    console.error('\nTo start services: cd py_zep && .\\start-services-secure.ps1');
+    logger.error('test_execution', 'Integration test failed', {
+      error: error instanceof Error ? error.message : String(error)
+    });
+    logger.error('test_debug', 'Debug info:');
+    logger.error('test_debug', 'Make sure Zep Graphiti services are running');
+    logger.error('test_debug', 'Check Python environment is activated');
+    logger.error('test_debug', 'Verify Docker containers are healthy');
+    logger.error('test_debug', 'To start services: cd py_zep && .\\start-services-secure.ps1');
     process.exit(1);
   }
 }
 
-async function testInterfaceCompatibility(memoryProvider: any) {
+async function testInterfaceCompatibility(memoryProvider: any, logger: any) {
   // Test all required interface methods exist
   const requiredMethods = [
     'getMemories',
@@ -134,7 +142,7 @@ async function testInterfaceCompatibility(memoryProvider: any) {
     }
   }
 
-  console.log('   ✅ All required interface methods present');
+  logger.info('interface_check', '✅ All required interface methods present');
 
   // Test method signatures compatibility
   try {
@@ -158,7 +166,7 @@ async function testInterfaceCompatibility(memoryProvider: any) {
       throw new Error('getAllMemories returned invalid type');
     }
 
-    console.log('   ✅ Method signatures compatible');
+    logger.info('signature_check', '✅ Method signatures compatible');
   } catch (error) {
     throw new Error(`Interface compatibility test failed: ${error instanceof Error ? error.message : String(error)}`);
   }
@@ -166,6 +174,7 @@ async function testInterfaceCompatibility(memoryProvider: any) {
 
 // Run the test
 testClientMemoryIntegration().catch(error => {
-  console.error('Test execution failed:', error);
+  const logger = createLogger('test', 'ClientMemoryIntegration');
+  logger.error('test_execution_final', 'Test execution failed', { error });
   process.exit(1);
 });
