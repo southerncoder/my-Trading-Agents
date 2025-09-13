@@ -17,9 +17,9 @@
 - **Production Ready**: Robust error handling and comprehensive testing
 
 **Files Modified:**
-- `src/models/lmstudio-singleton.ts` (new)
-- `src/models/provider.ts` (enhanced)
-- `src/graph/langgraph-setup.ts` (enhanced)
+- `services/trading-agents/src/models/lmstudio-manager.ts` (new)
+- `services/trading-agents/src/models/provider.ts` (enhanced)
+- `services/trading-agents/src/graph/langgraph-setup.ts` (enhanced)
 
 **Migration Complete:** The system now supports async model initialization with LMStudio singleton coordination for all 12 trading agents.
 

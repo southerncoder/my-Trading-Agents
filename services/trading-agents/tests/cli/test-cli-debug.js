@@ -12,8 +12,8 @@ async function testCLIImports() {
     console.log('------------------------------------');
     
     try {
-        // Test basic imports
-        const cliModule = await import('./dist/cli/main.js');
+        // Test basic imports from src directory
+        const cliModule = await import('../../src/cli/main.js');
         console.log('✅ CLI main module imported successfully');
         
         const availableExports = Object.keys(cliModule);
@@ -50,20 +50,20 @@ async function testDependencyImports() {
     
     try {
         // Test core dependencies
-        const inquirer = await import('@inquirer/prompts');
+        await import('@inquirer/prompts');
         console.log('✅ Inquirer prompts imported successfully');
         
-        const chalk = await import('chalk');
+        await import('chalk');
         console.log('✅ Chalk imported successfully');
         
-        const commander = await import('commander');
+        await import('commander');
         console.log('✅ Commander imported successfully');
         
-        // Test custom modules
-        const graphModule = await import('./dist/graph/enhanced-trading-graph.js');
+        // Test custom modules from src
+        await import('../../src/graph/enhanced-trading-graph.js');
         console.log('✅ Enhanced trading graph imported successfully');
         
-        const configModule = await import('./dist/config/index.js');
+        await import('../../src/config/index.js');
         console.log('✅ Config module imported successfully');
         
         return true;
@@ -114,19 +114,19 @@ async function testCLIComponents() {
     console.log('--------------------------------');
     
     try {
-        // Test display system
-        const { DisplaySystem } = await import('./dist/cli/display.js');
-        const display = new DisplaySystem();
+        // Test display system from src
+        const { DisplaySystem } = await import('../../src/cli/display.js');
+        new DisplaySystem();
         console.log('✅ DisplaySystem instantiated successfully');
         
-        // Test message buffer
-        const { MessageBuffer } = await import('./dist/cli/message-buffer.js');
-        const buffer = new MessageBuffer();
+        // Test message buffer from src
+        const { MessageBuffer } = await import('../../src/cli/message-buffer.js');
+        new MessageBuffer();
         console.log('✅ MessageBuffer instantiated successfully');
         
-        // Test utils
-        const utilsModule = await import('./dist/cli/utils.js');
-        console.log(`✅ CLI utils imported (${Object.keys(utilsModule).length} exports)`);
+        // Test utils from src
+        await import('../../src/cli/utils.js');
+        console.log(`✅ CLI utils imported successfully`);
         
         return true;
     } catch (error) {
@@ -140,8 +140,8 @@ async function testBasicCLIWorkflow() {
     console.log('------------------------------------');
     
     try {
-        // Import and instantiate CLI
-        const { TradingAgentsCLI } = await import('./dist/cli/main.js');
+        // Import and instantiate CLI from src
+        const { TradingAgentsCLI } = await import('../../src/cli/main.js');
         const cli = new TradingAgentsCLI();
         
         console.log('✅ CLI instantiated for workflow test');
@@ -160,7 +160,7 @@ async function testBasicCLIWorkflow() {
         }
         
         // Test configuration loading (without full UI)
-        const { DEFAULT_CONFIG } = await import('./dist/config/index.js');
+        const { DEFAULT_CONFIG } = await import('../../src/config/index.js');
         console.log('✅ Default configuration loaded');
         console.log(`   Provider: ${DEFAULT_CONFIG.llmProvider}`);
         console.log(`   Backend URL: ${DEFAULT_CONFIG.backendUrl}`);
@@ -234,7 +234,10 @@ async function runCLIDebugTest() {
     return passed === total;
 }
 
-runCLIDebugTest().catch(error => {
+runCLIDebugTest().then(success => {
+    console.log(`\n${success ? '🎉' : '❌'} CLI Debug Test ${success ? 'PASSED' : 'FAILED'}`);
+    process.exit(success ? 0 : 1);
+}).catch(error => {
     console.error('\n💥 CLI debug test crashed:', error);
     process.exit(1);
 });

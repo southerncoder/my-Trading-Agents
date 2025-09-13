@@ -32,7 +32,7 @@
 ```bash
 # 1. Clone and install dependencies
 git clone https://github.com/southerncoder/my-Trading-Agents
-cd my-Trading-Agents/js
+cd my-Trading-Agents/services/trading-agents
 npm install
 
 # 2. Configure environment (copy and edit .env.local)
@@ -43,7 +43,7 @@ cd ../py_zep
 .\start-zep-services.ps1
 
 # 4. Run interactive trading analysis
-cd ../js
+cd ../services/trading-agents
 npm run cli
 ```
 

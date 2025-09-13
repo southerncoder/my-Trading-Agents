@@ -127,7 +127,7 @@ export class ContextRetrievalOrchestrator {
   /**
    * Process facts with similarity calculations and scoring
    */
-  private async processFacts(facts: any[], queryFeatures: any, options: any): Promise<any[]> {
+  private async processFacts(facts: any[], queryFeatures: any, _options: any): Promise<any[]> {
     try {
       const processedFacts = [];
 
@@ -215,7 +215,7 @@ export class ContextRetrievalOrchestrator {
   /**
    * Calculate various similarity scores between query and fact
    */
-  private async calculateSimilarityScores(queryFeatures: any, factFeatures: any, fact: any): Promise<any> {
+  private async calculateSimilarityScores(queryFeatures: any, factFeatures: any, _fact: any): Promise<any> {
     try {
       const scores = {
         market_condition_similarity: 0,
@@ -293,7 +293,7 @@ export class ContextRetrievalOrchestrator {
   /**
    * Calculate overall relevance score
    */
-  private calculateOverallRelevance(similarityScores: any, confidenceScore: number, fact: any): number {
+  private calculateOverallRelevance(similarityScores: any, confidenceScore: number, _fact: any): number {
     try {
       const similarityWeight = 0.7;
       const confidenceWeight = 0.3;
@@ -362,7 +362,7 @@ export class ContextRetrievalOrchestrator {
   /**
    * Enrich results with additional insights and recommendations
    */
-  private async enrichResults(facts: any[], queryFeatures: any, options: any): Promise<any[]> {
+  private async enrichResults(facts: any[], _queryFeatures: any, _options: any): Promise<any[]> {
     try {
       const enrichedFacts = [];
 

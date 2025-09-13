@@ -344,28 +344,20 @@ export class EnhancedRedditDataflow {
     try {
       return await this.getRedditSentiment(ticker, currDate, lookBackDays);
     } catch (error) {
-      globalErrorManager.getLogger().log('warn', 'EnhancedRedditDataflow', 'fallback', 
-        `Reddit sentiment data failed for ${ticker}, using neutral sentiment fallback`);
+      globalErrorManager.getLogger().log('error', 'EnhancedRedditDataflow', 'fallback',
+        `Reddit sentiment data failed for ${ticker}, no fallback available`);
 
-      return this.generateFallbackSentiment(ticker, currDate, lookBackDays);
+      // Throw error instead of returning mock data
+      throw new TradingAgentError(
+        `Social sentiment data unavailable for ${ticker}`,
+        ErrorType.MISSING_DATA,
+        ErrorSeverity.MEDIUM,
+        createErrorContext('EnhancedRedditDataflow', 'getRedditSentimentWithFallback', { ticker })
+      );
     }
   }
 
-  private generateFallbackSentiment(ticker: string, currDate: string, lookBackDays: number): string {
-    return `## ${ticker} Social Sentiment Analysis (Fallback)
 
-**Date Range**: Last ${lookBackDays} days from ${currDate}
-**Status**: Social sentiment data unavailable
-**Sentiment**: Neutral (No data available)
-
-**Recommendation**: 
-- Social sentiment analysis is currently unavailable
-- Focus on fundamental and technical analysis
-- Consider general market sentiment indicators
-- Monitor official company communications
-
-**Note**: Social media sentiment data is temporarily unavailable. Trading decisions should prioritize technical and fundamental analysis.`;
-  }
 }
 
 // ========================================

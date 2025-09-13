@@ -45,7 +45,7 @@ export class UnsupervisedLearningEngine {
     const clusters = await this.performLLMClustering(examples, numClusters);
 
     // Calculate silhouette score
-    const silhouette_score = await this.calculateSilhouetteScore(clusters);
+    const silhouette_score = await this.calculateOverallSilhouetteScore(clusters);
 
     // Store clusters
     for (const cluster of clusters) {
@@ -576,9 +576,12 @@ ${this.analyzeFeaturesForAnomalies(examples)}
     }
 
     // Apply LLM-based anomaly detection
-    const threshold = llmAnalysis.threshold || 0.8;
+    const threshold: number = llmAnalysis.threshold || 0.8;
 
-    for (const [index, example] of examples.entries()) {
+    for (let index = 0; index < examples.length; index++) {
+      const example = examples[index];
+      if (!example) continue;
+
       const analysis = llmAnalysis.anomalies_analysis.find((a: any) => a.example_index === index);
       const score = analysis ? analysis.anomaly_score : 0;
 
@@ -622,15 +625,18 @@ ${this.analyzeFeaturesForAnomalies(examples)}
     // Set threshold based on contamination rate
     const sorted_scores = [...anomaly_scores].sort((a, b) => b - a);
     const threshold_index = Math.floor(contamination * examples.length);
-    const threshold = threshold_index < sorted_scores.length ? sorted_scores[threshold_index] : 0.8;
+    const threshold: number = threshold_index < sorted_scores.length && sorted_scores[threshold_index] !== undefined
+      ? sorted_scores[threshold_index]
+      : 0.8;
 
     // Identify anomalies
-    for (const [index, score] of anomaly_scores.entries()) {
-      if (score >= threshold) {
-        const example = examples[index];
-        if (example) {
-          anomalies.push(example);
-        }
+    for (let index = 0; index < examples.length; index++) {
+      const example = examples[index];
+      if (!example) continue;
+
+      const score = anomaly_scores[index];
+      if (score !== undefined && score >= threshold) {
+        anomalies.push(example);
       }
     }
 
@@ -673,7 +679,10 @@ ${this.analyzeFeaturesForAnomalies(examples)}
     }
 
     // Simple assignment: distribute examples evenly
-    for (const [index, example] of examples.entries()) {
+    for (let index = 0; index < examples.length; index++) {
+      const example = examples[index];
+      if (!example) continue;
+
       const clusterIndex = index % numClusters;
       const cluster = clusters[clusterIndex];
       if (cluster) {
@@ -706,32 +715,286 @@ ${this.analyzeFeaturesForAnomalies(examples)}
     }
   }
 
-  private async calculateSilhouetteScore(_clusters: Array<{
-    cluster_id: string;
-    centroid: number[];
-    members: LearningExample[];
-    size: number;
-    characteristics: Record<string, number>;
-  }>): Promise<number> {
-    // Placeholder for silhouette score calculation
-    return 0.5;
+  private calculateExampleSilhouetteScore(
+    example: LearningExample,
+    cluster: {
+      cluster_id: string;
+      centroid: number[];
+      members: LearningExample[];
+      size: number;
+      characteristics: Record<string, number>;
+    },
+    allClusters: Array<{
+      cluster_id: string;
+      centroid: number[];
+      members: LearningExample[];
+      size: number;
+      characteristics: Record<string, number>;
+    }>
+  ): number {
+    // Calculate average distance to other members in the same cluster (a)
+    const sameClusterMembers = cluster.members.filter(member => member.id !== example.id);
+    const a = sameClusterMembers.length > 0 ?
+      sameClusterMembers.reduce((sum, member) =>
+        sum + this.calculateDistance(example, member), 0
+      ) / sameClusterMembers.length : 0;
+
+    // Find the nearest neighboring cluster
+    let minDistance = Infinity;
+    for (const otherCluster of allClusters) {
+      if (otherCluster.cluster_id === cluster.cluster_id) continue;
+
+      const distance = this.calculateDistanceToCentroid(example, otherCluster.centroid);
+      if (distance < minDistance) {
+        minDistance = distance;
+      }
+    }
+
+    const b = minDistance === Infinity ? 0 : minDistance;
+
+    // Calculate silhouette score: (b - a) / max(a, b)
+    const denominator = Math.max(a, b);
+    const silhouetteScore = denominator === 0 ? 0 : (b - a) / denominator;
+
+    return silhouetteScore;
   }
 
-  private async calculateElbowScore(_clusters: Array<{
+  private async calculateOverallSilhouetteScore(clusters: Array<{
     cluster_id: string;
     centroid: number[];
     members: LearningExample[];
     size: number;
     characteristics: Record<string, number>;
   }>): Promise<number> {
-    // Placeholder for elbow score calculation
-    return 0.5;
+    if (clusters.length === 0) {
+      return 0.0;
+    }
+
+    try {
+      let totalSilhouetteScore = 0;
+      let totalExamples = 0;
+
+      // Calculate silhouette score for each example
+      for (const cluster of clusters) {
+        for (const member of cluster.members) {
+          const silhouetteScore = this.calculateExampleSilhouetteScore(member, cluster, clusters);
+          totalSilhouetteScore += silhouetteScore;
+          totalExamples++;
+        }
+      }
+
+      // Return average silhouette score
+      const averageSilhouetteScore = totalExamples > 0 ? totalSilhouetteScore / totalExamples : 0;
+
+      this.logger.debug('calculateOverallSilhouetteScore', 'Overall silhouette score calculated', {
+        numClusters: clusters.length,
+        totalExamples,
+        averageSilhouetteScore: averageSilhouetteScore.toFixed(3)
+      });
+
+      return averageSilhouetteScore;
+
+    } catch (error) {
+      this.logger.warn('calculateOverallSilhouetteScore', 'Silhouette score calculation failed', { error });
+      return 0.0;
+    }
+  }
+
+  private calculateDistance(example1: LearningExample, example2: LearningExample): number {
+    // Calculate Euclidean distance between feature vectors
+    const features1 = example1.features;
+    const features2 = example2.features;
+
+    const featureKeys = Object.keys(features1);
+    let sumSquaredDifferences = 0;
+
+    for (const key of featureKeys) {
+      const val1 = features1[key] || 0;
+      const val2 = features2[key] || 0;
+      sumSquaredDifferences += Math.pow(val1 - val2, 2);
+    }
+
+    return Math.sqrt(sumSquaredDifferences);
+  }
+
+  private calculateDistanceToCentroid(example: LearningExample, centroid: number[]): number {
+    // Calculate distance from example to cluster centroid
+    const features = example.features;
+    const featureKeys = Object.keys(features);
+
+    let sumSquaredDifferences = 0;
+    for (let i = 0; i < Math.min(featureKeys.length, centroid.length); i++) {
+      const key = featureKeys[i];
+      if (key !== undefined) {
+        const featureValue = features[key] || 0;
+        const centroidValue = centroid[i] || 0;
+        sumSquaredDifferences += Math.pow(featureValue - centroidValue, 2);
+      }
+    }
+
+    return Math.sqrt(sumSquaredDifferences);
+  }
+
+  private async calculateElbowScore(clusters: Array<{
+    cluster_id: string;
+    centroid: number[];
+    members: LearningExample[];
+    size: number;
+    characteristics: Record<string, number>;
+  }>): Promise<number> {
+    if (clusters.length === 0) {
+      return 0.0;
+    }
+
+    try {
+      // Calculate within-cluster sum of squares (WCSS)
+      let wcss = 0;
+
+      for (const cluster of clusters) {
+        if (cluster.members.length === 0) continue;
+
+        // Calculate sum of squared distances from members to centroid
+        for (const member of cluster.members) {
+          const distance = this.calculateDistanceToCentroid(member, cluster.centroid);
+          wcss += Math.pow(distance, 2);
+        }
+      }
+
+      // Normalize WCSS by the number of examples (to make it comparable across different dataset sizes)
+      const totalExamples = clusters.reduce((sum, cluster) => sum + cluster.members.length, 0);
+      const normalizedWcss = totalExamples > 0 ? wcss / totalExamples : 0;
+
+      // Convert to a score where higher values indicate better clustering (less WCSS is better)
+      // Use exponential decay to map WCSS to a score between 0 and 1
+      const elbowScore = Math.exp(-normalizedWcss);
+
+      this.logger.debug('calculateElbowScore', 'Elbow score calculated', {
+        numClusters: clusters.length,
+        totalExamples,
+        wcss: wcss.toFixed(3),
+        normalizedWcss: normalizedWcss.toFixed(3),
+        elbowScore: elbowScore.toFixed(3)
+      });
+
+      return elbowScore;
+
+    } catch (error) {
+      this.logger.warn('calculateElbowScore', 'Elbow score calculation failed', { error });
+      return 0.0;
+    }
   }
 
   private findElbowPoint(scores: number[]): number {
-    // Simplified elbow point detection (to be enhanced)
-    return scores.findIndex((score, index) =>
-      index > 0 && score < (scores[index - 1] || 0) * 0.9
-    );
+    if (scores.length < 3) {
+      // Not enough points to determine elbow, return middle point
+      return Math.floor(scores.length / 2);
+    }
+
+    try {
+      // Method 1: Find point with maximum distance from line connecting first and last points
+      const firstPoint = scores[0]!;
+      const lastPoint = scores[scores.length - 1]!;
+      const lineLength = scores.length - 1;
+
+      let maxDistance = 0;
+      let elbowIndex = 0;
+
+      for (let i = 1; i < scores.length - 1; i++) {
+        const currentScore = scores[i];
+        if (currentScore === undefined) continue;
+
+        // Calculate perpendicular distance from point to line
+        const distance = this.calculatePerpendicularDistance(
+          i, currentScore, 0, firstPoint, lineLength, lastPoint
+        );
+
+        if (distance > maxDistance) {
+          maxDistance = distance;
+          elbowIndex = i;
+        }
+      }
+
+      // Method 2: Find point where second derivative changes sign (acceleration point)
+      const secondDerivativeElbow = this.findSecondDerivativeElbow(scores);
+
+      // Use the more conservative estimate (smaller number of clusters)
+      const finalElbow = Math.min(elbowIndex, secondDerivativeElbow);
+
+      this.logger.debug('findElbowPoint', 'Elbow point detected', {
+        totalScores: scores.length,
+        perpendicularDistanceElbow: elbowIndex,
+        secondDerivativeElbow,
+        finalElbow,
+        maxDistance: maxDistance.toFixed(3)
+      });
+
+      return finalElbow;
+
+    } catch (error) {
+      this.logger.warn('findElbowPoint', 'Elbow point detection failed, using fallback', { error });
+      // Fallback: return the point where improvement starts to diminish
+      return scores.findIndex((score, index) =>
+        index > 0 && score !== undefined && score < (scores[index - 1] || 0) * 0.9
+      );
+    }
+  }
+
+  private calculatePerpendicularDistance(
+    x: number, y: number,
+    x1: number, y1: number,
+    x2: number, y2: number
+  ): number {
+    // Calculate perpendicular distance from point (x,y) to line from (x1,y1) to (x2,y2)
+    const numerator = Math.abs((y2 - y1) * x - (x2 - x1) * y + x2 * y1 - y2 * x1);
+    const denominator = Math.sqrt(Math.pow(y2 - y1, 2) + Math.pow(x2 - x1, 2));
+
+    return denominator > 0 ? numerator / denominator : 0;
+  }
+
+  private findSecondDerivativeElbow(scores: number[]): number {
+    if (scores.length < 4) {
+      return Math.floor(scores.length / 2);
+    }
+
+    // Calculate first derivatives (rate of change)
+    const firstDerivatives: number[] = [];
+    for (let i = 1; i < scores.length; i++) {
+      const currentScore = scores[i];
+      const previousScore = scores[i - 1];
+      if (currentScore !== undefined && previousScore !== undefined) {
+        firstDerivatives.push(currentScore - previousScore);
+      }
+    }
+
+    if (firstDerivatives.length < 2) {
+      return Math.floor(scores.length / 2);
+    }
+
+    // Calculate second derivatives (rate of change of rate of change)
+    const secondDerivatives: number[] = [];
+    for (let i = 1; i < firstDerivatives.length; i++) {
+      const currentFirst = firstDerivatives[i];
+      const previousFirst = firstDerivatives[i - 1];
+      if (currentFirst !== undefined && previousFirst !== undefined) {
+        secondDerivatives.push(currentFirst - previousFirst);
+      }
+    }
+
+    // Find where second derivative becomes positive (concavity changes)
+    // This indicates the "elbow" where the curve starts flattening
+    let elbowIndex = Math.floor(scores.length / 2); // Default to middle
+
+    for (let i = 1; i < secondDerivatives.length; i++) {
+      const currentSecond = secondDerivatives[i];
+      const previousSecond = secondDerivatives[i - 1];
+      if (currentSecond !== undefined && previousSecond !== undefined) {
+        if (currentSecond > 0 && previousSecond <= 0) {
+          elbowIndex = i + 1; // +1 because second derivatives are offset by 2
+          break;
+        }
+      }
+    }
+
+    return Math.max(1, Math.min(elbowIndex, scores.length - 2)); // Ensure valid index
   }
 }

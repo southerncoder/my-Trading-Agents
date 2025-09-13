@@ -18,6 +18,7 @@ import {
   DataflowMetricsCollector 
 } from '../utils/resilient-dataflow.js';
 import axios from 'axios';
+import { TradingAgentError, ErrorType, ErrorSeverity, createErrorContext } from '../utils/error-handler';
 
 export interface RedditSentimentAnalysis {
   symbol: string;
@@ -551,13 +552,20 @@ export class RedditAPI {
       });
     }
 
-    // Return comprehensive fallback message with alternative information
-    this.logger.warn('all-social-fallbacks-exhausted', `All social sentiment fallbacks exhausted for ${ticker}`, {
+    // Return comprehensive error message instead of mock data
+    this.logger.error('all-social-fallbacks-exhausted', `All social sentiment providers failed for ${ticker}`, {
       ticker,
       startDate
     });
 
-    return `## ${ticker} Social Media Sentiment Temporarily Unavailable\n\n**Primary Reddit service and backup social media providers are currently unavailable.**\n\n### Alternative Sentiment Sources:\n\n- **Company Official Announcements**: Check company press releases and SEC filings\n- **Financial News Sentiment**: Reuters, Bloomberg, and MarketWatch articles for market sentiment\n- **Analyst Reports**: Professional analyst sentiment from financial institutions\n- **Trading Volume Patterns**: High volume may indicate sentiment-driven trading\n- **Options Activity**: Put/call ratios can indicate market sentiment\n\n### Social Platform Status:\n- Reddit service: UNAVAILABLE\n- StockTwits fallback: ATTEMPTED\n- Twitter sentiment: ATTEMPTED\n- Discord communities: ATTEMPTED\n- Cached sentiment: CHECKED\n\n### Offline Sentiment Indicators:\n- **Market Performance**: ${ticker} recent price action may reflect sentiment\n- **Sector Analysis**: Sector-wide sentiment trends may apply\n- **Economic Indicators**: Broader market sentiment from economic data\n\n*Social sentiment monitoring will resume once providers are accessible.*`;
+    throw new TradingAgentError(
+      `Social sentiment data unavailable for ${ticker} - all providers exhausted`,
+      ErrorType.MISSING_DATA,
+      ErrorSeverity.MEDIUM,
+      createErrorContext('RedditDataflow', 'getFallbackNews', { 
+        metadata: { ticker, startDate } 
+      })
+    );
   }
 
   /**
@@ -618,12 +626,19 @@ export class RedditAPI {
       });
     }
 
-    // Return comprehensive fallback with market indicators
-    this.logger.warn('all-global-fallbacks-exhausted', 'All global sentiment fallbacks exhausted', {
+    // Return comprehensive error message instead of mock data
+    this.logger.error('all-global-fallbacks-exhausted', 'All global sentiment fallbacks exhausted', {
       startDate
     });
 
-    return `## Global Market Sentiment Analysis Temporarily Unavailable\n\n**Social media sentiment services are currently unavailable.**\n\n### Alternative Market Sentiment Indicators:\n\n#### Fear & Greed Index\n- **CNN Fear & Greed Index**: Market sentiment indicator based on 7 factors\n- **VIX Volatility Index**: Market fear gauge from options pricing\n- **Safe Haven Flows**: Gold, bonds, and USD strength indicating risk sentiment\n\n#### Market Technical Indicators\n- **Market Breadth**: Advance/decline ratios across exchanges\n- **Sector Rotation**: Money flow between defensive and growth sectors\n- **Volume Analysis**: Unusual volume patterns indicating sentiment shifts\n\n#### Economic Sentiment Proxies\n- **Consumer Confidence**: Economic confidence surveys\n- **Business Sentiment**: PMI and business confidence indicators\n- **Credit Spreads**: Corporate bond spreads indicating risk appetite\n\n### Global Sentiment Status:\n- Reddit global data: UNAVAILABLE\n- Financial aggregation: ATTEMPTED\n- Economic indicators: ATTEMPTED\n- Volatility analysis: ATTEMPTED\n- Cached global data: CHECKED\n\n### Current Market Context (${startDate}):\n- **Overall Market**: Monitor major index performance for sentiment\n- **Sector Performance**: Technology, financials, energy sector movements\n- **International Markets**: Asian and European market sentiment\n- **Currency Markets**: USD strength/weakness indicating risk sentiment\n\n*Global sentiment monitoring will resume once social media providers are accessible.*`;
+    throw new TradingAgentError(
+      `Global sentiment data unavailable - all providers exhausted`,
+      ErrorType.MISSING_DATA,
+      ErrorSeverity.MEDIUM,
+      createErrorContext('RedditDataflow', 'getFallbackGlobalNews', { 
+        metadata: { startDate } 
+      })
+    );
   }
 
   /**

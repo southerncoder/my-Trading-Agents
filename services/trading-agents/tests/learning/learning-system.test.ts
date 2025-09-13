@@ -1,93 +1,178 @@
 /**
- * Learning System Test Runner
+ * Learning System Integration Tests
  *
- * Runs all learning engine tests in sequence
+ * Tests the integration of all learning engines
  */
 
-async function runAllLearningTests() {
-  console.log('🚀 Starting Learning System Test Suite...\n');
+import { SupervisedLearningEngine } from '../../src/learning/supervised-engine';
+import { UnsupervisedLearningEngine } from '../../src/learning/unsupervised-engine';
+import { ReinforcementLearningEngine } from '../../src/learning/reinforcement-engine';
+import { LearningExample, ReinforcementLearningState } from '../../src/learning/learning-types';
 
-  const results: {
-    supervised: any;
-    unsupervised: any;
-    reinforcement: any;
-    overall: boolean;
-  } = {
-    supervised: null,
-    unsupervised: null,
-    reinforcement: null,
-    overall: false
-  };
+// Add Jest globals for TypeScript
+declare const describe: any;
+declare const it: any;
+declare const expect: any;
+declare const beforeEach: any;
+declare const jest: any;
 
-  try {
-    // Test Supervised Learning Engine
-    console.log('=' .repeat(60));
-    console.log('🧠 SUPERVISED LEARNING ENGINE TESTS');
-    console.log('=' .repeat(60));
+describe('Learning System Integration', () => {
+  let supervisedEngine: SupervisedLearningEngine;
+  let unsupervisedEngine: UnsupervisedLearningEngine;
+  let reinforcementEngine: ReinforcementLearningEngine;
+  let mockLogger: any;
 
-    const { supervisedLearningEngineTests } = await import('./supervised-engine.test.ts');
-    results.supervised = await supervisedLearningEngineTests();
-
-    // Test Unsupervised Learning Engine
-    console.log('\n' + '=' .repeat(60));
-    console.log('🔍 UNSUPERVISED LEARNING ENGINE TESTS');
-    console.log('=' .repeat(60));
-
-    const { unsupervisedLearningEngineTests } = await import('./unsupervised-engine.test.ts');
-    results.unsupervised = await unsupervisedLearningEngineTests();
-
-    // Test Reinforcement Learning Engine
-    console.log('\n' + '=' .repeat(60));
-    console.log('🎯 REINFORCEMENT LEARNING ENGINE TESTS');
-    console.log('=' .repeat(60));
-
-    const { reinforcementLearningEngineTests } = await import('./reinforcement-engine.test.ts');
-    results.reinforcement = await reinforcementLearningEngineTests();
-
-    // Summary
-    console.log('\n' + '=' .repeat(60));
-    console.log('📊 TEST SUITE SUMMARY');
-    console.log('=' .repeat(60));
-
-    const allPassed = results.supervised?.success && results.unsupervised?.success && results.reinforcement?.success;
-    results.overall = allPassed;
-
-    console.log(`Supervised Engine: ${results.supervised?.success ? '✅ PASSED' : '❌ FAILED'}`);
-    console.log(`Unsupervised Engine: ${results.unsupervised?.success ? '✅ PASSED' : '❌ FAILED'}`);
-    console.log(`Reinforcement Engine: ${results.reinforcement?.success ? '✅ PASSED' : '❌ FAILED'}`);
-    console.log(`\nOverall Result: ${allPassed ? '🎉 ALL TESTS PASSED!' : '⚠️ SOME TESTS FAILED'}`);
-
-    if (!allPassed) {
-      console.log('\n❌ Failed Tests:');
-      if (!results.supervised?.success) console.log(`  - Supervised: ${results.supervised?.error}`);
-      if (!results.unsupervised?.success) console.log(`  - Unsupervised: ${results.unsupervised?.error}`);
-      if (!results.reinforcement?.success) console.log(`  - Reinforcement: ${results.reinforcement?.error}`);
-    }
-
-    return results;
-
-  } catch (error) {
-    console.error('❌ Test suite execution failed:', error);
-    return {
-      ...results,
-      overall: false,
-      error: error instanceof Error ? error.message : String(error)
+  beforeEach(() => {
+    mockLogger = {
+      info: jest.fn(),
+      debug: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn()
     };
-  }
-}
 
-// Export for use in other files
-export { runAllLearningTests };
+    supervisedEngine = new SupervisedLearningEngine(mockLogger);
 
-// Run tests if this file is executed directly (skip in Jest environment)
-if (typeof require !== 'undefined' && require.main === module) {
-  runAllLearningTests().then((results) => {
-    if (results.overall) {
-      console.log('\n✅ Learning System Test Suite completed successfully!');
-      process.exit(0);
-    } else {
-      console.error('\n❌ Learning System Test Suite failed!');
-      process.exit(1);
-    }
+    unsupervisedEngine = new UnsupervisedLearningEngine(mockLogger);
+
+    reinforcementEngine = new ReinforcementLearningEngine({
+      learningRate: 0.1,
+      discountFactor: 0.95,
+      explorationRate: 0.8,
+      explorationDecay: 0.995,
+      minExplorationRate: 0.01
+    }, mockLogger);
   });
-}
+
+  describe('Engine Health Checks', () => {
+    it('should have all engines healthy', () => {
+      expect(supervisedEngine.getHealth()).toBe(true);
+      expect(unsupervisedEngine.getHealth()).toBe(true);
+      expect(reinforcementEngine.getHealth()).toBe(true);
+    });
+  });
+
+  describe('Supervised Learning Integration', () => {
+    it('should train and predict with supervised engine', async () => {
+      const trainingData: LearningExample[] = [
+        {
+          id: '1',
+          features: { rsi: 30, volume: 1.2, sentiment: 0.3 },
+          target: 0.05,
+          timestamp: '2025-09-07T10:00:00Z',
+          market_conditions: { volatility: 0.15, trend: 'bullish' },
+          outcome: {
+            realized_return: 0.05,
+            risk_adjusted_return: 0.03,
+            holding_period: 5,
+            confidence_score: 0.8
+          }
+        },
+        {
+          id: '2',
+          features: { rsi: 70, volume: 0.8, sentiment: 0.7 },
+          target: -0.03,
+          timestamp: '2025-09-07T11:00:00Z',
+          market_conditions: { volatility: 0.12, trend: 'bearish' },
+          outcome: {
+            realized_return: -0.03,
+            risk_adjusted_return: -0.05,
+            holding_period: 3,
+            confidence_score: 0.75
+          }
+        }
+      ];
+
+      await expect(supervisedEngine.trainModel('test_model', 'linear_regression', trainingData)).resolves.not.toThrow();
+
+      const prediction = await supervisedEngine.predict('test_model', {
+        rsi: 50,
+        volume: 1.0,
+        sentiment: 0.5
+      });
+
+      expect(typeof prediction.prediction).toBe('number');
+      expect(prediction.prediction).toBeGreaterThanOrEqual(-1);
+      expect(prediction.prediction).toBeLessThanOrEqual(1);
+    });
+  });
+
+  describe('Unsupervised Learning Integration', () => {
+    it('should cluster data with unsupervised engine', async () => {
+      const data = [
+        { rsi: 30, volume: 1.2, sentiment: 0.3 },
+        { rsi: 70, volume: 0.8, sentiment: 0.7 },
+        { rsi: 45, volume: 1.0, sentiment: 0.5 },
+        { rsi: 25, volume: 1.5, sentiment: 0.2 },
+        { rsi: 75, volume: 0.7, sentiment: 0.8 }
+      ];
+
+      const learningExamples: LearningExample[] = data.map((item: any, index: number) => ({
+        id: `example_${index}`,
+        features: item,
+        target: Math.random() * 0.1 - 0.05, // Random target between -5% and +5%
+        timestamp: new Date(Date.now() - index * 60000).toISOString(),
+        market_conditions: { volatility: 0.1 + Math.random() * 0.2 },
+        outcome: {
+          realized_return: Math.random() * 0.2 - 0.1,
+          risk_adjusted_return: Math.random() * 0.15 - 0.075,
+          holding_period: Math.floor(Math.random() * 10) + 1,
+          confidence_score: 0.5 + Math.random() * 0.4
+        }
+      }));
+
+      const clusteringResult = await unsupervisedEngine.performClustering(learningExamples, 3, 'kmeans');
+      expect(clusteringResult.clusters).toBeDefined();
+      expect(Array.isArray(clusteringResult.clusters)).toBe(true);
+      expect(clusteringResult.clusters.length).toBe(3); // Should have 3 clusters
+
+      // Check that all clusters have required properties
+      clusteringResult.clusters.forEach((cluster: any) => {
+        expect(cluster).toHaveProperty('cluster_id');
+        expect(cluster).toHaveProperty('centroid');
+        expect(cluster).toHaveProperty('members');
+        expect(cluster).toHaveProperty('size');
+      });
+    });
+  });
+
+  describe('Reinforcement Learning Integration', () => {
+    it('should learn from experience with reinforcement engine', async () => {
+      const state: ReinforcementLearningState = {
+        state_id: 'test_state',
+        market_features: { rsi: 50, volume: 1.0, sentiment: 0.5 },
+        portfolio_state: { cash: 10000, positions: 5 },
+        timestamp: '2025-09-07T10:00:00Z',
+        reward: 0.02
+      };
+
+      await expect(reinforcementEngine.learnFromExperience(state, 'BUY', 100, state)).resolves.not.toThrow();
+
+      const action = reinforcementEngine.chooseAction(state, ['BUY', 'SELL', 'HOLD']);
+      expect(['BUY', 'SELL', 'HOLD']).toContain(action);
+    });
+  });
+
+  describe('Cross-Engine Statistics', () => {
+    it('should have all engines properly initialized', () => {
+      expect(supervisedEngine.getHealth()).toBe(true);
+      expect(unsupervisedEngine.getHealth()).toBe(true);
+      expect(reinforcementEngine.getHealth()).toBe(true);
+    });
+  });
+
+  describe('Engine Insights Generation', () => {
+    it('should generate insights from learning data', async () => {
+      const states: ReinforcementLearningState[] = [
+        {
+          state_id: 'state1',
+          market_features: { rsi: 65, volume: 1.2, sentiment: 0.8 },
+          portfolio_state: { cash: 10000, positions: 5 },
+          timestamp: '2025-09-07T10:00:00Z'
+        }
+      ];
+
+      const insights = await reinforcementEngine.getInsights(states);
+      expect(Array.isArray(insights)).toBe(true);
+    });
+  });
+});

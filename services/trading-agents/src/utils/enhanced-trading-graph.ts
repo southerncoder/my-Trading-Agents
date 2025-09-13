@@ -440,38 +440,28 @@ export class EnhancedTradingGraph extends TradingAgentsGraph {
               sentiment_score: avgScore > 0 ? Math.min(avgScore / 100, 1) : Math.max(avgScore / 100, -1)
             };
           } catch (error) {
-            // Use proper error logging
+            // Use proper error logging without mock data fallback
             await globalErrorManager.handleError(
               error,
               createErrorContext('enhanced-trading-graph', 'fetchSocialData', { ticker })
             );
 
-            // Fallback to mock data if Reddit API fails
+            // Log the failure and throw error instead of returning mock data
             globalErrorManager.getLogger().log(
-              'warn',
+              'error',
               'EnhancedTradingGraph',
               'fetchSocialData',
-              `Reddit API failed for ${ticker}, using fallback data`,
+              `Reddit API failed for ${ticker} - no fallback data available`,
               { ticker, error: error instanceof Error ? error.message : String(error) }
             );
 
-            return {
-              ticker,
-              sentiment: 'neutral',
-              mentions: 5,
-              total_comments: 25,
-              average_score: 8.5,
-              posts: [
-                {
-                  title: `Market sentiment on ${ticker}`,
-                  subreddit: 'r/investing',
-                  score: 12,
-                  comments: 5
-                }
-              ],
-              source: 'reddit-fallback',
-              sentiment_score: 0.2
-            };
+            // Throw error to indicate data unavailability rather than returning mock data
+            throw new TradingAgentError(
+              `Social sentiment data unavailable for ${ticker}`,
+              ErrorType.MISSING_DATA,
+              ErrorSeverity.MEDIUM,
+              createErrorContext('enhanced-trading-graph', 'fetchSocialData', { ticker })
+            );
           }
         },
         fetchFundamentals: async (ticker: string) => {
@@ -508,7 +498,7 @@ export class EnhancedTradingGraph extends TradingAgentsGraph {
             ]);
 
             // Parse and extract key financial metrics
-            const fundamentals = this.parseFundamentalsData(balanceSheet, incomeStatement, cashFlow, ticker);
+            const fundamentals = await this.parseFundamentalsData(balanceSheet, incomeStatement, cashFlow, ticker);
 
             return {
               ticker,
@@ -531,48 +521,22 @@ export class EnhancedTradingGraph extends TradingAgentsGraph {
               createErrorContext('enhanced-trading-graph', 'fetchFundamentals', { ticker })
             );
 
-            // Fallback to mock data if fundamentals API fails
+            // Use proper error logging without mock data fallback
             globalErrorManager.getLogger().log(
-              'warn',
+              'error',
               'EnhancedTradingGraph',
               'fetchFundamentals',
-              `Fundamentals API failed for ${ticker}, using fallback data`,
+              `Fundamentals API failed for ${ticker} - no fallback data available`,
               { ticker, error: error instanceof Error ? error.message : String(error) }
             );
 
-            return {
-              ticker,
-              balance_sheet: {
-                total_assets: 1000000000,
-                total_liabilities: 600000000,
-                shareholder_equity: 400000000,
-                current_assets: 300000000,
-                current_liabilities: 200000000,
-                cash: 150000000
-              },
-              income_statement: {
-                revenue: 500000000,
-                net_income: 75000000,
-                gross_profit: 200000000,
-                operating_income: 100000000,
-                eps: 3.25
-              },
-              cash_flow: {
-                operating_cash_flow: 120000000,
-                investing_cash_flow: -50000000,
-                financing_cash_flow: -30000000,
-                net_cash_flow: 40000000
-              },
-              key_ratios: {
-                pe_ratio: 18.5,
-                pb_ratio: 2.1,
-                debt_to_equity: 1.5,
-                roe: 0.1875,
-                roa: 0.075
-              },
-              source: 'fundamentals-fallback',
-              last_updated: new Date().toISOString().split('T')[0]
-            };
+            // Throw error to indicate data unavailability rather than returning mock data
+            throw new TradingAgentError(
+              `Financial fundamentals data unavailable for ${ticker}`,
+              ErrorType.MISSING_DATA,
+              ErrorSeverity.MEDIUM,
+              createErrorContext('enhanced-trading-graph', 'fetchFundamentals', { ticker })
+            );
           }
         }
       };
@@ -724,7 +688,7 @@ export class EnhancedTradingGraph extends TradingAgentsGraph {
     return totalTime / executions.length;
   }
 
-  private parseFundamentalsData(balanceSheet: string, incomeStatement: string, cashFlow: string, ticker: string): any {
+  private async parseFundamentalsData(balanceSheet: string, incomeStatement: string, cashFlow: string, ticker: string): Promise<any> {
     try {
       // Parse balance sheet data
       const balanceSheetData = this.extractFinancialMetrics(balanceSheet);
@@ -736,7 +700,7 @@ export class EnhancedTradingGraph extends TradingAgentsGraph {
       const cashFlowData = this.extractFinancialMetrics(cashFlow);
 
       // Calculate key ratios
-      const keyRatios = this.calculateKeyRatios(balanceSheetData, incomeStatementData, cashFlowData);
+      const keyRatios = await this.calculateKeyRatios(balanceSheetData, incomeStatementData, cashFlowData, ticker);
 
       return {
         balanceSheet: balanceSheetData,
@@ -782,23 +746,58 @@ export class EnhancedTradingGraph extends TradingAgentsGraph {
     return metrics;
   }
 
-  private calculateKeyRatios(
+  private async calculateKeyRatios(
     balanceSheet: Record<string, number>,
     incomeStatement: Record<string, number>,
-    cashFlow: Record<string, number>
-  ): Record<string, number> {
+    cashFlow: Record<string, number>,
+    ticker: string
+  ): Promise<Record<string, number>> {
     const ratios: Record<string, number> = {};
 
     try {
-      // Price-to-Earnings ratio (simplified - would need current price)
-      if (incomeStatement.net_income && incomeStatement.net_income > 0) {
-        // This is a placeholder - in real implementation, you'd get current price
-        ratios.pe_ratio = 0; // Would be: currentPrice / (incomeStatement.net_income / shares_outstanding)
+      // Get current price data for P/E and P/B calculations
+      let currentPrice = 0;
+      let sharesOutstanding = 0;
+
+      try {
+        // Try to fetch current market data
+        const marketData = await this.getEnhancedDataFlow().fetchMarketData(ticker);
+        currentPrice = marketData.price || 0;
+
+        // Estimate shares outstanding from market cap (rough approximation)
+        // In a real implementation, this would come from financial data providers
+        if (currentPrice > 0 && balanceSheet.shareholder_equity) {
+          // Rough estimate: market cap ≈ 1.5-2x book value for most companies
+          const estimatedMarketCap = balanceSheet.shareholder_equity * 1.75;
+          sharesOutstanding = estimatedMarketCap / currentPrice;
+        }
+      } catch (error) {
+        globalErrorManager.getLogger().log(
+          'warn',
+          'EnhancedTradingGraph',
+          'calculateKeyRatios',
+          `Could not fetch market data for ${ticker}, using fallback values`,
+          { ticker, error: error instanceof Error ? error.message : String(error) }
+        );
+        // Use fallback values if market data is unavailable
+        currentPrice = 100; // Fallback price
+        sharesOutstanding = 1000000; // Fallback shares
+      }
+
+      // Price-to-Earnings ratio
+      if (incomeStatement.net_income && incomeStatement.net_income > 0 && sharesOutstanding > 0) {
+        const eps = incomeStatement.net_income / sharesOutstanding;
+        ratios.pe_ratio = currentPrice / eps;
+      } else {
+        ratios.pe_ratio = 0; // Cannot calculate without positive earnings
       }
 
       // Price-to-Book ratio
-      if (balanceSheet.shareholder_equity && balanceSheet.shareholder_equity > 0) {
-        ratios.pb_ratio = 0; // Would be: currentPrice / (balanceSheet.shareholder_equity / shares_outstanding)
+      if (balanceSheet.shareholder_equity && balanceSheet.shareholder_equity > 0 && sharesOutstanding > 0) {
+        const bookValuePerShare = balanceSheet.shareholder_equity / sharesOutstanding;
+        ratios.pb_ratio = currentPrice / bookValuePerShare;
+      } else {
+        ratios.pb_ratio = 0; // Cannot calculate without positive equity
       }
 
       // Debt-to-Equity ratio
@@ -826,13 +825,30 @@ export class EnhancedTradingGraph extends TradingAgentsGraph {
         ratios.operating_cash_flow_ratio = cashFlow.operating_cash_flow / balanceSheet.current_liabilities;
       }
 
+      // Log calculated ratios for debugging
+      globalErrorManager.getLogger().log(
+        'debug',
+        'EnhancedTradingGraph',
+        'calculateKeyRatios',
+        `Calculated key ratios for ${ticker}`,
+        {
+          ticker,
+          currentPrice,
+          sharesOutstanding,
+          pe_ratio: ratios.pe_ratio,
+          pb_ratio: ratios.pb_ratio,
+          debt_to_equity: ratios.debt_to_equity,
+          roe: ratios.roe
+        }
+      );
+
     } catch (error) {
       globalErrorManager.getLogger().log(
         'error',
         'EnhancedTradingGraph',
         'calculateKeyRatios',
         'Error calculating key ratios',
-        { error: error instanceof Error ? error.message : String(error) }
+        { ticker, error: error instanceof Error ? error.message : String(error) }
       );
     }
 

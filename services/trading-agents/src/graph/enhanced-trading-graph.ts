@@ -8,15 +8,23 @@
 
 import { TradingAgentsConfig } from '../types/config';
 import { ModelProvider } from '../models/index';
-import { LangGraphSetup, AnalystType } from './langgraph-working';
-import { LazyGraphSetup } from '../performance/lazy-factory';
-import { OptimizedStateManager, StateOptimizationConfig } from '../performance/state-optimization';
+import { AnalystType } from './langgraph-working';
 import { createLogger } from '../utils/enhanced-logger';
-import { 
-  AdvancedMemoryLearningSystem,
-  createAdvancedMemoryLearningSystem,
-  createDefaultConfig
-} from '../memory/advanced/index';
+import { StateOptimizationConfig } from '../performance/state-optimization';
+import {
+  MemoryManagementService,
+  WorkflowManagementService,
+  StateOptimizationService,
+  AnalyticsService,
+  ConfigurationService,
+  TestingService,
+  createMemoryManagementService,
+  createWorkflowManagementService,
+  createStateOptimizationService,
+  createAnalyticsService,
+  createConfigurationService,
+  createTestingService
+} from './services/index';
 
 const logger = createLogger('graph', 'enhanced-trading-graph');
 
@@ -48,12 +56,15 @@ export class EnhancedTradingAgentsGraph {
   private enableCaching: boolean;
   private enableStateOptimization: boolean;
   private enableAdvancedMemory: boolean;
-  private langGraphSetup?: LangGraphSetup;
-  private lazyGraphSetup?: LazyGraphSetup;
-  private stateManager?: OptimizedStateManager;
-  private advancedMemorySystem?: AdvancedMemoryLearningSystem;
-  private workflow?: any;
   private zepClientConfig?: any;
+
+  // Service instances
+  private memoryService: MemoryManagementService;
+  private workflowService: WorkflowManagementService;
+  private stateService: StateOptimizationService;
+  private analyticsService: AnalyticsService;
+  private configurationService: ConfigurationService;
+  private testingService: TestingService;
 
   constructor(graphConfig: TradingGraphConfig) {
     this.config = graphConfig.config;
@@ -65,19 +76,41 @@ export class EnhancedTradingAgentsGraph {
     this.enableAdvancedMemory = graphConfig.enableAdvancedMemory ?? true;
     this.zepClientConfig = graphConfig.zepClientConfig;
 
-    // Initialize state optimization if enabled
-    if (this.enableStateOptimization) {
-      const stateConfig: StateOptimizationConfig = graphConfig.stateOptimizationConfig || {
-        enableDiffing: true,
-        enableSnapshot: false, // Disabled for performance unless needed
-        maxSnapshots: 5,
-        compressionThreshold: 1024,
-        enableWeakRefs: true
-      };
-      this.stateManager = new OptimizedStateManager(stateConfig);
-    }
+    // Initialize services
+    this.memoryService = createMemoryManagementService({
+      enableAdvancedMemory: this.enableAdvancedMemory,
+      zepClientConfig: this.zepClientConfig
+    });
 
-    logger.info('constructor', 'Enhanced Trading Agents Graph initialized', {
+    this.workflowService = createWorkflowManagementService({
+      enableLangGraph: this.enableLangGraph,
+      enableLazyLoading: this.enableLazyLoading,
+      selectedAnalysts: this.selectedAnalysts,
+      modelConfigs: ModelProvider.createFromConfig(this.config),
+      config: this.config
+    });
+
+    this.stateService = createStateOptimizationService({
+      enableStateOptimization: this.enableStateOptimization,
+      stateOptimizationConfig: graphConfig.stateOptimizationConfig
+    });
+
+    this.analyticsService = createAnalyticsService({
+      enableAnalytics: true // Always enable analytics for monitoring
+    });
+
+    this.configurationService = createConfigurationService({
+      config: this.config,
+      selectedAnalysts: this.selectedAnalysts,
+      enableLangGraph: this.enableLangGraph,
+      workflowInitialized: false
+    });
+
+    this.testingService = createTestingService({
+      enableTesting: true // Always enable testing capabilities
+    });
+
+    logger.info('constructor', 'Enhanced Trading Agents Graph initialized with services', {
       selectedAnalysts: this.selectedAnalysts,
       enableLangGraph: this.enableLangGraph,
       enableLazyLoading: this.enableLazyLoading,
@@ -86,101 +119,32 @@ export class EnhancedTradingAgentsGraph {
       enableAdvancedMemory: this.enableAdvancedMemory
     });
 
-    if (this.enableLangGraph) {
-      this.initializeLangGraph();
-    }
-
-    if (this.enableLazyLoading) {
-      this.initializeLazyLoading();
-    }
-
-    if (this.enableAdvancedMemory) {
-      // Initialize advanced memory in background
-      this.initializeAdvancedMemory()        .catch((error: any) => {
-        logger.error('constructor', 'Failed to initialize advanced memory system', {
-          error: error instanceof Error ? error.message : String(error)
-        });
-      });
-    }
+    // Initialize components asynchronously
+    this.initializeComponents();
   }
 
   /**
-   * Initialize LangGraph setup
+   * Initialize components asynchronously
    */
-  private initializeLangGraph() {
-    const modelConfigs = ModelProvider.createFromConfig(this.config);
-    
-    this.langGraphSetup = new LangGraphSetup({
-      selectedAnalysts: this.selectedAnalysts,
-      modelConfigs,
-      config: this.config
-    });
-  }
-
-  /**
-   * Initialize lazy loading setup
-   */
-  private initializeLazyLoading() {
-    // For now, lazy loading setup is deferred until workflow initialization
-    // This avoids type conflicts with ModelProvider
-    logger.info('initializeLazyLoading', 'Lazy loading enabled, will initialize on demand');
-  }
-
-  /**
-   * Initialize advanced memory system
-   */
-  private async initializeAdvancedMemory() {
-    if (!this.zepClientConfig) {
-      logger.warn('initializeAdvancedMemory', 'No Zep client config provided, advanced memory disabled');
-      return;
-    }
-
+  private async initializeComponents(): Promise<void> {
     try {
-      // Import the Zep Graphiti memory provider
-      const { ZepGraphitiMemoryProvider } = await import('../providers/zep-graphiti/zep-graphiti-memory-provider-client');
-
-      // Create the Zep provider first
-      const zepProvider = new ZepGraphitiMemoryProvider({
-        serviceUrl: this.zepClientConfig.base_url || 'http://localhost:8000',
-        sessionId: this.zepClientConfig.session_id || `trading-session-${Date.now()}`,
-        userId: this.zepClientConfig.user_id || 'trading-agent',
-        maxResults: 100
-      }, {
-        provider: 'openai',
-        model: 'gpt-4o-mini',
-        temperature: 0.3,
-        maxTokens: 1000
-      });
-
-      // Test the connection
-      const connected = await zepProvider.testConnection();
-      if (!connected) {
-        throw new Error('Failed to connect to Zep Graphiti service');
+      // Initialize workflow service components
+      if (this.enableLangGraph) {
+        this.workflowService.initializeLangGraph();
       }
 
-      // Create default configuration for the advanced memory system
-      const memoryConfig = createDefaultConfig({
-        api_key: this.zepClientConfig.api_key || '',
-        base_url: this.zepClientConfig.base_url || 'http://localhost:8000',
-        session_id: this.zepClientConfig.session_id || `trading-session-${Date.now()}`,
-        user_id: this.zepClientConfig.user_id || 'trading-agent'
-      });
+      if (this.enableLazyLoading) {
+        this.workflowService.initializeLazyLoading();
+      }
 
-      // Create the advanced memory learning system with the Zep provider
-      this.advancedMemorySystem = createAdvancedMemoryLearningSystem(memoryConfig, zepProvider);
-
-      // Initialize the system
-      await this.advancedMemorySystem.initialize();
-
-      logger.info('initializeAdvancedMemory', 'Advanced memory system initialized successfully', {
-        sessionId: memoryConfig.zep_client_config.session_id,
-        userId: memoryConfig.zep_client_config.user_id
-      });
+      // Initialize advanced memory in background
+      if (this.enableAdvancedMemory) {
+        await this.memoryService.initializeAdvancedMemory();
+      }
     } catch (error) {
-      logger.error('initializeAdvancedMemory', 'Failed to initialize advanced memory system', {
+      logger.error('initializeComponents', 'Failed to initialize components', {
         error: error instanceof Error ? error.message : String(error)
       });
-      throw error; // Re-throw to prevent silent failures
     }
   }
 
@@ -188,52 +152,22 @@ export class EnhancedTradingAgentsGraph {
    * Get lazy loading statistics
    */
   getLazyLoadingStats() {
-    if (!this.lazyGraphSetup) {
-      return { message: 'Lazy loading not yet initialized' };
-    }
-    return this.lazyGraphSetup.getStats();
+    return this.workflowService.getLazyLoadingStats();
   }
 
   /**
    * Pre-warm common components in background
    */
   async preWarmComponents(): Promise<void> {
-    if (!this.enableLazyLoading || !this.lazyGraphSetup) {
-      logger.info('preWarmComponents', 'Lazy loading not enabled, skipping pre-warming');
-      return;
-    }
-
-    logger.info('preWarmComponents', 'Starting component pre-warming');
-
-    const promises = [];
-    
-    // Pre-warm selected analysts
-    promises.push(this.lazyGraphSetup.preWarmCommonAgents(this.selectedAnalysts));
-    
-    // Pre-warm dataflows
-    promises.push(this.lazyGraphSetup.preWarmDataflows());
-
-    await Promise.allSettled(promises);
-    
-    logger.info('preWarmComponents', 'Component pre-warming completed');
+    return this.workflowService.preWarmComponents();
   }
 
   /**
    * Create and initialize the workflow
    */
   async initializeWorkflow(): Promise<void> {
-    if (!this.enableLangGraph || !this.langGraphSetup) {
-      throw new Error('LangGraph is not enabled or initialized');
-    }
-
-    try {
-      logger.info('initializeWorkflow', 'Initializing trading workflow...');
-      this.workflow = await this.langGraphSetup.createComprehensiveTradingWorkflow(this.selectedAnalysts);
-      logger.info('initializeWorkflow', 'Trading workflow initialized successfully');
-    } catch (error) {
-      logger.error('initializeWorkflow', 'Error initializing workflow', { error: error instanceof Error ? error.message : String(error) });
-      throw error;
-    }
+    await this.workflowService.initializeWorkflow();
+    this.configurationService.setWorkflowInitialized(true);
   }
 
   /**
@@ -244,42 +178,7 @@ export class EnhancedTradingAgentsGraph {
     result?: any;
     error?: string;
   }> {
-    if (!this.workflow) {
-      await this.initializeWorkflow();
-    }
-
-    try {
-      logger.info('execute', `Executing trading analysis for ${companyOfInterest} on ${tradeDate}...`, { 
-        company: companyOfInterest, 
-        tradeDate 
-      });
-      
-      const { HumanMessage } = await import('@langchain/core/messages');
-      
-      const initialMessage = new HumanMessage({
-        content: `Analyze ${companyOfInterest} for trading on ${tradeDate}. Provide comprehensive analysis including market conditions, sentiment, news, and fundamentals.`
-      });
-
-      const result = await this.workflow.invoke({
-        messages: [initialMessage]
-      });
-
-      logger.info('execute', 'Trading analysis completed successfully', { 
-        company: companyOfInterest,
-        resultType: typeof result 
-      });
-      return { success: true, result };
-    } catch (error) {
-      logger.error('execute', 'Error executing trading analysis', { 
-        company: companyOfInterest,
-        tradeDate,
-        error: error instanceof Error ? error.message : String(error) 
-      });
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error'
-      };
-    }
+    return this.workflowService.executeWorkflow(companyOfInterest, tradeDate);
   }
 
   /**
@@ -295,10 +194,10 @@ export class EnhancedTradingAgentsGraph {
     let memoryInsights: any = null;
 
     // Get advanced memory insights if available
-    if (this.enableAdvancedMemory && this.advancedMemorySystem) {
+    if (this.memoryService.isAdvancedMemoryAvailable()) {
       try {
         const { TradingIntelligenceRequestSchema } = await import('../memory/advanced/index');
-        
+
         const intelligenceRequest = TradingIntelligenceRequestSchema.parse({
           request_id: `${companyOfInterest}-${tradeDate}-${Date.now()}`,
           agent_id: 'enhanced-trading-graph',
@@ -323,7 +222,7 @@ export class EnhancedTradingAgentsGraph {
           }
         });
 
-        memoryInsights = await this.advancedMemorySystem.processIntelligenceRequest(intelligenceRequest);
+        memoryInsights = await this.memoryService.processIntelligenceRequest(intelligenceRequest);
         logger.info('analyzeAndDecide', 'Advanced memory insights retrieved', {
           company: companyOfInterest,
           processingTime: memoryInsights.processing_time_ms
@@ -336,7 +235,7 @@ export class EnhancedTradingAgentsGraph {
     }
 
     const execution = await this.execute(companyOfInterest, tradeDate);
-    
+
     if (!execution.success) {
       return {
         decision: 'ERROR',
@@ -359,7 +258,7 @@ export class EnhancedTradingAgentsGraph {
       if (riskFactors.length > 0) {
         reasoning.push(`Memory Analysis: Identified ${riskFactors.length} risk factors from historical patterns`);
       }
-      
+
       const adjustedConfidence = memoryInsights.market_intelligence?.confidence_analysis?.adjusted_confidence;
       if (adjustedConfidence !== undefined) {
         confidence = Math.max(confidence, adjustedConfidence);
@@ -370,7 +269,7 @@ export class EnhancedTradingAgentsGraph {
     for (const message of messages) {
       if (message.content) {
         reasoning.push(message.content);
-        
+
         // Simple decision extraction logic
         const content = message.content.toLowerCase();
         if (content.includes('buy') || content.includes('bullish')) {
@@ -387,13 +286,8 @@ export class EnhancedTradingAgentsGraph {
     }
 
     // Post-decision learning: store this analysis for future learning
-    if (this.enableAdvancedMemory && this.advancedMemorySystem && memoryInsights) {
-      this.storePredictionForLearning(companyOfInterest, tradeDate, decision, confidence, memoryInsights.request_id)
-        .catch((error: any) => {
-          logger.warn('analyzeAndDecide', 'Failed to store prediction for learning', {
-            error: error instanceof Error ? error.message : String(error)
-          });
-        });
+    if (this.memoryService.isAdvancedMemoryAvailable() && memoryInsights) {
+      await this.memoryService.storePredictionForLearning(companyOfInterest, tradeDate, decision, confidence, memoryInsights.request_id);
     }
 
     return {
@@ -414,54 +308,28 @@ export class EnhancedTradingAgentsGraph {
     langGraphEnabled: boolean;
     workflowInitialized: boolean;
   } {
-    return {
-      llmProvider: this.config.llmProvider,
-      selectedAnalysts: this.selectedAnalysts,
-      langGraphEnabled: this.enableLangGraph,
-      workflowInitialized: !!this.workflow
-    };
+    return this.configurationService.getConfigInfo();
   }
 
   /**
    * Test the workflow connectivity
    */
   async testWorkflow(): Promise<{ success: boolean; error?: string }> {
-    if (!this.langGraphSetup) {
-      return { success: false, error: 'LangGraph not initialized' };
-    }
-
-    return await this.langGraphSetup.testWorkflow();
+    return this.workflowService.testWorkflow();
   }
 
   /**
    * Get state optimization statistics
    */
   getStateOptimizationStats() {
-    if (!this.enableStateOptimization || !this.stateManager) {
-      return { message: 'State optimization not enabled' };
-    }
-    return this.stateManager.getOptimizationStats();
+    return this.stateService.getStateOptimizationStats();
   }
 
   /**
    * Optimized state update using state manager
    */
   async updateStateOptimized(currentState: any, updates: any): Promise<any> {
-    if (!this.enableStateOptimization || !this.stateManager) {
-      // Fallback to standard update
-      return { ...currentState, ...updates };
-    }
-
-    const { newState, diff } = this.stateManager.updateState(currentState, updates);
-    
-    logger.info('updateStateOptimized', 'State updated with optimization', {
-      diffSize: diff.size,
-      changes: diff.modifications.length,
-      additions: diff.additions.length,
-      removals: diff.removals.length
-    });
-
-    return newState;
+    return this.stateService.updateStateOptimized(currentState, updates);
   }
 
   /**
@@ -474,47 +342,7 @@ export class EnhancedTradingAgentsGraph {
     confidence: number,
     requestId: string
   ): Promise<void> {
-    if (!this.enableAdvancedMemory || !this.advancedMemorySystem) {
-      logger.info('storePredictionForLearning', 'Advanced memory not available, storing prediction metadata locally', {
-        company: companyOfInterest,
-        tradeDate,
-        decision,
-        confidence,
-        requestId
-      });
-      return;
-    }
-
-    try {
-      // Store the prediction as an episode in Zep Graphiti
-      const predictionContent = `Prediction for ${companyOfInterest} on ${tradeDate}: ${decision} (confidence: ${(confidence * 100).toFixed(1)}%)`;
-      const metadata = {
-        prediction_type: 'trading_decision',
-        company: companyOfInterest,
-        trade_date: tradeDate,
-        decision: decision,
-        confidence: confidence,
-        request_id: requestId,
-        timestamp: new Date().toISOString()
-      };
-
-      // Use the Zep provider to store the prediction
-      // The AdvancedMemoryLearningSystem will handle this internally through its Zep provider
-      // For now, we log the prediction details for future outcome learning
-      logger.info('storePredictionForLearning', 'Prediction stored for future learning via Zep Graphiti', {
-        company: companyOfInterest,
-        tradeDate,
-        decision,
-        confidence,
-        requestId,
-        predictionContent,
-        metadata
-      });
-    } catch (error) {
-      logger.warn('storePredictionForLearning', 'Failed to store prediction for learning', {
-        error: error instanceof Error ? error.message : String(error)
-      });
-    }
+    await this.memoryService.storePredictionForLearning(companyOfInterest, tradeDate, decision, confidence, requestId);
   }
 
   /**
@@ -526,49 +354,14 @@ export class EnhancedTradingAgentsGraph {
     actualVolatility: number,
     unexpectedEvents: Array<{ event: string; impact: number }> = []
   ): Promise<void> {
-    if (!this.enableAdvancedMemory || !this.advancedMemorySystem) {
-      logger.warn('updateWithOutcome', 'Advanced memory not available for outcome learning');
-      return;
-    }
-
-    try {
-      // Update the advanced memory system with actual outcomes for learning
-      await this.advancedMemorySystem.updateWithOutcome(requestId, {
-        actual_return: actualReturn,
-        actual_volatility: actualVolatility,
-        actual_max_drawdown: Math.min(0, actualReturn), // Simplified max drawdown calculation
-        unexpected_events: unexpectedEvents // Pass through as-is, the system will handle the transformation
-      });
-
-      logger.info('updateWithOutcome', 'Outcome updated for learning via Zep Graphiti', {
-        requestId,
-        actualReturn,
-        actualVolatility,
-        unexpectedEventsCount: unexpectedEvents.length
-      });
-    } catch (error) {
-      logger.error('updateWithOutcome', 'Failed to update outcome', {
-        error: error instanceof Error ? error.message : String(error)
-      });
-    }
+    await this.memoryService.updateWithOutcome(requestId, actualReturn, actualVolatility, unexpectedEvents);
   }
 
   /**
    * Get advanced memory analytics
    */
   async getAdvancedMemoryAnalytics(): Promise<any> {
-    if (!this.enableAdvancedMemory || !this.advancedMemorySystem) {
-      return { message: 'Advanced memory not enabled' };
-    }
-
-    try {
-      return await this.advancedMemorySystem.getSystemAnalytics();
-    } catch (error) {
-      logger.error('getAdvancedMemoryAnalytics', 'Failed to get analytics', {
-        error: error instanceof Error ? error.message : String(error)
-      });
-      return { error: 'Failed to retrieve analytics' };
-    }
+    return this.memoryService.getAdvancedMemoryAnalytics();
   }
 
   /**
@@ -605,44 +398,7 @@ export class EnhancedTradingAgentsGraph {
    * Run a complete integration test
    */
   static async runIntegrationTest(): Promise<boolean> {
-    try {
-      logger.info('runIntegrationTest', '🚀 Running Enhanced Trading Agents Graph Integration Test...');
-
-      // Create test instance
-      const graph = this.createTestInstance();
-      
-      // Test configuration
-      const configInfo = graph.getConfigInfo();
-      logger.info('runIntegrationTest', 'Configuration loaded successfully', { config: configInfo });
-
-      // Test workflow initialization
-      await graph.initializeWorkflow();
-      logger.info('runIntegrationTest', 'Workflow initialized successfully');
-
-      // Test workflow connectivity
-      const testResult = await graph.testWorkflow();
-      if (testResult.success) {
-        logger.info('runIntegrationTest', 'Workflow connectivity test passed');
-      } else {
-        logger.error('runIntegrationTest', 'Workflow connectivity test failed', { error: testResult.error });
-        return false;
-      }
-
-      // Test full analysis
-      const analysisResult = await graph.analyzeAndDecide('AAPL', '2025-08-24');
-      logger.info('runIntegrationTest', 'Full analysis test completed successfully', {
-        decision: analysisResult.decision,
-        confidence: analysisResult.confidence,
-        reasoningCount: analysisResult.reasoning.length
-      });
-
-      logger.info('runIntegrationTest', '🎉 All Enhanced Trading Agents Graph tests passed!');
-      return true;
-    } catch (error) {
-      logger.error('runIntegrationTest', 'Enhanced Trading Agents Graph test failed', { 
-        error: error instanceof Error ? error.message : String(error) 
-      });
-      return false;
-    }
+    const testingService = createTestingService({ enableTesting: true });
+    return testingService.runIntegrationTest();
   }
 }
