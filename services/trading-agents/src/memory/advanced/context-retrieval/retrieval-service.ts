@@ -3,7 +3,7 @@ import { SimilarityAlgorithms } from '../similarity-algorithms';
 import { DataExtraction } from '../data-extraction';
 import { MLRanking } from '../ml-ranking';
 import { ContextRetrievalUtils } from '../utilities';
-import { createLogger } from '../../../utils/enhanced-logger';
+// import { createLogger } from '../../../utils/enhanced-logger';
 
 /**
  * Service handling retrieval, scoring, and ranking of memories
@@ -27,9 +27,9 @@ export class RetrievalService {
   }
 
   async retrieveRelevantContext(
-    criteria: ContextRetrievalCriteria
+    _criteria: ContextRetrievalCriteria
   ): Promise<{ retrieved_memories: RetrievedMemoryContext[]; relevance_metrics: ContextRelevanceMetrics; search_insights: any }> {
-    const startTime = Date.now();
+    const _startTime = Date.now();
     // ...existing implementation extracted from ContextRetrievalLayer...
     throw new Error('retrieveRelevantContext logic not yet implemented in RetrievalService');
   }

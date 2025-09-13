@@ -170,10 +170,28 @@ jest.mock('@langchain/google-genai', () => {
 
 // Mock external APIs
 jest.mock('axios', () => ({
+  __esModule: true,
   default: {
     get: jest.fn(),
     post: jest.fn(),
-    create: jest.fn()
+    put: jest.fn(),
+    delete: jest.fn(),
+    patch: jest.fn(),
+    create: jest.fn(() => ({
+      get: jest.fn(),
+      post: jest.fn(),
+      put: jest.fn(),
+      delete: jest.fn(),
+      patch: jest.fn(),
+      interceptors: {
+        request: { use: jest.fn() },
+        response: { use: jest.fn() }
+      }
+    })),
+    interceptors: {
+      request: { use: jest.fn() },
+      response: { use: jest.fn() }
+    }
   }
 }));
 

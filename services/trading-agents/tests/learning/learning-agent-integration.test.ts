@@ -6,6 +6,13 @@ import { LearningAgentBase } from '../../src/agents/base/learning-agent';
 import { AgentState } from '../../src/agents/utils/agent-states';
 import { AgentLLMConfig } from '../../src/types/agent-config';
 
+// Add Jest globals for TypeScript
+declare const describe: any;
+declare const it: any;
+declare const expect: any;
+declare const beforeEach: any;
+declare const jest: any;
+
 class TestLearningAgent extends LearningAgentBase {
   constructor() {
     const mockLLM = {
@@ -106,6 +113,21 @@ async function testLearningAgent() {
     console.error('❌ Learning Agent Integration Test Failed:', error);
   }
 }
+
+// Jest test wrapper
+describe('Learning Agent Integration', () => {
+  it('should create test learning agent', () => {
+    const agent = new TestLearningAgent();
+    expect(agent).toBeDefined();
+    expect(agent.constructor.name).toBe('TestLearningAgent');
+  });
+
+  it('should have required methods', () => {
+    const agent = new TestLearningAgent();
+    expect(typeof (agent as any).process).toBe('function');
+    expect(typeof (agent as any).getLearnedInsights).toBe('function');
+  });
+});
 
 // Run test
 testLearningAgent();

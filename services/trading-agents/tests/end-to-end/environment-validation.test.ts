@@ -12,6 +12,13 @@ import { GoogleNewsAPI } from '../../src/dataflows/google-news';
 import { RedditAPI } from '../../src/dataflows/reddit';
 import { ZepGraphitiMemoryProvider, createZepGraphitiMemory, EpisodeType } from '../../src/providers/zep-graphiti/zep-graphiti-memory-provider-client';
 
+// Add Jest globals for TypeScript
+declare const describe: any;
+declare const it: any;
+declare const expect: any;
+declare const beforeEach: any;
+declare const jest: any;
+
 const logger = createLogger('test', 'EnvironmentValidation');
 
 interface ValidationResult {
@@ -502,10 +509,36 @@ class EnvironmentValidator {
 // Export for use in tests
 export { EnvironmentValidator };
 
+// Jest test wrapper
+describe('Environment Validation', () => {
+  let validator: EnvironmentValidator;
+
+  beforeEach(() => {
+    validator = new EnvironmentValidator();
+  });
+
+  describe('Environment Validator', () => {
+    it('should create validator instance', () => {
+      expect(validator).toBeDefined();
+      expect(typeof validator).toBe('object');
+    });
+
+    it('should have validateAll method', () => {
+      expect(typeof (validator as any).validateAll).toBe('function');
+    });
+
+    it('should run validation without throwing', async () => {
+      // Note: This test may take time and require actual environment setup
+      // In CI/CD, this would be skipped or run conditionally
+      await expect((validator as any).validateAll()).resolves.not.toThrow();
+    }, 60000); // 60 second timeout for comprehensive validation
+  });
+});
+
 // Run if called directly
 if (require.main === module) {
   const validator = new EnvironmentValidator();
-  validator.validateAll().catch(error => {
+  validator.validateAll().catch((error: any) => {
     console.error('Environment validation failed:', error);
     process.exit(1);
   });

@@ -8,12 +8,7 @@
  * - Tree-based feature importance
  * - Ensemble feature selection methods
  * - Feature importance calculation with multiple algorithms
- * - Feature stability analysis
- * - Cross-validation based selection
- * - Bootstrap-based feature evaluation
- */
-
-/**
+ * - Feature stability assessment and cross-validation
  * Interface for feature selection configuration
  */
 export interface FeatureSelectionConfig {
@@ -85,6 +80,31 @@ export class FeatureSelectionEngine {
 
   /**
    * Calculate comprehensive feature importance using multiple methods
+   *
+   * This method computes feature importance scores using various statistical and
+   * machine learning approaches, providing robust and reliable importance estimates.
+   *
+   * Supported Methods:
+   * - `correlation`: Pearson correlation coefficient with target variable
+   * - `mutual_info`: Mutual information between feature and target (simplified)
+   * - `permutation`: Permutation feature importance (model-based)
+   * - `variance`: Feature variance as importance measure
+   * - `ensemble`: Weighted combination of all methods for robust estimation
+   *
+   * @param features - Array of feature objects or feature matrices
+   * @param targets - Target values for supervised learning
+   * @param method - Importance calculation method to use
+   * @returns Array of feature importance results with confidence intervals and stability scores
+   *
+   * @example
+   * ```typescript
+   * const importance = engine.calculateFeatureImportance(
+   *   [{ price: 100, volume: 1000 }, { price: 110, volume: 1200 }],
+   *   [105, 115],
+   *   'ensemble'
+   * );
+   * console.log(importance[0]); // { feature_name: 'price', importance_score: 0.85, ... }
+   * ```
    */
   calculateFeatureImportance(
     features: any[],
@@ -129,6 +149,34 @@ export class FeatureSelectionEngine {
 
   /**
    * Perform feature selection using multiple algorithms
+   *
+   * Applies various feature selection techniques to identify the most relevant
+   * features for model training, reducing dimensionality and improving performance.
+   *
+   * Selection Methods:
+   * - `recursive`: Recursive Feature Elimination (RFE) - iteratively removes least important features
+   * - `lasso`: LASSO regularization - uses L1 penalty for feature selection (simplified)
+   * - `tree_based`: Tree-based feature importance - uses decision tree algorithms (simplified)
+   * - `ensemble`: Combines multiple methods for robust feature selection
+   *
+   * @param features - Feature data for selection
+   * @param targets - Target values for supervised feature selection
+   * @param options - Configuration for feature selection algorithm
+   * @returns Selected features, elimination order, and selection criteria
+   *
+   * @example
+   * ```typescript
+   * const selection = engine.performFeatureSelection(
+   *   features,
+   *   targets,
+   *   {
+   *     method: 'recursive',
+   *     maxFeatures: 10,
+   *     eliminationThreshold: 0.01
+   *   }
+   * );
+   * console.log('Selected features:', selection.selected_features);
+   * ```
    */
   performFeatureSelection(
     features: any[],
@@ -172,6 +220,24 @@ export class FeatureSelectionEngine {
 
   /**
    * Recursive feature elimination with cross-validation
+   *
+   * Implements Recursive Feature Elimination (RFE) algorithm that iteratively
+   * removes the least important features based on importance scores, until
+   * the desired number of features is reached.
+   *
+   * Process:
+   * 1. Calculate importance scores for all features
+   * 2. Remove the least important feature
+   * 3. Recalculate importance scores for remaining features
+   * 4. Repeat until desired number of features is reached
+   *
+   * @param features - Feature data for selection
+   * @param targets - Target values for supervised learning
+   * @param featureNames - Names of features to consider
+   * @param options - Configuration options for RFE algorithm
+   * @returns Selected features and elimination order
+   *
+   * @private
    */
   private recursiveFeatureElimination(
     features: any[],
@@ -246,6 +312,24 @@ export class FeatureSelectionEngine {
 
   /**
    * LASSO-based feature selection
+   *
+   * Simulates LASSO (Least Absolute Shrinkage and Selection Operator) regularization
+   * by calculating feature importance and applying threshold-based selection.
+   * Features with importance scores below the threshold are eliminated.
+   *
+   * Process:
+   * 1. Calculate importance scores for all features
+   * 2. Determine adaptive threshold based on score distribution
+   * 3. Select features above the threshold
+   * 4. Sort by importance and limit to max features
+   *
+   * @param features - Feature data for selection
+   * @param targets - Target values for supervised learning
+   * @param featureNames - Names of features to consider
+   * @param options - Configuration options for LASSO selection
+   * @returns Selected features and elimination order
+   *
+   * @private
    */
   private lassoFeatureSelection(
     features: any[],
@@ -309,6 +393,24 @@ export class FeatureSelectionEngine {
 
   /**
    * Tree-based feature selection using feature importance
+   *
+   * Simulates tree-based feature selection by calculating importance scores
+   * and selecting the top features based on their importance ranking.
+   * This approach mimics how decision tree algorithms determine feature importance.
+   *
+   * Process:
+   * 1. Calculate importance scores for all features
+   * 2. Sort features by importance in descending order
+   * 3. Select top N features based on maxFeatures limit
+   * 4. Create elimination order for remaining features
+   *
+   * @param features - Feature data for selection
+   * @param targets - Target values for supervised learning
+   * @param featureNames - Names of features to consider
+   * @param options - Configuration options for tree-based selection
+   * @returns Selected features and elimination order
+   *
+   * @private
    */
   private treeBasedFeatureSelection(
     features: any[],
@@ -368,6 +470,26 @@ export class FeatureSelectionEngine {
 
   /**
    * Ensemble feature selection combining multiple methods
+   *
+   * Combines results from multiple feature selection algorithms (LASSO, tree-based,
+   * and recursive elimination) using a voting-based ensemble approach. This method
+   * provides robust feature selection by leveraging the strengths of different
+   * algorithms and reducing the risk of selecting irrelevant features.
+   *
+   * Ensemble Process:
+   * 1. Run all three selection methods (LASSO, tree-based, recursive)
+   * 2. Collect votes for each feature across all methods
+   * 3. Calculate ensemble scores based on voting consensus
+   * 4. Select features with majority vote or high ensemble score
+   * 5. Create elimination order for remaining features
+   *
+   * @param features - Feature data for ensemble selection
+   * @param targets - Target values for supervised learning
+   * @param featureNames - Names of features to consider
+   * @param options - Configuration options for ensemble selection
+   * @returns Selected features and elimination order with ensemble voting results
+   *
+   * @private
    */
   private ensembleFeatureSelection(
     features: any[],

@@ -85,6 +85,25 @@ export class EnsembleLearningEngine {
 
   /**
    * Create an ensemble of regression models for robust performance prediction
+   *
+   * This method implements bootstrap aggregation (bagging) to create multiple
+   * models trained on different subsets of the data, improving prediction
+   * stability and reducing overfitting.
+   *
+   * @param features - Feature matrix for model training
+   * @param targets - Target values for supervised learning
+   * @param nModels - Number of base models to create (optional, uses config default)
+   * @returns Array of trained base models
+   *
+   * @example
+   * ```typescript
+   * const models = ensembleEngine.createEnsembleModels(
+   *   [[1, 2], [3, 4], [5, 6]],
+   *   [10, 20, 30],
+   *   5
+   * );
+   * console.log(`Created ${models.length} ensemble models`);
+   * ```
    */
   createEnsembleModels(
     features: number[][],
@@ -170,14 +189,14 @@ export class EnsembleLearningEngine {
         for (let j = 0; j < samplePredictions.length; j++) {
           const prediction = samplePredictions[j];
           const weight = sampleWeights[j];
-          const contribution = prediction * weight;
+          const contribution = (prediction ?? 0) * weight;
 
           weightedSum += contribution;
           totalWeight += weight;
 
           contributions.push({
             modelIndex: j,
-            prediction,
+            prediction: prediction ?? 0,
             weight,
             contribution
           });
@@ -395,9 +414,13 @@ export class EnsembleLearningEngine {
       let pairCount = 0;
       for (let i = 0; i < allPredictions.length; i++) {
         for (let j = i + 1; j < allPredictions.length; j++) {
-          const correlation = this.calculateCorrelation(allPredictions[i], allPredictions[j]);
-          totalCorrelation += Math.abs(correlation);
-          pairCount++;
+          const predI = allPredictions[i];
+          const predJ = allPredictions[j];
+          if (predI && predJ) {
+            const correlation = this.calculateCorrelation(predI, predJ);
+            totalCorrelation += Math.abs(correlation);
+            pairCount++;
+          }
         }
       }
       const correlationDiversity = pairCount > 0 ? 1 - (totalCorrelation / pairCount) : 0;
@@ -573,18 +596,20 @@ export class EnsembleLearningEngine {
       for (let i = 0; i < nSamples; i++) {
         const target = targets[i];
         const avgPred = avgPredictions[i];
-        const individualPreds = allPredictions.map(pred => pred[i]);
+        const individualPreds = allPredictions.map(pred => pred[i]).filter(p => p !== undefined);
 
-        // Bias: squared difference between average prediction and target
-        totalBias += Math.pow(avgPred - target, 2);
+        if (target !== undefined && avgPred !== undefined && individualPreds.length > 0) {
+          // Bias: squared difference between average prediction and target
+          totalBias += Math.pow(avgPred - target, 2);
 
-        // Variance: average squared difference between individual predictions and average prediction
-        const variance = individualPreds.reduce((sum, pred) => sum + Math.pow(pred - avgPred, 2), 0) / individualPreds.length;
-        totalVariance += variance;
+          // Variance: average squared difference between individual predictions and average prediction
+          const variance = individualPreds.reduce((sum, pred) => sum + Math.pow((pred ?? 0) - avgPred, 2), 0) / individualPreds.length;
+          totalVariance += variance;
 
-        // Total error: average squared difference between individual predictions and target
-        const error = individualPreds.reduce((sum, pred) => sum + Math.pow(pred - target, 2), 0) / individualPreds.length;
-        totalError += error;
+          // Total error: average squared difference between individual predictions and target
+          const error = individualPreds.reduce((sum, pred) => sum + Math.pow((pred ?? 0) - target, 2), 0) / individualPreds.length;
+          totalError += error;
+        }
       }
 
       return {
@@ -636,7 +661,7 @@ export class EnsembleLearningEngine {
       // Update weights using exponential moving average
       const alpha = this.config.onlineLearningRate;
       const updatedWeights = currentWeights.map((weight, i) =>
-        alpha * recentPerformances[i] + (1 - alpha) * weight
+        alpha * (recentPerformances[i] ?? 0) + (1 - alpha) * weight
       );
 
       // Normalize weights
@@ -717,18 +742,23 @@ export class EnsembleLearningEngine {
 
       for (let i = 0; i < allPredictions.length; i++) {
         for (let j = i + 1; j < allPredictions.length; j++) {
-          for (let k = 0; k < allPredictions[i].length; k++) {
-            const pred1 = allPredictions[i][k];
-            const pred2 = allPredictions[j][k];
+          const predI = allPredictions[i];
+          const predJ = allPredictions[j];
 
-            if (pred1 !== undefined && pred2 !== undefined) {
-              const diff = Math.abs(pred1 - pred2);
-              const avg = (Math.abs(pred1) + Math.abs(pred2)) / 2;
+          if (predI && predJ) {
+            for (let k = 0; k < predI.length; k++) {
+              const pred1 = predI[k];
+              const pred2 = predJ[k];
 
-              // Agreement if predictions are within 10% of each other
-              const agreement = avg > 0 ? (diff / avg <= 0.1 ? 1 : 0) : 1;
-              totalAgreement += agreement;
-              totalComparisons++;
+              if (pred1 !== undefined && pred2 !== undefined) {
+                const diff = Math.abs(pred1 - pred2);
+                const avg = (Math.abs(pred1) + Math.abs(pred2)) / 2;
+
+                // Agreement if predictions are within 10% of each other
+                const agreement = avg > 0 ? (diff / avg <= 0.1 ? 1 : 0) : 1;
+                totalAgreement += agreement;
+                totalComparisons++;
+              }
             }
           }
         }

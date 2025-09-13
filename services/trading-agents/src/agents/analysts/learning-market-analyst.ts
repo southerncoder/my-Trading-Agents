@@ -7,18 +7,37 @@ import { LearningExample } from '../../learning/learning-types';
 import { createLogger } from '../../utils/enhanced-logger';
 import { withLLMResilience, OPENAI_LLM_CONFIG, createResilientLLM } from '../../utils/resilient-llm';
 
+// Import advanced memory and context tools
+import {
+  AdvancedMemoryLearningSystem,
+  TradingIntelligenceRequest
+} from '../../memory/advanced/index';
+import {
+  ContextRetrievalSystem,
+  MarketContextQuery
+} from '../../memory/advanced/context-retrieval-system';
+import { PatternRecognitionEngine } from '../../memory/pattern-recognition';
+
 /**
- * Enhanced Market Analyst with Learning Capabilities
- * Analyzes market data with integrated supervised learning for pattern recognition
+ * Enhanced Market Analyst with Advanced Memory & Context Integration
+ * Analyzes market data with integrated advanced memory system for superior pattern recognition
  */
 export class LearningMarketAnalyst extends LearningAgentBase {
   private readonly marketLogger = createLogger('agent', 'LearningMarketAnalyst');
   private readonly resilientLLM: BaseChatModel;
 
+  // Advanced memory and context systems
+  private advancedMemorySystem?: AdvancedMemoryLearningSystem;
+  private contextRetrievalSystem?: ContextRetrievalSystem;
+  private patternRecognitionEngine?: PatternRecognitionEngine;
+
   constructor(
     llm: BaseChatModel,
     tools: StructuredTool[],
-    learningConfig?: Partial<LearningAgentConfig>
+    learningConfig?: Partial<LearningAgentConfig>,
+    advancedMemorySystem?: AdvancedMemoryLearningSystem,
+    contextRetrievalSystem?: ContextRetrievalSystem,
+    patternRecognitionEngine?: PatternRecognitionEngine
   ) {
     // Configure learning specifically for market analysis
     const defaultLearningConfig: Partial<LearningAgentConfig> = {
@@ -34,7 +53,7 @@ export class LearningMarketAnalyst extends LearningAgentBase {
 
     super(
       'Learning Market Analyst',
-      'Analyzes market data with integrated learning for improved pattern recognition and prediction accuracy',
+      'Analyzes market data with integrated advanced memory system for superior pattern recognition and prediction accuracy',
       llm,
       { provider: 'openai', model: 'gpt-4o-mini' }, // Default config, will be overridden
       defaultLearningConfig,
@@ -44,11 +63,25 @@ export class LearningMarketAnalyst extends LearningAgentBase {
     // Create resilient LLM wrapper
     this.resilientLLM = createResilientLLM(llm, OPENAI_LLM_CONFIG);
 
-    this.marketLogger.info('constructor', 'LearningMarketAnalyst initialized', {
+    // Initialize advanced memory systems
+    if (advancedMemorySystem) {
+      this.advancedMemorySystem = advancedMemorySystem;
+    }
+    if (contextRetrievalSystem) {
+      this.contextRetrievalSystem = contextRetrievalSystem;
+    }
+    if (patternRecognitionEngine) {
+      this.patternRecognitionEngine = patternRecognitionEngine;
+    }
+
+    this.marketLogger.info('constructor', 'LearningMarketAnalyst initialized with advanced memory integration', {
       learningEnabled: this.learningEnabled,
       supervisedEnabled: this.learningConfig.enableSupervisedLearning,
       unsupervisedEnabled: this.learningConfig.enableUnsupervisedLearning,
-      reinforcementEnabled: this.learningConfig.enableReinforcementLearning
+      reinforcementEnabled: this.learningConfig.enableReinforcementLearning,
+      advancedMemoryEnabled: !!this.advancedMemorySystem,
+      contextRetrievalEnabled: !!this.contextRetrievalSystem,
+      patternRecognitionEnabled: !!this.patternRecognitionEngine
     });
   }
 
@@ -85,32 +118,53 @@ Remember: Your analysis improves over time through learning from market outcomes
   }
 
   /**
-   * Enhanced processing with learning integration
+   * Enhanced processing with advanced memory and context integration
    */
   protected async processWithLearning(state: AgentState): Promise<Partial<AgentState>> {
-    this.marketLogger.info('processWithLearning', 'Starting enhanced market analysis', {
+    this.marketLogger.info('processWithLearning', 'Starting enhanced market analysis with advanced memory', {
       company: state.company_of_interest || 'Unknown Company',
       tradeDate: state.trade_date,
-      hasExistingReport: !!state.market_report
+      hasExistingReport: !!state.market_report,
+      advancedMemoryEnabled: !!this.advancedMemorySystem,
+      contextRetrievalEnabled: !!this.contextRetrievalSystem,
+      patternRecognitionEnabled: !!this.patternRecognitionEngine
     });
 
     try {
+      // Get advanced context and memory insights
+      const contextInsights = await this.getAdvancedContextInsights(state);
+      const patternInsights = await this.getPatternRecognitionInsights(state);
+      const memoryInsights = await this.getMemorySystemInsights(state);
+
       // Get learned insights to enhance analysis
       const learnedInsights = await this.getLearnedInsights();
       const highConfidenceInsights = learnedInsights.filter(i => i.confidence_score > 0.8);
 
-      // Create enhanced system prompt with learned insights
-      const enhancedSystemPrompt = this.createEnhancedSystemPrompt(highConfidenceInsights);
+      // Create enhanced system prompt with all insights
+      const enhancedSystemPrompt = this.createEnhancedSystemPromptWithAdvancedContext(
+        highConfidenceInsights,
+        contextInsights,
+        patternInsights,
+        memoryInsights
+      );
 
-      // Create analysis request with learning context
-      const humanMessage = this.createEnhancedAnalysisRequest(state, learnedInsights);
+      // Create analysis request with comprehensive context
+      const humanMessage = this.createEnhancedAnalysisRequestWithContext(
+        state,
+        learnedInsights,
+        contextInsights,
+        patternInsights,
+        memoryInsights
+      );
 
-      this.marketLogger.debug('processWithLearning', 'Prepared enhanced analysis request', {
+      this.marketLogger.debug('processWithLearning', 'Prepared comprehensive analysis request', {
         insightsUsed: learnedInsights.length,
-        highConfidenceInsights: highConfidenceInsights.length
+        contextScenarios: contextInsights?.similar_scenarios?.length || 0,
+        patternsDetected: patternInsights?.detected_patterns?.length || 0,
+        memoryInsights: !!memoryInsights
       });
 
-      // Use resilient LLM with enhanced context
+      // Use resilient LLM with comprehensive context
       const response = await withLLMResilience(
         'LearningMarketAnalyst.analyze',
         async () => {
@@ -125,9 +179,12 @@ Remember: Your analysis improves over time through learning from market outcomes
       // Extract market report
       const marketReport = this.extractMarketReport(response);
 
-      this.marketLogger.info('processWithLearning', 'Enhanced market analysis completed', {
+      this.marketLogger.info('processWithLearning', 'Enhanced market analysis with advanced memory completed', {
         reportLength: marketReport.length,
-        company: state.company_of_interest || 'Unknown Company'
+        company: state.company_of_interest || 'Unknown Company',
+        contextUsed: !!contextInsights,
+        patternsUsed: !!patternInsights,
+        memoryUsed: !!memoryInsights
       });
 
       // Add response to messages
@@ -334,5 +391,263 @@ Consider the following context:
       insightType: insight.insight_type,
       confidence: insight.confidence_score
     });
+  }
+
+  /**
+   * Get advanced context insights from historical scenarios
+   */
+  private async getAdvancedContextInsights(state: AgentState): Promise<any> {
+    if (!this.contextRetrievalSystem || !state.company_of_interest) {
+      return null;
+    }
+
+    try {
+      const contextQuery: MarketContextQuery = {
+        entity_id: state.company_of_interest,
+        current_conditions: {
+          price_level: 100, // Default values - would be populated from actual market data
+          volatility: 0.2,
+          volume: 1000000,
+          market_regime: 'sideways',
+          sector_momentum: {},
+          economic_indicators: {},
+          sentiment_scores: {},
+          technical_indicators: {},
+          news_sentiment: 0
+        },
+        query_parameters: {
+          lookback_days: 1095,
+          max_results: 5,
+          min_similarity: 0.7,
+          time_decay_factor: 0.95,
+          outcome_horizons: [1, 5, 21],
+          regime_strict: false,
+          sector_weight: 0.3,
+          macro_weight: 0.4,
+          technical_weight: 0.3
+        }
+      };
+
+      const contextResult = await this.contextRetrievalSystem.findSimilarScenarios(contextQuery);
+
+      this.marketLogger.debug('getAdvancedContextInsights', 'Retrieved historical context scenarios', {
+        entityId: state.company_of_interest,
+        scenariosFound: contextResult.similar_scenarios?.length || 0
+      });
+
+      return contextResult;
+    } catch (error) {
+      this.marketLogger.warn('getAdvancedContextInsights', 'Failed to retrieve context insights', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return null;
+    }
+  }
+
+  /**
+   * Get pattern recognition insights
+   */
+  private async getPatternRecognitionInsights(state: AgentState): Promise<any> {
+    if (!this.patternRecognitionEngine || !state.company_of_interest) {
+      return null;
+    }
+
+    try {
+      // Create mock price history for pattern recognition
+      const priceHistory = [{
+        timestamp: new Date().toISOString(),
+        open: 100,
+        high: 105,
+        low: 95,
+        close: 102,
+        volume: 1000000
+      }];
+
+      const patterns = await this.patternRecognitionEngine.recognizePatterns(
+        state.company_of_interest,
+        {
+          price_history: priceHistory,
+          technical_indicators: { rsi: [65], macd: [0.5] },
+          market_context: { regime: 'sideways' }
+        }
+      );
+
+      this.marketLogger.debug('getPatternRecognitionInsights', 'Pattern recognition completed', {
+        entityId: state.company_of_interest,
+        patternsFound: patterns.patterns_detected?.market_patterns?.length || 0
+      });
+
+      return patterns;
+    } catch (error) {
+      this.marketLogger.warn('getPatternRecognitionInsights', 'Failed to get pattern insights', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return null;
+    }
+  }
+
+  /**
+   * Get insights from the advanced memory system
+   */
+  private async getMemorySystemInsights(state: AgentState): Promise<any> {
+    if (!this.advancedMemorySystem || !state.company_of_interest) {
+      return null;
+    }
+
+    try {
+      const intelligenceRequest: TradingIntelligenceRequest = {
+        request_id: `market-analysis-${state.company_of_interest}-${Date.now()}`,
+        agent_id: 'learning-market-analyst',
+        entity_id: state.company_of_interest,
+        query_type: 'market_analysis',
+        current_context: {
+          market_conditions: { ticker: state.company_of_interest, date: state.trade_date },
+          technical_indicators: {},
+          economic_indicators: {},
+          sentiment_scores: {},
+          market_regime: 'sideways',
+          price_level: 100,
+          volatility: 0.2,
+          volume: 1000000,
+          time_horizon_days: 21,
+          confidence_level: 0.5
+        },
+        preferences: {
+          include_similar_scenarios: true,
+          include_pattern_analysis: true,
+          include_risk_factors: true,
+          include_confidence_adjustment: true,
+          max_historical_scenarios: 5,
+          similarity_threshold: 0.7
+        }
+      };
+
+      const insights = await this.advancedMemorySystem.processIntelligenceRequest(intelligenceRequest);
+
+      this.marketLogger.debug('getMemorySystemInsights', 'Advanced memory insights retrieved', {
+        entityId: state.company_of_interest,
+        processingTime: insights.processing_time_ms
+      });
+
+      return insights;
+    } catch (error) {
+      this.marketLogger.warn('getMemorySystemInsights', 'Failed to get memory insights', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return null;
+    }
+  }
+
+  /**
+   * Create enhanced system prompt with advanced context
+   */
+  private createEnhancedSystemPromptWithAdvancedContext(
+    highConfidenceInsights: any[],
+    contextInsights: any,
+    patternInsights: any,
+    memoryInsights: any
+  ): string {
+    let basePrompt = this.getSystemPrompt();
+
+    // Add high confidence learned insights
+    if (highConfidenceInsights.length > 0) {
+      basePrompt += '\n\nLEARNED INSIGHTS TO CONSIDER:\n';
+      for (const insight of highConfidenceInsights.slice(0, 3)) {
+        basePrompt += `- ${insight.description} (Confidence: ${(insight.confidence_score * 100).toFixed(1)}%)\n`;
+      }
+    }
+
+    // Add historical context insights
+    if (contextInsights?.similar_scenarios?.length > 0) {
+      basePrompt += '\n\nHISTORICAL CONTEXT PATTERNS:\n';
+      basePrompt += `- Found ${contextInsights.similar_scenarios.length} similar historical scenarios\n`;
+      basePrompt += `- Consider how past similar conditions resolved\n`;
+    }
+
+    // Add pattern recognition insights
+    if (patternInsights?.patterns_detected?.market_patterns?.length > 0) {
+      basePrompt += '\n\nPATTERN RECOGNITION INSIGHTS:\n';
+      basePrompt += `- Detected ${patternInsights.patterns_detected.market_patterns.length} technical patterns\n`;
+      basePrompt += `- Pattern confidence: ${(patternInsights.pattern_confluence?.confidence_level * 100 || 0).toFixed(1)}%\n`;
+    }
+
+    // Add memory system insights
+    if (memoryInsights?.market_intelligence) {
+      const riskFactors = memoryInsights.market_intelligence.risk_assessment?.risk_factors || [];
+      if (riskFactors.length > 0) {
+        basePrompt += '\n\nMEMORY SYSTEM RISK INSIGHTS:\n';
+        basePrompt += `- Identified ${riskFactors.length} risk factors from historical patterns\n`;
+      }
+
+      const confidence = memoryInsights.market_intelligence.confidence_analysis?.adjusted_confidence;
+      if (confidence) {
+        basePrompt += `- Historical performance suggests ${(confidence * 100).toFixed(1)}% confidence level\n`;
+      }
+    }
+
+    return basePrompt;
+  }
+
+  /**
+   * Create enhanced analysis request with comprehensive context
+   */
+  private createEnhancedAnalysisRequestWithContext(
+    state: AgentState,
+    learnedInsights: any[],
+    contextInsights: any,
+    patternInsights: any,
+    memoryInsights: any
+  ): HumanMessage {
+    const company = state.company_of_interest || 'Unknown Company';
+    const baseRequest = `Please analyze the market for ${company} on ${state.trade_date}.
+
+Consider the following comprehensive context:
+- Company: ${company}
+- Analysis Date: ${state.trade_date}
+- Previous Analysis: ${state.market_report || 'None'}`;
+
+    let enhancedRequest = baseRequest;
+
+    // Add relevant learned insights
+    const relevantInsights = learnedInsights.filter(i =>
+      i.description &&
+      (i.description.toLowerCase().includes(company.toLowerCase()) ||
+       i.description.toLowerCase().includes('market') ||
+       i.description.toLowerCase().includes('technical'))
+    );
+
+    if (relevantInsights.length > 0) {
+      enhancedRequest += '\n\nRelevant Learned Patterns:';
+      for (const insight of relevantInsights.slice(0, 2)) {
+        enhancedRequest += `\n- ${insight.description}`;
+      }
+    }
+
+    // Add historical context
+    if (contextInsights?.similar_scenarios?.length > 0) {
+      enhancedRequest += '\n\nHistorical Context:';
+      enhancedRequest += `\n- Found ${contextInsights.similar_scenarios.length} similar market conditions`;
+      enhancedRequest += '\n- Consider how these historical scenarios resolved';
+    }
+
+    // Add pattern insights
+    if (patternInsights?.patterns_detected?.market_patterns?.length > 0) {
+      enhancedRequest += '\n\nTechnical Patterns Detected:';
+      enhancedRequest += `\n- ${patternInsights.patterns_detected.market_patterns.length} patterns identified`;
+      if (patternInsights.actionable_insights?.length > 0) {
+        enhancedRequest += `\n- ${patternInsights.actionable_insights.length} actionable signals`;
+      }
+    }
+
+    // Add memory insights
+    if (memoryInsights?.market_intelligence) {
+      const riskFactors = memoryInsights.market_intelligence.risk_assessment?.risk_factors || [];
+      if (riskFactors.length > 0) {
+        enhancedRequest += '\n\nRisk Assessment from Memory:';
+        enhancedRequest += `\n- ${riskFactors.length} risk factors identified from historical patterns`;
+      }
+    }
+
+    return new HumanMessage(enhancedRequest);
   }
 }

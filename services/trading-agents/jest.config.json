@@ -1,19 +1,18 @@
 {
-  "preset": "ts-jest",
+  "preset": "ts-jest/presets/default-esm",
   "testEnvironment": "node",
+  "extensionsToTreatAsEsm": [".ts"],
+  "transform": {
+    "^.+\\.ts$": ["ts-jest", {
+      "useESM": true,
+      "tsconfig": "<rootDir>/tsconfig.dev.json"
+    }]
+  },
   "roots": ["<rootDir>/src", "<rootDir>/tests"],
   "testMatch": [
     "**/__tests__/**/*.ts",
     "**/?(*.)+(spec|test).ts"
   ],
-  "transform": {
-    "^.+\\.ts$": "ts-jest"
-  },
-  "globals": {
-    "ts-jest": {
-      "tsconfig": "<rootDir>/tsconfig.dev.json"
-    }
-  },
   "collectCoverageFrom": [
     "src/**/*.ts",
     "!src/**/*.d.ts",
@@ -56,5 +55,9 @@
   "verbose": true,
   "errorOnDeprecated": true,
   "clearMocks": true,
-  "restoreMocks": true
+  "restoreMocks": true,
+  "moduleFileExtensions": ["ts", "js", "mjs"],
+  "transformIgnorePatterns": [
+    "node_modules/(?!(ml-regression|ml-cross-validation)/)"
+  ]
 }

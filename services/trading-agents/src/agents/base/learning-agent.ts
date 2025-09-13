@@ -347,9 +347,187 @@ export abstract class LearningAgentBase extends AbstractAgent implements Learnin
   }
 
   private async getUnsupervisedInsights(): Promise<any[]> {
-    // This would integrate with unsupervised engine results
-    // For now, return empty array
-    return [];
+    if (!this.unsupervisedEngine) {
+      this.logger.debug('getUnsupervisedInsights', 'No unsupervised engine available');
+      return [];
+    }
+
+    try {
+      // Use available experience buffer for analysis
+      if (this.experienceBuffer.length < 3) {
+        this.logger.debug('getUnsupervisedInsights', 'Insufficient data for unsupervised analysis', {
+          bufferSize: this.experienceBuffer.length
+        });
+        return [];
+      }
+
+      const insights: any[] = [];
+
+      // Perform clustering analysis if we have enough data
+      if (this.experienceBuffer.length >= 5) {
+        try {
+          const clusteringResult = await this.unsupervisedEngine.performClustering(
+            this.experienceBuffer,
+            3, // Use 3 clusters as default
+            'kmeans'
+          );
+
+          // Create insights from clustering results
+          for (const cluster of clusteringResult.clusters) {
+            insights.push({
+              insight_id: `cluster_${cluster.cluster_id}_${Date.now()}`,
+              insight_type: 'pattern',
+              confidence_score: 0.7, // Default confidence for clustering insights
+              description: `Identified market pattern cluster with ${cluster.size} similar experiences`,
+              supporting_evidence: [
+                `Cluster ${cluster.cluster_id} contains ${cluster.size} experiences`,
+                `Silhouette score: ${clusteringResult.silhouette_score.toFixed(3)}`,
+                `Cluster characteristics available: ${Object.keys(cluster.characteristics).length > 0}`
+              ],
+              actionable_recommendations: [
+                'Consider similar strategies for experiences in this cluster',
+                'Monitor for new experiences matching this pattern',
+                'Use cluster characteristics to inform future decisions'
+              ],
+              timestamp: new Date().toISOString(),
+              validity_period: {
+                start: new Date().toISOString(),
+                end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+              },
+              source: 'unsupervised',
+              cluster_info: cluster
+            });
+          }
+
+          this.logger.debug('getUnsupervisedInsights', 'Generated clustering insights', {
+            numClusters: clusteringResult.clusters.length,
+            silhouetteScore: clusteringResult.silhouette_score
+          });
+
+        } catch (error) {
+          this.logger.warn('getUnsupervisedInsights', 'Clustering analysis failed', {
+            error: error instanceof Error ? error.message : String(error)
+          });
+        }
+      }
+
+      // Perform anomaly detection if we have enough data
+      if (this.experienceBuffer.length >= 10) {
+        try {
+          const anomalyResult = await this.unsupervisedEngine.detectAnomalies(
+            this.experienceBuffer,
+            0.1, // 10% contamination rate
+            'isolation_forest'
+          );
+
+          // Create insights from anomaly detection results
+          for (const anomaly of anomalyResult.anomalies) {
+            const anomalyScore = anomalyResult.anomaly_scores[anomalyResult.anomalies.indexOf(anomaly)] || 0;
+
+            insights.push({
+              insight_id: `anomaly_${anomaly.id}_${Date.now()}`,
+              insight_type: 'warning',
+              confidence_score: Math.min(anomalyScore, 0.95), // Cap at 95% confidence
+              description: `Detected anomalous market behavior with anomaly score ${(anomalyScore * 100).toFixed(1)}%`,
+              supporting_evidence: [
+                `Anomaly score: ${(anomalyScore * 100).toFixed(1)}%`,
+                `Detection threshold: ${(anomalyResult.threshold * 100).toFixed(1)}%`,
+                `Total anomalies detected: ${anomalyResult.anomalies.length}`
+              ],
+              actionable_recommendations: [
+                'Increase risk monitoring for similar conditions',
+                'Consider adjusting position sizes during anomalous periods',
+                'Review strategy assumptions when anomalies are detected',
+                'Monitor for recurrence of this anomaly pattern'
+              ],
+              timestamp: new Date().toISOString(),
+              validity_period: {
+                start: new Date().toISOString(),
+                end: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
+              },
+              source: 'unsupervised',
+              anomaly_info: {
+                id: anomaly.id,
+                score: anomalyScore,
+                threshold: anomalyResult.threshold
+              }
+            });
+          }
+
+          this.logger.debug('getUnsupervisedInsights', 'Generated anomaly insights', {
+            numAnomalies: anomalyResult.anomalies.length,
+            threshold: anomalyResult.threshold
+          });
+
+        } catch (error) {
+          this.logger.warn('getUnsupervisedInsights', 'Anomaly detection failed', {
+            error: error instanceof Error ? error.message : String(error)
+          });
+        }
+      }
+
+      // Perform optimal cluster analysis if we have sufficient data
+      if (this.experienceBuffer.length >= 15) {
+        try {
+          const optimalResult = await this.unsupervisedEngine.findOptimalClusters(
+            this.experienceBuffer,
+            8 // Test up to 8 clusters
+          );
+
+          insights.push({
+            insight_id: `optimal_clusters_${Date.now()}`,
+            insight_type: 'strategy',
+            confidence_score: 0.6,
+            description: `Optimal number of market clusters determined to be ${optimalResult.optimal_clusters}`,
+            supporting_evidence: [
+              `Recommended clusters: ${optimalResult.recommended_clusters}`,
+              `Analysis tested up to 8 clusters`,
+              `Elbow analysis completed with ${optimalResult.elbow_scores.length} data points`
+            ],
+            actionable_recommendations: [
+              `Use ${optimalResult.recommended_clusters} clusters for market segmentation`,
+              'Re-evaluate clustering strategy based on optimal cluster count',
+              'Consider adjusting analysis granularity based on cluster recommendations'
+            ],
+            timestamp: new Date().toISOString(),
+            validity_period: {
+              start: new Date().toISOString(),
+              end: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
+            },
+            source: 'unsupervised',
+            optimal_cluster_info: optimalResult
+          });
+
+          this.logger.debug('getUnsupervisedInsights', 'Generated optimal cluster insight', {
+            optimalClusters: optimalResult.optimal_clusters,
+            recommendedClusters: optimalResult.recommended_clusters
+          });
+
+        } catch (error) {
+          this.logger.warn('getUnsupervisedInsights', 'Optimal cluster analysis failed', {
+            error: error instanceof Error ? error.message : String(error)
+          });
+        }
+      }
+
+      this.logger.info('getUnsupervisedInsights', 'Generated unsupervised learning insights', {
+        totalInsights: insights.length,
+        bufferSize: this.experienceBuffer.length,
+        analysisTypes: {
+          clustering: insights.some(i => i.insight_id.startsWith('cluster_')),
+          anomalies: insights.some(i => i.insight_id.startsWith('anomaly_')),
+          optimalClusters: insights.some(i => i.insight_id.startsWith('optimal_clusters_'))
+        }
+      });
+
+      return insights;
+
+    } catch (error) {
+      this.logger.error('getUnsupervisedInsights', 'Failed to get unsupervised insights', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return [];
+    }
   }
 
   private async createAndLearnFromExperience(state: AgentState, result: Partial<AgentState>): Promise<void> {
