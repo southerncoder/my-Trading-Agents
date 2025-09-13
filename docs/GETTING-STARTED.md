@@ -12,7 +12,7 @@
 1. **Clone the repository**
    ```bash
    git clone https://github.com/southerncoder/my-Trading-Agents
-   cd my-Trading-Agents/js
+   cd my-Trading-Agents/services/trading-agents
    ```
 
 2. **Install dependencies**

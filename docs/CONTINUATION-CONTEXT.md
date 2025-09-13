@@ -1,6 +1,6 @@
 # CONTINUATION-CONTEXT.md
 
-## Machine Migration & Environment Setup Checklist (as of 2025-08-30)
+## Machine Migration & Environment Setup Checklist (as of 2025-09-13)
 
 This file documents the minimum steps and environment variables required to set up the TradingAgents system on a new machine or after a migration.
 
@@ -8,18 +8,16 @@ This file documents the minimum steps and environment variables required to set 
 
 ## 1. Environment Variables (Required)
 
-Copy `.env.local.example` to `.env.local` and fill in the following values:
+Copy `.env.example` to `.env.local` and fill in the following values:
 
 - `LLM_PROVIDER` (e.g., `lm_studio`, `openai`, `anthropic`, `google`)
-- `LM_STUDIO_HOST` (if using LM Studio, e.g., `localhost` or `remote-host`)
-- `LLM_BACKEND_URL` (e.g., `http://localhost:1234/v1`)
+- `LLM_BACKEND_URL` (e.g., `http://localhost:1234/v1` for LM Studio)
 - `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY` (if using cloud LLMs)
-- `FINNHUB_API_KEY`, `ALPHA_VANTAGE_API_KEY`, `NEWS_API_KEY` (for financial data)
-- `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET`, `REDDIT_USERNAME`, `REDDIT_PASSWORD` (for Reddit integration)
-- `JWT_SECRET`, `ENCRYPTION_KEY` (for production security)
-- `ZEP_GRAPHITI_URL`, `NEO4J_URL`, `NEO4J_USERNAME`, `NEO4J_PASSWORD` (for memory/graph services)
+- `FINNHUB_API_KEY`, `ALPHA_VANTAGE_API_KEY`, `MARKETSTACK_API_KEY` (for financial data)
+- `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET` (for Reddit integration)
+- `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD` (for memory/graph services)
 
-> **Note:** Never commit `.env.local` with real secrets. Only `.env.local.example` should be tracked in git.
+> **Note:** Never commit `.env.local` with real secrets. Only `.env.example` should be tracked in git.
 
 ---
 
@@ -27,7 +25,7 @@ Copy `.env.local.example` to `.env.local` and fill in the following values:
 
 - Start LM Studio (local or network, ensure model is preloaded if needed)
 - Start Zep Graphiti and Neo4j (see `py_zep/README.md` for Docker instructions)
-- Run `npm install` in `js/` to install dependencies
+- Run `npm install` in `services/trading-agents/` to install dependencies
 - Run `npm test` to validate the setup
 
 ---
@@ -36,7 +34,6 @@ Copy `.env.local.example` to `.env.local` and fill in the following values:
 
 - Run `npm run cli` for CLI interface
 - Run `npm run test-enhanced` for enhanced tests
-- Run `npm run health-check` to check all services
 - Confirm all tests pass and no secrets are present in committed files
 
 ---
