@@ -12,7 +12,7 @@
         "Line":  3895,
         "Type":  "Potential secret",
         "Severity":  "low",
-        "Context":  "-OPENAI_API_KEY=sk-development-key-here### COMPLETED ACTIONS G£à",
+        "Context":  "-OPENAI_API_KEY=sk-development-key-here### COMPLETED ACTIONS Gï¿½ï¿½",
         "Snippet":  "[REDACTED]"
     },
     {
@@ -44,7 +44,7 @@
         "Line":  7692,
         "Type":  "Potential secret",
         "Severity":  "low",
-        "Context":  "-OPENAI_API_KEY=sk-development-key-here### COMPLETED ACTIONS G£à",
+        "Context":  "-OPENAI_API_KEY=sk-development-key-here### COMPLETED ACTIONS Gï¿½ï¿½",
         "Snippet":  "[REDACTED]"
     },
     {
@@ -60,7 +60,7 @@
         "Line":  9526,
         "Type":  "Potential secret",
         "Severity":  "low",
-        "Context":  "+OPENAI_API_KEY=sk-development-key-here### COMPLETED ACTIONS G£à",
+        "Context":  "+OPENAI_API_KEY=sk-development-key-here### COMPLETED ACTIONS Gï¿½ï¿½",
         "Snippet":  "[REDACTED]"
     },
     {
@@ -76,7 +76,7 @@
         "Line":  10559,
         "Type":  "Potential secret",
         "Severity":  "low",
-        "Context":  "+OPENAI_API_KEY=sk-development-key-here### COMPLETED ACTIONS G£à",
+        "Context":  "+OPENAI_API_KEY=sk-development-key-here### COMPLETED ACTIONS Gï¿½ï¿½",
         "Snippet":  "[REDACTED]"
     },
     {
@@ -156,7 +156,7 @@
         "Line":  534,
         "Type":  "Potential secret",
         "Severity":  "low",
-        "Context":  "        \"Context\":  \"-OPENAI_API_KEY=sk-development-key-here### COMPLETED ACTIONS G£à\"",
+        "Context":  "        \"Context\":  \"-OPENAI_API_KEY=sk-development-key-here### COMPLETED ACTIONS Gï¿½ï¿½\"",
         "Snippet":  "[REDACTED]"
     },
     {
@@ -188,7 +188,7 @@
         "Line":  906,
         "Type":  "Potential secret",
         "Severity":  "low",
-        "Context":  "        \"Context\":  \"-OPENAI_API_KEY=sk-development-key-here### COMPLETED ACTIONS G£à\"",
+        "Context":  "        \"Context\":  \"-OPENAI_API_KEY=sk-development-key-here### COMPLETED ACTIONS Gï¿½ï¿½\"",
         "Snippet":  "[REDACTED]"
     },
     {
@@ -204,7 +204,7 @@
         "Line":  1032,
         "Type":  "Potential secret",
         "Severity":  "low",
-        "Context":  "        \"Context\":  \"+OPENAI_API_KEY=sk-development-key-here### COMPLETED ACTIONS G£à\"",
+        "Context":  "        \"Context\":  \"+OPENAI_API_KEY=sk-development-key-here### COMPLETED ACTIONS Gï¿½ï¿½\"",
         "Snippet":  "[REDACTED]"
     },
     {
@@ -220,7 +220,7 @@
         "Line":  1104,
         "Type":  "Potential secret",
         "Severity":  "low",
-        "Context":  "        \"Context\":  \"+OPENAI_API_KEY=sk-development-key-here### COMPLETED ACTIONS G£à\"",
+        "Context":  "        \"Context\":  \"+OPENAI_API_KEY=sk-development-key-here### COMPLETED ACTIONS Gï¿½ï¿½\"",
         "Snippet":  "[REDACTED]"
     },
     {
@@ -300,7 +300,7 @@
         "Line":  3606,
         "Type":  "Potential secret",
         "Severity":  "low",
-        "Context":  "        \"Context\":  \"        \\\"Context\\\":  \\\"-OPENAI_API_KEY=sk-development-key-here### COMPLETED ACTIONS G£à\\\"\"",
+        "Context":  "        \"Context\":  \"        \\\"Context\\\":  \\\"-OPENAI_API_KEY=sk-development-key-here### COMPLETED ACTIONS Gï¿½ï¿½\\\"\"",
         "Snippet":  "[REDACTED]"
     },
     {
@@ -332,7 +332,7 @@
         "Line":  4422,
         "Type":  "Potential secret",
         "Severity":  "low",
-        "Context":  "        \"Context\":  \"        \\\"Context\\\":  \\\"-OPENAI_API_KEY=sk-development-key-here### COMPLETED ACTIONS G£à\\\"\"",
+        "Context":  "        \"Context\":  \"        \\\"Context\\\":  \\\"-OPENAI_API_KEY=sk-development-key-here### COMPLETED ACTIONS Gï¿½ï¿½\\\"\"",
         "Snippet":  "[REDACTED]"
     },
     {
@@ -348,7 +348,7 @@
         "Line":  4722,
         "Type":  "Potential secret",
         "Severity":  "low",
-        "Context":  "        \"Context\":  \"        \\\"Context\\\":  \\\"+OPENAI_API_KEY=sk-development-key-here### COMPLETED ACTIONS G£à\\\"\"",
+        "Context":  "        \"Context\":  \"        \\\"Context\\\":  \\\"+OPENAI_API_KEY=sk-development-key-here### COMPLETED ACTIONS Gï¿½ï¿½\\\"\"",
         "Snippet":  "[REDACTED]"
     },
     {
@@ -364,7 +364,7 @@
         "Line":  4866,
         "Type":  "Potential secret",
         "Severity":  "low",
-        "Context":  "        \"Context\":  \"        \\\"Context\\\":  \\\"+OPENAI_API_KEY=sk-development-key-here### COMPLETED ACTIONS G£à\\\"\"",
+        "Context":  "        \"Context\":  \"        \\\"Context\\\":  \\\"+OPENAI_API_KEY=sk-development-key-here### COMPLETED ACTIONS Gï¿½ï¿½\\\"\"",
         "Snippet":  "[REDACTED]"
     },
     {
