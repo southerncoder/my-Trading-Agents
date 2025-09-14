@@ -1,6 +1,6 @@
 /**
  * Comprehensive Agent Integration Tests with LM Studio
- * Tests all 12 agents against lm_studio provider with microsoft/phi-4-mini-reasoning
+ * Tests all 12 agents against remote_lmstudio provider with microsoft/phi-4-mini-reasoning
  * 
  * This test suite verifies:
  * 1. Each agent can be instantiated with LM Studio provider
@@ -30,7 +30,7 @@ import { PortfolioManager } from '../dist/agents/risk-mgmt/portfolio-manager.js'
 
 // Test configuration
 const TEST_CONFIG = {
-  provider: 'lm_studio',
+  provider: 'remote_lmstudio',
   modelName: 'microsoft/phi-4-mini-reasoning',
   baseURL: 'http://localhost:1234/v1',
   temperature: 0.3, // Lower temperature for more consistent test results

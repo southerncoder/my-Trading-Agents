@@ -15,14 +15,14 @@ async function testBasicConnection() {
       modelName: 'microsoft/phi-4-mini-reasoning',
       openAIApiKey: 'not-needed-for-local',
       configuration: {
-        baseURL: process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1'
+        baseURL: process.env.REMOTE_LM_STUDIO_BASE_URL
       },
       temperature: 0.3,
       maxTokens: 100,
       timeout: 10000
     });
 
-    console.log(`🌐 Connecting to LM Studio at ${process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1'}`);
+    console.log(`🌐 Connecting to LM Studio at ${process.env.REMOTE_LM_STUDIO_BASE_URL}`);
     console.log('🤖 Model: microsoft/phi-4-mini-reasoning');
     
     const startTime = Date.now();
@@ -41,7 +41,7 @@ async function testBasicConnection() {
     console.error('❌ Connection failed:', error.message);
     console.error('💡 Troubleshooting checklist:');
     console.error('   1. ✅ LM Studio is running');
-    console.error(`   2. ✅ Server is on ${process.env.LM_STUDIO_BASE_URL?.replace('/v1', '') || 'http://localhost:1234'}`);
+    console.error(`   2. ✅ Server is on ${process.env.REMOTE_LM_STUDIO_BASE_URL?.replace('/v1', '')}`);
     console.error('   3. ✅ Model microsoft/phi-4-mini-reasoning is loaded');
     console.error('   4. ✅ Model is not busy processing another request');
     console.error('\n🔧 In LM Studio:');
@@ -63,9 +63,9 @@ async function testModelProvider() {
     const { ModelProvider } = await import('../../dist/models/provider.js');
     
     const config = {
-      provider: 'lm_studio',
+      provider: 'remote_lmstudio',
       modelName: 'microsoft/phi-4-mini-reasoning',
-      baseURL: process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1',
+      baseURL: process.env.REMOTE_LM_STUDIO_BASE_URL,
       temperature: 0.3,
       maxTokens: 100
     };

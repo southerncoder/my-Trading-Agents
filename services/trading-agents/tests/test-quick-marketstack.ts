@@ -48,7 +48,7 @@ async function quickMarketStackTest() {
     // Test 2: Unified Provider with Failover
     console.log('\n🔄 Testing Unified Provider Failover...');
     
-    const config = { llmProvider: 'lm_studio', selectedAnalysts: ['market'], enableLangGraph: false };
+    const config = { llmProvider: 'remote_lmstudio', selectedAnalysts: ['market'], enableLangGraph: false };
     const unified = new UnifiedMarketDataProvider(config);
     
     // Provider status

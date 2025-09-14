@@ -66,7 +66,8 @@ ANTHROPIC_API_KEY=your_anthropic_key
 GOOGLE_API_KEY=your_google_key
 
 # Local LLM (optional)
-LM_STUDIO_BASE_URL=http://localhost:1234/v1
+LOCAL_LM_STUDIO_BASE_URL=http://localhost:1234/v1
+REMOTE_LM_STUDIO_BASE_URL=http://remote-server:1234/v1
 
 # Market Data (optional - has free tiers)
 ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key

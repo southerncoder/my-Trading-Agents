@@ -1,5 +1,8 @@
 /**
- * Advanced Memory & Context Tools Integration Example
+ * Advanced Memory & Context Tools        llmProvider: 'remote_lmstudio',
+        deepThinkLlm: 'microsoft/phi-4-mini-reasoning',
+        quickThinkLlm: 'microsoft/phi-4-mini-reasoning',
+        maxDebateRounds: 3,gration Example
  *
  * This example demonstrates how to integrate the comprehensive advanced memory
  * and context tools into trading agents for superior analysis capabilities.
@@ -37,10 +40,9 @@ export class AdvancedMemoryIntegrationExample {
         dataCacheDir: './cache',
         exportsDir: './exports',
         logsDir: './logs',
-        llmProvider: 'lm_studio',
+        llmProvider: 'remote_lmstudio',
         deepThinkLlm: 'microsoft/phi-4-mini-reasoning',
         quickThinkLlm: 'microsoft/phi-4-mini-reasoning',
-        backendUrl: 'http://localhost:1234/v1',
         maxDebateRounds: 3,
         maxRiskDiscussRounds: 3,
         maxRecurLimit: 5,

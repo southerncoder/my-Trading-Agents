@@ -1,11 +1,15 @@
 /**
- * Simple Remote LM Studio Test
+ import {
+  REMOTE_LMSTUDIO_BASE_URL,
+  TRADING_AGENT_MODEL_ASSIGNMENTS,
+  MODEL_PERFORMANCE_PROFILES
+} from '../../config/remote-lmstudio.config';ple Remote LM Studio Test
  * 
- * Basic connectivity and model testing for remote LM Studio at ${REMOTE_LM_STUDIO_URL}
+ * Basic connectivity and model testing for remote LM Studio at ${REMOTE_LM_STUDIO_BASE_URL}
  */
 
 import {
-  REMOTE_LM_STUDIO_BASE_URL,
+  REMOTE_LMSTUDIO_BASE_URL,
   TRADING_AGENT_MODEL_ASSIGNMENTS,
   MODEL_PERFORMANCE_PROFILES
 } from '../config/remote-lmstudio.config';
@@ -65,8 +69,8 @@ class SimpleTestRunner {
 }
 
 async function fetchModels(): Promise<any> {
-  console.log(`🔍 Fetching models from: ${REMOTE_LM_STUDIO_BASE_URL}/models`);
-  const response = await fetch(`${REMOTE_LM_STUDIO_BASE_URL}/models`);
+  console.log(`🔍 Fetching models from: ${REMOTE_LMSTUDIO_BASE_URL}/models`);
+  const response = await fetch(`${REMOTE_LMSTUDIO_BASE_URL}/models`);
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
   }
@@ -77,7 +81,7 @@ async function fetchModels(): Promise<any> {
 
 async function testModelCompletion(modelId: string, prompt: string): Promise<any> {
   console.log(`🤖 Testing model: ${modelId} with prompt: "${prompt.substring(0, 50)}..."`);
-  const response = await fetch(`${REMOTE_LM_STUDIO_BASE_URL}/chat/completions`, {
+  const response = await fetch(`${REMOTE_LMSTUDIO_BASE_URL}/chat/completions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -101,7 +105,7 @@ async function testModelCompletion(modelId: string, prompt: string): Promise<any
 
 async function main(): Promise<void> {
   console.log('🚀 Starting Remote LM Studio Integration Tests');
-  console.log(`📡 Remote LM Studio: ${REMOTE_LM_STUDIO_BASE_URL}`);
+  console.log(`📡 Remote LM Studio: ${REMOTE_LMSTUDIO_BASE_URL}`);
   
   const runner = new SimpleTestRunner();
 

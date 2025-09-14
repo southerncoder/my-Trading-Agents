@@ -47,9 +47,9 @@ describe('Learning System Integration Tests (Real LM Studio Models)', () => {
 
     // Initialize real LM Studio LLM using the remote service
     const lmStudioConfig: AgentLLMConfig = {
-      provider: 'lm_studio',
+      provider: 'remote_lmstudio',
       model: 'mistralai/devstral-small-2507', // Use actual model from LM Studio
-      baseUrl: process.env.REMOTE_LM_STUDIO_BASE_URL,
+      baseUrl: process.env.REMOTE_LMSTUDIO_BASE_URL,
       temperature: 0.7,
       maxTokens: 2048,
       timeout: 30000

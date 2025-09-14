@@ -43,7 +43,11 @@ export class LMStudioMemoryProvider implements MemoryProvider {
 
   constructor(config: AgentLLMConfig) {
     this.config = config;
-    this.baseUrl = config.baseUrl || process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1';
+    const baseUrl = config.baseUrl || process.env.LM_STUDIO_BASE_URL;
+    if (!baseUrl) {
+      throw new Error('baseUrl in config or LM_STUDIO_BASE_URL environment variable is required');
+    }
+    this.baseUrl = baseUrl;
 
     this.logger.info('initialize', 'LMStudioMemoryProvider initialized', {
       baseUrl: this.baseUrl,

@@ -168,10 +168,15 @@ export class UnsupervisedLearningEngine {
 
     try {
       // Create LM Studio model for clustering analysis
+      const baseUrl = process.env.REMOTE_LM_STUDIO_BASE_URL;
+      if (!baseUrl) {
+        throw new Error('REMOTE_LM_STUDIO_BASE_URL environment variable is required');
+      }
+
       const modelConfig: AgentLLMConfig = {
-        provider: 'lm_studio',
+        provider: 'remote_lmstudio',
         model: 'mistralai/devstral-small-2507', // Use actual model from LM Studio
-        baseUrl: process.env.REMOTE_LM_STUDIO_URL || 'http://localhost:1234/v1',
+        baseUrl,
         temperature: 0.2, // Low temperature for consistent clustering
         maxTokens: 1500
       };
@@ -263,10 +268,15 @@ Provide your analysis as JSON:
   }> {
     try {
       // Create LM Studio model for anomaly detection
+      const baseUrl = process.env.REMOTE_LM_STUDIO_BASE_URL;
+      if (!baseUrl) {
+        throw new Error('REMOTE_LM_STUDIO_BASE_URL environment variable is required');
+      }
+
       const modelConfig: AgentLLMConfig = {
-        provider: 'lm_studio',
+        provider: 'remote_lmstudio',
         model: 'mistralai/devstral-small-2507', // Use actual model from LM Studio
-        baseUrl: process.env.REMOTE_LM_STUDIO_URL || 'http://localhost:1234/v1',
+        baseUrl,
         temperature: 0.1, // Low temperature for consistent anomaly detection
         maxTokens: 1000
       };

@@ -23,7 +23,7 @@ async function testClientMemoryIntegration() {
     };
 
     const agentConfig = {
-      provider: 'lm_studio' as const,
+      provider: 'remote_lmstudio' as const,
       model: 'dolphin-2.9-llama3-8b',
       apiKey: process.env.OPENAI_API_KEY || 'test-key-placeholder',
       baseUrl: 'http://localhost:1234/v1',

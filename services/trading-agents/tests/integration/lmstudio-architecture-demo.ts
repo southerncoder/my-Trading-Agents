@@ -15,7 +15,7 @@ const logger = createLogger('test', 'LMStudioArchitectureDemo');
  * Configuration for local LM Studio (fallback when remote is unavailable)
  */
 const LOCAL_LM_STUDIO_CONFIG: ModelConfig = {
-  provider: 'lm_studio',
+  provider: 'remote_lmstudio',
   modelName: 'llama-3.2-3b-instruct',
   baseURL: 'http://localhost:1234/v1',
   temperature: 0.7,
@@ -41,9 +41,9 @@ const OLLAMA_CONFIG: ModelConfig = {
  * Configuration for remote LM Studio (when available via environment variables)
  */
 const REMOTE_LM_STUDIO_CONFIG: ModelConfig = {
-  provider: 'lm_studio',
+  provider: 'remote_lmstudio',
   modelName: 'llama-3.2-3b-instruct',
-  baseURL: process.env.REMOTE_LM_STUDIO_URL || 'http://localhost:1234/v1',
+  baseURL: process.env.REMOTE_LM_STUDIO_BASE_URL || 'http://localhost:1234/v1',
   temperature: 0.7,
   maxTokens: 1000,
   streaming: false,
@@ -202,8 +202,8 @@ function showRemoteConfiguration(): void {
   console.log('When the remote server is available via environment variables:');
 
   console.log('\n📝 Environment Variables:');
-  console.log('   REMOTE_LM_STUDIO_URL=<your-remote-lm-studio-url>');
-  console.log('   LM_STUDIO_ADMIN_URL=<your-remote-admin-url>');
+  console.log('   REMOTE_LM_STUDIO_BASE_URL=<your-remote-lm-studio-url>');
+  console.log('   REMOTE_LM_STUDIO_API_KEY=<your-remote-lm-studio-api-key>');
 
   console.log('\n🔧 Model Provider Configuration:');
   console.log(`   Provider: ${REMOTE_LM_STUDIO_CONFIG.provider}`);
@@ -214,7 +214,7 @@ function showRemoteConfiguration(): void {
   console.log(`   const model = await ModelProvider.createModelAsync(${JSON.stringify(REMOTE_LM_STUDIO_CONFIG, null, 2)});`);
 
   console.log('\n🔄 Singleton Pattern with Remote:');
-  console.log('   const singleton = getLMStudioSingleton(process.env.REMOTE_LM_STUDIO_URL);');
+  console.log('   const singleton = getLMStudioSingleton(process.env.REMOTE_LM_STUDIO_BASE_URL);');
   console.log('   const model = await singleton.getModel(remoteConfig);');
 }
 

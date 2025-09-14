@@ -18,7 +18,7 @@ async function testLearningMarketAnalyst() {
       temperature: 0.3,
       maxTokens: 1000,
       configuration: {
-        baseURL: process.env.LM_STUDIO_BASE_URL
+        baseURL: process.env.REMOTE_LM_STUDIO_BASE_URL
       }
     });
 

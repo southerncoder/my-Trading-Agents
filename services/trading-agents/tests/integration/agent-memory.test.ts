@@ -19,7 +19,7 @@ const testAgentConfigs = {
     model: 'claude-3-5-sonnet-20241022'
   },
   'local_agent': {
-    provider: 'lm_studio' as const,
+    provider: 'remote_lmstudio' as const,
     model: 'local-model',
     baseUrl: process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1'
   }

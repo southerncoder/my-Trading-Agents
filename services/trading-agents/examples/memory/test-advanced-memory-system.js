@@ -84,7 +84,7 @@ async function testAdvancedMemorySystem() {
     
     // Create a proper config for the trading graph
     const tradingConfig = createConfig({
-      llmProvider: 'lm_studio',
+      llmProvider: 'remote_lmstudio',
       backendUrl: 'http://localhost:1234/v1'
     });
     

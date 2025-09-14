@@ -62,8 +62,6 @@ services:
       - embedder_api_key
       - neo4j_user
       - neo4j_password
-      - lm_studio_url
-      - lm_studio_remote_url
       - brave_news_api_key
       - news_api_key
       - reddit_client_id
@@ -72,6 +70,10 @@ services:
       - reddit_username
       - reddit_password
       - marketstack_api_key
+      - local_lmstudio_base_url
+      - local_lmstudio_api_key
+      - remote_lmstudio_base_url
+      - remote_lmstudio_api_key
     volumes:
       - ./py_zep/secrets/enhanced-init.py:/init.py:ro
       - ./py_zep/graph_service/zep_graphiti.py:/app/graph_service/zep_graphiti.py:ro
@@ -247,6 +249,10 @@ services:
       - reddit_password
       - neo4j_user
       - neo4j_password
+      - local_lmstudio_base_url
+      - local_lmstudio_api_key
+      - remote_lmstudio_base_url
+      - remote_lmstudio_api_key
 
     volumes:
       - ./data:/app/data:rw
@@ -377,7 +383,13 @@ secrets:
     file: ./docker/secrets/neo4j_password.txt
 
   # LM Studio Configuration
-  lm_studio_url:
-    file: ./docker/secrets/lm_studio_url.txt
-  lm_studio_remote_url:
-    file: ./docker/secrets/lm_studio_remote_url.txt
+  local_lmstudio_base_url:
+    file: ./docker/secrets/local_lmstudio_base_url.txt
+  local_lmstudio_api_key:
+    file: ./docker/secrets/local_lmstudio_api_key.txt
+
+  # Remote LM Studio
+  remote_lmstudio_base_url:
+    file: ./docker/secrets/remote_lmstudio_base_url.txt
+  remote_lmstudio_api_key:
+    file: ./docker/secrets/remote_lmstudio_api_key.txt

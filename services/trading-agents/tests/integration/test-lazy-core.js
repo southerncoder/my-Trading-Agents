@@ -13,7 +13,7 @@ async function testLazyFactoryCore() {
         resultsDir: './results',
         dataDir: './data',
         dataCacheDir: './cache',
-        llmProvider: 'lm_studio',
+        llmProvider: 'remote_lmstudio',
         deepThinkLlm: 'phi-4-mini',
         quickThinkLlm: 'phi-4-mini',
         backendUrl: 'http://localhost:1234/v1',

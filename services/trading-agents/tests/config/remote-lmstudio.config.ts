@@ -5,7 +5,7 @@
  * Defines model assignments for different trading agents
  */
 
-export const REMOTE_LM_STUDIO_BASE_URL = process.env.REMOTE_LM_STUDIO_URL || 'http://localhost:1234/v1';
+export const REMOTE_LMSTUDIO_BASE_URL = process.env.REMOTE_LMSTUDIO_BASE_URL || 'http://localhost:1234/v1';
 
 export interface AgentModelConfig {
   modelName: string;
@@ -134,7 +134,7 @@ export const MODEL_PERFORMANCE_PROFILES = {
  * Network configuration for remote LM Studio
  */
 export const REMOTE_LM_STUDIO_CONFIG = {
-  baseUrl: REMOTE_LM_STUDIO_BASE_URL,
+  baseUrl: REMOTE_LMSTUDIO_BASE_URL,
   adminUrl: process.env.LM_STUDIO_ADMIN_URL || 'http://localhost:1234',
   timeout: 30000,
   retryAttempts: 3,
@@ -166,9 +166,9 @@ export function createAgentModelConfig(
   const profile = getPerformanceProfile(performanceProfile);
 
   return {
-    provider: 'lm_studio' as const,
+    provider: 'remote_lmstudio' as const,
     modelName: agentConfig.modelName,
-    baseURL: REMOTE_LM_STUDIO_BASE_URL,
+    baseURL: REMOTE_LMSTUDIO_BASE_URL,
     agentDescription: agentConfig.description,
     capabilities: agentConfig.capabilities,
     useCase: agentConfig.useCase,

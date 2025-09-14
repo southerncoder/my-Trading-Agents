@@ -17,7 +17,7 @@ async function testMarketDataIntegration() {
   // Create test config
   const config: TradingAgentsConfig = {
     dataDir: './test-data',
-    llmProvider: 'lm_studio',
+    llmProvider: 'remote_lmstudio',
     lmStudioUrl: 'http://localhost:1234',
     openaiApiKey: '',
     anthropicApiKey: '',

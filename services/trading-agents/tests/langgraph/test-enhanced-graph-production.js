@@ -3,7 +3,35 @@
  * Test the main orchestrator with LangGraph mode enabled
  */
 
-async function testEnhancedTradingGraphImports() {
+async     const traditionalConfig = {
+      enableLangGraph: false,
+      llmProv    // Test with performance optimizations
+    console.log('⚡ Testing performance optimizations...');
+    const perfConfig = {
+      enableLangGraph: true,
+      llmProvider: 'remote_lmstudio',
+      selectedAnalysts: ['market'],
+      enableParallelExecution: true,
+      enableIntelligentCaching: true,
+      config: {
+        provider: 'remote_lmstudio',
+        modelName: 'microsoft/phi-4-mini-reasoning',
+        baseURL: 'http://localhost:1234/v1',
+        temperature: 0.1,
+        maxTokens: 150,
+        timeout: 60000
+      }
+    };tudio',
+      selectedAnalysts: ['market'],
+      config: {
+        provider: 'remote_lmstudio',
+        modelName: 'microsoft/phi-4-mini-reasoning',
+        baseURL: 'http://localhost:1234/v1',
+        temperature: 0.1,
+        maxTokens: 200,
+        timeout: 60000
+      }
+    };EnhancedTradingGraphImports() {
   console.log('📦 TESTING ENHANCED TRADING GRAPH IMPORTS');
   console.log('='.repeat(50));
   
@@ -34,10 +62,10 @@ async function testEnhancedGraphCreation() {
     console.log('🔧 Creating graph with LangGraph enabled...');
     const graphConfig = {
       enableLangGraph: true,
-      llmProvider: 'lm_studio',
+      llmProvider: 'remote_lmstudio',
       selectedAnalysts: ['market', 'news'],
       config: {
-        provider: 'lm_studio',
+        provider: 'remote_lmstudio',
         modelName: 'microsoft/phi-4-mini-reasoning',
         baseURL: 'http://localhost:1234/v1',
         temperature: 0.1,
@@ -53,10 +81,10 @@ async function testEnhancedGraphCreation() {
     console.log('🔧 Creating graph with traditional mode...');
     const traditionalConfig = {
       enableLangGraph: false,
-      llmProvider: 'lm_studio',
+      llmProvider: 'remote_lmstudio',
       selectedAnalysts: ['market', 'news'],
       config: {
-        provider: 'lm_studio',
+        provider: 'remote_lmstudio',
         modelName: 'microsoft/phi-4-mini-reasoning',
         baseURL: 'http://localhost:1234/v1',
         temperature: 0.1,
@@ -92,10 +120,10 @@ async function testEnhancedGraphExecution() {
     console.log('📊 Testing LangGraph execution mode...');
     const langGraphConfig = {
       enableLangGraph: true,
-      llmProvider: 'lm_studio',
+      llmProvider: 'remote_lmstudio',
       selectedAnalysts: ['market'],
       config: {
-        provider: 'lm_studio',
+        provider: 'remote_lmstudio',
         modelName: 'microsoft/phi-4-mini-reasoning',
         baseURL: 'http://localhost:1234/v1',
         temperature: 0.1,
@@ -120,10 +148,10 @@ async function testEnhancedGraphExecution() {
     console.log('\n📊 Testing Traditional execution mode...');
     const traditionalConfig = {
       enableLangGraph: false,
-      llmProvider: 'lm_studio',
+      llmProvider: 'remote_lmstudio',
       selectedAnalysts: ['market'],
       config: {
-        provider: 'lm_studio',
+        provider: 'remote_lmstudio',
         modelName: 'microsoft/phi-4-mini-reasoning',
         baseURL: 'http://localhost:1234/v1',
         temperature: 0.1,
@@ -168,10 +196,10 @@ async function testEnhancedGraphFeatures() {
     console.log('👥 Testing multiple analyst selection...');
     const multiAnalystConfig = {
       enableLangGraph: true,
-      llmProvider: 'lm_studio',
+      llmProvider: 'remote_lmstudio',
       selectedAnalysts: ['market', 'news', 'fundamentals'],
       config: {
-        provider: 'lm_studio',
+        provider: 'remote_lmstudio',
         modelName: 'microsoft/phi-4-mini-reasoning',
         baseURL: 'http://localhost:1234/v1',
         temperature: 0.1,
@@ -187,12 +215,12 @@ async function testEnhancedGraphFeatures() {
     console.log('⚡ Testing performance optimizations...');
     const perfConfig = {
       enableLangGraph: true,
-      llmProvider: 'lm_studio',
+      llmProvider: 'remote_lmstudio',
       selectedAnalysts: ['market'],
       enableParallelExecution: true,
       enableIntelligentCaching: true,
       config: {
-        provider: 'lm_studio',
+        provider: 'remote_lmstudio',
         modelName: 'microsoft/phi-4-mini-reasoning',
         baseURL: 'http://localhost:1234/v1',
         temperature: 0.1,

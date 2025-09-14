@@ -13,7 +13,7 @@ import { AdvancedLearningSystem } from '../../src/learning/learning-system';
 import { createLogger } from '../../src/utils/enhanced-logger';
 import { ModelProvider, ModelConfig } from '../../src/models/provider';
 import {
-  REMOTE_LM_STUDIO_BASE_URL,
+  REMOTE_LMSTUDIO_BASE_URL,
   TRADING_AGENT_MODEL_ASSIGNMENTS,
   createAgentModelConfig
 } from '../config/remote-lmstudio.config';
@@ -289,7 +289,7 @@ describe('Learning System + Remote LM Studio Integration Tests', () => {
         market_conditions: {
           company: testCompany,
           analyst_type: 'market',
-          model_provider: 'remote_lm_studio'
+          model_provider: 'remote_lmstudio'
         },
         outcome: {
           realized_return: (Math.random() - 0.5) * 0.1, // Random return between -5% and +5%
@@ -447,7 +447,7 @@ describe('Learning System + Remote LM Studio Integration Tests', () => {
             analysis_length: result.market_report?.length || result.sentiment_report?.length ||
                            result.news_report?.length || result.fundamentals_report?.length || 0,
             processing_time: Date.now() % 1000, // Mock processing time
-            model_provider: 'remote_lm_studio'
+            model_provider: 'remote_lmstudio'
           },
           target: Math.random() > 0.5 ? 1.0 : -1.0,
           timestamp: new Date().toISOString(),

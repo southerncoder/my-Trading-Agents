@@ -7,7 +7,7 @@ async function createLMStudioModel() {
   const { ModelProvider } = await import('../dist/models/provider.js');
   
   return ModelProvider.createModel({
-    provider: 'lm_studio',
+    provider: 'remote_lmstudio',
     modelName: 'microsoft/phi-4-mini-reasoning',
     baseURL: 'http://localhost:1234/v1',
     temperature: 0.1,

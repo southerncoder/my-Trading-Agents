@@ -7,10 +7,10 @@ describe('LM Studio embeddings and prod fallback gating', () => {
     process.env = { ...originalEnv };
   });
 
-  test('LM Studio works without OPENAI_API_KEY when LM_STUDIO_BASE_URL is set', async () => {
+  test('LM Studio works without OPENAI_API_KEY when LOCAL_LMSTUDIO_BASE_URL is set', async () => {
     process.env.NODE_ENV = 'test';
     delete process.env.OPENAI_API_KEY;
-    process.env.LM_STUDIO_BASE_URL = 'http://localhost:1234/v1';
+    process.env.LOCAL_LMSTUDIO_BASE_URL = 'http://localhost:1234/v1';
 
     jest.resetModules();
   const { embedWithResilience } = await import('../../src/utils/resilient-embedder');
@@ -19,17 +19,17 @@ describe('LM Studio embeddings and prod fallback gating', () => {
     expect(res.embedding.length).toBeGreaterThan(0);
   });
 
-  test('Factory routes lm_studio to OpenAI-compatible provider when baseURL present', async () => {
+  test('Factory routes local_lmstudio to OpenAI-compatible provider when baseURL present', async () => {
     process.env.NODE_ENV = 'test';
     delete process.env.OPENAI_API_KEY;
-    process.env.LM_STUDIO_BASE_URL = 'http://localhost:1234/v1';
+    process.env.LOCAL_LMSTUDIO_BASE_URL = 'http://localhost:1234/v1';
 
     jest.resetModules();
   const { EmbeddingProviderFactory } = await import('../../src/providers/memory-provider');
     const cfg: any = {
-      provider: 'lm_studio',
+      provider: 'local_lmstudio',
       model: 'text-embedding-3-small',
-      baseUrl: process.env.LM_STUDIO_BASE_URL
+      baseUrl: process.env.LOCAL_LMSTUDIO_BASE_URL
     };
 
     const provider = EmbeddingProviderFactory.createProvider(cfg);
@@ -41,7 +41,7 @@ describe('LM Studio embeddings and prod fallback gating', () => {
   test('Local simple embedding is blocked in production without ALLOW_LOCAL_EMBEDDING', async () => {
     process.env.NODE_ENV = 'production';
     delete process.env.OPENAI_API_KEY;
-    delete process.env.LM_STUDIO_BASE_URL;
+    delete process.env.LOCAL_LMSTUDIO_BASE_URL;
     delete process.env.LLM_BACKEND_URL;
     delete process.env.ALLOW_LOCAL_EMBEDDING;
 

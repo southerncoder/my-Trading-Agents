@@ -27,7 +27,7 @@ console.log('\n2. 🔐 SECRETS & IPs VERIFICATION');
 console.log('-'.repeat(40));
 
 console.log('✅ Environment Variables Used:');
-console.log('   - LM_STUDIO_BASE_URL: localhost:1234 fallback (development only)');
+console.log('   - REMOTE_LM_STUDIO_BASE_URL: localhost:1234 fallback (development only)');
 console.log('   - OPENAI_API_KEY: Environment variable with test placeholder');
 console.log('   - No hardcoded secrets found in source code');
 

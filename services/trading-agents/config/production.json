@@ -71,7 +71,7 @@
           "maxRetries": 3,
           "rateLimit": 60
         },
-        "lm_studio": {
+        "remote_lmstudio": {
           "timeout": 30000,
           "maxRetries": 2,
           "rateLimit": 30

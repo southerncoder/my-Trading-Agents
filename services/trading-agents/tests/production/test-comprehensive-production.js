@@ -3,7 +3,20 @@
  * Test memory providers and LangChain memory components
  */
 
-async function testAgentMemoryIntegration() {
+async funct    // Create comprehensive configuration
+    const workflowConfig = {
+      enableLangGraph: true,
+      llmProvider: 'remote_lmstudio',
+      selectedAnalysts: ['market', 'news'],
+      config: {
+        provider: 'remote_lmstudio',
+        modelName: 'microsoft/phi-4-mini-reasoning',
+        baseURL: 'http://localhost:1234/v1',
+        temperature: 0.1,
+        maxTokens: 200,
+        timeout: 60000
+      }
+    };MemoryIntegration() {
   console.log('🧠 TESTING AGENT MEMORY INTEGRATION');
   console.log('='.repeat(50));
   
@@ -128,10 +141,10 @@ async function testEndToEndWorkflow() {
     // Create comprehensive configuration
     const workflowConfig = {
       enableLangGraph: true,
-      llmProvider: 'lm_studio',
+      llmProvider: 'remote_lmstudio',
       selectedAnalysts: ['market', 'news'],
       config: {
-        provider: 'lm_studio',
+        provider: 'remote_lmstudio',
         modelName: 'microsoft/phi-4-mini-reasoning',
         baseURL: 'http://localhost:1234/v1',
         temperature: 0.1,

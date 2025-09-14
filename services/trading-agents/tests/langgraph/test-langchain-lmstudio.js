@@ -60,7 +60,7 @@ async function testModelProviderWrapper() {
     
     console.log('🔧 Creating model with extended timeout...');
     const config = {
-      provider: 'lm_studio',
+      provider: 'remote_lmstudio',
       modelName: 'microsoft/phi-4-mini-reasoning',
       baseURL: 'http://localhost:1234/v1',
       temperature: 0.1,

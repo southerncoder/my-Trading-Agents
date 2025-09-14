@@ -8,12 +8,12 @@
  * - Handle connection failures gracefully
  */
 
-// NOTE: REMOTE_LM_STUDIO_URL environment variable must be set for these tests
-// This should be configured in .env.local as: REMOTE_LM_STUDIO_URL=<your-lm-studio-url>
+// NOTE: REMOTE_LMSTUDIO_BASE_URL environment variable must be set for these tests
+// This should be configured in .env.local as: REMOTE_LMSTUDIO_BASE_URL=<your-lm-studio-url>
 
 // Do NOT set fallback URLs - tests should fail if environment variable is not configured
-if (!process.env.REMOTE_LM_STUDIO_URL) {
-  throw new Error('SECURITY ERROR: REMOTE_LM_STUDIO_URL environment variable is required for tests');
+if (!process.env.REMOTE_LMSTUDIO_BASE_URL) {
+  throw new Error('SECURITY ERROR: REMOTE_LMSTUDIO_BASE_URL environment variable is required for tests');
 }
 
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
@@ -36,7 +36,7 @@ global.fetch = mockFetch;
 describe('Dynamic Model Discovery', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // NOTE: Do NOT clear REMOTE_LM_STUDIO_URL - tests require it to be set
+    // NOTE: Do NOT clear REMOTE_LMSTUDIO_BASE_URL - tests require it to be set
   });
 
   describe('Model Discovery', () => {
@@ -76,7 +76,7 @@ describe('Dynamic Model Discovery', () => {
         headers: new Headers(),
         redirected: false,
         type: 'basic' as ResponseType,
-        url: `${process.env.REMOTE_LM_STUDIO_URL}/models`,
+        url: `${process.env.REMOTE_LM_STUDIO_BASE_URL}/models`,
         clone: () => mockResponse,
         text: async () => JSON.stringify({ data: mockModels }),
         arrayBuffer: async () => new ArrayBuffer(0),
@@ -88,7 +88,7 @@ describe('Dynamic Model Discovery', () => {
 
       const models = await fetchAvailableModels();
       expect(mockFetch).toHaveBeenCalledWith(
-        `${process.env.REMOTE_LM_STUDIO_URL}/models`,
+        `${process.env.REMOTE_LM_STUDIO_BASE_URL}/models`,
         expect.objectContaining({
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
@@ -117,7 +117,7 @@ describe('Dynamic Model Discovery', () => {
 
       // Verify all assignments have required properties
       Object.values(assignments).forEach((config: any) => {
-        expect(config).toHaveProperty('provider', 'lm_studio');
+        expect(config).toHaveProperty('provider', 'remote_lmstudio');
         expect(config).toHaveProperty('modelName');
         expect(config).toHaveProperty('baseURL');
         expect(config).toHaveProperty('temperature');
@@ -190,7 +190,7 @@ describe('Dynamic Model Discovery', () => {
     it('should create trading agents configuration', async () => {
       const config = await createRemoteLMStudioConfig();
 
-      expect(config).toHaveProperty('llmProvider', 'lm_studio');
+      expect(config).toHaveProperty('llmProvider', 'remote_lmstudio');
       expect(config).toHaveProperty('backendUrl');
       expect(config).toHaveProperty('deepThinkLlm');
       expect(config).toHaveProperty('quickThinkLlm');
@@ -205,7 +205,7 @@ describe('Dynamic Model Discovery', () => {
       const config = await createRemoteLMStudioConfig();
 
       // The backendUrl should match the environment variable
-      expect(config.backendUrl).toBe(process.env.REMOTE_LM_STUDIO_URL);
+      expect(config.backendUrl).toBe(process.env.REMOTE_LM_STUDIO_BASE_URL);
     });
 
     it('should validate environment variable is properly configured', async () => {
@@ -213,12 +213,12 @@ describe('Dynamic Model Discovery', () => {
       const configs = await createAgentModelConfigs();
 
       // All configurations should use the environment variable URL
-      expect(configs.quickThinking.baseURL).toBe(process.env.REMOTE_LM_STUDIO_URL);
-      expect(configs.deepThinking.baseURL).toBe(process.env.REMOTE_LM_STUDIO_URL);
+      expect(configs.quickThinking.baseURL).toBe(process.env.REMOTE_LM_STUDIO_BASE_URL);
+      expect(configs.deepThinking.baseURL).toBe(process.env.REMOTE_LM_STUDIO_BASE_URL);
 
       // Check specialized configs too
       Object.values(configs.specialized).forEach((config: any) => {
-        expect(config.baseURL).toBe(process.env.REMOTE_LM_STUDIO_URL);
+        expect(config.baseURL).toBe(process.env.REMOTE_LM_STUDIO_BASE_URL);
       });
     });
   });
@@ -259,7 +259,7 @@ describe('Dynamic Model Discovery', () => {
         headers: new Headers(),
         redirected: false,
         type: 'basic' as ResponseType,
-        url: `${process.env.REMOTE_LM_STUDIO_URL}/models`,
+        url: `${process.env.REMOTE_LM_STUDIO_BASE_URL}/models`,
         clone: () => mockResponse,
         text: async () => '',
         arrayBuffer: async () => new ArrayBuffer(0),

@@ -4,7 +4,7 @@
  * Comprehensive API Integration Test Suite
  * 
  * Tests all external API integrations with rate limiting, fallback mechanisms,
- * and real-world scenarios using lm_studio provider with microsoft/phi-4-mini-reasoning model.
+ * and real-world scenarios using remote_lmstudio provider with microsoft/phi-4-mini-reasoning model.
  */
 
 import { Toolkit, setConfig } from '../dist/dataflows/interface.js';
@@ -12,7 +12,7 @@ import { ModelProvider } from '../dist/models/provider.js';
 import { createConfig } from '../dist/config/default.js';
 
 const TEST_CONFIG = createConfig({
-  llmProvider: 'lm_studio',
+  llmProvider: 'remote_lmstudio',
   deepThinkLlm: 'microsoft/phi-4-mini-reasoning',
   quickThinkLlm: 'microsoft/phi-4-mini-reasoning',
   backendUrl: 'http://localhost:1234/v1',

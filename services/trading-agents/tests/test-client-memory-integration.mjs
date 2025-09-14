@@ -20,7 +20,7 @@ async function testClientMemoryIntegration() {
     };
 
     const agentConfig = {
-      llmProvider: 'lm_studio',
+      llmProvider: 'remote_lmstudio',
       openaiApiKey: 'test-key',
       backendUrl: 'http://localhost:1234/v1',
       quickThinkLlm: 'dolphin-2.9-llama3-8b'

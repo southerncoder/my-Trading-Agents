@@ -2,12 +2,12 @@
 
 /**
  * Minimal API Integration Test
- * Quick verification of core components with lm_studio and microsoft/phi-4-mini-reasoning
+ * Quick verification of core components with remote_lmstudio and microsoft/phi-4-mini-reasoning
  */
 
 console.log('🔧 Minimal API Integration Test');
 console.log('Model: microsoft/phi-4-mini-reasoning');
-console.log('Provider: lm_studio');
+console.log('Provider: remote_lmstudio');
 console.log('================================\n');
 
 async function runMinimalTest() {
@@ -22,7 +22,7 @@ async function runMinimalTest() {
     
     // Test provider status
     const status = ModelProvider.getProviderStatus();
-    console.log('   📊 LM Studio available:', status.lm_studio?.available || false);
+    console.log('   📊 LM Studio available:', status.remote_lmstudio?.available || false);
     
   } catch (error) {
     console.log('   ❌ ModelProvider import failed:', error.message);
@@ -60,7 +60,7 @@ async function runMinimalTest() {
     
     // Test config creation
     const testConfig = createConfig({
-      llmProvider: 'lm_studio',
+      llmProvider: 'remote_lmstudio',
       quickThinkLlm: 'microsoft/phi-4-mini-reasoning',
       onlineTools: false
     });
@@ -77,7 +77,7 @@ async function runMinimalTest() {
     const { ModelProvider } = await import('../dist/models/provider.js');
     
     const modelConfig = {
-      provider: 'lm_studio',
+      provider: 'remote_lmstudio',
       modelName: 'microsoft/phi-4-mini-reasoning',
       baseURL: 'http://localhost:1234/v1',
       temperature: 0.7,

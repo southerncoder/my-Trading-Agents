@@ -10,7 +10,7 @@ import { ModelProvider, ModelConfig } from '../../src/models/provider';
 import { getLMStudioSingleton } from '../../src/models/lmstudio-singleton';
 import { createLogger } from '../../src/utils/enhanced-logger';
 import {
-  REMOTE_LM_STUDIO_BASE_URL,
+  REMOTE_LMSTUDIO_BASE_URL,
   TRADING_AGENT_MODEL_ASSIGNMENTS,
   createAgentModelConfig
 } from '../config/remote-lmstudio.config';
@@ -73,10 +73,10 @@ class SimpleTestRunner {
 
 async function fetchModels(): Promise<any> {
   logger.info('fetchModels', 'Fetching models from remote LM Studio', {
-    baseURL: REMOTE_LM_STUDIO_BASE_URL
+    baseURL: REMOTE_LMSTUDIO_BASE_URL
   });
 
-  const modelsEndpoint = `${REMOTE_LM_STUDIO_BASE_URL.replace(/\/$/, '')}/models`;
+  const modelsEndpoint = `${REMOTE_LMSTUDIO_BASE_URL.replace(/\/$/, '')}/models`;
 
   try {
     const response = await fetch(modelsEndpoint, {
@@ -112,9 +112,9 @@ async function testModelCompletion(modelId: string, prompt: string): Promise<any
 
   // Use the existing ModelProvider and singleton pattern
   const modelConfig: ModelConfig = {
-    provider: 'lm_studio',
+    provider: 'remote_lmstudio',
     modelName: modelId,
-    baseURL: REMOTE_LM_STUDIO_BASE_URL,
+    baseURL: REMOTE_LMSTUDIO_BASE_URL,
     temperature: 0.7,
     maxTokens: 100,
     streaming: false,
@@ -157,7 +157,7 @@ async function testModelCompletion(modelId: string, prompt: string): Promise<any
 
 async function main(): Promise<void> {
   console.log('🚀 Starting Remote LM Studio Integration Tests');
-  console.log(`📡 Remote LM Studio: ${REMOTE_LM_STUDIO_BASE_URL}`);
+  console.log(`📡 Remote LM Studio: ${REMOTE_LMSTUDIO_BASE_URL}`);
   
   const runner = new SimpleTestRunner();
 
@@ -279,17 +279,17 @@ async function main(): Promise<void> {
 
   // Test 7: Test singleton pattern functionality
   await runner.runTest('LM Studio Singleton Pattern', async () => {
-    const singleton1 = getLMStudioSingleton(REMOTE_LM_STUDIO_BASE_URL);
-    const singleton2 = getLMStudioSingleton(REMOTE_LM_STUDIO_BASE_URL);
+    const singleton1 = getLMStudioSingleton(REMOTE_LMSTUDIO_BASE_URL);
+    const singleton2 = getLMStudioSingleton(REMOTE_LMSTUDIO_BASE_URL);
 
     // Should be the same instance
     const isSameInstance = singleton1 === singleton2;
 
     // Test model creation through singleton
     const modelConfig: ModelConfig = {
-      provider: 'lm_studio',
+      provider: 'remote_lmstudio',
       modelName: 'llama-3.2-3b-instruct',
-      baseURL: REMOTE_LM_STUDIO_BASE_URL,
+      baseURL: REMOTE_LMSTUDIO_BASE_URL,
       temperature: 0.7,
       maxTokens: 100
     };

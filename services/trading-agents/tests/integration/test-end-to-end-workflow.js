@@ -270,7 +270,7 @@ async function testCompleteWorkflow(results) {
             analysisDate: new Date().toISOString().split('T')[0],
             selectedAnalysts: ['market_analyst', 'news_analyst'],
             researchDepth: 'shallow',
-            llmProvider: 'lm_studio',
+            llmProvider: 'remote_lmstudio',
             messages: []
         };
         

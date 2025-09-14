@@ -11,9 +11,9 @@ param(
 function Test-DockerSecretsConfiguration {
     Write-Host "Testing Docker Secrets Configuration..." -ForegroundColor Cyan
     
-    $secretsPath = "c:\code\PersonalDev\my-Trading-Agents\py_zep\secrets"
-    $composePath = "c:\code\PersonalDev\my-Trading-Agents\py_zep\docker-compose.yml"
-    $envPath = "c:\code\PersonalDev\my-Trading-Agents\py_zep\.env.local"
+    $secretsPath = "c:\code\PersonalDev\my-Trading-Agents\services\zep_graphiti\secrets"
+    $composePath = "c:\code\PersonalDev\my-Trading-Agents\services\zep_graphiti\docker-compose.yml"
+    $envPath = "c:\code\PersonalDev\my-Trading-Agents\services\zep_graphiti\.env.local"
     
     $testResults = @()
     
@@ -121,7 +121,7 @@ function Test-DockerSecretsConfiguration {
 function Test-StartWrapperSecrets {
     Write-Host "`nTesting start-wrapper.sh secrets integration..." -ForegroundColor Cyan
     
-    $startWrapperPath = "c:\code\PersonalDev\my-Trading-Agents\py_zep\secrets\start-wrapper.sh"
+    $startWrapperPath = "c:\code\PersonalDev\my-Trading-Agents\services\zep_graphiti\secrets\start-wrapper.sh"
     
     if (-not (Test-Path $startWrapperPath)) {
         Write-Host "❌ start-wrapper.sh not found at $startWrapperPath" -ForegroundColor Red

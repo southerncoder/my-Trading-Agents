@@ -10,7 +10,7 @@ This file documents the minimum steps and environment variables required to set 
 
 Copy `.env.example` to `.env.local` and fill in the following values:
 
-- `LLM_PROVIDER` (e.g., `lm_studio`, `openai`, `anthropic`, `google`)
+- `LLM_PROVIDER` (e.g., `remote_lmstudio`, `openai`, `anthropic`, `google`)
 - `LLM_BACKEND_URL` (e.g., `http://localhost:1234/v1` for LM Studio)
 - `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY` (if using cloud LLMs)
 - `FINNHUB_API_KEY`, `ALPHA_VANTAGE_API_KEY`, `MARKETSTACK_API_KEY` (for financial data)
@@ -48,7 +48,7 @@ Copy `.env.example` to `.env.local` and fill in the following values:
 
 ## 5. Troubleshooting
 
-- If LM Studio model switching fails, check `LM_STUDIO_HOST` and `LLM_BACKEND_URL`
+- If LM Studio model switching fails, check `REMOTE_LM_STUDIO_BASE_URL` and `REMOTE_LM_STUDIO_API_KEY` environment variables
 - For memory/graph issues, verify Zep Graphiti and Neo4j are running and credentials are correct
 - For API errors, check all API keys and network connectivity
 

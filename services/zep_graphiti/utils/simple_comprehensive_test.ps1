@@ -6,7 +6,7 @@ Write-Host ("="*80) -ForegroundColor Cyan
 
 # Test 1: Docker Secrets
 Write-Host "`n🔒 Testing Docker Secrets Configuration..." -ForegroundColor Yellow
-$secretsPath = "c:\code\PersonalDev\my-Trading-Agents\py_zep\secrets"
+$secretsPath = "c:\code\PersonalDev\my-Trading-Agents\services\zep_graphiti\secrets"
 $requiredSecrets = @("embedder_api_key.txt", "openai_api_key.txt", "neo4j_user.txt", "neo4j_password.txt", "lm_studio_url.txt")
 
 $secretsPass = 0
@@ -28,9 +28,9 @@ foreach ($secret in $requiredSecrets) {
 # Test 2: Enhanced Retry System
 Write-Host "`n🔄 Testing Enhanced Retry System..." -ForegroundColor Yellow
 $retryModules = @(
-    "c:\code\PersonalDev\my-Trading-Agents\py_zep\utils\enhanced_retry.py",
-    "c:\code\PersonalDev\my-Trading-Agents\py_zep\utils\retry_integration.py",
-    "c:\code\PersonalDev\my-Trading-Agents\py_zep\utils\enhanced_startup.py"
+    "c:\code\PersonalDev\my-Trading-Agents\services\zep_graphiti\utils\enhanced_retry.py",
+    "c:\code\PersonalDev\my-Trading-Agents\services\zep_graphiti\utils\retry_integration.py",
+    "c:\code\PersonalDev\my-Trading-Agents\services\zep_graphiti\utils\enhanced_startup.py"
 )
 
 $retryPass = 0
@@ -53,8 +53,8 @@ foreach ($module in $retryModules) {
 # Test 3: JSON Parsing Enhancements
 Write-Host "`n📋 Testing JSON Parsing Enhancements..." -ForegroundColor Yellow
 $jsonModules = @(
-    "c:\code\PersonalDev\my-Trading-Agents\py_zep\utils\enhanced_json_parsing.sh",
-    "c:\code\PersonalDev\my-Trading-Agents\py_zep\utils\test_enhanced_json_parsing.ps1"
+    "c:\code\PersonalDev\my-Trading-Agents\services\zep_graphiti\utils\enhanced_json_parsing.sh",
+    "c:\code\PersonalDev\my-Trading-Agents\services\zep_graphiti\utils\test_enhanced_json_parsing.ps1"
 )
 
 $jsonPass = 0
@@ -76,7 +76,7 @@ foreach ($module in $jsonModules) {
 
 # Test 4: Docker Networking
 Write-Host "`n🌐 Testing Docker Networking Configuration..." -ForegroundColor Yellow
-$dockerCompose = "c:\code\PersonalDev\my-Trading-Agents\py_zep\docker-compose.yml"
+$dockerCompose = "c:\code\PersonalDev\my-Trading-Agents\services\zep_graphiti\docker-compose.yml"
 
 $networkingPass = 0
 if (Test-Path $dockerCompose) {
@@ -108,7 +108,7 @@ if (Test-Path $dockerCompose) {
 
 # Test 5: Environment Security
 Write-Host "`n🔐 Testing Environment Security..." -ForegroundColor Yellow
-$envFile = "c:\code\PersonalDev\my-Trading-Agents\py_zep\.env.local"
+$envFile = "c:\code\PersonalDev\my-Trading-Agents\services\zep_graphiti\.env.local"
 
 $securityPass = 0
 if (Test-Path $envFile) {

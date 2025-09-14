@@ -100,7 +100,7 @@ print_success "Found unified docker-compose.yml"
 
 # Environment file checks
 print_info "\nEnvironment Configuration Check:"
-env_files=(".env.local" "py_zep/.env.local" "services/reddit-service/.env.local")
+env_files=(".env.local" "services/zep_graphiti/.env.local" "services/reddit-service/.env.local")
 
 for env_file in "${env_files[@]}"; do
     if [ -f "$env_file" ]; then

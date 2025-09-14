@@ -9,7 +9,7 @@ async function simpleLMStudioTest() {
   
   try {
     // Use Node.js built-in fetch (Node 18+)
-    const response = await fetch(`${process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1'}/models`.replace('/v1/models', '/models'), {
+    const response = await fetch(`${process.env.REMOTE_LM_STUDIO_BASE_URL}/models`.replace('/v1/models', '/models'), {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' }
     });
@@ -41,7 +41,7 @@ async function testCompletion() {
   console.log('='.repeat(40));
   
   try {
-    const response = await fetch(`${process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1'}/chat/completions`, {
+    const response = await fetch(`${process.env.REMOTE_LM_STUDIO_BASE_URL}/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

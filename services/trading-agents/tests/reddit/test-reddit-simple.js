@@ -16,7 +16,7 @@ try {
     dataCacheDir: '/tmp/cache',
     exportsDir: '/tmp/exports',
     logsDir: '/tmp/logs',
-    llmProvider: 'lm_studio',
+    llmProvider: 'remote_lmstudio',
     deepThinkLlm: 'test-model',
     quickThinkLlm: 'test-model',
     backendUrl: 'http://localhost:1234/v1',

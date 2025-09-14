@@ -1,0 +1,130 @@
+{
+  "version": "1.0.0",
+  "analysis": {
+    "defaultTicker": "SPY",
+    "defaultAnalysisDate": null,
+    "defaultAnalysts": ["market", "social", "news", "fundamentals"],
+    "defaultResearchDepth": 3,
+        "defaultLLMProvider": "remote_lmstudio",
+    "models": {
+      "quickThinking": {
+        "provider": "remote_lmstudio",
+        "model": "microsoft/phi-4-reasoning-plus"
+      },
+      "deepThinking": {
+        "provider": "remote_lmstudio",
+        "model": "microsoft/phi-4-reasoning-plus"
+      },
+      "agentOverrides": {
+        "marketAnalyst": {
+          "provider": "remote_lmstudio",
+          "model": "microsoft/phi-4-reasoning-plus"
+        },
+        "socialAnalyst": {
+          "provider": "remote_lmstudio",
+          "model": "microsoft/phi-4-reasoning-plus"
+        },
+        "newsAnalyst": {
+          "provider": "remote_lmstudio",
+          "model": "microsoft/phi-4-reasoning-plus"
+        },
+        "fundamentalsAnalyst": {
+          "provider": "remote_lmstudio",
+          "model": "microsoft/phi-4-reasoning-plus"
+        },
+        "researchManager": {
+          "provider": "remote_lmstudio",
+          "model": "microsoft/phi-4-reasoning-plus"
+        },
+        "riskManager": {
+          "provider": "remote_lmstudio",
+          "model": "microsoft/phi-4-reasoning-plus"
+        },
+        "trader": {
+          "provider": "remote_lmstudio",
+          "model": "microsoft/phi-4-reasoning-plus"
+        }
+      }
+    }
+  },
+  "flow": {
+    "maxDebateRounds": 3,
+    "maxRiskDiscussRounds": 3,
+    "maxRecursionLimit": 100,
+    "enableOnlineTools": true,
+    "enableConnectionPooling": true,
+    "enableIntelligentCaching": true,
+    "enableLazyLoading": true,
+    "enableStateOptimization": true,
+    "enableAdvancedMemory": true,
+    "enableLearningSystem": true,
+    "enableTemporalReasoning": true,
+    "runMode": "standard",
+    "timeout": 60000,
+    "parallelism": 4,
+    "maxTokens": 2048,
+    "temperature": 0.7
+  },
+  "logging": {
+    "defaultLogLevel": "info",
+    "logLevel": "info",
+    "enableFileLogging": true,
+    "enableConsoleLogging": true,
+    "enableVerboseLogging": false,
+    "maxLogFiles": 10,
+    "maxLogSize": "10m"
+  },
+  "export": {
+    "defaultFormat": "markdown",
+    "includeReports": true,
+    "includeMetadata": true,
+    "includeRawData": false
+  },
+  "dataSources": {
+    "yahooFinance": {
+      "enabled": true,
+      "cacheTimeout": 15
+    },
+    "finnhub": {
+      "enabled": true,
+      "cacheTimeout": 10
+    },
+    "reddit": {
+      "enabled": true,
+      "cacheTimeout": 30
+    },
+    "googleNews": {
+      "enabled": true,
+      "cacheTimeout": 20
+    },
+    "technicalIndicators": {
+      "enabled": true,
+      "indicators": ["RSI", "MACD", "SMA", "EMA", "BollingerBands", "ATR"]
+    }
+  },
+  "performance": {
+    "connectionPool": {
+      "maxConnections": 10,
+      "idleTimeout": 30000,
+      "acquireTimeout": 60000
+    },
+    "cache": {
+      "maxSize": 1000,
+      "ttl": 3600,
+      "strategy": "lru"
+    },
+    "memory": {
+      "enableGarbageCollection": true,
+      "maxHeapSize": "2gb"
+    }
+  },
+  "experimental": {
+    "enableExperimentalFeatures": false,
+    "features": {
+      "advancedPortfolioOptimization": false,
+      "realTimeDataStreaming": false,
+      "multiModalAnalysis": false,
+      "quantumOptimization": false
+    }
+  }
+}

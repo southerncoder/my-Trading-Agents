@@ -4,7 +4,7 @@ async function testParallelExecution() {
     console.log('Testing parallel execution implementation...');
     
     const config = {
-        llmProvider: 'lm_studio',
+        llmProvider: 'remote_lmstudio',
         selectedAnalysts: ['market', 'social', 'news', 'fundamentals'],
         langGraphEnabled: true,
         debug: true

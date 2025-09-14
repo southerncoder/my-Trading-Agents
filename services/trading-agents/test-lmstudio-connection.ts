@@ -13,7 +13,7 @@ async function testLMStudioConnection() {
   console.log('🧪 Testing LM Studio connection...');
 
   const config = {
-    provider: 'lm_studio' as LLMProvider,
+    provider: 'remote_lmstudio' as LLMProvider,
     model: 'mistralai/devstral-small-2507', // Use actual model from LM Studio
     baseUrl: process.env.REMOTE_LM_STUDIO_BASE_URL,
     temperature: 0.7,

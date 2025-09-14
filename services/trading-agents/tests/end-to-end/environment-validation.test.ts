@@ -61,7 +61,6 @@ class EnvironmentValidator {
     const requiredEnvVars = [
       'NEO4J_URI',
       'NEO4J_USER',
-      'LM_STUDIO_BASE_URL',
       'OPENAI_BASE_URL',
       'ZEP_SERVICE_URL'
     ];
@@ -167,7 +166,7 @@ class EnvironmentValidator {
           component: 'Docker Secrets',
           status: 'FAIL',
           message: `Failed to read Docker secret ${secretPath}`,
-          details: { error: error.message }
+          details: { error: error instanceof Error ? error.message : String(error) }
         });
       }
     }
@@ -185,10 +184,8 @@ class EnvironmentValidator {
         dataCacheDir: process.env.TRADINGAGENTS_CACHE_DIR || './cache',
         exportsDir: process.env.TRADINGAGENTS_EXPORTS_DIR || './exports',
         logsDir: process.env.TRADINGAGENTS_LOGS_DIR || './logs',
-        llmProvider: (process.env.LLM_PROVIDER as any) || 'openai',
         deepThinkLlm: process.env.DEEP_THINK_LLM || 'o1-mini',
         quickThinkLlm: process.env.QUICK_THINK_LLM || 'gpt-4o-mini',
-        backendUrl: process.env.LLM_BACKEND_URL || 'https://api.openai.com/v1',
         maxDebateRounds: parseInt(process.env.MAX_DEBATE_ROUNDS || '1'),
         maxRiskDiscussRounds: parseInt(process.env.MAX_RISK_DISCUSS_ROUNDS || '1'),
         maxRecurLimit: parseInt(process.env.MAX_RECUR_LIMIT || '100'),
@@ -200,8 +197,8 @@ class EnvironmentValidator {
         status: 'PASS',
         message: 'Configuration object created successfully',
         details: {
-          llmProvider: config.llmProvider,
-          backendUrl: config.backendUrl
+          deepThinkLlm: config.deepThinkLlm,
+          quickThinkLlm: config.quickThinkLlm
         }
       });
     } catch (error) {
@@ -219,7 +216,7 @@ class EnvironmentValidator {
 
     // Test LM Studio connectivity
     try {
-      const lmStudioUrl = process.env.LM_STUDIO_BASE_URL || process.env.OPENAI_BASE_URL;
+      const lmStudioUrl = process.env.REMOTE_LM_STUDIO_BASE_URL || process.env.LOCAL_LM_STUDIO_BASE_URL || process.env.OPENAI_BASE_URL;
       if (lmStudioUrl) {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000);
@@ -357,10 +354,8 @@ class EnvironmentValidator {
       dataCacheDir: process.env.TRADINGAGENTS_CACHE_DIR || './cache',
       exportsDir: process.env.TRADINGAGENTS_EXPORTS_DIR || './exports',
       logsDir: process.env.TRADINGAGENTS_LOGS_DIR || './logs',
-      llmProvider: (process.env.LLM_PROVIDER as any) || 'openai',
       deepThinkLlm: process.env.DEEP_THINK_LLM || 'o1-mini',
       quickThinkLlm: process.env.QUICK_THINK_LLM || 'gpt-4o-mini',
-      backendUrl: process.env.LLM_BACKEND_URL || 'https://api.openai.com/v1',
       maxDebateRounds: parseInt(process.env.MAX_DEBATE_ROUNDS || '1'),
       maxRiskDiscussRounds: parseInt(process.env.MAX_RISK_DISCUSS_ROUNDS || '1'),
       maxRecurLimit: parseInt(process.env.MAX_RECUR_LIMIT || '100'),

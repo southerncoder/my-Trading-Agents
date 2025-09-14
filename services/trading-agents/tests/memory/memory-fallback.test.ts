@@ -10,7 +10,7 @@
 import { EmbeddingProviderFactory } from '../providers/memory-provider';
 
 interface AgentLLMConfig {
-  provider: 'openai' | 'anthropic' | 'google' | 'lm_studio' | 'ollama' | 'openrouter';
+  provider: 'openai' | 'anthropic' | 'google' | 'remote_lmstudio' | 'ollama' | 'openrouter';
   model: string;
   apiKey?: string;
   baseUrl?: string;
@@ -42,9 +42,9 @@ async function testMemoryProviderSelection() {
     {
       name: 'LM Studio Agent',
       config: {
-        provider: 'lm_studio',
+        provider: 'remote_lmstudio',
         model: 'local-model',
-        baseUrl: process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1',
+        baseUrl: process.env.REMOTE_LM_STUDIO_BASE_URL,
       },
       expectation: 'Should use fallback (local provider)'
     },

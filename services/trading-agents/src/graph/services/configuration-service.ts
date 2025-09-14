@@ -70,10 +70,6 @@ export class ConfigurationService {
         errors.push('LLM provider is required');
       }
 
-      if (!this.config.backendUrl && this.config.llmProvider === 'lm_studio') {
-        errors.push('Backend URL is required for LM Studio provider');
-      }
-
       if (this.selectedAnalysts.length === 0) {
         errors.push('At least one analyst must be selected');
       }
