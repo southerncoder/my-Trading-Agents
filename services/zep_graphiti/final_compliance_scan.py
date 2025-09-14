@@ -61,9 +61,11 @@ def main():
     print()
     
     # Define directories to scan
+    # Use relative paths or environment variable for portability
+    base_dir = Path(os.environ.get("TRADING_AGENTS_ROOT", Path(__file__).resolve().parent.parent.parent))
     scan_dirs = [
-        Path("C:/code/PersonalDev/my-Trading-Agents/py_zep/graph_service"),
-        Path("C:/code/PersonalDev/my-Trading-Agents/py_zep")
+        base_dir / "services" / "zep_graphiti" / "graph_service",
+        base_dir / "services" / "zep_graphiti"
     ]
     
     # File patterns to scan

@@ -313,5 +313,4 @@ User Input → CLI → Enhanced Trading Graph → LangGraph → Agents → Data 
 
 ---
 
-*This architecture diagram provides a comprehensive view of the TradingAgents system, showing the relationships between all major components and data flows.*</content>
-<parameter name="filePath">c:\code\PersonalDev\my-Trading-Agents\docs\SYSTEM-ARCHITECTURE.md
+*This architecture diagram provides a comprehensive view of the TradingAgents system, showing the relationships between all major components and data flows.*

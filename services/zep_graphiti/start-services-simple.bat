@@ -1,7 +1,7 @@
 @echo off
 title Zep Graphiti Services
 echo Starting Zep Graphiti Services...
-cd /d "d:\Code\PersonalDev\my-Trading-Agents\py_zep"
+cd /d "%~dp0"
 
 REM Check if Docker is running
 docker version >nul 2>&1

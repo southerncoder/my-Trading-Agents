@@ -75,9 +75,7 @@ services:
       - remote_lmstudio_base_url
       - remote_lmstudio_api_key
     volumes:
-      - ./py_zep/secrets/enhanced-init.py:/init.py:ro
-      - ./py_zep/graph_service/zep_graphiti.py:/app/graph_service/zep_graphiti.py:ro
-      - ./py_zep/secrets/start-wrapper.sh:/start-wrapper.sh:ro
+      - ./services/zep_graphiti/graph_service/zep_graphiti.py:/app/graph_service/zep_graphiti.py:ro
     command: ["/bin/sh", "/start-wrapper.sh", "python3", "/init.py"]
     depends_on:
       neo4j:
