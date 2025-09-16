@@ -11,6 +11,8 @@ export interface AgentLLMConfig {
   temperature?: number;
   maxTokens?: number;
   timeout?: number;
+  parallelism?: number;
+  runMode?: 'standard' | 'fast' | 'safe';
   // When true, this agent is allowed to use embedding models as its primary LLM
   // (defaults to false). Primarily embedding models should be used for memory
   // operations; this flag allows an analyst to explicitly accept an embedding
@@ -153,7 +155,10 @@ export const PROVIDER_MODEL_OPTIONS: Record<LLMProvider, string[]> = {
     'gemini-1.5-flash',
     'gemini-1.0-pro'
   ],
-  lm_studio: [
+  local_lmstudio: [
+    'local-model'
+  ],
+  remote_lmstudio: [
     'local-model'
   ],
   ollama: [
@@ -176,188 +181,112 @@ export const PROVIDER_MODEL_OPTIONS: Record<LLMProvider, string[]> = {
  */
 export const DEFAULT_AGENT_CONFIGS: AgentTypeConfigs = {
   default: {
-    provider: (process.env.DEFAULT_LLM_PROVIDER as LLMProvider) || 'openai',
+    provider: 'remote_lmstudio', // Default provider - should be specified in config.json
     model: process.env.DEFAULT_LLM_MODEL || 'gpt-4o-mini',
-    temperature: parseFloat(process.env.DEFAULT_LLM_TEMPERATURE || '0.7'),
-    maxTokens: parseInt(process.env.DEFAULT_LLM_MAX_TOKENS || '2000'),
-    timeout: parseInt(process.env.DEFAULT_LLM_TIMEOUT || '30000')
+    temperature: 0.7, // Set via config.json or override in runtime config
+    maxTokens: 2000,
+    timeout: 30000
   },
   
   // Analysts - fast models for data processing
   // Each can be overridden by specific environment variables
   marketAnalyst: {
-    provider: (process.env.MARKET_ANALYST_LLM_PROVIDER as LLMProvider) || 
-              (process.env.ANALYSTS_LLM_PROVIDER as LLMProvider) || 
-              (process.env.DEFAULT_LLM_PROVIDER as LLMProvider) || 'openai',
-    model: process.env.MARKET_ANALYST_LLM_MODEL || 
-           process.env.ANALYSTS_LLM_MODEL || 
-           process.env.DEFAULT_LLM_MODEL || 'gpt-4o-mini',
-    temperature: parseFloat(process.env.MARKET_ANALYST_LLM_TEMPERATURE || 
-                           process.env.ANALYSTS_LLM_TEMPERATURE || '0.3'),
-    maxTokens: parseInt(process.env.MARKET_ANALYST_LLM_MAX_TOKENS || 
-                       process.env.ANALYSTS_LLM_MAX_TOKENS || '1500')
-  ,
-  allowEmbeddingModel: false,
-  embeddingModel: process.env.EMBEDDING_MODEL || ''
+    provider: 'remote_lmstudio',
+    model: process.env.MARKET_ANALYST_LLM_MODEL || process.env.ANALYSTS_LLM_MODEL || process.env.DEFAULT_LLM_MODEL || 'gpt-4o-mini',
+    temperature: 0.3,
+    maxTokens: 1500,
+    allowEmbeddingModel: false,
+    embeddingModel: process.env.EMBEDDING_MODEL || ''
   },
-  
   socialAnalyst: {
-    provider: (process.env.SOCIAL_ANALYST_LLM_PROVIDER as LLMProvider) || 
-              (process.env.ANALYSTS_LLM_PROVIDER as LLMProvider) || 
-              (process.env.DEFAULT_LLM_PROVIDER as LLMProvider) || 'openai',
-    model: process.env.SOCIAL_ANALYST_LLM_MODEL || 
-           process.env.ANALYSTS_LLM_MODEL || 
-           process.env.DEFAULT_LLM_MODEL || 'gpt-4o-mini',
-    temperature: parseFloat(process.env.SOCIAL_ANALYST_LLM_TEMPERATURE || 
-                           process.env.ANALYSTS_LLM_TEMPERATURE || '0.4'),
-    maxTokens: parseInt(process.env.SOCIAL_ANALYST_LLM_MAX_TOKENS || 
-                       process.env.ANALYSTS_LLM_MAX_TOKENS || '1500')
-  ,
-  allowEmbeddingModel: false,
-  embeddingModel: process.env.EMBEDDING_MODEL || ''
+    provider: 'remote_lmstudio',
+    model: process.env.SOCIAL_ANALYST_LLM_MODEL || process.env.ANALYSTS_LLM_MODEL || process.env.DEFAULT_LLM_MODEL || 'gpt-4o-mini',
+    temperature: 0.4,
+    maxTokens: 1500,
+    allowEmbeddingModel: false,
+    embeddingModel: process.env.EMBEDDING_MODEL || ''
   },
   
   newsAnalyst: {
-    provider: (process.env.NEWS_ANALYST_LLM_PROVIDER as LLMProvider) || 
-              (process.env.ANALYSTS_LLM_PROVIDER as LLMProvider) || 
-              (process.env.DEFAULT_LLM_PROVIDER as LLMProvider) || 'openai',
-    model: process.env.NEWS_ANALYST_LLM_MODEL || 
-           process.env.ANALYSTS_LLM_MODEL || 
-           process.env.DEFAULT_LLM_MODEL || 'gpt-4o-mini',
-    temperature: parseFloat(process.env.NEWS_ANALYST_LLM_TEMPERATURE || 
-                           process.env.ANALYSTS_LLM_TEMPERATURE || '0.3'),
-    maxTokens: parseInt(process.env.NEWS_ANALYST_LLM_MAX_TOKENS || 
-                       process.env.ANALYSTS_LLM_MAX_TOKENS || '1500')
-  ,
-  allowEmbeddingModel: false,
-  embeddingModel: process.env.EMBEDDING_MODEL || ''
+    provider: 'remote_lmstudio',
+    model: process.env.NEWS_ANALYST_LLM_MODEL || process.env.ANALYSTS_LLM_MODEL || process.env.DEFAULT_LLM_MODEL || 'gpt-4o-mini',
+    temperature: 0.3,
+    maxTokens: 1500,
+    allowEmbeddingModel: false,
+    embeddingModel: process.env.EMBEDDING_MODEL || ''
   },
   
   fundamentalsAnalyst: {
-    provider: (process.env.FUNDAMENTALS_ANALYST_LLM_PROVIDER as LLMProvider) || 
-              (process.env.ANALYSTS_LLM_PROVIDER as LLMProvider) || 
-              (process.env.DEFAULT_LLM_PROVIDER as LLMProvider) || 'openai',
-    model: process.env.FUNDAMENTALS_ANALYST_LLM_MODEL || 
-           process.env.ANALYSTS_LLM_MODEL || 
-           process.env.DEFAULT_LLM_MODEL || 'gpt-4o',
-    temperature: parseFloat(process.env.FUNDAMENTALS_ANALYST_LLM_TEMPERATURE || 
-                           process.env.ANALYSTS_LLM_TEMPERATURE || '0.2'),
-    maxTokens: parseInt(process.env.FUNDAMENTALS_ANALYST_LLM_MAX_TOKENS || 
-                       process.env.ANALYSTS_LLM_MAX_TOKENS || '2000')
-  ,
-  allowEmbeddingModel: false,
-  embeddingModel: process.env.EMBEDDING_MODEL || ''
+    provider: 'remote_lmstudio',
+    model: process.env.FUNDAMENTALS_ANALYST_LLM_MODEL || process.env.ANALYSTS_LLM_MODEL || process.env.DEFAULT_LLM_MODEL || 'gpt-4o',
+    temperature: 0.2,
+    maxTokens: 2000,
+    allowEmbeddingModel: false,
+    embeddingModel: process.env.EMBEDDING_MODEL || ''
   },
   
   // Researchers - more powerful models for complex reasoning
   bullResearcher: {
-    provider: (process.env.BULL_RESEARCHER_LLM_PROVIDER as LLMProvider) || 
-              (process.env.RESEARCHERS_LLM_PROVIDER as LLMProvider) || 
-              (process.env.DEFAULT_LLM_PROVIDER as LLMProvider) || 'anthropic',
-    model: process.env.BULL_RESEARCHER_LLM_MODEL || 
-           process.env.RESEARCHERS_LLM_MODEL || 
-           process.env.DEFAULT_LLM_MODEL || 'claude-3-5-sonnet-20241022',
-    temperature: parseFloat(process.env.BULL_RESEARCHER_LLM_TEMPERATURE || 
-                           process.env.RESEARCHERS_LLM_TEMPERATURE || '0.7'),
-    maxTokens: parseInt(process.env.BULL_RESEARCHER_LLM_MAX_TOKENS || 
-                       process.env.RESEARCHERS_LLM_MAX_TOKENS || '3000')
+    provider: 'remote_lmstudio',
+    model: process.env.BULL_RESEARCHER_LLM_MODEL || process.env.RESEARCHERS_LLM_MODEL || process.env.DEFAULT_LLM_MODEL || 'claude-3-5-sonnet-20241022',
+    temperature: 0.7,
+    maxTokens: 3000
   },
   
   bearResearcher: {
-    provider: (process.env.BEAR_RESEARCHER_LLM_PROVIDER as LLMProvider) || 
-              (process.env.RESEARCHERS_LLM_PROVIDER as LLMProvider) || 
-              (process.env.DEFAULT_LLM_PROVIDER as LLMProvider) || 'anthropic',
-    model: process.env.BEAR_RESEARCHER_LLM_MODEL || 
-           process.env.RESEARCHERS_LLM_MODEL || 
-           process.env.DEFAULT_LLM_MODEL || 'claude-3-5-sonnet-20241022',
-    temperature: parseFloat(process.env.BEAR_RESEARCHER_LLM_TEMPERATURE || 
-                           process.env.RESEARCHERS_LLM_TEMPERATURE || '0.7'),
-    maxTokens: parseInt(process.env.BEAR_RESEARCHER_LLM_MAX_TOKENS || 
-                       process.env.RESEARCHERS_LLM_MAX_TOKENS || '3000')
+    provider: 'remote_lmstudio',
+    model: process.env.BEAR_RESEARCHER_LLM_MODEL || process.env.RESEARCHERS_LLM_MODEL || process.env.DEFAULT_LLM_MODEL || 'claude-3-5-sonnet-20241022',
+    temperature: 0.7,
+    maxTokens: 3000
   },
   
   researchManager: {
-    provider: (process.env.RESEARCH_MANAGER_LLM_PROVIDER as LLMProvider) || 
-              (process.env.MANAGERS_LLM_PROVIDER as LLMProvider) || 
-              (process.env.DEFAULT_LLM_PROVIDER as LLMProvider) || 'openai',
-    model: process.env.RESEARCH_MANAGER_LLM_MODEL || 
-           process.env.MANAGERS_LLM_MODEL || 
-           process.env.DEFAULT_LLM_MODEL || 'gpt-4o',
-    temperature: parseFloat(process.env.RESEARCH_MANAGER_LLM_TEMPERATURE || 
-                           process.env.MANAGERS_LLM_TEMPERATURE || '0.5'),
-    maxTokens: parseInt(process.env.RESEARCH_MANAGER_LLM_MAX_TOKENS || 
-                       process.env.MANAGERS_LLM_MAX_TOKENS || '3000')
+    provider: 'remote_lmstudio',
+    model: process.env.RESEARCH_MANAGER_LLM_MODEL || process.env.MANAGERS_LLM_MODEL || process.env.DEFAULT_LLM_MODEL || 'gpt-4o',
+    temperature: 0.5,
+    maxTokens: 3000
   },
   
   // Risk Management - balanced models
   riskyAnalyst: {
-    provider: (process.env.RISKY_ANALYST_LLM_PROVIDER as LLMProvider) || 
-              (process.env.RISK_ANALYSTS_LLM_PROVIDER as LLMProvider) || 
-              (process.env.DEFAULT_LLM_PROVIDER as LLMProvider) || 'openai',
-    model: process.env.RISKY_ANALYST_LLM_MODEL || 
-           process.env.RISK_ANALYSTS_LLM_MODEL || 
-           process.env.DEFAULT_LLM_MODEL || 'gpt-4o',
-    temperature: parseFloat(process.env.RISKY_ANALYST_LLM_TEMPERATURE || 
-                           process.env.RISK_ANALYSTS_LLM_TEMPERATURE || '0.8'),
-    maxTokens: parseInt(process.env.RISKY_ANALYST_LLM_MAX_TOKENS || 
-                       process.env.RISK_ANALYSTS_LLM_MAX_TOKENS || '2000')
-  ,
-  allowEmbeddingModel: false,
-  embeddingModel: process.env.EMBEDDING_MODEL || ''
+    provider: 'remote_lmstudio',
+    model: process.env.RISKY_ANALYST_LLM_MODEL || process.env.RISK_ANALYSTS_LLM_MODEL || process.env.DEFAULT_LLM_MODEL || 'gpt-4o',
+    temperature: 0.8,
+    maxTokens: 2000,
+    allowEmbeddingModel: false,
+    embeddingModel: process.env.EMBEDDING_MODEL || ''
   },
   
   safeAnalyst: {
-    provider: (process.env.SAFE_ANALYST_LLM_PROVIDER as LLMProvider) || 
-              (process.env.RISK_ANALYSTS_LLM_PROVIDER as LLMProvider) || 
-              (process.env.DEFAULT_LLM_PROVIDER as LLMProvider) || 'anthropic',
-    model: process.env.SAFE_ANALYST_LLM_MODEL || 
-           process.env.RISK_ANALYSTS_LLM_MODEL || 
-           process.env.DEFAULT_LLM_MODEL || 'claude-3-5-sonnet-20241022',
-    temperature: parseFloat(process.env.SAFE_ANALYST_LLM_TEMPERATURE || 
-                           process.env.RISK_ANALYSTS_LLM_TEMPERATURE || '0.3'),
-    maxTokens: parseInt(process.env.SAFE_ANALYST_LLM_MAX_TOKENS || 
-                       process.env.RISK_ANALYSTS_LLM_MAX_TOKENS || '2000')
-  ,
-  allowEmbeddingModel: false,
-  embeddingModel: process.env.EMBEDDING_MODEL || ''
+    provider: 'remote_lmstudio',
+    model: process.env.SAFE_ANALYST_LLM_MODEL || process.env.RISK_ANALYSTS_LLM_MODEL || process.env.DEFAULT_LLM_MODEL || 'claude-3-5-sonnet-20241022',
+    temperature: 0.3,
+    maxTokens: 2000,
+    allowEmbeddingModel: false,
+    embeddingModel: process.env.EMBEDDING_MODEL || ''
   },
   
   neutralAnalyst: {
-    provider: (process.env.NEUTRAL_ANALYST_LLM_PROVIDER as LLMProvider) || 
-              (process.env.RISK_ANALYSTS_LLM_PROVIDER as LLMProvider) || 
-              (process.env.DEFAULT_LLM_PROVIDER as LLMProvider) || 'google',
-    model: process.env.NEUTRAL_ANALYST_LLM_MODEL || 
-           process.env.RISK_ANALYSTS_LLM_MODEL || 
-           process.env.DEFAULT_LLM_MODEL || 'gemini-1.5-pro',
-    temperature: parseFloat(process.env.NEUTRAL_ANALYST_LLM_TEMPERATURE || 
-                           process.env.RISK_ANALYSTS_LLM_TEMPERATURE || '0.5'),
-    maxTokens: parseInt(process.env.NEUTRAL_ANALYST_LLM_MAX_TOKENS || 
-                       process.env.RISK_ANALYSTS_LLM_MAX_TOKENS || '2000')
-  ,
-  allowEmbeddingModel: false,
-  embeddingModel: process.env.EMBEDDING_MODEL || ''
+    provider: 'remote_lmstudio',
+    model: process.env.NEUTRAL_ANALYST_LLM_MODEL || process.env.RISK_ANALYSTS_LLM_MODEL || process.env.DEFAULT_LLM_MODEL || 'gemini-1.5-pro',
+    temperature: 0.5,
+    maxTokens: 2000,
+    allowEmbeddingModel: false,
+    embeddingModel: process.env.EMBEDDING_MODEL || ''
   },
   
   portfolioManager: {
-    provider: (process.env.PORTFOLIO_MANAGER_LLM_PROVIDER as LLMProvider) || 
-              (process.env.MANAGERS_LLM_PROVIDER as LLMProvider) || 
-              (process.env.DEFAULT_LLM_PROVIDER as LLMProvider) || 'openai',
-    model: process.env.PORTFOLIO_MANAGER_LLM_MODEL || 
-           process.env.MANAGERS_LLM_MODEL || 
-           process.env.DEFAULT_LLM_MODEL || 'o1-mini',
-    temperature: parseFloat(process.env.PORTFOLIO_MANAGER_LLM_TEMPERATURE || 
-                           process.env.MANAGERS_LLM_TEMPERATURE || '0.4'),
-    maxTokens: parseInt(process.env.PORTFOLIO_MANAGER_LLM_MAX_TOKENS || 
-                       process.env.MANAGERS_LLM_MAX_TOKENS || '2500')
+    provider: 'remote_lmstudio',
+    model: process.env.PORTFOLIO_MANAGER_LLM_MODEL || process.env.MANAGERS_LLM_MODEL || process.env.DEFAULT_LLM_MODEL || 'o1-mini',
+    temperature: 0.4,
+    maxTokens: 2500
   },
   
   // Trader - precise model for trading decisions
   trader: {
-    provider: (process.env.TRADER_LLM_PROVIDER as LLMProvider) || 
-              (process.env.DEFAULT_LLM_PROVIDER as LLMProvider) || 'openai',
-    model: process.env.TRADER_LLM_MODEL || 
-           process.env.DEFAULT_LLM_MODEL || 'gpt-4o',
-    temperature: parseFloat(process.env.TRADER_LLM_TEMPERATURE || '0.3'),
-    maxTokens: parseInt(process.env.TRADER_LLM_MAX_TOKENS || '2000')
+    provider: 'remote_lmstudio',
+    model: process.env.TRADER_LLM_MODEL || process.env.DEFAULT_LLM_MODEL || 'gpt-4o',
+    temperature: 0.3,
+    maxTokens: 2000
   }
 };

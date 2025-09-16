@@ -1,0 +1,128 @@
+{
+  "version": "1.0.0",
+  "analysis": {
+    "defaultTicker": "AAPL",
+    "defaultAnalysisDate": "2025-09-13",
+    "defaultAnalysts": ["market", "social", "news", "fundamentals"],
+    "defaultResearchDepth": 3,
+    "defaultLLMProvider": "remote_lmstudio",
+    "models": {
+      "quickThinking": {
+        "provider": "remote_lmstudio",
+        "model": "llama-3.1-8b-instruct"
+      },
+      "deepThinking": {
+        "provider": "remote_lmstudio",
+        "model": "llama-3.1-70b-instruct"
+      },
+      "agentOverrides": {
+        "marketAnalyst": {
+          "provider": "remote_lmstudio",
+          "model": "llama-3.1-8b-instruct"
+        },
+        "socialAnalyst": {
+          "provider": "remote_lmstudio",
+          "model": "llama-3.1-8b-instruct"
+        },
+        "newsAnalyst": {
+          "provider": "remote_lmstudio",
+          "model": "llama-3.1-8b-instruct"
+        },
+        "fundamentalsAnalyst": {
+          "provider": "remote_lmstudio",
+          "model": "llama-3.1-70b-instruct"
+        },
+        "researchManager": {
+          "provider": "remote_lmstudio",
+          "model": "llama-3.1-70b-instruct"
+        },
+        "riskManager": {
+          "provider": "remote_lmstudio",
+          "model": "llama-3.1-70b-instruct"
+        },
+        "trader": {
+          "provider": "remote_lmstudio",
+          "model": "llama-3.1-70b-instruct"
+        }
+      },
+      "embedding": {
+        "provider": "remote_lmstudio",
+        "model": "text-embedding-nomic-embed-text-v1.5"
+      }
+    }
+  },
+  "flow": {
+    "maxDebateRounds": 3,
+    "maxRiskDiscussRounds": 2,
+    "maxRecursionLimit": 10,
+    "enableOnlineTools": true,
+    "enableConnectionPooling": true,
+    "enableIntelligentCaching": true,
+    "enableLazyLoading": true,
+    "enableStateOptimization": true,
+    "enableAdvancedMemory": true,
+    "enableLearningSystem": true,
+    "enableTemporalReasoning": true
+  },
+  "logging": {
+    "defaultLogLevel": "info",
+    "enableFileLogging": true,
+    "enableConsoleLogging": true,
+    "enableVerboseLogging": false,
+    "maxLogFiles": 10,
+    "maxLogSize": "50m"
+  },
+  "export": {
+    "defaultFormat": "json",
+    "includeReports": true,
+    "includeMetadata": true,
+    "includeRawData": false
+  },
+  "dataSources": {
+    "yahooFinance": {
+      "enabled": true,
+      "cacheTimeout": 15
+    },
+    "finnhub": {
+      "enabled": true,
+      "cacheTimeout": 10
+    },
+    "reddit": {
+      "enabled": true,
+      "cacheTimeout": 30
+    },
+    "googleNews": {
+      "enabled": true,
+      "cacheTimeout": 20
+    },
+    "technicalIndicators": {
+      "enabled": true,
+      "indicators": ["RSI", "MACD", "SMA", "EMA", "BBANDS"]
+    }
+  },
+  "performance": {
+    "connectionPool": {
+      "maxConnections": 20,
+      "idleTimeout": 30000,
+      "acquireTimeout": 60000
+    },
+    "cache": {
+      "maxSize": 1000,
+      "ttl": 3600,
+      "strategy": "lru"
+    },
+    "memory": {
+      "enableGarbageCollection": true,
+      "maxHeapSize": "1gb"
+    }
+  },
+  "experimental": {
+    "enableExperimentalFeatures": false,
+    "features": {
+      "advancedPortfolioOptimization": false,
+      "realTimeDataStreaming": false,
+      "multiModalAnalysis": false,
+      "quantumOptimization": false
+    }
+  }
+}

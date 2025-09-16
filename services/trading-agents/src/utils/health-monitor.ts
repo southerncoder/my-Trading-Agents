@@ -292,7 +292,10 @@ export class HealthMonitor {
     // LLM Health (simplified check)
     try {
       // Simple connectivity check to LM Studio
-      const lmStudioUrl = process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1';
+      const lmStudioUrl = process.env.REMOTE_LM_STUDIO_BASE_URL;
+      if (!lmStudioUrl) {
+        throw new Error('REMOTE_LM_STUDIO_BASE_URL environment variable is required');
+      }
       const response = await fetch(`${lmStudioUrl}/models`, {
         method: 'GET',
         signal: AbortSignal.timeout(5000)

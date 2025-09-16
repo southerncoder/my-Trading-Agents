@@ -75,31 +75,14 @@ graph TB
 ## System Flow
 
 ```mermaid
-sequenceDiagram
-    participant U as User
-    participant C as CLI
-    participant G as Trading Graph
     participant A as Agents
     participant D as Data Providers
-    participant M as Memory System
-    participant L as LLM
-    participant DB as Neo4j
-
     U->>C: Run Analysis Request
     C->>G: Initialize Trading Graph
-    G->>A: Orchestrate Agents
-    A->>D: Request Market Data
-    D->>A: Return Data
-    A->>L: Analyze with LLM
     L->>A: Analysis Results
     A->>M: Store Learning Data
-    M->>DB: Persist to Graph DB
-    A->>G: Return Results
-    G->>C: Format Results
-    C->>U: Display Analysis
 ```
-
-## Component Overview
+ <project-root>
 
 ### 🎯 **Core Components**
 
@@ -169,5 +152,4 @@ sequenceDiagram
 
 ---
 
-*This high-level architecture provides a clear overview of the TradingAgents system, showing the relationships between major components and the overall data flow.*</content>
-<parameter name="filePath">c:\code\PersonalDev\my-Trading-Agents\docs\ARCHITECTURE-OVERVIEW.md
+*This high-level architecture provides a clear overview of the TradingAgents system, showing the relationships between major components and the overall data flow.*

@@ -27,9 +27,9 @@ async function testTraditionalTradingGraph() {
     // Create traditional graph
     console.log('🏗️ Creating traditional trading graph...');
     const config = {
-      provider: 'lm_studio',
+      provider: 'remote_lmstudio',
       modelName: 'microsoft/phi-4-mini-reasoning',
-      baseURL: process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1',
+      baseURL: process.env.REMOTE_LM_STUDIO_BASE_URL,
       temperature: 0.1,
       maxTokens: 200,
       timeout: 60000
@@ -39,7 +39,7 @@ async function testTraditionalTradingGraph() {
     let graph;
     try {
       graph = new TradingAgentsGraph(config);
-    } catch (err) {
+    } catch {
       console.log('   Trying alternative constructor...');
       graph = new TradingAgentsGraph({ config });
     }
@@ -87,7 +87,7 @@ async function testLangChainComponents() {
     const { ChatOpenAI } = await import('@langchain/openai');
     console.log('✅ ChatOpenAI imported');
     
-    const { HumanMessage, SystemMessage, AIMessage } = await import('@langchain/core/messages');
+    const { HumanMessage, SystemMessage } = await import('@langchain/core/messages');
     console.log('✅ Message types imported');
     
     const { PromptTemplate } = await import('@langchain/core/prompts');
@@ -99,7 +99,7 @@ async function testLangChainComponents() {
       modelName: 'microsoft/phi-4-mini-reasoning',
       openAIApiKey: 'not-needed-for-local',
       configuration: {
-        baseURL: process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1'
+        baseURL: process.env.REMOTE_LM_STUDIO_BASE_URL,
       },
       temperature: 0.1,
       maxTokens: 100,

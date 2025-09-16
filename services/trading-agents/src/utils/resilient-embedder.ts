@@ -231,7 +231,7 @@ async function coreEmbedderCall(request: EmbedderRequest): Promise<EmbedderRespo
     const useOpenAI = lowerModel.includes('text-embedding') || lowerModel.includes('openai') || !!process.env.OPENAI_API_KEY;
     const useGoogle = lowerModel.includes('embedding-001') || lowerModel.includes('text-embedding-004') || lowerModel.includes('google') || !!process.env.GOOGLE_API_KEY;
 
-    const baseURL = process.env.OPENAI_BASE_URL || process.env.LM_STUDIO_BASE_URL || process.env.LLM_BACKEND_URL;
+    const baseURL = process.env.OPENAI_BASE_URL || process.env.REMOTE_LM_STUDIO_BASE_URL || process.env.LM_STUDIO_BASE_URL || process.env.LLM_BACKEND_URL;
     const haveKey = !!process.env.OPENAI_API_KEY;
     if (useOpenAI && (haveKey || baseURL)) {
       const openai = new OpenAIEmbeddings({

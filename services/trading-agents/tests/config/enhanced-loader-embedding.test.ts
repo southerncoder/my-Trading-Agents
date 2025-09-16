@@ -57,7 +57,7 @@ describe('EnhancedConfigLoader embedding model opt-in', () => {
   clearRequireCache(mappingPath);
   const mapping = require(mappingPath);
     mapping['market_analyst'] = {
-      provider: 'lm_studio',
+      provider: 'remote_lmstudio',
       model: 'text-embedding-qwen3-embedding-4b',
       allowEmbeddingModel: false
     };
@@ -92,7 +92,7 @@ describe('EnhancedConfigLoader embedding model opt-in', () => {
   clearRequireCache(mappingPath);
   const mapping = require(mappingPath);
     mapping['market_analyst'] = {
-      provider: 'lm_studio',
+      provider: 'remote_lmstudio',
       model: 'text-embedding-qwen3-embedding-4b',
       allowEmbeddingModel: true
     };

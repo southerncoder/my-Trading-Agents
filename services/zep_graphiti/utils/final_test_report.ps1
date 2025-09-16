@@ -5,8 +5,8 @@ Write-Host ("=" * 80) -ForegroundColor Cyan
 
 # Test 1: Docker Secrets
 Write-Host "`nTesting Docker Secrets Configuration..." -ForegroundColor Yellow
-$secretsPath = "c:\code\PersonalDev\my-Trading-Agents\py_zep\secrets"
-$requiredSecrets = @("embedder_api_key.txt", "openai_api_key.txt", "neo4j_user.txt", "neo4j_password.txt", "lm_studio_url.txt")
+$secretsPath = "$PSScriptRoot\..\secrets"
+$requiredSecrets = @("embedder_api_key.txt", "openai_api_key.txt", "neo4j_user.txt", "neo4j_password.txt")
 
 $secretsPass = 0
 foreach ($secret in $requiredSecrets) {
@@ -27,9 +27,9 @@ foreach ($secret in $requiredSecrets) {
 # Test 2: Enhanced Retry System
 Write-Host "`nTesting Enhanced Retry System..." -ForegroundColor Yellow
 $retryModules = @(
-    "c:\code\PersonalDev\my-Trading-Agents\py_zep\utils\enhanced_retry.py",
-    "c:\code\PersonalDev\my-Trading-Agents\py_zep\utils\retry_integration.py",
-    "c:\code\PersonalDev\my-Trading-Agents\py_zep\utils\enhanced_startup.py"
+    "$PSScriptRoot\enhanced_retry.py",
+    "$PSScriptRoot\retry_integration.py",
+    "$PSScriptRoot\enhanced_startup.py"
 )
 
 $retryPass = 0
@@ -52,8 +52,8 @@ foreach ($module in $retryModules) {
 # Test 3: JSON Parsing Enhancements
 Write-Host "`nTesting JSON Parsing Enhancements..." -ForegroundColor Yellow
 $jsonModules = @(
-    "c:\code\PersonalDev\my-Trading-Agents\py_zep\utils\enhanced_json_parsing.sh",
-    "c:\code\PersonalDev\my-Trading-Agents\py_zep\utils\test_enhanced_json_parsing.ps1"
+    "$PSScriptRoot\enhanced_json_parsing.sh",
+    "$PSScriptRoot\test_enhanced_json_parsing.ps1"
 )
 
 $jsonPass = 0
@@ -75,7 +75,7 @@ foreach ($module in $jsonModules) {
 
 # Test 4: Docker Networking
 Write-Host "`nTesting Docker Networking Configuration..." -ForegroundColor Yellow
-$dockerCompose = "c:\code\PersonalDev\my-Trading-Agents\py_zep\docker-compose.yml"
+$dockerCompose = "$PSScriptRoot\..\docker-compose.yml"
 
 $networkingPass = 0
 if (Test-Path $dockerCompose) {
@@ -107,7 +107,7 @@ if (Test-Path $dockerCompose) {
 
 # Test 5: Environment Security
 Write-Host "`nTesting Environment Security..." -ForegroundColor Yellow
-$envFile = "c:\code\PersonalDev\my-Trading-Agents\py_zep\.env.local"
+$envFile = "$PSScriptRoot\..\.env.local"
 
 $securityPass = 0
 if (Test-Path $envFile) {

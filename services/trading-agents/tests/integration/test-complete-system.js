@@ -31,7 +31,7 @@ async function runCompleteSystemTest() {
         const path = await import('path');
         dotenv.config({ path: path.join(process.cwd(), '.env.local') });
         
-        const requiredEnvVars = ['LLM_PROVIDER', 'LLM_BACKEND_URL', 'LM_STUDIO_HOST'];
+        const requiredEnvVars = ['REMOTE_LM_STUDIO_BASE_URL', 'REMOTE_LM_STUDIO_API_KEY', 'LOCAL_LM_STUDIO_BASE_URL', 'LOCAL_LM_STUDIO_API_KEY'];
         let envValid = true;
         
         for (const varName of requiredEnvVars) {
@@ -172,13 +172,15 @@ async function runCompleteSystemTest() {
         console.log('--------------------------');
         
         try {
-            const backendUrl = process.env.LLM_BACKEND_URL;
-            if (backendUrl) {
-                console.log(`   ✅ LLM Backend URL configured: ${backendUrl}`);
+            const remoteLmStudioUrl = process.env.REMOTE_LM_STUDIO_BASE_URL;
+            const localLmStudioUrl = process.env.LOCAL_LM_STUDIO_BASE_URL;
+            if (remoteLmStudioUrl || localLmStudioUrl) {
+                console.log(`   ✅ Remote LM Studio URL configured: ${remoteLmStudioUrl || 'not set'}`);
+                console.log(`   ✅ Local LM Studio URL configured: ${localLmStudioUrl || 'not set'}`);
                 console.log('   ✅ LM Studio connection parameters ready');
                 testResults.llmConnection = true;
             } else {
-                console.log('   ❌ LLM Backend URL not configured');
+                console.log('   ❌ LM Studio URLs not configured');
                 testResults.llmConnection = false;
             }
         } catch (error) {

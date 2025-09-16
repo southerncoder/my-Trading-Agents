@@ -24,7 +24,13 @@ class LMStudioSingleton {
   private baseUrl: string;
   private initializationPromises: Map<string, Promise<BaseChatModel>> = new Map();
 
-  constructor(baseUrl: string = process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1') {
+  constructor(baseUrl?: string) {
+    if (!baseUrl) {
+      baseUrl = process.env.LM_STUDIO_BASE_URL;
+      if (!baseUrl) {
+        throw new Error('LM_STUDIO_BASE_URL environment variable is required');
+      }
+    }
     this.baseUrl = baseUrl;
   }
 

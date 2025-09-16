@@ -2,7 +2,10 @@
  * Simplified LangGraph Integration for Trading Agents
  * 
  * This module creates a basic LangGraph StateGraph workflow for trading agents.
- * Uses the correct LangGraph.js API based on available exports.
+ * U        llmProvider: 'remote_lmstudio',
+        deepThinkLlm: 'llama-3.2-3b-instruct',
+        quickThinkLlm: 'llama-3.2-3b-instruct',
+        maxDebateRounds: 3,he correct LangGraph.js API based on available exports.
  */
 
 import { StateGraph, messagesStateReducer } from '@langchain/langgraph';
@@ -150,10 +153,9 @@ export class SimplifiedLangGraphSetup {
         dataCacheDir: process.env.TRADINGAGENTS_CACHE_DIR || './cache',
         exportsDir: process.env.TRADINGAGENTS_EXPORTS_DIR || './exports',
         logsDir: process.env.TRADINGAGENTS_LOGS_DIR || './logs',
-        llmProvider: 'lm_studio',
+        llmProvider: 'remote_lmstudio',
         deepThinkLlm: 'llama-3.2-3b-instruct',
         quickThinkLlm: 'llama-3.2-3b-instruct',
-        backendUrl: process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1',
         maxDebateRounds: 3,
         maxRiskDiscussRounds: 3,
         maxRecurLimit: 5,

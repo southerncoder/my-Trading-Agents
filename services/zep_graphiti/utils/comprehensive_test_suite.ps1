@@ -39,7 +39,7 @@ function Test-NetworkingEnhancements {
     
     # Test 1: Docker networking configuration
     Write-Host "Testing Docker networking configuration..." -ForegroundColor Yellow
-    $dockerComposePath = "c:\code\PersonalDev\my-Trading-Agents\py_zep\docker-compose.yml"
+    $dockerComposePath = "$PSScriptRoot\..\..\..\docker-compose.yml"
     
     if (Test-Path $dockerComposePath) {
         $composeContent = Get-Content $dockerComposePath -Raw
@@ -117,9 +117,9 @@ function Test-RetryEnhancements {
     Write-Host "`n🔄 Testing Retry Mechanism Enhancements..." -ForegroundColor Cyan
     
     $testResults = @()
-    $retryPath = "c:\code\PersonalDev\my-Trading-Agents\py_zep\utils\enhanced_retry.py"
-    $integrationPath = "c:\code\PersonalDev\my-Trading-Agents\py_zep\utils\retry_integration.py"
-    $startupPath = "c:\code\PersonalDev\my-Trading-Agents\py_zep\utils\enhanced_startup.py"
+    $retryPath = "$PSScriptRoot\enhanced_retry.py"
+    $integrationPath = "$PSScriptRoot\retry_integration.py"
+    $startupPath = "$PSScriptRoot\enhanced_startup.py"
     
     # Test enhanced retry system
     if (Test-Path $retryPath) {
@@ -394,7 +394,7 @@ function Test-SecurityEnhancements {
     }
     
     # Check for sensitive data in environment files
-    $envPath = "c:\code\PersonalDev\my-Trading-Agents\py_zep\.env.local"
+    $envPath = "$PSScriptRoot\..\..\..\.env.local"
     if (Test-Path $envPath) {
         $envContent = Get-Content $envPath -Raw
         
@@ -443,8 +443,8 @@ function Test-IntegrationScenarios {
     Write-Host "Testing service startup integration..." -ForegroundColor Yellow
     
     $startupScripts = @(
-        "c:\code\PersonalDev\my-Trading-Agents\py_zep\start-services-secure.ps1",
-        "c:\code\PersonalDev\my-Trading-Agents\py_zep\setup-dev-env.ps1"
+    "$PSScriptRoot\..\start-services-secure.ps1",
+    "$PSScriptRoot\..\setup-dev-env.ps1"
     )
     
     $foundStartupScript = $false
@@ -474,8 +474,8 @@ function Test-IntegrationScenarios {
     
     # Test 2: Configuration consistency
     $configFiles = @(
-        "c:\code\PersonalDev\my-Trading-Agents\py_zep\docker-compose.yml",
-        "c:\code\PersonalDev\my-Trading-Agents\py_zep\.env.local"
+    "$PSScriptRoot\..\..\..\docker-compose.yml",
+    "$PSScriptRoot\..\..\..\.env.local"
     )
     
     $allConfigsExist = $true

@@ -18,7 +18,7 @@ export const PROVIDER_OPTIONS: ProviderOption[] = [
   { display: "OpenAI", url: "https://api.openai.com/v1" },
   { display: "Anthropic", url: "https://api.anthropic.com/" },
   { display: "Google", url: "https://generativelanguage.googleapis.com/v1" },
-  { display: "LM Studio", url: "http://localhost:1234/v1" },
+  { display: "LM Studio", url: process.env.REMOTE_LM_STUDIO_BASE_URL || "http://your-lm-studio-server:1234/v1" },
   { display: "Openrouter", url: "https://openrouter.ai/api/v1" },
   { display: "Ollama", url: "http://localhost:11434/v1" }
 ];

@@ -12,7 +12,7 @@ describe('LMStudioMemoryProvider', () => {
     (LMStudioManager as any).instanceLocks?.clear?.();
 
     config = {
-      provider: 'lm_studio',
+      provider: 'remote_lmstudio',
       model: 'nomic-embed-text',
       baseUrl: 'http://localhost:1234/v1'
     };
@@ -33,7 +33,7 @@ describe('LMStudioMemoryProvider', () => {
 
     test('should use default model when not specified', () => {
       const configWithoutModel: AgentLLMConfig = {
-        provider: 'lm_studio',
+        provider: 'remote_lmstudio',
         model: 'nomic-embed-text', // Default model
         baseUrl: 'http://localhost:1234/v1'
       };

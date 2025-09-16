@@ -23,7 +23,7 @@ async function testRedditOAuth() {
       dataCacheDir: '/tmp/test/cache',
       exportsDir: '/tmp/test/exports',
       logsDir: '/tmp/test/logs',
-      llmProvider: 'lm_studio',
+      llmProvider: 'remote_lmstudio',
       deepThinkLlm: 'test-model',
       quickThinkLlm: 'test-model',
       backendUrl: 'http://localhost:1234/v1',

@@ -21,7 +21,7 @@ async function testModernLangChainPatterns() {
         console.log('✅ Universal chat model import successful');
         
         // Test with environment variable configuration
-        const backendUrl = process.env.LLM_BACKEND_URL || 'http://localhost:1234/v1';
+        const backendUrl = process.env.REMOTE_LM_STUDIO_BASE_URL;
         const modelName = process.env.LLM_MODEL_NAME || 'gpt-4o';
         
         console.log(`✅ Backend URL: ${backendUrl}`);
@@ -32,9 +32,9 @@ async function testModernLangChainPatterns() {
         console.log('----------------------------------------');
         
         try {
-            // Initialize with modern pattern using environment variables
+            // Initialize with modern pattern using config-driven temperature
             const chatModel = await initChatModel(modelName, {
-                temperature: parseFloat(process.env.LLM_TEMPERATURE || '0.7'),
+                temperature: 0.7, // Use config.json or runtime config, not env var
                 maxTokens: parseInt(process.env.LLM_MAX_TOKENS || '1000'),
                 // For local models like LM Studio, we use baseURL
                 baseURL: backendUrl,
@@ -50,7 +50,7 @@ async function testModernLangChainPatterns() {
             console.log('----------------------------------');
             
             // Test runtime configuration (without actually calling the model)
-            const configuredModel = chatModel.withConfig({
+            chatModel.withConfig({
                 configurable: {
                     temperature: 0.1,
                     maxTokens: 500
@@ -79,7 +79,7 @@ async function testCurrentLangGraphPatterns() {
     
     try {
         // Test modern state graph creation
-        const { StateGraph, END } = await import('@langchain/langgraph');
+        const { StateGraph } = await import('@langchain/langgraph');
         console.log('✅ LangGraph imports successful');
         
         // Test modern state definition (using JSDoc for type information)

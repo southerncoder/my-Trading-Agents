@@ -78,13 +78,8 @@ class GraphitiEntityTester:
                 logger.warning("Using environment OPENAI_API_KEY as fallback")
             
             # LM Studio URL from secrets file
-            lm_studio_file = Path(__file__).parent.parent / "secrets" / "lm_studio_url.txt"
-            if lm_studio_file.exists():
-                openai_base_url = lm_studio_file.read_text().strip()
-                logger.info("LM Studio URL loaded from secrets file")
-            else:
-                openai_base_url = os.getenv("OPENAI_BASE_URL", "http://host.docker.internal:5432/v1")
-                logger.warning("Using environment OPENAI_BASE_URL as fallback")
+            openai_base_url = os.getenv("OPENAI_BASE_URL", "http://host.docker.internal:5432/v1")
+            logger.info("Using environment OPENAI_BASE_URL")
             
             # Model configuration
             model_name = os.getenv("OPENAI_MODEL", "text-embedding-qwen3-embedding-4b")

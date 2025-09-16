@@ -69,8 +69,8 @@ export class EmbeddingProviderFactory {
       case 'anthropic':
         // Anthropic doesn't provide embeddings, use intelligent fallback
         return this.createFallbackProvider(config, 'anthropic');
-      case 'lm_studio': {
-        const baseURL = config.baseUrl || process.env.OPENAI_BASE_URL || process.env.LM_STUDIO_BASE_URL || process.env.LLM_BACKEND_URL;
+      case 'remote_lmstudio': {
+        const baseURL = config.baseUrl || process.env.OPENAI_BASE_URL || process.env.LLM_BACKEND_URL;
         // If LM Studio baseURL is available, use dedicated LM Studio memory provider with model checking
         if (baseURL) {
           try {
@@ -137,7 +137,7 @@ export class EmbeddingProviderFactory {
         return ['text-embedding-3-small', 'text-embedding-3-large', 'text-embedding-ada-002'];
       case 'google':
         return ['embedding-001', 'text-embedding-004'];
-      case 'lm_studio':
+      case 'remote_lmstudio':
       case 'ollama':
         return ['nomic-embed-text', 'all-minilm', 'sentence-transformers'];
       case 'anthropic':
@@ -156,7 +156,7 @@ export class ResilientOpenAIMemoryProvider implements MemoryProvider {
   private config: AgentLLMConfig;
 
   constructor(config: AgentLLMConfig) {
-    const baseURL = config.baseUrl || process.env.OPENAI_BASE_URL || process.env.LM_STUDIO_BASE_URL || process.env.LLM_BACKEND_URL;
+    const baseURL = config.baseUrl || process.env.OPENAI_BASE_URL || process.env.LLM_BACKEND_URL;
     const apiKey = config.apiKey || process.env.OPENAI_API_KEY || (baseURL ? 'lm-studio' : undefined);
     if (!apiKey && !baseURL) {
       throw new Error('OpenAI embeddings require an API key or a local OpenAI-compatible baseURL');

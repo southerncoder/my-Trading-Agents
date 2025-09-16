@@ -248,5 +248,4 @@ All Components → Health Monitor → Service Checks
 
 ---
 
-*This interaction diagram shows the detailed relationships and data flows between all system components, providing a comprehensive view of how the TradingAgents system operates.*</content>
-<parameter name="filePath">c:\code\PersonalDev\my-Trading-Agents\docs\COMPONENT-INTERACTIONS.md
+*This interaction diagram shows the detailed relationships and data flows between all system components, providing a comprehensive view of how the TradingAgents system operates.*

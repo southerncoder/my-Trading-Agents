@@ -12,14 +12,9 @@ export const DEFAULT_CONFIG: TradingAgentsConfig = {
   exportsDir: process.env.TRADINGAGENTS_EXPORTS_DIR || './exports',
   logsDir: process.env.TRADINGAGENTS_LOGS_DIR || './logs',
 
-  // LLM settings
-  llmProvider: (process.env.LLM_PROVIDER as any) || 'openai',
+  // LLM settings - provider and model are now specified in config.json
   deepThinkLlm: process.env.DEEP_THINK_LLM || 'o1-mini',
   quickThinkLlm: process.env.QUICK_THINK_LLM || 'gpt-4o-mini',
-  backendUrl: process.env.LLM_BACKEND_URL || 
-    (process.env.LLM_PROVIDER === 'lm_studio' ? 
-      `http://${process.env.LM_STUDIO_HOST || 'localhost'}:1234/v1` : 
-      'https://api.openai.com/v1'),
 
   // Debate and discussion settings
   maxDebateRounds: parseInt(process.env.MAX_DEBATE_ROUNDS || '1'),
@@ -28,16 +23,6 @@ export const DEFAULT_CONFIG: TradingAgentsConfig = {
 
   // Tool settings
   onlineTools: process.env.ONLINE_TOOLS?.toLowerCase() === 'true' || true,
-
-  // API Keys (from environment variables)
-  openaiApiKey: process.env.OPENAI_API_KEY,
-  anthropicApiKey: process.env.ANTHROPIC_API_KEY,
-  googleApiKey: process.env.GOOGLE_API_KEY,
-  finnhubApiKey: process.env.FINNHUB_API_KEY,
-  redditClientId: process.env.REDDIT_CLIENT_ID,
-  redditClientSecret: process.env.REDDIT_CLIENT_SECRET,
-  redditUsername: process.env.REDDIT_USERNAME,
-  redditPassword: process.env.REDDIT_PASSWORD,
 };
 
 /**
@@ -46,24 +31,13 @@ export const DEFAULT_CONFIG: TradingAgentsConfig = {
 export function validateConfig(config: TradingAgentsConfig): void {
   const errors: string[] = [];
 
-  // Check for required API keys based on LLM provider
-  switch (config.llmProvider) {
-    case 'openai':
-    case 'openrouter':
-      if (!config.openaiApiKey) {
-        errors.push('OPENAI_API_KEY is required for OpenAI provider');
-      }
-      break;
-    case 'anthropic':
-      if (!config.anthropicApiKey) {
-        errors.push('ANTHROPIC_API_KEY is required for Anthropic provider');
-      }
-      break;
-    case 'google':
-      if (!config.googleApiKey) {
-        errors.push('GOOGLE_API_KEY is required for Google provider');
-      }
-      break;
+  // Basic validation - ensure required fields are present
+  if (!config.deepThinkLlm) {
+    errors.push('Deep thinking LLM model is required');
+  }
+
+  if (!config.quickThinkLlm) {
+    errors.push('Quick thinking LLM model is required');
   }
 
   if (errors.length > 0) {

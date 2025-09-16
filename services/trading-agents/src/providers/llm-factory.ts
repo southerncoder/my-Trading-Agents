@@ -20,7 +20,7 @@ export class LLMProviderFactory {
         return this.createAnthropicLLM(config);
       case 'google':
         return this.createGoogleLLM(config);
-      case 'lm_studio':
+      case 'remote_lmstudio':
         return this.createLMStudioLLM(config);
       case 'ollama':
         return this.createOllamaLLM(config);
@@ -113,7 +113,11 @@ export class LLMProviderFactory {
    * Create LM Studio LLM instance (OpenAI-compatible local server)
    */
   private static createLMStudioLLM(config: AgentLLMConfig): ChatOpenAI {
-    const baseUrl = config.baseUrl || process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1';
+    const baseUrl = config.baseUrl || process.env.REMOTE_LM_STUDIO_BASE_URL;
+
+    if (!baseUrl) {
+      throw new Error('REMOTE_LM_STUDIO_BASE_URL environment variable is required for LM Studio provider');
+    }
 
     const lmStudioConfig: any = {
       modelName: config.model,
@@ -138,7 +142,11 @@ export class LLMProviderFactory {
    * Create Ollama LLM instance (local inference server)
    */
   private static createOllamaLLM(config: AgentLLMConfig): ChatOpenAI {
-    const baseUrl = config.baseUrl || process.env.OLLAMA_BASE_URL || 'http://localhost:11434/v1';
+    const baseUrl = config.baseUrl || process.env.OLLAMA_BASE_URL;
+
+    if (!baseUrl) {
+      throw new Error('OLLAMA_BASE_URL environment variable is required for Ollama provider');
+    }
 
     const ollamaConfig: any = {
       modelName: config.model,
@@ -232,7 +240,7 @@ export class LLMProviderFactory {
           'gemini-1.0-pro',
           'gemini-pro-vision'
         ];
-      case 'lm_studio':
+      case 'remote_lmstudio':
       case 'ollama':
         return [
           'llama2',
@@ -275,7 +283,7 @@ export class LLMProviderFactory {
         return 'claude-3-5-haiku-20241022';
       case 'google':
         return 'gemini-1.5-flash';
-      case 'lm_studio':
+      case 'remote_lmstudio':
       case 'ollama':
         return 'llama2-7b';
       case 'openrouter':
@@ -315,7 +323,7 @@ export class LLMProviderFactory {
         }
       case 'google':
         return { input: 0.000125, output: 0.000375 };
-      case 'lm_studio':
+      case 'remote_lmstudio':
       case 'ollama':
         return { input: 0, output: 0 }; // Local inference is free
       case 'openrouter':

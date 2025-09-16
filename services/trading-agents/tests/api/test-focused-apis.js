@@ -3,7 +3,7 @@
 /**
  * Focused API Test Suite for Trading Agents
  * 
- * Tests core external API integrations using lm_studio provider 
+ * Tests core external API integrations using remote_lmstudio provider 
  * with microsoft/phi-4-mini-reasoning model.
  */
 
@@ -11,7 +11,7 @@ import { EnhancedTradingAgentsGraph } from '../dist/graph/enhanced-trading-graph
 import { createConfig } from '../dist/config/default.js';
 
 const TEST_CONFIG = createConfig({
-  llmProvider: 'lm_studio',
+  llmProvider: 'remote_lmstudio',
   deepThinkLlm: 'microsoft/phi-4-mini-reasoning',
   quickThinkLlm: 'microsoft/phi-4-mini-reasoning',
   backendUrl: 'http://localhost:1234/v1',
@@ -40,7 +40,7 @@ class FocusedAPITester {
       const { ModelProvider } = await import('../dist/models/provider.js');
       
       const modelConfig = {
-        provider: 'lm_studio',
+        provider: 'remote_lmstudio',
         modelName: 'microsoft/phi-4-mini-reasoning',
         baseURL: 'http://localhost:1234/v1',
         temperature: 0.7,

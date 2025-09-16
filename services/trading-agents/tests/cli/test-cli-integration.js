@@ -14,7 +14,7 @@ class TestTradingAgentsCLI extends TradingAgentsCLI {
       analysisDate: '2025-08-24',
       analysts: ['market', 'social'],
       researchDepth: 1,
-      llmProvider: 'lm_studio',
+      llmProvider: 'remote_lmstudio',
       backendUrl: 'http://localhost:1234/v1',
       shallowThinker: 'local-model',
       deepThinker: 'local-model'

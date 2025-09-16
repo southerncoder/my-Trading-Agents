@@ -12,9 +12,9 @@ async function debugLLMResponse() {
   try {
     // Create real LM Studio LLM
     const llmConfig: AgentLLMConfig = {
-      provider: 'lm_studio',
+      provider: 'remote_lmstudio',
       model: 'mistralai/devstral-small-2507',
-      baseUrl: process.env.LM_STUDIO_BASE_URL,
+      baseUrl: process.env.REMOTE_LM_STUDIO_BASE_URL,
       temperature: 0.3,
       maxTokens: 1000
     };

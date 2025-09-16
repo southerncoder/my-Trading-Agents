@@ -13,7 +13,7 @@ const TEST_SUITE_CONFIG = {
   company: 'AAPL',
   date: '2025-01-15',
   model: 'microsoft/phi-4-mini-reasoning',
-  provider: 'lm_studio',
+  provider: 'remote_lmstudio',
   baseURL: 'http://localhost:1234/v1'
 };
 

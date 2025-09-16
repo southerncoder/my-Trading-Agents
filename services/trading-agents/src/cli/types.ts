@@ -11,7 +11,6 @@ export interface UserSelections {
   analysts: AnalystType[];
   researchDepth: number;
   llmProvider: string;
-  backendUrl: string;
   shallowThinker: string;
   deepThinker: string;
   verboseLogging?: boolean;

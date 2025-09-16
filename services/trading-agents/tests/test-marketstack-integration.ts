@@ -64,7 +64,7 @@ async function testMarketStackIntegration() {
     
     // Test 2: Unified Market Data Provider with MarketStack
     const unifiedProvider = new UnifiedMarketDataProvider({
-      llmProvider: 'lm_studio',
+      llmProvider: 'remote_lmstudio',
       selectedAnalysts: ['market'],
       enableLangGraph: false
     });

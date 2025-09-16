@@ -15,10 +15,12 @@ import {
   selectDeepThinkingAgent 
 } from './utils';
 import { UserSelections, AnalystType } from './types';
+import { LLMProvider } from '../types/config';
 import { MessageBuffer } from './message-buffer';
 import { DisplaySystem } from './display';
 import { EnhancedTradingAgentsGraph } from '../graph/enhanced-trading-graph';
-import { DEFAULT_CONFIG } from '../config/default';
+// import { DEFAULT_CONFIG } from '../config/default';
+import { resolveLLMProviderConfig } from '../utils/llm-provider-utils';
 import { ConfigManager } from './config-manager';
 import { ExportManager } from './export-manager';
 import { HistoricalAnalyzer } from './historical-analyzer';
@@ -195,7 +197,7 @@ export class TradingAgentsCLI {
       "Step 5: LLM Provider", 
       "Select which service to talk to"
     );
-    const { provider, url } = await selectLLMProvider();
+    const { provider } = await selectLLMProvider();
 
     // Step 6: Thinking agents
     this.display.createQuestionBox(
@@ -211,7 +213,6 @@ export class TradingAgentsCLI {
       analysts,
       researchDepth,
       llmProvider: provider.toLowerCase(),
-      backendUrl: url,
       shallowThinker,
       deepThinker
     };
@@ -246,8 +247,7 @@ export class TradingAgentsCLI {
           analysisDate,
           analysts: [AnalystType.MARKET, AnalystType.SOCIAL, AnalystType.NEWS, AnalystType.FUNDAMENTALS], // Default analysts
           researchDepth: 1, // Default depth
-          llmProvider: process.env.LLM_PROVIDER || 'lm_studio',
-          backendUrl: process.env.LLM_BACKEND_URL || 'http://localhost:1234/v1',
+          llmProvider: 'remote_lmstudio', // Default provider - should be specified in config.json
           shallowThinker: process.env.QUICK_THINK_LLM || 'microsoft/phi-4-reasoning-plus',
           deepThinker: process.env.DEEP_THINK_LLM || 'microsoft/phi-4-reasoning-plus'
         };
@@ -259,26 +259,35 @@ export class TradingAgentsCLI {
       
       logSystemInfo();
 
-      // Create config with selected options
-      const config = { ...DEFAULT_CONFIG };
-      config.maxDebateRounds = selections.researchDepth;
-      config.maxRiskDiscussRounds = selections.researchDepth;
-      config.quickThinkLlm = selections.shallowThinker;
-      config.deepThinkLlm = selections.deepThinker;
-      config.backendUrl = selections.backendUrl;
-      config.llmProvider = selections.llmProvider as any;
-
+      // Load config.json directly
+      const fs = await import('fs');
+      const path = await import('path');
+      const configPath = path.join(process.cwd(), 'config.json');
+      const configRaw = fs.readFileSync(configPath, 'utf-8');
+      const cliConfig = JSON.parse(configRaw);
+      // Patch in CLI selections for ticker, analysts, models, etc.
+      if (cliConfig.analysis) {
+        cliConfig.analysis.defaultTicker = selections.ticker;
+        cliConfig.analysis.defaultAnalysts = selections.analysts;
+        cliConfig.analysis.defaultResearchDepth = selections.researchDepth;
+        if (cliConfig.analysis.models) {
+          cliConfig.analysis.models.quickThinking.model = selections.shallowThinker;
+          cliConfig.analysis.models.deepThinking.model = selections.deepThinker;
+        }
+      }
       // If using LM Studio, start a background preload of the quick/deep models (non-blocking)
-      if ((config.llmProvider as string) === 'lm_studio') {
-        const quickModel = config.quickThinkLlm;
-        const deepModel = config.deepThinkLlm;
+      const quickModel = cliConfig.analysis?.models?.quickThinking?.model;
+      const deepModel = cliConfig.analysis?.models?.deepThinking?.model;
+      const llmProvider = cliConfig.analysis?.models?.quickThinking?.provider;
+      if (llmProvider === 'local_lmstudio' || llmProvider === 'remote_lmstudio') {
         try {
+          const lmStudioConfig = resolveLLMProviderConfig(llmProvider as LLMProvider);
           this.display.showInfo(`Preloading LM Studio models in background: ${quickModel}${deepModel ? ', ' + deepModel : ''}`);
           import('../models/provider').then(async (mod) => {
             try {
               const tasks: Promise<void>[] = [];
-              tasks.push(mod.ModelProvider.preloadModel({ provider: 'lm_studio', modelName: quickModel, baseURL: config.backendUrl }));
-              if (deepModel) tasks.push(mod.ModelProvider.preloadModel({ provider: 'lm_studio', modelName: deepModel, baseURL: config.backendUrl }));
+              if (quickModel) tasks.push(mod.ModelProvider.preloadModel({ provider: llmProvider as LLMProvider, modelName: quickModel, baseURL: lmStudioConfig.baseUrl }));
+              if (deepModel) tasks.push(mod.ModelProvider.preloadModel({ provider: llmProvider as LLMProvider, modelName: deepModel, baseURL: lmStudioConfig.baseUrl }));
               await Promise.all(tasks);
               this.display.showInfo('LM Studio model preload completed (background)');
             } catch (err: any) {
@@ -288,28 +297,30 @@ export class TradingAgentsCLI {
             this.display.showError(`Failed to start LM Studio preload: ${err instanceof Error ? err.message : String(err)}`);
           });
         } catch (err: any) {
-          // Non-fatal - log and continue
           this.display.showError(`LM Studio preload error: ${err instanceof Error ? err.message : String(err)}`);
         }
       }
 
-      // Initialize the enhanced graph
+      // Initialize the enhanced graph with config.json (all flow/logging fields included)
       console.log('🔍 DEBUG: About to create EnhancedTradingAgentsGraph with config:', {
-        llmProvider: config.llmProvider,
-        backendUrl: config.backendUrl,
-        quickThinkLlm: config.quickThinkLlm,
-        deepThinkLlm: config.deepThinkLlm
+        quickThinkLlm: cliConfig.analysis?.models?.quickThinking?.model,
+        deepThinkLlm: cliConfig.analysis?.models?.deepThinking?.model,
+        runMode: cliConfig.flow?.runMode,
+        timeout: cliConfig.flow?.timeout,
+        parallelism: cliConfig.flow?.parallelism,
+        maxTokens: cliConfig.flow?.maxTokens,
+        temperature: cliConfig.flow?.temperature,
+        logLevel: cliConfig.logging?.logLevel
       });
-      
       const graph = new EnhancedTradingAgentsGraph({
-        config,
+        config: cliConfig,
         selectedAnalysts: selections.analysts,
         enableLangGraph: true
       });
       console.log('🔍 DEBUG: EnhancedTradingAgentsGraph created successfully');
 
       // Create result directories
-      const resultsDir = join(process.cwd(), config.resultsDir, selections.ticker, selections.analysisDate);
+  const resultsDir = join(process.cwd(), cliConfig.resultsDir, selections.ticker, selections.analysisDate);
       mkdirSync(resultsDir, { recursive: true });
       const reportDir = join(resultsDir, 'reports');
       mkdirSync(reportDir, { recursive: true });
@@ -859,12 +870,12 @@ export async function createCLI(): Promise<Command> {
     .command('lmstudio:preload')
     .description('Preload a model on an LM Studio instance')
     .requiredOption('-m, --model <name>', 'Model name to preload')
-    .requiredOption('-h, --host <url>', 'LM Studio base URL (e.g., http://localhost:1234/v1)')
+    .requiredOption('-h, --host <url>', 'LM Studio base URL (e.g., http://your-lm-studio-server:1234/v1)')
     .action(async (opts: { model: string; host: string }) => {
       try {
         const { ModelProvider } = await import('../models/provider');
         console.log(`Preloading model ${opts.model} at ${opts.host}...`);
-        await ModelProvider.preloadModel({ provider: 'lm_studio', modelName: opts.model, baseURL: opts.host });
+        await ModelProvider.preloadModel({ provider: 'remote_lmstudio', modelName: opts.model, baseURL: opts.host });
         console.log('Model preload requested successfully.');
       } catch (err: any) {
         console.error('Failed to preload model:', err instanceof Error ? err.message : String(err));

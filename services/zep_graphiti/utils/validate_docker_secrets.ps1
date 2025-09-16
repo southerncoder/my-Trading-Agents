@@ -11,9 +11,9 @@ param(
 function Test-DockerSecretsConfiguration {
     Write-Host "Testing Docker Secrets Configuration..." -ForegroundColor Cyan
     
-    $secretsPath = "c:\code\PersonalDev\my-Trading-Agents\py_zep\secrets"
-    $composePath = "c:\code\PersonalDev\my-Trading-Agents\py_zep\docker-compose.yml"
-    $envPath = "c:\code\PersonalDev\my-Trading-Agents\py_zep\.env.local"
+    $secretsPath = "$PSScriptRoot\..\secrets"
+    $composePath = "$PSScriptRoot\..\docker-compose.yml"
+    $envPath = "$PSScriptRoot\..\.env.local"
     
     $testResults = @()
     
@@ -23,8 +23,7 @@ function Test-DockerSecretsConfiguration {
         "embedder_api_key.txt",
         "openai_api_key.txt", 
         "neo4j_user.txt",
-        "neo4j_password.txt",
-        "lm_studio_url.txt"
+        "neo4j_password.txt"
     )
     
     foreach ($secret in $requiredSecrets) {
@@ -121,7 +120,7 @@ function Test-DockerSecretsConfiguration {
 function Test-StartWrapperSecrets {
     Write-Host "`nTesting start-wrapper.sh secrets integration..." -ForegroundColor Cyan
     
-    $startWrapperPath = "c:\code\PersonalDev\my-Trading-Agents\py_zep\secrets\start-wrapper.sh"
+    $startWrapperPath = "$PSScriptRoot\..\secrets\start-wrapper.sh"
     
     if (-not (Test-Path $startWrapperPath)) {
         Write-Host "❌ start-wrapper.sh not found at $startWrapperPath" -ForegroundColor Red
@@ -150,7 +149,7 @@ function Test-StartWrapperSecrets {
     }
     
     # Check for secret environment variable setting
-    $secretVars = @("EMBEDDER_API_KEY", "OPENAI_API_KEY", "LM_STUDIO_URL")
+    $secretVars = @("EMBEDDER_API_KEY", "OPENAI_API_KEY")
     foreach ($var in $secretVars) {
         if ($content -match "export\s+$var\s*=") {
             Write-Host "✅ $var export found" -ForegroundColor Green

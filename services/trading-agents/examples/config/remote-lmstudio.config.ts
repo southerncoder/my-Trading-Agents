@@ -11,7 +11,7 @@
  * - Adaptive test scenario generation
  *
  * SECURITY REQUIREMENTS:
- * - REMOTE_LM_STUDIO_URL environment variable MUST be set
+ * - REMOTE_LM_STUDIO_BASE_URL environment variable MUST be set
  * - Never hardcode server URLs, IPs, or ports in source code
  * - Use environment variables for all network endpoints
  * - LM Studio does NOT run on port 1234 by default
@@ -22,12 +22,12 @@ import { TradingAgentsConfig } from '../../src/types/config';
 
 // Remote LM Studio configuration - REQUIRES environment variable for security
 const getRemoteLMStudioBaseURL = (): string => {
-  const url = process.env.REMOTE_LM_STUDIO_URL;
+  const url = process.env.REMOTE_LM_STUDIO_BASE_URL;
   if (!url) {
     throw new Error(
-      '🚨 SECURITY ERROR: REMOTE_LM_STUDIO_URL environment variable is required.\n' +
-      'Set REMOTE_LM_STUDIO_URL=http://your-lm-studio-server:port/v1\n' +
-      'Example: REMOTE_LM_STUDIO_URL=http://192.168.100.100:8080/v1\n' +
+      '🚨 SECURITY ERROR: REMOTE_LM_STUDIO_BASE_URL environment variable is required.\n' +
+      'Set REMOTE_LM_STUDIO_BASE_URL=http://your-lm-studio-server:port/v1\n' +
+      'Example: REMOTE_LM_STUDIO_BASE_URL=http://192.168.100.100:8080/v1\n' +
       'Note: LM Studio does NOT run on port 1234 by default'
     );
   }
@@ -41,7 +41,7 @@ const getRemoteLMStudioBaseURL = (): string => {
     return url;
   } catch (error) {
     throw new Error(
-      `🚨 SECURITY ERROR: Invalid REMOTE_LM_STUDIO_URL format: ${url}\n` +
+      `🚨 SECURITY ERROR: Invalid REMOTE_LM_STUDIO_BASE_URL format: ${url}\n` +
       'Expected format: http://host:port/v1 or https://host:port/v1'
     );
   }
@@ -255,7 +255,7 @@ export async function createDynamicModelAssignments(): Promise<Record<string, Mo
   // Quick thinking - prioritize speed
   const quickModel = findBestModel(['fast'], 'small') || sortedModels.find(m => m.speed === 'fast') || sortedModels[0];
   assignments.quickThinking = {
-    provider: 'lm_studio' as const,
+    provider: 'remote_lmstudio' as const,
     modelName: quickModel.id,
     baseURL: REMOTE_LM_STUDIO_BASE_URL,
     temperature: 0.5,
@@ -265,7 +265,7 @@ export async function createDynamicModelAssignments(): Promise<Record<string, Mo
   // Deep thinking - prioritize reasoning and quality
   const deepModel = findBestModel(['reasoning'], 'large') || sortedModels.find(m => m.quality === 'excellent') || sortedModels[0];
   assignments.deepThinking = {
-    provider: 'lm_studio' as const,
+    provider: 'remote_lmstudio' as const,
     modelName: deepModel.id,
     baseURL: REMOTE_LM_STUDIO_BASE_URL,
     temperature: 0.3,
@@ -274,7 +274,7 @@ export async function createDynamicModelAssignments(): Promise<Record<string, Mo
 
   // Specialized assignments
   assignments.marketAnalyst = {
-    provider: 'lm_studio' as const,
+    provider: 'remote_lmstudio' as const,
     modelName: findBestModel(['reasoning', 'analysis']).id,
     baseURL: REMOTE_LM_STUDIO_BASE_URL,
     temperature: 0.2,
@@ -282,7 +282,7 @@ export async function createDynamicModelAssignments(): Promise<Record<string, Mo
   };
 
   assignments.newsAnalyst = {
-    provider: 'lm_studio' as const,
+    provider: 'remote_lmstudio' as const,
     modelName: findBestModel(['analysis']).id,
     baseURL: REMOTE_LM_STUDIO_BASE_URL,
     temperature: 0.4,
@@ -290,7 +290,7 @@ export async function createDynamicModelAssignments(): Promise<Record<string, Mo
   };
 
   assignments.socialAnalyst = {
-    provider: 'lm_studio' as const,
+    provider: 'remote_lmstudio' as const,
     modelName: findBestModel(['creative']).id,
     baseURL: REMOTE_LM_STUDIO_BASE_URL,
     temperature: 0.6,
@@ -298,7 +298,7 @@ export async function createDynamicModelAssignments(): Promise<Record<string, Mo
   };
 
   assignments.fundamentalsAnalyst = {
-    provider: 'lm_studio' as const,
+    provider: 'remote_lmstudio' as const,
     modelName: findBestModel(['analysis'], 'large').id,
     baseURL: REMOTE_LM_STUDIO_BASE_URL,
     temperature: 0.3,
@@ -306,7 +306,7 @@ export async function createDynamicModelAssignments(): Promise<Record<string, Mo
   };
 
   assignments.researchManager = {
-    provider: 'lm_studio' as const,
+    provider: 'remote_lmstudio' as const,
     modelName: deepModel.id, // Use same as deep thinking
     baseURL: REMOTE_LM_STUDIO_BASE_URL,
     temperature: 0.2,
@@ -314,7 +314,7 @@ export async function createDynamicModelAssignments(): Promise<Record<string, Mo
   };
 
   assignments.riskManager = {
-    provider: 'lm_studio' as const,
+    provider: 'remote_lmstudio' as const,
     modelName: findBestModel(['reasoning'], 'large').id,
     baseURL: REMOTE_LM_STUDIO_BASE_URL,
     temperature: 0.1,
@@ -322,7 +322,7 @@ export async function createDynamicModelAssignments(): Promise<Record<string, Mo
   };
 
   assignments.trader = {
-    provider: 'lm_studio' as const,
+    provider: 'remote_lmstudio' as const,
     modelName: findBestModel(['fast']).id,
     baseURL: REMOTE_LM_STUDIO_BASE_URL,
     temperature: 0.4,
@@ -331,7 +331,7 @@ export async function createDynamicModelAssignments(): Promise<Record<string, Mo
 
   // Specialized models
   assignments.ragOptimized = {
-    provider: 'lm_studio' as const,
+    provider: 'remote_lmstudio' as const,
     modelName: findBestModel(['specialized']).id,
     baseURL: REMOTE_LM_STUDIO_BASE_URL,
     temperature: 0.3,
@@ -339,7 +339,7 @@ export async function createDynamicModelAssignments(): Promise<Record<string, Mo
   };
 
   assignments.largeContext = {
-    provider: 'lm_studio' as const,
+    provider: 'remote_lmstudio' as const,
     modelName: findBestModel([], 'large').id,
     baseURL: REMOTE_LM_STUDIO_BASE_URL,
     temperature: 0.3,
@@ -472,8 +472,7 @@ export async function createRemoteLMStudioConfig(): Promise<TradingAgentsConfig>
     dataCacheDir: './data/cache',
     exportsDir: './exports',
     logsDir: './logs',
-    llmProvider: 'lm_studio',
-    backendUrl: REMOTE_LM_STUDIO_BASE_URL,
+    llmProvider: 'remote_lmstudio',
     deepThinkLlm: assignments.deepThinking.modelName,
     quickThinkLlm: assignments.quickThinking.modelName,
     maxDebateRounds: 3,

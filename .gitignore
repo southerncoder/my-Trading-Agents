@@ -43,6 +43,7 @@ py_zep/.env.local
 
 # IDE and editor files
 .vscode/settings.json
+.vscode/mcp.json
 .idea/
 *.swp
 *.swo

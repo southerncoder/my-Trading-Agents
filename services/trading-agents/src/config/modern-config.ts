@@ -8,7 +8,10 @@ import { AsyncLocalStorage } from 'async_hooks';
 import { AsyncLocalStorageProviderSingleton } from "@langchain/core/singletons";
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { LLMProviderFactory } from '../providers/llm-factory.js';
+import { VercelAISDKProviderFactory } from '../providers/vercel-ai-sdk-provider-factory.js';
+import { VercelAISDKLangChainWrapper } from '../models/vercel-ai-sdk-wrapper.js';
 import { LLMProvider } from '../types/config.js';
+import { resolveLLMProviderConfig } from '../utils/llm-provider-utils.js';
 import process from 'process';
 
 // Types for modern configuration
@@ -59,19 +62,21 @@ export class ModernConfigLoader {
      * Get modern LLM configuration using environment variables
      */
     getLLMConfig() {
+        const provider = 'remote_lmstudio'; // Default provider - should be specified in config.json
+        
+        // Resolve provider configuration from environment variables
+    const providerConfig = resolveLLMProviderConfig(provider as LLMProvider);
+        
         return {
             // Provider configuration
-            provider: process.env.LLM_PROVIDER || 'openai',
-            model: process.env.LLM_MODEL_NAME || 'gpt-4o',
-            
+            provider: provider,
+            model: process.env.LLM_MODEL_NAME || 'llama-3.2-3b-instruct',
             // Connection configuration
-            baseURL: process.env.LLM_BACKEND_URL || 'https://api.openai.com/v1',
-            apiKey: process.env.OPENAI_API_KEY || 'not-needed-for-local',
-            
+            baseURL: providerConfig.baseUrl,
+            apiKey: providerConfig.apiKey,
             // Model parameters
-            temperature: parseFloat(process.env.LLM_TEMPERATURE || '0.7'),
+            temperature: 0.7, // Set via config.json or runtime config
             maxTokens: parseInt(process.env.LLM_MAX_TOKENS || '1000'),
-            
             // Advanced configuration
             configurableFields: ["model", "temperature", "maxTokens", "baseURL"],
             configPrefix: "llm"
@@ -85,15 +90,30 @@ export class ModernConfigLoader {
         const config = { ...this.getLLMConfig(), ...overrides };
         
         try {
-            // Use LLMProviderFactory for consistent LLM creation
-            return LLMProviderFactory.createLLM({
-                provider: config.provider as LLMProvider,
-                model: config.model,
-                apiKey: config.apiKey,
-                baseUrl: config.baseURL,
-                temperature: config.temperature,
-                maxTokens: config.maxTokens
-            });
+            // Check if provider is supported by Vercel AI SDK
+            if (VercelAISDKProviderFactory.isProviderSupported(config.provider as LLMProvider)) {
+                // Use Vercel AI SDK wrapper for supported providers (local_lmstudio, remote_lmstudio, ollama)
+                const wrapperConfig = {
+                    provider: config.provider as 'local_lmstudio' | 'remote_lmstudio' | 'ollama',
+                    model: config.model,
+                    temperature: config.temperature,
+                    maxTokens: config.maxTokens,
+                    apiKey: config.apiKey,
+                    baseURL: config.baseURL
+                };
+                
+                return new VercelAISDKLangChainWrapper(wrapperConfig);
+            } else {
+                // Use LLMProviderFactory for all other providers
+                return LLMProviderFactory.createLLM({
+                    provider: config.provider as LLMProvider,
+                    model: config.model,
+                    apiKey: config.apiKey,
+                    baseUrl: config.baseURL,
+                    temperature: config.temperature,
+                    maxTokens: config.maxTokens
+                });
+            }
         } catch (error: any) {
             throw new Error(`Modern chat model creation failed: ${error.message}`);
         }
@@ -190,7 +210,7 @@ export class ModernConfigLoader {
         return {
             ...systemConfig,
             llm: llmConfig,
-            llmProvider: llmConfig.provider, // Add for backward compatibility
+            // llmProvider is no longer part of TradingAgentsConfig - it's specified in config.json
             models,
             // Modern LangChain features
             features: {

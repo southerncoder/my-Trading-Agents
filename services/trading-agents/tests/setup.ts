@@ -38,9 +38,9 @@ const createRealisticLLMResponse = (input: string) => {
 const isRealLLMAvailable = async (): Promise<boolean> => {
   try {
     // Try to connect to configured LLM - requires environment variable
-    const baseUrl = process.env.LM_STUDIO_BASE_URL || process.env.REMOTE_LM_STUDIO_BASE_URL;
+    const baseUrl = process.env.LOCAL_LMSTUDIO_BASE_URL || process.env.REMOTE_LMSTUDIO_BASE_URL;
     if (!baseUrl) {
-      console.warn('⚠️ No LM_STUDIO_BASE_URL or REMOTE_LM_STUDIO_BASE_URL set, skipping real LLM check');
+      console.warn('⚠️ No LOCAL_LMSTUDIO_BASE_URL or REMOTE_LMSTUDIO_BASE_URL set, skipping real LLM check');
       return false;
     }
 
@@ -206,9 +206,9 @@ jest.mock('fs', () => {
       // Mock reading config files with realistic data
       if (path.includes('config') || path.includes('.json')) {
         return JSON.stringify({
-          provider: 'lm_studio',
+          provider: 'remote_lmstudio',
           model: 'mistralai/Mistral-7B-Instruct-v0.1',
-          baseUrl: process.env.LM_STUDIO_BASE_URL || process.env.REMOTE_LM_STUDIO_BASE_URL || '',
+          baseUrl: process.env.LOCAL_LMSTUDIO_BASE_URL || process.env.REMOTE_LMSTUDIO_BASE_URL || '',
           temperature: 0.7,
           maxTokens: 2048
         });

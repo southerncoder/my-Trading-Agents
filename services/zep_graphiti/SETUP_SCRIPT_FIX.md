@@ -78,7 +78,7 @@ trading-agents-zep-graphiti   Up (health: starting)
 
 ### Working PowerShell Command
 ```powershell
-cd c:\code\PersonalDev\my-Trading-Agents\py_zep
+cd <project-root>\services\zep_graphiti
 .\setup-dev-env.ps1 -Force
 ```
 

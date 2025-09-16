@@ -2,7 +2,7 @@
 
 /**
  * Simple API Integration Test
- * Tests core APIs with lm_studio provider and microsoft/phi-4-mini-reasoning model
+ * Tests core APIs with remote_lmstudio provider and microsoft/phi-4-mini-reasoning model
  */
 
 console.log('🚀 Starting Simple API Integration Tests...\n');
@@ -47,10 +47,10 @@ async function runSimpleAPITests() {
     const { createConfig } = await import('../dist/config/default.js');
     
     const testConfig = createConfig({
-      llmProvider: 'lm_studio',
+      llmProvider: 'remote_lmstudio',
       deepThinkLlm: 'microsoft/phi-4-mini-reasoning',
       quickThinkLlm: 'microsoft/phi-4-mini-reasoning',
-      backendUrl: process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1',
+      backendUrl: process.env.REMOTE_LM_STUDIO_BASE_URL || 'http://localhost:1234/v1',
       onlineTools: false,
       maxRecurLimit: 3
     });
@@ -130,7 +130,7 @@ runSimpleAPITests()
     console.log('\n📊 Test Summary:');
     console.log(`Status: ${success ? '✅ PASSED' : '❌ FAILED'}`);
     console.log(`Model: microsoft/phi-4-mini-reasoning`);
-    console.log(`Provider: lm_studio`);
+    console.log(`Provider: remote_lmstudio`);
     console.log(`Timestamp: ${new Date().toISOString()}`);
     process.exit(success ? 0 : 1);
   })

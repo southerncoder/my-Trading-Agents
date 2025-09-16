@@ -38,7 +38,7 @@ class GraphitiClientConfig:
     def __init__(self, 
                  neo4j_uri: str = "bolt://localhost:7687",
                  neo4j_user: str = "neo4j",
-                 lm_studio_url: str = "http://localhost:1234/v1",
+            openai_base_url: str = "http://localhost:1234/v1",
                  api_key: str = "sk-local",
                  model_name: str = "gpt-3.5-turbo",
                  embedding_model: str = "text-embedding-ada-002",
@@ -46,7 +46,7 @@ class GraphitiClientConfig:
         
         self.neo4j_uri = neo4j_uri
         self.neo4j_user = neo4j_user
-        self.lm_studio_url = lm_studio_url
+        self.openai_base_url = openai_base_url
         self.api_key = api_key
         self.model_name = model_name
         self.embedding_model = embedding_model
@@ -125,14 +125,14 @@ class GraphitiClientManager:
             llm_config = LLMConfig(
                 api_key=self.config.api_key,
                 model=self.config.model_name,
-                base_url=self.config.lm_studio_url,
+                    base_url=self.config.openai_base_url,
             )
             llm_client = OpenAIClient(config=llm_config)
             
             # Create embedder
             embedder_config = OpenAIEmbedderConfig(
                 api_key=self.config.api_key,
-                base_url=self.config.lm_studio_url,
+                    base_url=self.config.openai_base_url,
                 embedding_model=self.config.embedding_model,
                 embedding_dim=self.config.embedding_dim
             )

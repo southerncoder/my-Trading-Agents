@@ -1,7 +1,7 @@
-import { enhancedConfigLoader } from '../config/enhanced-loader';
-import { EnhancedAgentFactory } from '../factory/enhanced-agent-factory';
-import { LLMProviderFactory } from '../providers/llm-factory';
-import { EmbeddingProviderFactory } from '../providers/memory-provider';
+import { enhancedConfigLoader } from '../../src/config/enhanced-loader';
+import { EnhancedAgentFactory } from '../../src/factory/enhanced-agent-factory';
+import { LLMProviderFactory } from '../../src/providers/llm-factory';
+import { EmbeddingProviderFactory } from '../../src/providers/memory-provider';
 
 /**
  * Test suite for the enhanced agent configuration system
@@ -94,7 +94,7 @@ async function testEnhancedConfiguration(): Promise<void> {
 
     // Test 9: Provider Cost Estimation
     console.log('9️⃣ Testing Provider Cost Estimation...');
-    const providers = ['openai', 'anthropic', 'google', 'lm_studio'];
+    const providers = ['openai', 'anthropic', 'google', 'remote_lmstudio'];
     providers.forEach(provider => {
       const defaultModel = LLMProviderFactory.getDefaultModel(provider as any);
       const costs = LLMProviderFactory.getTokenCost(provider as any, defaultModel);

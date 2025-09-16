@@ -18,9 +18,9 @@ describe('Learning Agent Integration Tests (Real LM Studio)', () => {
 
     // Create real LM Studio LLM for testing
     const llmConfig: AgentLLMConfig = {
-      provider: 'lm_studio',
+      provider: 'remote_lmstudio',
       model: 'mistralai/devstral-small-2507',
-      baseUrl: process.env.REMOTE_LM_STUDIO_URL || 'http://localhost:1234/v1',
+      baseUrl: process.env.REMOTE_LM_STUDIO_BASE_URL || 'http://localhost:1234/v1',
       temperature: 0.3,
       maxTokens: 1000
     };
@@ -115,9 +115,9 @@ describe('Learning Agent Integration Tests (Real LM Studio)', () => {
     test.skip('should perform social sentiment analysis using real LM Studio model', async () => {
       // Create a learning social analyst for this test
       const socialLLMConfig: AgentLLMConfig = {
-        provider: 'lm_studio',
+        provider: 'remote_lmstudio',
         model: 'mistralai/devstral-small-2507',
-        baseUrl: process.env.REMOTE_LM_STUDIO_URL || 'http://localhost:1234/v1',
+        baseUrl: process.env.REMOTE_LM_STUDIO_BASE_URL || 'http://localhost:1234/v1',
         temperature: 0.4,
         maxTokens: 800
       };
@@ -280,9 +280,9 @@ describe('Learning Agent Integration Tests (Real LM Studio)', () => {
 
       // Market Analyst
       const marketLLMConfig: AgentLLMConfig = {
-        provider: 'lm_studio',
+        provider: 'remote_lmstudio',
         model: 'mistralai/devstral-small-2507',
-        baseUrl: process.env.REMOTE_LM_STUDIO_URL || 'http://localhost:1234/v1',
+        baseUrl: process.env.REMOTE_LM_STUDIO_BASE_URL || 'http://localhost:1234/v1',
         temperature: 0.3,
         maxTokens: 1000
       };
@@ -292,9 +292,9 @@ describe('Learning Agent Integration Tests (Real LM Studio)', () => {
 
       // Social Analyst - temporarily disabled
       // const socialLLMConfig: AgentLLMConfig = {
-      //   provider: 'lm_studio',
+      //   provider: 'remote_lmstudio',
       //   model: 'mistralai/devstral-small-2507',
-      //   baseUrl: process.env.REMOTE_LM_STUDIO_URL || 'http://localhost:1234/v1',
+      //   baseUrl: process.env.REMOTE_LM_STUDIO_BASE_URL || 'http://localhost:1234/v1',
       //   temperature: 0.4,
       //   maxTokens: 800
       // };

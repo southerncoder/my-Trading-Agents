@@ -1,4 +1,4 @@
-import { enhancedConfigLoader } from '../config/enhanced-loader';
+import { enhancedConfigLoader } from '../../src/config/enhanced-loader';
 
 try {
   console.log('🧪 Basic Enhanced Configuration Test\n');

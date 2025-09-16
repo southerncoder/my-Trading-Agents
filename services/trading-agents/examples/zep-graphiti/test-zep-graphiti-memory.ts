@@ -17,12 +17,12 @@ async function testZepGraphitiMemoryProvider() {
   console.log('\n=== Testing Zep Graphiti Memory Provider ===\n');
 
   const agentConfig: AgentLLMConfig = {
-    provider: 'lm_studio',
+    provider: 'remote_lmstudio',
     model: 'microsoft/phi-4-mini-reasoning',
     temperature: 0.1,
     maxTokens: 4000,
     apiKey: 'lm-studio',
-    baseUrl: process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1'
+    baseUrl: process.env.REMOTE_LM_STUDIO_BASE_URL || 'http://localhost:1234/v1'
   };
 
   const zepConfig: ZepGraphitiConfig = {

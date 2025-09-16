@@ -9,6 +9,18 @@ import { LLMProvider } from '../types/config';
 import { DEFAULT_CONFIG } from './default';
 import path from 'path';
 import fs from 'fs';
+import { config } from 'dotenv';
+
+// Load environment variables from .env.local if it exists
+const envPath = path.resolve(__dirname, '..', '..', '.env.local');
+console.log(`🔧 EnhancedConfigLoader: Looking for .env.local at: ${envPath}`);
+console.log(`🔧 EnhancedConfigLoader: File exists: ${fs.existsSync(envPath)}`);
+if (fs.existsSync(envPath)) {
+  config({ path: envPath });
+  console.log(`🔧 EnhancedConfigLoader: Loaded .env.local`);
+} else {
+  console.log(`🔧 EnhancedConfigLoader: .env.local not found`);
+}
 
 /**
  * Enhanced configuration loader with per-agent LLM provider support
@@ -137,7 +149,7 @@ export class EnhancedConfigLoader {
                 existing.model = recommended.model || existing.model;
               }
             }
-            if (!process.env[`${key.toUpperCase()}_LLM_PROVIDER`] && !process.env[`${cfgKey.toUpperCase()}_LLM_PROVIDER`]) {
+            if (!process.env[`${key.toUpperCase()}_LLM_MODEL`] && !process.env[`${cfgKey.toUpperCase()}_LLM_MODEL`]) {
               existing.provider = recommended.provider || existing.provider;
             }
             // attach a note for debugging if present
@@ -167,7 +179,7 @@ export class EnhancedConfigLoader {
             if (cfg && agentConfigs[cfgKey as keyof AgentTypeConfigs]) {
               const existing = agentConfigs[cfgKey as keyof AgentTypeConfigs] as AgentLLMConfig;
               // Merge fields but don't overwrite env-provided values
-              if (!process.env[`${agentKey.toUpperCase()}_LLM_PROVIDER`] && !process.env[`${cfgKey.toUpperCase()}_LLM_PROVIDER`]) {
+              if (!process.env[`${agentKey.toUpperCase()}_LLM_MODEL`] && !process.env[`${cfgKey.toUpperCase()}_LLM_MODEL`]) {
                 existing.provider = cfg.provider || existing.provider;
               }
               if (!process.env[`${agentKey.toUpperCase()}_LLM_MODEL`] && !process.env[`${cfgKey.toUpperCase()}_LLM_MODEL`]) {
@@ -205,10 +217,18 @@ export class EnhancedConfigLoader {
       }
 
       // Set base URL for local providers
-      if (config.provider === 'lm_studio') {
-        config.baseUrl = process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1';
+      if (config.provider === 'remote_lmstudio') {
+        const baseUrl = process.env.REMOTE_LMSTUDIO_BASE_URL;
+        if (!baseUrl) {
+          throw new Error('REMOTE_LMSTUDIO_BASE_URL environment variable is required for remote_lmstudio provider');
+        }
+        config.baseUrl = baseUrl;
       } else if (config.provider === 'ollama') {
-        config.baseUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
+        const baseUrl = process.env.OLLAMA_BASE_URL;
+        if (!baseUrl) {
+          throw new Error('OLLAMA_BASE_URL environment variable is required for ollama provider');
+        }
+        config.baseUrl = baseUrl;
       }
     });
     
@@ -217,7 +237,7 @@ export class EnhancedConfigLoader {
    * Check if provider string is valid
    */
   private isValidProvider(provider: string): boolean {
-    const validProviders: LLMProvider[] = ['openai', 'anthropic', 'google', 'lm_studio', 'ollama', 'openrouter'];
+    const validProviders: LLMProvider[] = ['openai', 'anthropic', 'google', 'remote_lmstudio', 'ollama', 'openrouter'];
     return validProviders.includes(provider as LLMProvider);
   }
 
@@ -233,7 +253,7 @@ export class EnhancedConfigLoader {
         return process.env.ANTHROPIC_API_KEY;
       case 'google':
         return process.env.GOOGLE_API_KEY;
-      case 'lm_studio':
+      case 'remote_lmstudio':
       case 'ollama':
         return undefined; // Local providers don't need API keys
       default:
@@ -311,7 +331,7 @@ export class EnhancedConfigLoader {
             errors.push(`GOOGLE_API_KEY is required for ${provider} provider`);
           }
           break;
-        case 'lm_studio':
+        case 'remote_lmstudio':
           // Local provider - no API key needed, but check URL availability
           break;
         case 'ollama':
@@ -334,10 +354,8 @@ export class EnhancedConfigLoader {
     
     return {
       ...DEFAULT_CONFIG,
-      llmProvider: defaultConfig.provider,
       deepThinkLlm: defaultConfig.model,
       quickThinkLlm: defaultConfig.model,
-      backendUrl: defaultConfig.baseUrl || this.getDefaultBackendUrl(defaultConfig.provider),
       openaiApiKey: process.env.OPENAI_API_KEY,
       anthropicApiKey: process.env.ANTHROPIC_API_KEY,
       googleApiKey: process.env.GOOGLE_API_KEY
@@ -355,10 +373,20 @@ export class EnhancedConfigLoader {
         return 'https://api.anthropic.com';
       case 'google':
         return 'https://generativelanguage.googleapis.com';
-      case 'lm_studio':
-        return 'http://localhost:1234/v1';
-      case 'ollama':
-        return 'http://localhost:11434';
+      case 'remote_lmstudio': {
+        const lmStudioUrl = process.env.REMOTE_LMSTUDIO_BASE_URL;
+        if (!lmStudioUrl) {
+          throw new Error('REMOTE_LMSTUDIO_BASE_URL environment variable is required for remote_lmstudio provider');
+        }
+        return lmStudioUrl;
+      }
+      case 'ollama': {
+        const ollamaUrl = process.env.OLLAMA_BASE_URL;
+        if (!ollamaUrl) {
+          throw new Error('OLLAMA_BASE_URL environment variable is required for ollama provider');
+        }
+        return ollamaUrl;
+      }
       case 'openrouter':
         return 'https://openrouter.ai/api/v1';
       default:

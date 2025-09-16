@@ -89,7 +89,7 @@ async function testYahooFinance() {
   console.log('============================');
   
   try {
-    const config = { llmProvider: 'lm_studio', selectedAnalysts: ['market'], enableLangGraph: false };
+    const config = { llmProvider: 'remote_lmstudio', selectedAnalysts: ['market'], enableLangGraph: false };
     const yahoo = new YahooFinanceAPI(config);
     
     // Test 1: Single quote
@@ -158,7 +158,7 @@ async function testAlphaVantage() {
   console.log('============================');
   
   try {
-    const config = { llmProvider: 'lm_studio', selectedAnalysts: ['market'], enableLangGraph: false };
+    const config = { llmProvider: 'remote_lmstudio', selectedAnalysts: ['market'], enableLangGraph: false };
     const alphaVantage = new AlphaVantageDataProvider(config);
     
     // Test configuration
@@ -306,7 +306,7 @@ async function testUnifiedProvider() {
   console.log('=======================================');
   
   try {
-    const config = { llmProvider: 'lm_studio', selectedAnalysts: ['market'], enableLangGraph: false };
+    const config = { llmProvider: 'remote_lmstudio', selectedAnalysts: ['market'], enableLangGraph: false };
     const unified = new UnifiedMarketDataProvider(config);
     
     // Test 1: Provider status
@@ -361,7 +361,7 @@ async function testGoogleNews() {
   console.log('==========================');
   
   try {
-    const config = { llmProvider: 'lm_studio', selectedAnalysts: ['market'], enableLangGraph: false };
+    const config = { llmProvider: 'remote_lmstudio', selectedAnalysts: ['market'], enableLangGraph: false };
     const googleNews = new GoogleNewsAPI(config);
     
     // Test news retrieval
@@ -390,7 +390,7 @@ async function testRedditAPI() {
   console.log('======================');
   
   try {
-    const config = { llmProvider: 'lm_studio', selectedAnalysts: ['market'], enableLangGraph: false };
+    const config = { llmProvider: 'remote_lmstudio', selectedAnalysts: ['market'], enableLangGraph: false };
     const reddit = new RedditAPI(config);
     
     // Check configuration

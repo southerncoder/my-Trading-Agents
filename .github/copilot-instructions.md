@@ -16,7 +16,7 @@
 
 ```python
 # ✅ CORRECT - Use environment variables
-REMOTE_LM_STUDIO_URL = os.getenv('REMOTE_LM_STUDIO_URL', 'http://localhost:1234')
+REMOTE_LM_STUDIO_BASE_URL = os.getenv('REMOTE_LM_STUDIO_BASE_URL', 'http://localhost:1234')
 NEO4J_URI = os.getenv('NEO4J_URI', 'bolt://localhost:7687')
 REDDIT_CLIENT_ID = os.getenv('REDDIT_CLIENT_ID', 'your_client_id_here')
 
@@ -408,8 +408,10 @@ Example (set these in `py_zep/.env.local`):
 OPENAI_API_KEY=<your_openai_or_lmstudio_api_key>
 OPENAI_BASE_URL=<your_lm_studio_base_url>
 EMBEDDING_MODEL=<your_embedding_model_id>
-LM_STUDIO_URL=<your_lm_studio_base_url>
-PRIMARY_LM_STUDIO_URL=<your_remote_lm_studio_admin_url>
+LOCAL_LM_STUDIO_BASE_URL=<your_local_lm_studio_base_url>
+LOCAL_LM_STUDIO_API_KEY=<your_local_lm_studio_api_key>
+REMOTE_LM_STUDIO_BASE_URL=<your_remote_lm_studio_base_url>
+REMOTE_LM_STUDIO_API_KEY=<your_remote_lm_studio_api_key>
 ```
 
 The codebase and tests will read `.env.local` when present. Do not add concrete model names or URLs in code or docs.
@@ -553,7 +555,7 @@ import { EnhancedTradingAgentsGraph } from './src/graph/enhanced-trading-graph';
 
 const graph = new EnhancedTradingAgentsGraph({
   enableLangGraph: true,
-  llmProvider: 'lm_studio',
+  llmProvider: 'remote_lmstudio',
   selectedAnalysts: ['market', 'news']
 });
 

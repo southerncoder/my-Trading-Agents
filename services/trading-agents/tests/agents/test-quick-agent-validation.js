@@ -7,9 +7,9 @@ import { ModelProvider } from '../../src/models/provider.js';
 
 // Test configuration for LM Studio
 const LM_STUDIO_CONFIG = {
-  provider: 'lm_studio',
+  provider: 'remote_lmstudio',
   modelName: 'microsoft/phi-4-mini-reasoning',
-  baseURL: process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1',
+  baseURL: process.env.REMOTE_LM_STUDIO_BASE_URL || 'http://localhost:1234/v1',
   temperature: 0.3,
   maxTokens: 512,
   timeout: 15000
@@ -18,7 +18,7 @@ const LM_STUDIO_CONFIG = {
 async function quickConnectionTest() {
   console.log('🔍 Quick LM Studio Connection Test');
   console.log('Model: microsoft/phi-4-mini-reasoning');
-  console.log(`URL: ${process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1'}`);
+  console.log(`URL: ${process.env.REMOTE_LM_STUDIO_BASE_URL || 'http://localhost:1234/v1'}`);
   console.log('-'.repeat(40));
   
   try {
@@ -42,7 +42,7 @@ async function quickConnectionTest() {
     console.error('\n💡 Troubleshooting:');
     console.error('   1. Ensure LM Studio is running');
     console.error('   2. Check model is loaded: microsoft/phi-4-mini-reasoning');
-    console.error(`   3. Verify server is on ${process.env.LM_STUDIO_BASE_URL?.replace('/v1', '') || 'http://localhost:1234'}`);
+    console.error(`   3. Verify server is on ${process.env.REMOTE_LM_STUDIO_BASE_URL?.replace('/v1', '') || 'http://localhost:1234'}`);
     return false;
   }
 }

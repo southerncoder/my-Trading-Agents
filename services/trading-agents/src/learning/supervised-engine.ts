@@ -87,10 +87,15 @@ export class SupervisedLearningEngine {
   private async performLLMTraining(trainingExamples: LearningExample[], algorithm: string) {
     try {
       // Create LM Studio model for training analysis
+      const baseUrl = process.env.REMOTE_LM_STUDIO_BASE_URL;
+      if (!baseUrl) {
+        throw new Error('REMOTE_LM_STUDIO_BASE_URL environment variable is required');
+      }
+
       const modelConfig: AgentLLMConfig = {
-        provider: 'lm_studio',
+        provider: 'remote_lmstudio',
         model: 'mistralai/devstral-small-2507',
-        baseUrl: process.env.REMOTE_LM_STUDIO_URL || 'http://localhost:1234/v1',
+        baseUrl,
         temperature: 0.1, // Low temperature for consistent training
         maxTokens: 2000
       };
@@ -186,10 +191,15 @@ Provide your analysis as JSON:
   private async performLLMPrediction(features: Record<string, number>, model: LearningModel) {
     try {
       // Create LM Studio model for prediction
+      const baseUrl = process.env.REMOTE_LM_STUDIO_BASE_URL;
+      if (!baseUrl) {
+        throw new Error('REMOTE_LM_STUDIO_BASE_URL environment variable is required');
+      }
+
       const modelConfig: AgentLLMConfig = {
-        provider: 'lm_studio',
+        provider: 'remote_lmstudio',
         model: 'mistralai/devstral-small-2507',
-        baseUrl: process.env.REMOTE_LM_STUDIO_URL || 'http://localhost:1234/v1',
+        baseUrl,
         temperature: 0.1, // Low temperature for consistent predictions
         maxTokens: 1000
       };
@@ -248,10 +258,15 @@ Please provide a prediction analysis as JSON:
   private async performLLMEvaluation(testExamples: LearningExample[], model: LearningModel) {
     try {
       // Create LM Studio model for evaluation
+      const baseUrl = process.env.REMOTE_LM_STUDIO_BASE_URL;
+      if (!baseUrl) {
+        throw new Error('REMOTE_LM_STUDIO_BASE_URL environment variable is required');
+      }
+
       const modelConfig: AgentLLMConfig = {
-        provider: 'lm_studio',
+        provider: 'remote_lmstudio',
         model: 'mistralai/devstral-small-2507',
-        baseUrl: process.env.REMOTE_LM_STUDIO_URL || 'http://localhost:1234/v1',
+        baseUrl,
         temperature: 0.1,
         maxTokens: 1500
       };
@@ -335,10 +350,15 @@ Please provide a comprehensive evaluation as JSON:
       }
 
       // Create LM Studio model for insights generation
+      const baseUrl = process.env.REMOTE_LM_STUDIO_BASE_URL;
+      if (!baseUrl) {
+        throw new Error('REMOTE_LM_STUDIO_BASE_URL environment variable is required');
+      }
+
       const modelConfig: AgentLLMConfig = {
-        provider: 'lm_studio',
+        provider: 'remote_lmstudio',
         model: 'mistralai/devstral-small-2507',
-        baseUrl: process.env.REMOTE_LM_STUDIO_URL || 'http://localhost:1234/v1',
+        baseUrl,
         temperature: 0.2, // Moderate temperature for creative insights
         maxTokens: 1500
       };
@@ -653,7 +673,10 @@ ${this.identifyKeyPatterns(examples)}
    */
   private async validateLMStudioConnection(): Promise<boolean> {
     try {
-      const baseUrl = process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1';
+      const baseUrl = process.env.REMOTE_LM_STUDIO_BASE_URL;
+      if (!baseUrl) {
+        throw new Error('REMOTE_LM_STUDIO_BASE_URL environment variable is required');
+      }
       const modelsEndpoint = `${baseUrl.replace(/\/$/, '')}/models`;
 
       // Use fetch if available, otherwise assume connection is valid

@@ -4,7 +4,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$ZepDir = "d:\Code\PersonalDev\my-Trading-Agents\py_zep"
+$ZepDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 Write-Host "Starting Zep Graphiti Services..." -ForegroundColor Green
 

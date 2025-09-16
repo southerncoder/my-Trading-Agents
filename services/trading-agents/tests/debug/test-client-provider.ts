@@ -17,8 +17,8 @@ async function testClientBasedProvider() {
     temperature: 0.1,
     maxTokens: 4000,
     apiKey: 'lm-studio',
-    baseUrl: process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1',
-    provider: 'lm_studio'
+    baseUrl: process.env.REMOTE_LM_STUDIO_BASE_URL || 'http://localhost:1234/v1',
+    provider: 'remote_lmstudio'
   };
 
   // Configure Zep Graphiti

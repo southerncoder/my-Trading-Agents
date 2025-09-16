@@ -11,14 +11,17 @@
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { TradingAgentsConfig } from '../types/config';
 import { LLMProviderFactory } from '../providers/llm-factory';
+import { VercelAISDKProviderFactory } from '../providers/vercel-ai-sdk-provider-factory';
+import { VercelAISDKLangChainWrapper } from './vercel-ai-sdk-wrapper';
 import { AgentLLMConfig } from '../types/agent-config';
 import { getLMStudioSingleton } from './lmstudio-singleton';
 import { createLogger } from '../utils/enhanced-logger';
 import { getLMStudioBaseUrl } from '../utils/docker-secrets';
+import { resolveLLMProviderConfig, getLLMProviderBaseUrl } from '../utils/llm-provider-utils';
 
 const logger = createLogger('system', 'ModelProvider');
 
-export type LLMProvider = 'openai' | 'anthropic' | 'google' | 'lm_studio' | 'ollama' | 'openrouter';
+export type LLMProvider = 'openai' | 'anthropic' | 'google' | 'ollama' | 'openrouter' | 'local_lmstudio' | 'remote_lmstudio';
 
 export interface ModelConfig {
   provider: LLMProvider;
@@ -69,7 +72,35 @@ export class ModelProvider {
 
     let model: BaseChatModel;
 
-    if (config.provider === 'lm_studio') {
+    // Check if provider is supported by Vercel AI SDK
+    if (VercelAISDKProviderFactory.isProviderSupported(config.provider)) {
+      // Use Vercel AI SDK wrapper for supported providers (local_lmstudio, remote_lmstudio, ollama)
+      logger.info('createModelAsync', 'Using Vercel AI SDK wrapper for provider', {
+        provider: config.provider,
+        modelName: config.modelName
+      });
+
+      const wrapperConfig: any = {
+        provider: config.provider as 'local_lmstudio' | 'remote_lmstudio' | 'ollama',
+        model: config.modelName
+      };
+
+      // Only add optional fields if they have values
+      if (config.temperature !== undefined) {
+        wrapperConfig.temperature = config.temperature;
+      }
+      if (config.maxTokens !== undefined) {
+        wrapperConfig.maxTokens = config.maxTokens;
+      }
+      if (config.apiKey) {
+        wrapperConfig.apiKey = config.apiKey;
+      }
+      if (config.baseURL) {
+        wrapperConfig.baseURL = config.baseURL;
+      }
+
+      model = new VercelAISDKLangChainWrapper(wrapperConfig);
+    } else if (config.provider === 'local_lmstudio' || config.provider === 'remote_lmstudio') {
       // Use singleton pattern for LM Studio
       const lmStudioBaseUrl = config.baseURL || getLMStudioBaseUrl();
       const singleton = getLMStudioSingleton(lmStudioBaseUrl);
@@ -110,14 +141,14 @@ export class ModelProvider {
     }
 
     // Cache the instance (except for LM Studio which handles its own caching)
-    if (config.provider !== 'lm_studio') {
+    if (config.provider !== 'local_lmstudio' && config.provider !== 'remote_lmstudio') {
       this.instances.set(cacheKey, model);
     }
 
     logger.info('createModelAsync', 'Successfully created model instance', {
       provider: config.provider,
       modelName: config.modelName,
-      cached: config.provider !== 'lm_studio'
+      cached: config.provider !== 'local_lmstudio' && config.provider !== 'remote_lmstudio'
     });
 
     return model;
@@ -148,7 +179,7 @@ export class ModelProvider {
 
     // For non-LM Studio providers, we need to create synchronously
     // This is a limitation of the deprecated method
-    if (config.provider === 'lm_studio') {
+    if (config.provider === 'local_lmstudio' || config.provider === 'remote_lmstudio') {
       // Use singleton pattern for LM Studio
       const lmStudioBaseUrl = config.baseURL || getLMStudioBaseUrl();
       const singleton = getLMStudioSingleton(lmStudioBaseUrl);
@@ -237,47 +268,28 @@ export class ModelProvider {
     quickThinking: ModelConfig;
     deepThinking: ModelConfig;
   } {
-    const apiKey = this.getApiKeyForProvider(config);
+    // Resolve provider configuration from environment variables
+    const providerConfig = resolveLLMProviderConfig(config.llmProvider, 'prompt');
+
     const baseConfig = {
       provider: config.llmProvider as LLMProvider,
-      baseURL: config.backendUrl,
+      baseURL: providerConfig.baseUrl,
+      apiKey: providerConfig.apiKey,
       temperature: 0.7,
       maxTokens: 2048,
       streaming: false
     };
 
-    const configWithKey = apiKey ? { ...baseConfig, apiKey } : baseConfig;
-
     return {
       quickThinking: {
-        ...configWithKey,
+        ...baseConfig,
         modelName: config.quickThinkLlm
       },
       deepThinking: {
-        ...configWithKey,
+        ...baseConfig,
         modelName: config.deepThinkLlm
       }
     };
-  }
-
-  /**
-   * Get the appropriate API key for a provider
-   */
-  private static getApiKeyForProvider(config: TradingAgentsConfig): string | undefined {
-    switch (config.llmProvider) {
-      case 'openai':
-      case 'openrouter':
-        return config.openaiApiKey;
-      case 'anthropic':
-        return config.anthropicApiKey;
-      case 'google':
-        return config.googleApiKey;
-      case 'lm_studio':
-      case 'ollama':
-        return undefined; // Local providers don't need API keys
-      default:
-        return undefined;
-    }
   }
 
   /**
@@ -298,23 +310,35 @@ export class ModelProvider {
    * Preload model for LM Studio (noop for other providers)
    */
   static async preloadModel(config: ModelConfig): Promise<void> {
-    if (config.provider !== 'lm_studio') return;
-    const baseUrl = config.baseURL || process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1';
-    const { LMStudioManager } = await import('./lmstudio-manager');
-    await LMStudioManager.preloadModel(config.modelName, baseUrl);
+    // For Vercel AI SDK providers, preloading is handled automatically by the SDK
+    if (VercelAISDKProviderFactory.isProviderSupported(config.provider)) {
+      logger.info('preloadModel', 'Vercel AI SDK provider - no preloading needed', {
+        provider: config.provider,
+        modelName: config.modelName
+      });
+      return;
+    }
+
+    // For traditional LM Studio providers, use the existing preload logic
+    if (config.provider === 'local_lmstudio' || config.provider === 'remote_lmstudio') {
+      const baseUrl = config.baseURL || getLLMProviderBaseUrl(config.provider, 'prompt');
+      const { LMStudioManager } = await import('./lmstudio-manager');
+      await LMStudioManager.preloadModel(config.modelName, baseUrl);
+    }
   }
 
   /**
    * Get LM Studio configuration for local or network development
    */
   static getLMStudioConfig(
-    modelName: string = 'llama-3.2-3b-instruct',
-    baseURL: string = process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1'
+    modelName: string = 'llama-3.2-3b-instruct'
   ): ModelConfig {
+    const providerConfig = resolveLLMProviderConfig('local_lmstudio', 'embedding');
     return {
-      provider: 'lm_studio',
+      provider: 'local_lmstudio',
       modelName,
-      baseURL,
+      baseURL: providerConfig.baseUrl,
+      apiKey: providerConfig.apiKey,
       temperature: 0.7,
       maxTokens: 2048,
       streaming: false
@@ -323,18 +347,16 @@ export class ModelProvider {
 
   /**
    * Get LM Studio configuration for network accessible instance
-   * @param modelName - Model name to use
-   * @param networkHost - Network host IP or hostname (use environment variable LM_STUDIO_HOST)
    */
   static getLMStudioNetworkConfig(
-    modelName: string = 'llama-3.2-3b-instruct',
-    networkHost?: string
+    modelName: string = 'llama-3.2-3b-instruct'
   ): ModelConfig {
-    const host = networkHost || process.env.LM_STUDIO_HOST || 'localhost';
+    const providerConfig = resolveLLMProviderConfig('remote_lmstudio', 'prompt');
     return {
-      provider: 'lm_studio',
+      provider: 'remote_lmstudio',
       modelName,
-      baseURL: process.env.LM_STUDIO_BASE_URL || `http://${host}:1234/v1`,
+      baseURL: providerConfig.baseUrl,
+      apiKey: providerConfig.apiKey,
       temperature: 0.7,
       maxTokens: 2048,
       streaming: false
@@ -345,10 +367,12 @@ export class ModelProvider {
    * Get Ollama configuration for local development
    */
   static getOllamaConfig(modelName: string = 'llama3.2:3b'): ModelConfig {
+    const providerConfig = resolveLLMProviderConfig('ollama', 'prompt');
     return {
       provider: 'ollama',
       modelName,
-      baseURL: process.env.OLLAMA_BASE_URL || 'http://localhost:11434/v1',
+      baseURL: providerConfig.baseUrl,
+      apiKey: providerConfig.apiKey,
       temperature: 0.7,
       maxTokens: 2048,
       streaming: false
@@ -404,31 +428,49 @@ export class ModelProvider {
    * Get available providers and their status
    */
   static getProviderStatus(): Record<LLMProvider, { available: boolean; description: string }> {
-    return {
+    const status: Record<LLMProvider, { available: boolean; description: string }> = {
       'openai': {
-        available: !!process.env.OPENAI_API_KEY,
-        description: 'OpenAI GPT models (requires API key)'
+        available: false,
+        description: 'OpenAI GPT models (requires EMBEDDING_LLM_URL and EMBEDDING_API_KEY)'
       },
       'anthropic': {
-        available: !!process.env.ANTHROPIC_API_KEY,
-        description: 'Anthropic Claude models (requires API key)'
+        available: false,
+        description: 'Anthropic Claude models (requires ANTHROPIC_BASE_URL and ANTHROPIC_API_KEY)'
       },
       'google': {
-        available: !!process.env.GOOGLE_API_KEY,
-        description: 'Google Gemini models (requires API key)'
+        available: false,
+        description: 'Google Gemini models (requires GOOGLE_BASE_URL and GOOGLE_API_KEY)'
       },
-      'lm_studio': {
-        available: true,
-        description: 'LM Studio inference (use LM_STUDIO_HOST env var for network access)'
+      'local_lmstudio': {
+        available: false,
+        description: 'Local LM Studio inference (requires LOCAL_LMSTUDIO_BASE_URL and LOCAL_LMSTUDIO_API_KEY)'
+      },
+      'remote_lmstudio': {
+        available: false,
+        description: 'Remote LM Studio inference (requires REMOTE_LMSTUDIO_BASE_URL and REMOTE_LMSTUDIO_API_KEY)'
       },
       'ollama': {
-        available: true,
-        description: `Ollama local inference (${process.env.OLLAMA_BASE_URL || 'http://localhost:11434'})`
+        available: false,
+        description: 'Ollama local inference (requires OLLAMA_BASE_URL and OLLAMA_API_KEY)'
       },
       'openrouter': {
-        available: !!process.env.OPENAI_API_KEY,
-        description: 'OpenRouter API (uses OpenAI API key)'
+        available: false,
+        description: 'OpenRouter API (requires OPENROUTER_BASE_URL and OPENROUTER_API_KEY)'
       }
     };
+
+    // Check availability using environment variable resolution
+    Object.keys(status).forEach(provider => {
+      try {
+        // Check both prompt and embedding contexts for availability
+        resolveLLMProviderConfig(provider as LLMProvider, 'prompt');
+        resolveLLMProviderConfig(provider as LLMProvider, 'embedding');
+        status[provider as LLMProvider].available = true;
+      } catch (_error) {
+        // Provider not available due to missing environment variables
+      }
+    });
+
+    return status;
   }
 }

@@ -25,7 +25,7 @@ async function testTradingWorkflow() {
       config: DEFAULT_CONFIG,
       selectedAnalysts: ['market', 'news', 'fundamentals'],
       enableLangGraph: true,
-      llmProvider: 'lm_studio'
+      llmProvider: 'remote_lmstudio'
     });
 
     console.log('⏳ Running analysis (this may take a few minutes)...');

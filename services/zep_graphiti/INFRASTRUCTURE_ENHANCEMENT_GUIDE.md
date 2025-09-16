@@ -193,7 +193,7 @@ secrets:
 ### 2. Initial Setup
 ```powershell
 # Navigate to project directory
-cd c:\code\PersonalDev\my-Trading-Agents\py_zep
+cd <project-root>\services\zep_graphiti
 
 # Verify secret files exist and have content
 dir secrets\*.txt

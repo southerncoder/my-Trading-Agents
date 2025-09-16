@@ -94,10 +94,10 @@ async function validateWorkingComponents() {
     const { EnhancedTradingAgentsGraph } = await import('../../dist/graph/enhanced-trading-graph.js');
     const orchestrator = new EnhancedTradingAgentsGraph({
       enableLangGraph: true,
-      llmProvider: 'lm_studio',
+      llmProvider: 'remote_lmstudio',
       selectedAnalysts: ['market'],
       config: {
-        provider: 'lm_studio',
+        provider: 'remote_lmstudio',
         modelName: 'microsoft/phi-4-mini-reasoning',
         baseURL: 'http://localhost:1234/v1',
         temperature: 0.1,

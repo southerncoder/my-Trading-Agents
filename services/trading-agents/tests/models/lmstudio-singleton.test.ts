@@ -25,14 +25,14 @@ async function testLMStudioSingleton() {
     
     // Test 1: Create multiple model configs for same LM Studio instance
     const config1: ModelConfig = {
-      provider: 'lm_studio',
+      provider: 'remote_lmstudio',
       modelName: 'llama-3.2-3b-instruct',
       baseURL: 'http://localhost:1234/v1',
       temperature: 0.7
     };
     
     const config2: ModelConfig = {
-      provider: 'lm_studio',
+      provider: 'remote_lmstudio',
       modelName: 'phi-3-mini-instruct',
       baseURL: 'http://localhost:1234/v1',
       temperature: 0.5
@@ -71,7 +71,7 @@ async function testLMStudioSingleton() {
     
     // Test 4: Test multiple base URLs (different LM Studio instances)
     const config3: ModelConfig = {
-      provider: 'lm_studio',
+      provider: 'remote_lmstudio',
       modelName: 'llama-3.2-1b-instruct',
       baseURL: 'http://localhost:1235/v1',
       temperature: 0.3
@@ -103,7 +103,7 @@ async function testAsyncModelProvider() {
     // Test different providers
     const configs: ModelConfig[] = [
       {
-        provider: 'lm_studio',
+        provider: 'remote_lmstudio',
         modelName: 'test-model',
         baseURL: 'http://localhost:1234/v1'
       },
@@ -166,7 +166,7 @@ async function testTradingGraphIntegration() {
       dataCacheDir: './data/cache',
       exportsDir: './exports',
       logsDir: './logs',
-      llmProvider: 'lm_studio',
+      llmProvider: 'remote_lmstudio',
       backendUrl: 'http://localhost:1234/v1',
       deepThinkLlm: 'test-deep-model',
       quickThinkLlm: 'test-quick-model',
@@ -181,12 +181,12 @@ async function testTradingGraphIntegration() {
       selectedAnalysts: ['market', 'news'],
       modelConfigs: {
         quickThinking: {
-          provider: 'lm_studio',
+          provider: 'remote_lmstudio',
           modelName: 'test-quick-model',
           baseURL: 'http://localhost:1234/v1'
         },
         deepThinking: {
-          provider: 'lm_studio',
+          provider: 'remote_lmstudio',
           modelName: 'test-deep-model',
           baseURL: 'http://localhost:1234/v1'
         }
