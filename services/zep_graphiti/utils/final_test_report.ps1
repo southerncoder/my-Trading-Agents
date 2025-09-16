@@ -6,7 +6,7 @@ Write-Host ("=" * 80) -ForegroundColor Cyan
 # Test 1: Docker Secrets
 Write-Host "`nTesting Docker Secrets Configuration..." -ForegroundColor Yellow
 $secretsPath = "$PSScriptRoot\..\secrets"
-$requiredSecrets = @("embedder_api_key.txt", "openai_api_key.txt", "neo4j_user.txt", "neo4j_password.txt", "lm_studio_url.txt")
+$requiredSecrets = @("embedder_api_key.txt", "openai_api_key.txt", "neo4j_user.txt", "neo4j_password.txt")
 
 $secretsPass = 0
 foreach ($secret in $requiredSecrets) {

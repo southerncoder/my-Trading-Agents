@@ -61,10 +61,8 @@ def setup_development_env():
     
     if use_local_llm:
         lm_studio_port = prompt_with_default("LM Studio port", "1234")
-        lm_studio_url = f"http://localhost:{lm_studio_port}"
-        openai_base_url = f"{lm_studio_url}/v1"
+        openai_base_url = f"http://localhost:{lm_studio_port}/v1"
     else:
-        lm_studio_url = ""
         openai_base_url = ""
     
     # Generate .env.local file
@@ -98,17 +96,15 @@ EMBEDDING_MODEL=text-embedding-3-small"""
 # OPENAI_MODEL=gpt-4o-mini
 # EMBEDDING_MODEL=text-embedding-3-small"""
 
-    if lm_studio_url:
+    if openai_base_url:
         env_content += f"""
 
 # =====================================
 # Local LLM Configuration (LM Studio)
 # =====================================
-LM_STUDIO_URL={lm_studio_url}
 OPENAI_BASE_URL={openai_base_url}
 
 # For Docker environment:
-# LM_STUDIO_URL=http://host.docker.internal:{lm_studio_port}
 # OPENAI_BASE_URL=http://host.docker.internal:{lm_studio_port}/v1"""
     else:
         env_content += f"""
@@ -116,11 +112,9 @@ OPENAI_BASE_URL={openai_base_url}
 # =====================================
 # Local LLM Configuration (LM Studio)
 # =====================================
-# LM_STUDIO_URL=http://localhost:1234
 # OPENAI_BASE_URL=http://localhost:1234/v1
 
 # For Docker environment:
-# LM_STUDIO_URL=http://host.docker.internal:1234
 # OPENAI_BASE_URL=http://host.docker.internal:1234/v1"""
 
     env_content += f"""
@@ -131,7 +125,6 @@ OPENAI_BASE_URL={openai_base_url}
 ENVIRONMENT=development
 LOG_LEVEL=INFO
 EMBEDDER_PROVIDER=openai
-LLM_TEMPERATURE=0.1
 SEMAPHORE_LIMIT=5
 ZEP_EMBEDDER_DEBUG=false
 ZEP_EMBEDDER_LOG_RAW=false

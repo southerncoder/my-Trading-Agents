@@ -23,8 +23,7 @@ function Test-DockerSecretsConfiguration {
         "embedder_api_key.txt",
         "openai_api_key.txt", 
         "neo4j_user.txt",
-        "neo4j_password.txt",
-        "lm_studio_url.txt"
+        "neo4j_password.txt"
     )
     
     foreach ($secret in $requiredSecrets) {
@@ -150,7 +149,7 @@ function Test-StartWrapperSecrets {
     }
     
     # Check for secret environment variable setting
-    $secretVars = @("EMBEDDER_API_KEY", "OPENAI_API_KEY", "LM_STUDIO_URL")
+    $secretVars = @("EMBEDDER_API_KEY", "OPENAI_API_KEY")
     foreach ($var in $secretVars) {
         if ($content -match "export\s+$var\s*=") {
             Write-Host "✅ $var export found" -ForegroundColor Green

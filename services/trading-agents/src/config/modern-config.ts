@@ -65,21 +65,18 @@ export class ModernConfigLoader {
         const provider = 'remote_lmstudio'; // Default provider - should be specified in config.json
         
         // Resolve provider configuration from environment variables
-        const providerConfig = resolveLLMProviderConfig(provider as LLMProvider, 'prompt');
+    const providerConfig = resolveLLMProviderConfig(provider as LLMProvider);
         
         return {
             // Provider configuration
             provider: provider,
             model: process.env.LLM_MODEL_NAME || 'llama-3.2-3b-instruct',
-            
             // Connection configuration
             baseURL: providerConfig.baseUrl,
             apiKey: providerConfig.apiKey,
-            
             // Model parameters
-            temperature: parseFloat(process.env.LLM_TEMPERATURE || '0.7'),
+            temperature: 0.7, // Set via config.json or runtime config
             maxTokens: parseInt(process.env.LLM_MAX_TOKENS || '1000'),
-            
             // Advanced configuration
             configurableFields: ["model", "temperature", "maxTokens", "baseURL"],
             configPrefix: "llm"

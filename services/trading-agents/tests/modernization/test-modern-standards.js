@@ -32,9 +32,9 @@ async function testModernLangChainPatterns() {
         console.log('----------------------------------------');
         
         try {
-            // Initialize with modern pattern using environment variables
+            // Initialize with modern pattern using config-driven temperature
             const chatModel = await initChatModel(modelName, {
-                temperature: parseFloat(process.env.LLM_TEMPERATURE || '0.7'),
+                temperature: 0.7, // Use config.json or runtime config, not env var
                 maxTokens: parseInt(process.env.LLM_MAX_TOKENS || '1000'),
                 // For local models like LM Studio, we use baseURL
                 baseURL: backendUrl,

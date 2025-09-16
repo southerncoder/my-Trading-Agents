@@ -203,41 +203,24 @@ class EnhancedStartupManager:
             )
     
     async def check_lm_studio_health(self) -> ServiceHealth:
-        """Check LM Studio health and model availability"""
+        """Check LM Studio health and model availability (now uses OPENAI_BASE_URL only)"""
         start_time = time.time()
-        
         try:
-            # Get LM Studio URL from secrets
-            lm_studio_url = "http://host.docker.internal:5432"
-            
-            url_file = Path(__file__).parent.parent / "secrets" / "lm_studio_url.txt"
-            if url_file.exists():
-                lm_studio_url = url_file.read_text().strip()
-            elif os.getenv('OPENAI_BASE_URL'):
-                base_url = os.getenv('OPENAI_BASE_URL')
-                if base_url:
-                    lm_studio_url = base_url.replace('/v1', '')
-            
-            # Test model availability
+            base_url = os.getenv('OPENAI_BASE_URL', 'http://localhost:1234/v1')
             import aiohttp
             async with aiohttp.ClientSession() as session:
-                # Try /v1/models endpoint
-                models_url = f"{lm_studio_url}/v1/models"
+                # Try /models endpoint (modern LM Studio)
+                models_url = f"{base_url.rstrip('/v1')}/models"
                 async with session.get(models_url) as resp:
                     if resp.status == 200:
                         data = await resp.json()
-                        
-                        # Check if embedding model is available
                         embedding_model = os.getenv('EMBEDDING_MODEL', 'text-embedding-qwen3-embedding-4b')
                         models_available = []
-                        
                         if isinstance(data, dict) and 'data' in data:
                             models_available = [model.get('id', '') for model in data['data']]
-                        
                         if embedding_model in models_available:
                             response_time = time.time() - start_time
                             self.circuit_breakers["lm_studio"].on_success()
-                            
                             return ServiceHealth(
                                 name="lm_studio",
                                 status="healthy",
@@ -248,11 +231,9 @@ class EnhancedStartupManager:
                             raise Exception(f"Embedding model {embedding_model} not found in {models_available}")
                     else:
                         raise Exception(f"HTTP {resp.status}")
-        
         except Exception as e:
             response_time = time.time() - start_time
             self.circuit_breakers["lm_studio"].on_failure()
-            
             return ServiceHealth(
                 name="lm_studio",
                 status="unhealthy",
