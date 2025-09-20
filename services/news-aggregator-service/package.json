@@ -11,7 +11,11 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "lint": "eslint src/**/*.js",
-    "lint:fix": "eslint src/**/*.js --fix"
+    "lint:fix": "eslint src/**/*.js --fix",
+    "test:manual:bing": "node tests/manual/bing-news.manual.test.js",
+    "test:manual:brave-config": "node tests/manual/brave-config.manual.test.js",
+    "test:manual:providers": "node tests/manual/all-providers.manual.test.js",
+    "test:manual:all": "npm run test:manual:bing && npm run test:manual:brave-config && npm run test:manual:providers"
   },
   "keywords": [
     "news",

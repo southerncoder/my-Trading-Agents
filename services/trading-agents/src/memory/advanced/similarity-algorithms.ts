@@ -8,7 +8,7 @@ import {
 import {
   MLBasedSimilarityService,
   ClusteringAlgorithmsService
-} from './ml-clustering-services';
+} from './ml-services';
 import {
   SemanticSimilarityService,
   EnsembleSimilarityService

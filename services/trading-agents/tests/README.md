@@ -39,7 +39,7 @@ cp .env.example .env
 # Edit .env with your values:
 # Preferred base URL for OpenAI-compatible servers (LM Studio)
 LOCAL_LM_STUDIO_BASE_URL=http://localhost:1234/v1
-REMOTE_LM_STUDIO_BASE_URL=http://remote-server:1234/v1
+REMOTE_LM_STUDIO_BASE_URL=http://your-remote-server:1234/v1
 # Alternatively, use OPENAI_BASE_URL; precedence is OPENAI_BASE_URL > REMOTE_LM_STUDIO_BASE_URL > LOCAL_LM_STUDIO_BASE_URL > LLM_BACKEND_URL
 # OPENAI_BASE_URL=http://your-server:port/v1
 ZEP_SERVICE_URL=http://localhost:8000

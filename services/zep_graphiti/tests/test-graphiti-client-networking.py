@@ -58,7 +58,7 @@ class GraphitiClientTest:
                 logger.warning("Using environment NEO4J_PASSWORD as fallback")
             
             openai_api_key = os.getenv("OPENAI_API_KEY", "dummy-key")
-            openai_base_url = os.getenv("OPENAI_BASE_URL", "http://host.docker.internal:5432/v1")
+            openai_base_url = os.getenv("OPENAI_BASE_URL", "http://host.docker.internal:1234/v1")
             model_name = os.getenv("OPENAI_MODEL", "text-embedding-qwen3-embedding-4b")
             
             logger.info(f"Connecting to Neo4j at: {neo4j_uri}")

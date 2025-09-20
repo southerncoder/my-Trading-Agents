@@ -35,7 +35,7 @@ async function testClientMemoryIntegration() {
     
     if (!isConnected) {
       console.log('⚠️  Zep Graphiti services not running - using fallback validation');
-      console.log('   To run full test: Start services with py_zep/start-services-secure.ps1');
+  console.log('   To run full test: Start services with zep_graphiti/start-services-secure.ps1');
       
       // Still test interface compatibility
       console.log('\n3. Testing interface compatibility (without live services)...');
@@ -109,7 +109,7 @@ async function testClientMemoryIntegration() {
     console.error('- Make sure Zep Graphiti services are running');
     console.error('- Check Python environment is activated');
     console.error('- Verify Docker containers are healthy');
-    console.error('\nTo start services: cd py_zep && .\\start-services-secure.ps1');
+  console.error('\nTo start services: cd zep_graphiti && .\\start-services-secure.ps1');
     process.exit(1);
   }
 }

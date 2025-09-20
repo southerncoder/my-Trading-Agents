@@ -92,7 +92,7 @@ python change-neo4j-password.py
 ## 📁 Files Created/Modified
 
 ```
-py_zep/
+zep_graphiti/
 ├── generate-neo4j-password.ps1    # Password generator script
 ├── change-neo4j-password.py       # Password migration script  
 ├── test-neo4j-connection.py       # Connection testing script

@@ -81,7 +81,7 @@ REDDIT_PASSWORD=your_reddit_password
 # LLM Endpoints
 OPENAI_BASE_URL=https://api.openai.com/v1
 LOCAL_LM_STUDIO_BASE_URL=http://localhost:1234/v1
-REMOTE_LM_STUDIO_BASE_URL=http://remote-server:1234/v1
+REMOTE_LM_STUDIO_BASE_URL=http://your-remote-server:1234/v1
 
 # Database
 NEO4J_URI=bolt://localhost:7687

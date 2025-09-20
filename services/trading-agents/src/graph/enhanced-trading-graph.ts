@@ -57,6 +57,7 @@ export class EnhancedTradingAgentsGraph {
   private enableStateOptimization: boolean;
   private enableAdvancedMemory: boolean;
   private zepClientConfig?: any;
+  private langGraphEnforcement: 'forced' | 'explicit';
 
   // Service instances
   private memoryService: MemoryManagementService;
@@ -69,7 +70,15 @@ export class EnhancedTradingAgentsGraph {
   constructor(graphConfig: TradingGraphConfig) {
     this.config = graphConfig.config;
     this.selectedAnalysts = graphConfig.selectedAnalysts || ['market', 'social', 'news', 'fundamentals'];
-    this.enableLangGraph = graphConfig.enableLangGraph ?? true;
+    const requestedLangGraph = graphConfig.enableLangGraph ?? true;
+    if (requestedLangGraph === false) {
+      this.enableLangGraph = true;
+      this.langGraphEnforcement = 'forced';
+      logger.warn('constructor', 'LangGraph was requested disabled; enforcement re-enabled to comply with project policy');
+    } else {
+      this.enableLangGraph = true;
+      this.langGraphEnforcement = 'explicit';
+    }
     this.enableLazyLoading = graphConfig.enableLazyLoading ?? true;
     this.enableCaching = graphConfig.enableCaching ?? true;
     this.enableStateOptimization = graphConfig.enableStateOptimization ?? true;
@@ -81,6 +90,17 @@ export class EnhancedTradingAgentsGraph {
       enableAdvancedMemory: this.enableAdvancedMemory,
       zepClientConfig: this.zepClientConfig
     });
+
+    // Derive provider if missing (non-mocking, config-driven): prefer REMOTE_LM_STUDIO, then LOCAL_LM_STUDIO, else openai as last resort
+    const derivedProvider = (this.config as any).llmProvider ||
+      (process.env.REMOTE_LM_STUDIO_BASE_URL ? 'remote_lmstudio' : '') ||
+      (process.env.LOCAL_LM_STUDIO_BASE_URL ? 'local_lmstudio' : '') ||
+      ((process.env.EMBEDDING_LLM_URL || process.env.OPENAI_BASE_URL) && process.env.OPENAI_API_KEY ? 'openai' : '');
+    if (!derivedProvider) {
+      logger.warn('constructor', 'No resolvable LLM provider from environment; downstream model creation may skip functionality');
+    } else {
+      (this.config as any).llmProvider = derivedProvider;
+    }
 
     this.workflowService = createWorkflowManagementService({
       enableLangGraph: this.enableLangGraph,
@@ -113,6 +133,7 @@ export class EnhancedTradingAgentsGraph {
     logger.info('constructor', 'Enhanced Trading Agents Graph initialized with services', {
       selectedAnalysts: this.selectedAnalysts,
       enableLangGraph: this.enableLangGraph,
+      langGraphEnforcement: this.langGraphEnforcement,
       enableLazyLoading: this.enableLazyLoading,
       enableStateOptimization: this.enableStateOptimization,
       enableCaching: this.enableCaching,
@@ -307,8 +328,10 @@ export class EnhancedTradingAgentsGraph {
     selectedAnalysts: AnalystType[];
     langGraphEnabled: boolean;
     workflowInitialized: boolean;
+    langGraphEnforcement: 'forced' | 'explicit';
   } {
-    return this.configurationService.getConfigInfo();
+    const base = this.configurationService.getConfigInfo();
+    return { ...base, langGraphEnforcement: this.langGraphEnforcement };
   }
 
   /**
@@ -375,7 +398,6 @@ export class EnhancedTradingAgentsGraph {
       dataCacheDir: process.env.TRADINGAGENTS_CACHE_DIR || './cache',
       exportsDir: process.env.TRADINGAGENTS_EXPORTS_DIR || './exports',
       logsDir: process.env.TRADINGAGENTS_LOGS_DIR || './logs',
-      llmProvider: 'remote_lmstudio',
       deepThinkLlm: 'microsoft/phi-4-mini-reasoning',
       quickThinkLlm: 'microsoft/phi-4-mini-reasoning',
       maxDebateRounds: 3,

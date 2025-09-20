@@ -1,12 +1,12 @@
 <#
 Migration helper script for Windows (PowerShell)
-Runs repository setup, copies .env, optionally starts py_zep services, and runs smoke checks.
+Runs repository setup, copies .env, optionally starts zep_graphiti services, and runs smoke checks.
 Usage: Open PowerShell as normal user in repository root and run:
   ./scripts/migrate-machine.ps1 [-StartPyZep] [-SkipInstall]
 #>
 
 param(
-  [switch]$StartPyZep = $false,
+  [switch]$StartZepGraphiti = $false,
   [switch]$SkipInstall = $false
 )
 
@@ -54,8 +54,8 @@ if (Test-Path $envExample) {
   Write-Warning ".env.example not found in js/; please create .env.local manually from template or provider docs"
 }
 
-# Optionally start py_zep services
-if ($StartPyZep) {
+# Optionally start zep_graphiti services
+if ($StartZepGraphiti) {
   # Check Docker Desktop: if Docker Desktop is installed but not running, try to start it
   function Start-DockerDesktopIfNeeded() {
     # Check for docker daemon via docker info
@@ -70,7 +70,11 @@ if ($StartPyZep) {
     }
 
     # Check for Docker Desktop executable in default install path
-    $dockerExe = "C:\\Program Files\\Docker\\Docker\\Docker Desktop.exe"
+      # NOTE: Default Windows Docker Desktop path. If installed elsewhere, set DOCKER_DESKTOP_PATH env var before running
+      $dockerExe = $env:DOCKER_DESKTOP_PATH
+      if (-not $dockerExe -or -not (Test-Path $dockerExe)) {
+          $dockerExe = "C:\\Program Files\\Docker\\Docker\\Docker Desktop.exe"
+      }
     if (Test-Path $dockerExe) {
       Write-Host "Docker daemon not running. Attempting to start Docker Desktop..."
       Start-Process -FilePath $dockerExe -Verb runAs
@@ -84,25 +88,25 @@ if ($StartPyZep) {
       }
       Write-Warning "Docker did not become available within 60s. Continue with caution."
     } else {
-      Write-Warning "Docker Desktop not found at $dockerExe. Ensure Docker is installed if you plan to use py_zep via Docker."
+  Write-Warning "Docker Desktop not found at $dockerExe. Ensure Docker is installed if you plan to use services/zep_graphiti via Docker."
     }
   }
   Start-DockerDesktopIfNeeded
 
-  $pyZepScript = Join-Path $root "py_zep\start-zep-services.ps1"
-  if (Test-Path $pyZepScript) {
-    Write-Host "Starting py_zep services via start-zep-services.ps1"
-    powershell -ExecutionPolicy Bypass -File $pyZepScript
-    if ($LASTEXITCODE -ne 0) { ExitWithError "py_zep services failed to start (exit code $LASTEXITCODE)" }
+  $zepGraphitiScript = Join-Path $root "services\zep_graphiti\start-zep-services.ps1"
+  if (Test-Path $zepGraphitiScript) {
+    Write-Host "Starting zep_graphiti services via start-zep-services.ps1"
+    powershell -ExecutionPolicy Bypass -File $zepGraphitiScript
+    if ($LASTEXITCODE -ne 0) { ExitWithError "zep_graphiti services failed to start (exit code $LASTEXITCODE)" }
   } else {
-    Write-Warning "py_zep start script not found at py_zep\start-zep-services.ps1; attempt docker-compose instead"
-    Push-Location (Join-Path $root "py_zep")
+    Write-Warning "zep_graphiti start script not found at services\zep_graphiti\start-zep-services.ps1; attempting docker-compose fallback"
+    Push-Location (Join-Path $root "services\zep_graphiti")
     docker-compose up --build -d
-    if ($LASTEXITCODE -ne 0) { ExitWithError "docker-compose failed to start py_zep services (exit code $LASTEXITCODE)" }
+    if ($LASTEXITCODE -ne 0) { ExitWithError "docker-compose failed to start zep_graphiti services (exit code $LASTEXITCODE)" }
     Pop-Location
   }
 } else {
-  Write-Host "Skipping py_zep startup. Use -StartPyZep to start services from this script."
+  Write-Host "Skipping zep_graphiti startup. Use -StartZepGraphiti to start services from this script."
 }
 
 # Run smoke checks

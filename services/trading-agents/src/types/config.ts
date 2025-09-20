@@ -16,6 +16,8 @@ export interface TradingAgentsConfig {
   logsDir: string;
 
   // LLM settings - provider and model are now specified in config.json
+  // Provider may be derived at runtime when absent (enforcement adds provider)
+  llmProvider?: string; // optional, resolved later
   deepThinkLlm: string;
   quickThinkLlm: string;
 

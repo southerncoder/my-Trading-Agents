@@ -164,7 +164,7 @@ class LMStudioDiagnostic:
         logger.info("4. Go to the 'Developer' tab")
         logger.info("5. Start the local server")
         logger.info("6. Note the port number (usually 1234 or 5432)")
-        logger.info("7. Update py_zep/secrets/lm_studio_url.txt with the correct URL")
+        logger.info("7. Update zep_graphiti/secrets/lm_studio_url.txt with the correct URL")
         logger.info("8. Restart the Zep services")
 
 def main():

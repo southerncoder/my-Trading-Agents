@@ -7,7 +7,7 @@
 - **Solution**: Created environment variable priority system and setup scripts
 
 ### 2. **Wrong LM Studio Port Configuration**
-- **Problem**: [`lm_studio_url.txt`](lm_studio_url.txt ) had port 5432 (PostgreSQL) instead of 1234 (LM Studio)
+- **Problem (Historical)**: `lm_studio_url.txt` previously used an incorrect port (PostgreSQL default) instead of the correct LM Studio port 1234 (now fixed)
 - **Solution**: Fixed in setup scripts and documentation
 
 ### 2a. **Security Violation - Hardcoded IP Address**
@@ -55,7 +55,7 @@ cd <project-root>\services\zep_graphiti
 
 **Linux/Mac:**
 ```bash
-cd py_zep
+cd zep_graphiti
 python3 setup-dev-env.py
 ```
 

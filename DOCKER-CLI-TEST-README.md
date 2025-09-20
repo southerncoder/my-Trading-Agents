@@ -24,7 +24,7 @@ This directory contains test configuration and scripts for running the TradingAg
    # Required for LM Studio
    LOCAL_LM_STUDIO_BASE_URL=http://localhost:1234/v1
    LOCAL_LM_STUDIO_API_KEY=your_local_api_key_here
-   REMOTE_LM_STUDIO_BASE_URL=http://remote-server:1234/v1
+  REMOTE_LM_STUDIO_BASE_URL=http://your-remote-server:1234/v1
    REMOTE_LM_STUDIO_API_KEY=your_remote_api_key_here
 
    # Required for other providers (if used)

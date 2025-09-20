@@ -46,7 +46,7 @@ docker-compose up
 ## File Structure
 
 ```
-py_zep/
+zep_graphiti/
 ├── secrets/                          # 🔒 Gitignored secrets directory
 │   ├── neo4j_user.txt               # Neo4j username (neo4j)
 │   ├── neo4j_password.txt           # Generated random password
@@ -186,7 +186,7 @@ docker-compose down
 ./generate-neo4j-password.sh
 
 # Remove old data (CAUTION: destroys data)
-docker volume rm py_zep_neo4j_data
+docker volume rm zep_graphiti_neo4j_data
 
 # Start fresh
 docker-compose up

@@ -4,19 +4,19 @@
 
 **Issue**: "host.docker.internal not working - lmstudiomodelprovider should be requesting a model load"
 
-**Root Cause**: LM Studio was accessible on `localhost:5432` from host machine, but Zep container was configured to use `host.docker.internal:5432`, causing 404 "No models loaded" errors.
+**Root Cause (Historical)**: LM Studio misconfiguration used port 5432 instead of the standard 1234, causing model discovery failures (now corrected to 1234 everywhere).
 
 ## ✅ Solution Implemented
 
 ### Fixed Configuration
 - **Updated**: `secrets/lm_studio_url.txt` 
-- **From**: `http://localhost:5432`
-- **To**: `http://host.docker.internal:5432`
+- **From (old)**: `http://localhost:5432`
+- **To (current)**: `http://host.docker.internal:1234`
 
 ### Validation Results
 1. **LM Studio Connectivity**: ✅ WORKING
    - Test shows retry attempts to `/embeddings` endpoint
-   - Proves `host.docker.internal:5432` is reachable from container
+   - Validates `host.docker.internal:1234` connectivity from container
    - Connection timeouts indicate LM Studio is responding but may need optimization
 
 2. **Zep Service**: ✅ OPERATIONAL  
@@ -61,12 +61,12 @@ PHASE 3: Search Test - 🟡 LM Studio contacted successfully
 ## 📋 Technical Implementation
 
 ### Files Modified
-1. `secrets/lm_studio_url.txt`: Updated to use `host.docker.internal:5432`
+1. `secrets/lm_studio_url.txt`: Updated to use `host.docker.internal:1234`
 2. `tests/test-graphiti-client-networking.py`: New client-based test implementation
 
 ### Network Configuration  
-- **Host Machine**: LM Studio runs on `localhost:5432`
-- **Docker Container**: Accesses LM Studio via `host.docker.internal:5432`
+- **Host Machine**: LM Studio runs on `localhost:1234`
+- **Docker Container**: Accesses LM Studio via `host.docker.internal:1234`
 - **Neo4j**: Container-to-container communication via `trading-agents-neo4j:7687`
 
 ### Dependencies Validated

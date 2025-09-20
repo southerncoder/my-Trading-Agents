@@ -295,7 +295,7 @@ def load_enhanced_config_from_env() -> dict:
         "neo4j_user": os.getenv("NEO4J_USER", "neo4j"),
         "neo4j_password": os.getenv("NEO4J_PASSWORD", ""),
         "openai_api_key": os.getenv("OPENAI_API_KEY", "dummy-key"),
-        "openai_base_url": os.getenv("OPENAI_BASE_URL", "http://host.docker.internal:5432/v1"),
+    "openai_base_url": os.getenv("OPENAI_BASE_URL", "http://host.docker.internal:1234/v1"),
         "embedding_model": os.getenv("EMBEDDING_MODEL", "text-embedding-qwen3-embedding-4b"),
         "embedding_dim": int(os.getenv("EMBEDDING_DIM", "2560"))
     }

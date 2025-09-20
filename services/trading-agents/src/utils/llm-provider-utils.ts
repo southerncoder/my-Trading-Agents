@@ -35,6 +35,9 @@ export interface LLMProviderConfig {
  * @throws Error if required environment variables are not set
  */
 export function resolveLLMProviderConfig(provider: LLMProvider): LLMProviderConfig {
+  if (!provider) {
+    throw new Error('LLM provider is undefined – ensure configuration supplies provider context');
+  }
   const providerUpper = provider.toUpperCase().replace('-', '_');
 
   // Special handling for OpenAI - always use embedding environment variables

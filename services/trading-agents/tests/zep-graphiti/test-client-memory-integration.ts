@@ -40,7 +40,7 @@ async function testClientMemoryIntegration() {
     
     if (!isConnected) {
       logger.warn('test_connection', 'Zep Graphiti services not running - using fallback validation');
-      logger.info('test_connection', 'To run full test: Start services with py_zep/start-services-secure.ps1');
+  logger.info('test_connection', 'To run full test: Start services with zep_graphiti/start-services-secure.ps1');
       
       // Still test interface compatibility
       logger.info('test_compatibility', '3. Testing interface compatibility (without live services)...');
@@ -119,7 +119,7 @@ async function testClientMemoryIntegration() {
     logger.error('test_debug', 'Make sure Zep Graphiti services are running');
     logger.error('test_debug', 'Check Python environment is activated');
     logger.error('test_debug', 'Verify Docker containers are healthy');
-    logger.error('test_debug', 'To start services: cd py_zep && .\\start-services-secure.ps1');
+  logger.error('test_debug', 'To start services: cd zep_graphiti && .\\start-services-secure.ps1');
     process.exit(1);
   }
 }
