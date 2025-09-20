@@ -39,7 +39,7 @@ npm install
 cp .env.example .env.local
 
 # 3. Start services (optional for basic usage)
-cd ../py_zep
+cd ../zep_graphiti
 .\start-zep-services.ps1
 
 # 4. Run interactive trading analysis
@@ -67,7 +67,7 @@ GOOGLE_API_KEY=your_google_key
 
 # Local LLM (optional)
 LOCAL_LM_STUDIO_BASE_URL=http://localhost:1234/v1
-REMOTE_LM_STUDIO_BASE_URL=http://remote-server:1234/v1
+REMOTE_LM_STUDIO_BASE_URL=http://your-remote-server:1234/v1
 
 # Market Data (optional - has free tiers)
 ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key

@@ -62,7 +62,7 @@ class GraphitiClientConfig:
             possible_paths = [
                 Path(__file__).parent / "secrets" / "neo4j_password.txt",
                 Path(__file__).parent.parent / "secrets" / "neo4j_password.txt",
-                Path(__file__).parent.parent.parent / "py_zep" / "secrets" / "neo4j_password.txt"
+                Path(__file__).parent.parent.parent / "zep_graphiti" / "secrets" / "neo4j_password.txt"
             ]
             
             for path in possible_paths:

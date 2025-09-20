@@ -10,13 +10,13 @@ Run the interactive setup script:
 
 **Windows (PowerShell):**
 ```powershell
-cd py_zep
+cd zep_graphiti
 .\setup-dev-env.ps1
 ```
 
 **Linux/Mac (Python):**
 ```bash
-cd py_zep
+cd zep_graphiti
 python3 setup-dev-env.py
 ```
 
@@ -140,7 +140,7 @@ curl http://localhost:8000/docs
 ## 📁 File Structure
 
 ```
-py_zep/
+zep_graphiti/
 ├── .env.example          # Template (committed)
 ├── .env.local           # Your config (ignored)
 ├── setup-dev-env.py     # Python setup script
@@ -169,7 +169,7 @@ This allows you to:
 ```bash
 # Clone and setup
 git clone <repo>
-cd py_zep
+cd zep_graphiti
 
 # Run setup (choose Windows or Linux version)
 .\setup-dev-env.ps1      # Windows

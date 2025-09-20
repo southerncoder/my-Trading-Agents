@@ -46,6 +46,11 @@ $files = Get-ChildItem -Path $repoRoot -Recurse -File -Force -ErrorAction Silent
 
 $results = @()
 
+# Environment-driven policy controls
+$failOnMatch = ($env:SECRET_SCAN_FAIL_ON_MATCH -and $env:SECRET_SCAN_FAIL_ON_MATCH.ToLower() -ne 'false')
+$maxMatches = if ($env:SECRET_SCAN_MAX_MATCHES) { [int]$env:SECRET_SCAN_MAX_MATCHES } else { 0 }
+$verboseMode = ($env:SECRET_SCAN_VERBOSE -and $env:SECRET_SCAN_VERBOSE.ToLower() -ne 'false')
+
 foreach ($file in $files) {
     try {
         $text = Get-Content -LiteralPath $file.FullName -ErrorAction Stop -Raw
@@ -85,8 +90,17 @@ if ($filtered.Count -eq 0) {
     "No matches found (after filtering)." | Out-File -FilePath $outFileTxt -Encoding utf8
     @() | ConvertTo-Json | Out-File -FilePath $outFileJson -Encoding utf8
     Write-Output "No matches found after filtering. Results written to $outFileTxt and $outFileJson"
+    exit 0
 } else {
     $filtered | Sort-Object Path, Line | Format-Table -AutoSize | Out-String | Out-File -FilePath $outFileTxt -Encoding utf8
     $filtered | Sort-Object Path, Line | ConvertTo-Json -Depth 5 | Out-File -FilePath $outFileJson -Encoding utf8
     Write-Output "Found $($filtered.Count) matches (after filtering). Results written to $outFileTxt and $outFileJson"
+    if ($verboseMode) { Write-Output "Policy: failOnMatch=$failOnMatch maxMatches=$maxMatches" }
+    $shouldFail = $false
+    if ($failOnMatch -and $filtered.Count -gt $maxMatches) { $shouldFail = $true }
+    if ($shouldFail) {
+        Write-Error "Secret scan policy violation: $($filtered.Count) > allowed $maxMatches"
+        exit 2
+    }
+    exit 0
 }

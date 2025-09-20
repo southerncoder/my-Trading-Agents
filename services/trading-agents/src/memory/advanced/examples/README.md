@@ -9,7 +9,7 @@ The examples have been updated to use the new client-based Zep Graphiti integrat
 
 ### Prerequisites
 - Node.js 18+
-- Zep Graphiti services running (see `py_zep/start-services-secure.ps1`)
+- Zep Graphiti services running (see `zep_graphiti/start-services-secure.ps1`)
 - Client-based memory provider configured
 - Install dependencies:
   ```sh

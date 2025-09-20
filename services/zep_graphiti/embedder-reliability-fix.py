@@ -20,7 +20,7 @@ class EmbedderReliabilityFix:
     """Enhanced embedder reliability with model management and improved retry logic"""
     
     def __init__(self):
-        self.lm_studio_url = os.getenv('OPENAI_BASE_URL', 'http://host.docker.internal:5432')
+    self.lm_studio_url = os.getenv('OPENAI_BASE_URL', 'http://host.docker.internal:1234')
         self.embedding_model = os.getenv('EMBEDDING_MODEL', 'text-embedding-qwen3-embedding-4b')
         self.max_retries = 5
         self.base_delay = 1.0
@@ -160,7 +160,7 @@ logger = logging.getLogger('ZepEnhancedStartup')
 
 def ensure_embedding_model_ready():
     """Ensure the embedding model is loaded before starting Zep"""
-    lm_studio_url = os.getenv('OPENAI_BASE_URL', 'http://host.docker.internal:5432')
+    lm_studio_url = os.getenv('OPENAI_BASE_URL', 'http://host.docker.internal:1234')
     embedding_model = os.getenv('EMBEDDING_MODEL', 'text-embedding-qwen3-embedding-4b')
     
     logger.info(f"Ensuring embedding model '{embedding_model}' is ready...")

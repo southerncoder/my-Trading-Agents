@@ -246,7 +246,7 @@ Get-Content secrets\lm_studio_url.txt
 ```powershell
 # Check network configuration
 docker network ls
-docker network inspect trading-agents-py_zep_trading_agents
+docker network inspect trading-agents-zep_graphiti_trading_agents
 
 # Restart with clean state
 docker-compose down -v

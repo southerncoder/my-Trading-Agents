@@ -3,7 +3,7 @@ import requests
 import os
 
 def test_connectivity():
-    base_url = os.getenv('OPENAI_BASE_URL', 'http://host.docker.internal:5432/v1')
+    base_url = os.getenv('OPENAI_BASE_URL', 'http://host.docker.internal:1234/v1')
     print(f"Testing connectivity to: {base_url}")
     
     try:

@@ -1,5 +1,6 @@
 import { spawn } from 'child_process';
 import * as path from 'path';
+import * as fs from 'fs';
 import { createLogger } from '../../utils/enhanced-logger';
 
 /**
@@ -55,9 +56,13 @@ export class GraphitiClientBridge {
   }
 
   private getDefaultBridgePath(): string {
-    // Assume bridge script is in py_zep/tests relative to js/src
+    // Bridge script lives in services/zep_graphiti/tests relative to current file (services/trading-agents/src/providers/zep-graphiti)
     const currentDir = path.dirname(__filename);
-    return path.resolve(currentDir, '..', '..', '..', 'py_zep', 'tests', 'graphiti_ts_bridge.py');
+    const candidate = path.resolve(currentDir, '..', '..', '..', '..', 'zep_graphiti', 'tests', 'graphiti_ts_bridge.py');
+    if (!fs.existsSync(candidate)) {
+      this.logger.warn('initialize', 'Graphiti bridge script not found at expected path', { candidate });
+    }
+    return candidate;
   }
 
   private async executeBridgeCommand(operation: string, params?: Record<string, any>): Promise<BridgeResponse> {

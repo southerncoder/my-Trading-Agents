@@ -13,12 +13,16 @@ import { config } from 'dotenv';
 
 // Load environment variables from .env.local if it exists
 const envPath = path.resolve(__dirname, '..', '..', '.env.local');
+// eslint-disable-next-line no-console
 console.log(`🔧 EnhancedConfigLoader: Looking for .env.local at: ${envPath}`);
+// eslint-disable-next-line no-console
 console.log(`🔧 EnhancedConfigLoader: File exists: ${fs.existsSync(envPath)}`);
 if (fs.existsSync(envPath)) {
   config({ path: envPath });
+  // eslint-disable-next-line no-console
   console.log(`🔧 EnhancedConfigLoader: Loaded .env.local`);
 } else {
+  // eslint-disable-next-line no-console
   console.log(`🔧 EnhancedConfigLoader: .env.local not found`);
 }
 

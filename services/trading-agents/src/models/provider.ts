@@ -268,17 +268,29 @@ export class ModelProvider {
     quickThinking: ModelConfig;
     deepThinking: ModelConfig;
   } {
-    // Resolve provider configuration from environment variables
-    const providerConfig = resolveLLMProviderConfig(config.llmProvider, 'prompt');
-
+    const providerName = (config as any).llmProvider as LLMProvider | undefined;
+    let providerConfig: any = null;
+    if (providerName) {
+      try {
+        providerConfig = resolveLLMProviderConfig(providerName);
+      } catch (e) {
+        logger.warn('createFromConfig', 'Provider resolution failed; continuing with minimal base (no API key)', {
+          provider: providerName,
+          error: e instanceof Error ? e.message : String(e)
+        });
+      }
+    } else {
+      logger.warn('createFromConfig', 'No llmProvider found; using remote_lmstudio placeholder (no network calls unless env present)');
+    }
+    const effectiveProvider: LLMProvider = providerName || 'remote_lmstudio';
     const baseConfig = {
-      provider: config.llmProvider as LLMProvider,
-      baseURL: providerConfig.baseUrl,
-      apiKey: providerConfig.apiKey,
+      provider: effectiveProvider,
+      baseURL: providerConfig?.baseUrl,
+      apiKey: providerConfig?.apiKey,
       temperature: 0.7,
       maxTokens: 2048,
       streaming: false
-    };
+    } as ModelConfig;
 
     return {
       quickThinking: {
@@ -321,7 +333,7 @@ export class ModelProvider {
 
     // For traditional LM Studio providers, use the existing preload logic
     if (config.provider === 'local_lmstudio' || config.provider === 'remote_lmstudio') {
-      const baseUrl = config.baseURL || getLLMProviderBaseUrl(config.provider, 'prompt');
+  const baseUrl = config.baseURL || getLLMProviderBaseUrl(config.provider);
       const { LMStudioManager } = await import('./lmstudio-manager');
       await LMStudioManager.preloadModel(config.modelName, baseUrl);
     }
@@ -333,7 +345,7 @@ export class ModelProvider {
   static getLMStudioConfig(
     modelName: string = 'llama-3.2-3b-instruct'
   ): ModelConfig {
-    const providerConfig = resolveLLMProviderConfig('local_lmstudio', 'embedding');
+  const providerConfig = resolveLLMProviderConfig('local_lmstudio');
     return {
       provider: 'local_lmstudio',
       modelName,
@@ -351,7 +363,7 @@ export class ModelProvider {
   static getLMStudioNetworkConfig(
     modelName: string = 'llama-3.2-3b-instruct'
   ): ModelConfig {
-    const providerConfig = resolveLLMProviderConfig('remote_lmstudio', 'prompt');
+  const providerConfig = resolveLLMProviderConfig('remote_lmstudio');
     return {
       provider: 'remote_lmstudio',
       modelName,
@@ -367,7 +379,7 @@ export class ModelProvider {
    * Get Ollama configuration for local development
    */
   static getOllamaConfig(modelName: string = 'llama3.2:3b'): ModelConfig {
-    const providerConfig = resolveLLMProviderConfig('ollama', 'prompt');
+  const providerConfig = resolveLLMProviderConfig('ollama');
     return {
       provider: 'ollama',
       modelName,
@@ -463,8 +475,8 @@ export class ModelProvider {
     Object.keys(status).forEach(provider => {
       try {
         // Check both prompt and embedding contexts for availability
-        resolveLLMProviderConfig(provider as LLMProvider, 'prompt');
-        resolveLLMProviderConfig(provider as LLMProvider, 'embedding');
+  resolveLLMProviderConfig(provider as LLMProvider);
+  resolveLLMProviderConfig(provider as LLMProvider);
         status[provider as LLMProvider].available = true;
       } catch (_error) {
         // Provider not available due to missing environment variables

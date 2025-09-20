@@ -78,7 +78,7 @@ class GraphitiEntityTester:
                 logger.warning("Using environment OPENAI_API_KEY as fallback")
             
             # LM Studio URL from secrets file
-            openai_base_url = os.getenv("OPENAI_BASE_URL", "http://host.docker.internal:5432/v1")
+            openai_base_url = os.getenv("OPENAI_BASE_URL", "http://host.docker.internal:1234/v1")
             logger.info("Using environment OPENAI_BASE_URL")
             
             # Model configuration
@@ -346,7 +346,7 @@ async def run_entity_node_tests():
         logger.error("1. Check that Zep Graphiti service is running: docker-compose ps")
         logger.error("2. Check service logs: docker-compose logs zep-graphiti")
         logger.error("3. Verify Neo4j connectivity: docker-compose logs neo4j")
-        logger.error("4. Check secrets files in py_zep/secrets/")
+        logger.error("4. Check secrets files in zep_graphiti/secrets/")
         return False
 
 if __name__ == "__main__":
