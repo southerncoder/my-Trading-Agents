@@ -32,29 +32,53 @@ export class LLMProviderFactory {
   }
 
   /**
-   * Create OpenAI LLM instance
+   * Create OpenAI LLM instance with best practices
+   * 
+   * Follows OpenAI SDK best practices:
+   * - Automatic retry logic for transient failures
+   * - Configurable timeout for requests
+   * - Proper base URL configuration
+   * - Comprehensive error handling
+   * 
+   * @see https://github.com/openai/openai-node for official SDK documentation
    */
   private static createOpenAILLM(config: AgentLLMConfig): ChatOpenAI {
     if (!config.apiKey) {
-      throw new Error('OpenAI API key is required');
+      throw new Error(
+        'OpenAI API key is required. ' +
+        'Set OPENAI_API_KEY environment variable or provide apiKey in configuration. ' +
+        'Get your API key from https://platform.openai.com/api-keys'
+      );
     }
 
+    // Build OpenAI configuration with best practices
     const openAIConfig: any = {
-      modelName: config.model,
-      openAIApiKey: config.apiKey
+      modelName: config.model || 'gpt-4o-mini',
+      openAIApiKey: config.apiKey,
+      // Default to 2 retries for transient failures (network issues, rate limits)
+      maxRetries: 2,
+      // Default timeout of 60 seconds for API requests
+      timeout: config.timeout || 60000
     };
 
+    // Configure temperature (0.0 to 2.0, default 1.0)
     if (config.temperature !== undefined) {
-      openAIConfig.temperature = config.temperature;
+      openAIConfig.temperature = Math.max(0, Math.min(2, config.temperature));
     }
+
+    // Configure max tokens (output limit)
     if (config.maxTokens !== undefined) {
       openAIConfig.maxTokens = config.maxTokens;
     }
-    if (config.timeout !== undefined) {
-      openAIConfig.timeout = config.timeout;
-    }
+
+    // Configure base URL (for proxies or OpenAI-compatible endpoints)
+    // Defaults to https://api.openai.com/v1 if not specified
     if (config.baseUrl) {
-      openAIConfig.configuration = { baseURL: config.baseUrl };
+      openAIConfig.configuration = { 
+        baseURL: config.baseUrl,
+        // Support proxy configuration via fetchOptions if needed
+        // Example: fetchOptions: { dispatcher: new undici.ProxyAgent('http://proxy:8080') }
+      };
     }
 
     return new ChatOpenAI(openAIConfig);

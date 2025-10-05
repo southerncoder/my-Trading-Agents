@@ -77,7 +77,7 @@ export class LoggingManager {
     let logToConsole: boolean;
 
     if (enableVerbose) {
-      const logLevel = await select({
+      logLevel = await select({
         message: 'Select logging level:',
         choices: LOG_LEVEL_OPTIONS.map(option => ({
           name: option.name,
@@ -86,12 +86,12 @@ export class LoggingManager {
         default: 'info'
       }) as 'debug' | 'info' | 'warn' | 'error' | 'critical';
 
-      const enableFileLogging = await confirm({
+      enableFileLogging = await confirm({
         message: 'Save logs to file?',
         default: true
       });
 
-      let logToConsole = true;
+      logToConsole = true;
       if (logLevel === 'debug') {
         logToConsole = await confirm({
           message: 'Show logs in console output?',

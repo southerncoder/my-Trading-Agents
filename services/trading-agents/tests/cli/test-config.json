@@ -1,0 +1,10 @@
+{
+  "ticker": "AAPL",
+  "analysisDate": "auto",
+  "analysts": ["market", "social", "news", "fundamentals"],
+  "researchDepth": 1,
+  "llmProvider": "openai",
+  "shallowThinker": "gpt-4o-mini",
+  "deepThinker": "gpt-4o-mini",
+  "description": "Test configuration for automated CLI testing with OpenAI"
+}

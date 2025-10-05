@@ -6,7 +6,7 @@ WORKDIR /app
 
 # Install system dependencies
 RUN apk add --no-cache \
-    dumb-init \
+    dumb-init \  
     && rm -rf /var/cache/apk/*
 
 # Copy package files
@@ -20,7 +20,9 @@ RUN addgroup -g 1001 -S nodejs && \
     adduser -S newsaggregator -u 1001
 
 # Copy source code and health check script
-COPY src/ ./src/
+COPY src/index.js ./src/index.js
+COPY src/providers/ ./src/providers/
+COPY src/utils/ ./src/utils/
 COPY healthcheck.cjs ./healthcheck.cjs
 
 # Make health check script executable

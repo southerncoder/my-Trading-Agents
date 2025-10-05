@@ -1,89 +1,125 @@
-# Archive debug scripts folder
-py_graphiti_debug/
-archive/py_graphiti_debug/
-# Python specific
-env/
-__pycache__/
-*.egg-info/
-
-# OS files
-.DS_Store
-
-# Data and results
-*.csv
-eval_results/
-eval_data/
-
-# Environment variables and secrets
+# =====================================
+# CRITICAL SECURITY - DO NOT COMMIT
+# =====================================
+# Environment variables and secrets (ALL .env files except .env.example)
 .env
 .env.local
+.env.*.local
 .env.production
+.env.production.local
 .env.development
+.env.development.local
+.env.test.local
 *.env
+!.env.example
+!**/.env.example
+
+# Docker secrets directory - NEVER commit secret files
+docker/secrets/*.txt
+docker/secrets/*_api_key.txt
+docker/secrets/*_secret.txt
+docker/secrets/*_token.txt
+docker/secrets/*_password.txt
+docker/secrets/migrate-log.txt
+
+# Additional secret patterns - Defense in depth
 **/secrets/**
 **/*-secrets.*
 **/*-credentials.*
-
-# API keys and configuration files
 **/api-keys.*
 **/config.local.*
 **/credentials.*
+*.key
+*.pem
+*.crt
+*.p12
+*.pfx
 
-# Temporary and backup files
-*.tmp
-*.bak
-*.backup
-*~
+# API key and token files
+*_api_key.txt
+*_secret_key.txt
+*_access_token.txt
+*_refresh_token.txt
 
-# IDE and editor files
-.vscode/settings.json
-.vscode/mcp.json
-.idea/
-*.swp
-*.swo
-
+# =====================================
+# BUILD ARTIFACTS & DEPENDENCIES
+# =====================================
 # Node.js
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+package-lock.json.bak
 
-# Logs
+# Python
+env/
+.venv/
+venv/
+__pycache__/
+*.egg-info/
+*.pyc
+*.pyo
+
+# TypeScript & JavaScript
+dist/
+build/
+*.tsbuildinfo
+.npm
+.eslintcache
+
+# =====================================
+# IDE & EDITOR FILES
+# =====================================
+.vscode/settings.json
+.vscode/mcp.json
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# =====================================
+# LOGS & RUNTIME DATA
+# =====================================
 logs/
 *.log
-
-# Runtime data
 pids/
 *.pid
 *.seed
 *.pid.lock
+migrate-log.txt
 
-# Coverage directory used by tools like istanbul
+# =====================================
+# TEST & COVERAGE
+# =====================================
 coverage/
 *.nyc_output
+.nyc_output/
+test-results/
+junit.xml
 
-# TypeScript
-*.tsbuildinfo
-
-# Optional npm cache directory
-.npm
-
-# Optional eslint cache
-.eslintcache
-
+# =====================================
+# PROJECT OUTPUTS
+# =====================================
 # Results and exports
 results/
 exports/
 **/*export*.html
 **/*export*.json
-migrate-log.txt
-.env.local
 
-# Additional secret / build patterns
-.venv/
-venv/
-dist/
-build/
-*.key
-*.pem
-*.crt
+# Data files
+*.csv
+eval_results/
+eval_data/
+data/cache/
+
+# Temporary and backup files
+*.tmp
+*.bak
+*.backup
+
+# =====================================
+# ARCHIVE & DEBUG
+# =====================================
+py_graphiti_debug/
+archive/py_graphiti_debug/

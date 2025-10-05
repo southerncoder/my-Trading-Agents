@@ -40,16 +40,13 @@ export function resolveLLMProviderConfig(provider: LLMProvider): LLMProviderConf
   }
   const providerUpper = provider.toUpperCase().replace('-', '_');
 
-  // Special handling for OpenAI - always use embedding environment variables
+  // Special handling for OpenAI - prefer dedicated OPENAI variables, fallback to embedding
   if (provider === 'openai') {
-    const baseUrl = process.env.EMBEDDING_LLM_URL || process.env.OPENAI_BASE_URL;
-    const apiKey = process.env.EMBEDDING_API_KEY || process.env.OPENAI_API_KEY;
+    const baseUrl = process.env.OPENAI_BASE_URL || process.env.EMBEDDING_LLM_URL || 'https://api.openai.com/v1';
+    const apiKey = process.env.OPENAI_API_KEY || process.env.EMBEDDING_API_KEY;
 
-    if (!baseUrl) {
-      throw new Error('EMBEDDING_LLM_URL or OPENAI_BASE_URL environment variable is required for OpenAI provider');
-    }
     if (!apiKey) {
-      throw new Error('EMBEDDING_API_KEY or OPENAI_API_KEY environment variable is required for OpenAI provider');
+      throw new Error('OPENAI_API_KEY or EMBEDDING_API_KEY environment variable is required for OpenAI provider');
     }
 
     return {
@@ -136,8 +133,8 @@ export function getAvailableLLMProviders(): LLMProvider[] {
  */
 export const LLM_PROVIDER_ENV_VARS = {
   openai: {
-    baseUrl: 'EMBEDDING_LLM_URL or OPENAI_BASE_URL',
-    apiKey: 'EMBEDDING_API_KEY or OPENAI_API_KEY'
+    baseUrl: 'OPENAI_BASE_URL (defaults to https://api.openai.com/v1, or EMBEDDING_LLM_URL for backward compatibility)',
+    apiKey: 'OPENAI_API_KEY (or EMBEDDING_API_KEY for backward compatibility)'
   },
   anthropic: {
     baseUrl: 'ANTHROPIC_BASE_URL',

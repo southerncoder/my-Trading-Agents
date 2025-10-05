@@ -6,46 +6,17 @@
     "defaultAnalysisDate": null,
     "defaultAnalysts": ["market", "social", "news", "fundamentals"],
     "defaultResearchDepth": 3,
-        "defaultLLMProvider": "remote_lmstudio",
+    "defaultLLMProvider": "openai",
     "models": {
       "quickThinking": {
-        "provider": "remote_lmstudio",
-        "model": "microsoft/phi-4-reasoning-plus"
+        "provider": "openai",
+        "model": "gpt-4o-mini"
       },
       "deepThinking": {
-        "provider": "remote_lmstudio",
-        "model": "microsoft/phi-4-reasoning-plus"
+        "provider": "openai",
+        "model": "gpt-4o"
       },
-      "agentOverrides": {
-        "marketAnalyst": {
-          "provider": "remote_lmstudio",
-          "model": "microsoft/phi-4-reasoning-plus"
-        },
-        "socialAnalyst": {
-          "provider": "remote_lmstudio",
-          "model": "microsoft/phi-4-reasoning-plus"
-        },
-        "newsAnalyst": {
-          "provider": "remote_lmstudio",
-          "model": "microsoft/phi-4-reasoning-plus"
-        },
-        "fundamentalsAnalyst": {
-          "provider": "remote_lmstudio",
-          "model": "microsoft/phi-4-reasoning-plus"
-        },
-        "researchManager": {
-          "provider": "remote_lmstudio",
-          "model": "microsoft/phi-4-reasoning-plus"
-        },
-        "riskManager": {
-          "provider": "remote_lmstudio",
-          "model": "microsoft/phi-4-reasoning-plus"
-        },
-        "trader": {
-          "provider": "remote_lmstudio",
-          "model": "microsoft/phi-4-reasoning-plus"
-        }
-      }
+      "agentOverrides": {}
     }
   },
   "flow": {

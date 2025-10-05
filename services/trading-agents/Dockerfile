@@ -41,8 +41,9 @@ RUN npm ci --only=production --ignore-scripts && npm cache clean --force
 COPY --from=builder --chown=trading:nodejs /app/dist ./dist
 COPY --from=builder --chown=trading:nodejs /app/package.json ./
 
-# Copy CLI entry point
+# Copy CLI entry point and secrets init script
 COPY --chown=trading:nodejs cli.js ./
+COPY --chown=trading:nodejs secrets/init.js ./secrets/
 
 # Create data directories with proper permissions
 RUN mkdir -p /app/.tradingagents /app/data /app/logs /app/exports && \
@@ -57,8 +58,8 @@ USER trading
 # Expose port (if needed for web interface in future)
 EXPOSE 3000
 
-# Use dumb-init to handle signals properly
-ENTRYPOINT ["dumb-init", "--"]
+# Use secrets init script with dumb-init for proper signal handling and environment setup
+ENTRYPOINT ["dumb-init", "--", "node", "/app/secrets/init.js"]
 
-# Default command - run interactive menu
+# Default command - run interactive menu (passed to init.js)
 CMD ["node", "cli.js", "menu"]

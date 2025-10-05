@@ -312,9 +312,9 @@ Your setup is ready when:
 ## 📚 Additional Resources
 
 - [LM Studio Documentation](https://lmstudio.ai/docs)
-- [TradingAgents Framework Guide](../README.md)
-- [Agent Architecture Documentation](../docs/agents/)
-- [Performance Optimization Guide](../docs/performance/)
+- [TradingAgents Quick Start](../../../docs/QUICK-START.md)
+- [Memory System Architecture](../../../docs/zep-graphiti/ARCHITECTURE.md)
+- [Configuration Guide](../../../docs/CONFIGURATION.md)
 
 ---
 

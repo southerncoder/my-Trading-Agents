@@ -85,44 +85,122 @@ REDDIT_CLIENT_SECRET=your_reddit_client_secret
 
 ## Architecture Overview
 
+### Multi-Agent Trading Workflow (LangGraph)
+
 ```mermaid
 graph TB
-    CLI[💻 CLI] --> ETG[🎯 Trading Graph]
-    ETG --> AGENTS[🤖 12 Agents]
-    AGENTS --> LEARNING[🧠 Learning System]
-    AGENTS --> DATA[📊 Data Integration]
-    DATA --> APIS[🌐 External APIs]
-    LEARNING --> MEMORY[🧠 Zep Graphiti]
-    MEMORY --> NEO4J[(Neo4j)]
-    ETG --> LLM[🤖 LLM Providers]
-
-    classDef primary fill:#e3f2fd,stroke:#1976d2
-    classDef secondary fill:#f3e5f5,stroke:#7b1fa2
-    classDef tertiary fill:#e8f5e8,stroke:#388e3c
-
-    class CLI,ETG primary
-    class AGENTS,LEARNING,DATA secondary
-    class APIS,MEMORY,NEO4J,LLM tertiary
+    START[🚀 Start Analysis] --> PHASE1[📊 Phase 1: Analysts]
+    
+    subgraph PHASE1[Phase 1: Market Intelligence]
+        MA[Market Analyst<br/>Technical Analysis]
+        SA[Social Analyst<br/>Sentiment Analysis]
+        NA[News Analyst<br/>News Impact]
+        FA[Fundamentals Analyst<br/>Financial Analysis]
+    end
+    
+    PHASE1 --> PHASE2[🔬 Phase 2: Research]
+    
+    subgraph PHASE2[Phase 2: Research Synthesis]
+        BULL[Bull Researcher<br/>Growth Thesis]
+        BEAR[Bear Researcher<br/>Risk Analysis]
+        RM[Research Manager<br/>Synthesis & Recommendation]
+    end
+    
+    PHASE2 --> PHASE3[⚖️ Phase 3: Risk Management]
+    
+    subgraph PHASE3[Phase 3: Risk Assessment]
+        RISKY[Risky Analyst<br/>Aggressive Strategy]
+        SAFE[Safe Analyst<br/>Conservative Strategy]
+        NEUTRAL[Neutral Analyst<br/>Balanced Strategy]
+        PM[Portfolio Manager<br/>Final Risk Decision]
+    end
+    
+    PHASE3 --> PHASE4[💰 Phase 4: Trading]
+    
+    subgraph PHASE4[Phase 4: Execution]
+        LT[Learning Trader<br/>RL-Enhanced Execution]
+    end
+    
+    PHASE4 --> END[✅ Trade Decision]
+    
+    subgraph DATA[Data Sources]
+        YF[Yahoo Finance]
+        AV[Alpha Vantage]
+        MS[MarketStack]
+        RD[Reddit API]
+        GN[Google News]
+    end
+    
+    subgraph INFRA[Infrastructure]
+        LLM[LLM Providers<br/>OpenAI/Anthropic/Google]
+        MEM[Zep Graphiti Memory<br/>Client-Based]
+        NEO[(Neo4j Graph DB)]
+    end
+    
+    PHASE1 -.->|Market Data| DATA
+    PHASE1 -.->|LLM Calls| LLM
+    PHASE2 -.->|LLM Calls| LLM
+    PHASE3 -.->|LLM Calls| LLM
+    PHASE4 -.->|LLM Calls| LLM
+    PHASE4 -.->|Learning Insights| MEM
+    MEM -.->|Knowledge Graph| NEO
+    
+    classDef phaseStyle fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    classDef agentStyle fill:#f3e5f5,stroke:#7b1fa2
+    classDef infraStyle fill:#e8f5e8,stroke:#388e3c
+    classDef dataStyle fill:#fff3e0,stroke:#f57c00
+    
+    class PHASE1,PHASE2,PHASE3,PHASE4 phaseStyle
+    class MA,SA,NA,FA,BULL,BEAR,RM,RISKY,SAFE,NEUTRAL,PM,LT agentStyle
+    class DATA,INFRA dataStyle
+    class LLM,MEM,NEO infraStyle
 ```
 
 **Key Components:**
-- **12 Specialized Agents**: Market analysis, research, risk management, trading
-- **Advanced Learning**: ML-based pattern recognition and performance optimization
-- **Multi-Provider Data**: Yahoo Finance, Alpha Vantage, Google News, Reddit
-- **Enterprise Memory**: Zep Graphiti knowledge graphs with Neo4j
-- **Containerized**: Docker orchestration with health monitoring
+
+### 4-Phase Sequential Workflow
+1. **Phase 1 - Market Intelligence (4 Agents)**
+   - Market Analyst: Technical indicators, support/resistance, momentum
+   - Social Analyst: Reddit/Twitter sentiment analysis
+   - News Analyst: Breaking news, catalysts, impact assessment
+   - Fundamentals Analyst: Financial metrics, valuation, DCF analysis
+
+2. **Phase 2 - Research Synthesis (3 Agents)**
+   - Bull Researcher: Growth catalysts and upside scenarios
+   - Bear Researcher: Risk factors and downside scenarios
+   - Research Manager: Synthesizes bull/bear views into recommendation
+
+3. **Phase 3 - Risk Management (4 Agents)**
+   - Risky Analyst: Aggressive strategies with leverage and concentration
+   - Safe Analyst: Conservative approach with capital preservation
+   - Neutral Analyst: Balanced risk-reward optimization
+   - Portfolio Manager: Final risk decision (approve/reject/modify)
+
+4. **Phase 4 - Trading Execution (1 Agent)**
+   - Learning Trader: RL-enhanced execution with learned adaptations
+
+### Infrastructure
+- **Multi-Provider Data**: Yahoo Finance, Alpha Vantage, MarketStack (automatic failover)
+- **Enterprise Memory**: Zep Graphiti client-based integration with Neo4j knowledge graphs
+- **LLM Providers**: OpenAI, Anthropic, Google (configurable per agent)
+- **Containerized Deployment**: Docker Compose with health monitoring and secrets management
 
 ## Documentation
 
 ### Getting Started
-- [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md) - Complete setup guide
-- [docs/CONFIGURATION.md](docs/CONFIGURATION.md) - Configuration options
+- **[Quick Start Guide](docs/QUICK-START.md)** - Get up and running in 5 minutes
+- **[Configuration Guide](docs/CONFIGURATION.md)** - Complete config.json reference
+- **[Git Hooks](docs/GIT-HOOKS.md)** - Pre-commit security scanning for contributors
 
 ### Architecture & Components
-- [docs/ARCHITECTURE-OVERVIEW.md](docs/ARCHITECTURE-OVERVIEW.md) - System architecture
-- [docs/SYSTEM-ARCHITECTURE.md](docs/SYSTEM-ARCHITECTURE.md) - Detailed architecture with diagrams
-- [docs/COMPONENT-INTERACTIONS.md](docs/COMPONENT-INTERACTIONS.md) - Component interactions
 - [docs/zep-graphiti/ARCHITECTURE.md](docs/zep-graphiti/ARCHITECTURE.md) - Memory system architecture
+- [docs/DOCKER-README.md](docs/DOCKER-README.md) - Docker deployment guide
+- [docs/FEATURE-FLAGS.md](docs/FEATURE-FLAGS.md) - Feature flag system
+
+### Development Planning
+- [docs/todos/IMPLEMENTATION-GAP-ANALYSIS.md](docs/todos/IMPLEMENTATION-GAP-ANALYSIS.md) - Feature gap analysis and roadmap
+- [docs/todos/LEARNING-SYSTEM.md](docs/todos/LEARNING-SYSTEM.md) - Learning system documentation
+- [docs/todos/MARKET_DATA_PROVIDER_OPTIONS.md](docs/todos/MARKET_DATA_PROVIDER_OPTIONS.md) - Market data providers
 
 ## Testing
 
@@ -165,9 +243,15 @@ npx vite-node examples/learning-market-analyst-integration.ts
 ## Contributing
 
 1. **File Organization**: Use component-based folder structure (see [.github/copilot-instructions.md](.github/copilot-instructions.md))
-2. **Security**: Never commit real credentials, IPs, or sensitive information
+2. **Security**: Never commit real credentials, IPs, or sensitive information (see [docs/GIT-HOOKS.md](docs/GIT-HOOKS.md))
 3. **Testing**: Ensure tests pass and add coverage for new features
-4. **Documentation**: Update relevant docs in component folders
+4. **Documentation**: Keep docs minimal and focused on user needs
+
+## Documentation
+
+- **[Quick Start Guide](docs/QUICK-START.md)** - Get up and running in 5 minutes
+- **[Configuration Guide](docs/CONFIGURATION.md)** - Complete config.json reference
+- **[Git Hooks](docs/GIT-HOOKS.md)** - Pre-commit security scanning for contributors
 
 ## Security
 
@@ -177,7 +261,17 @@ This repository follows strict security practices:
 - ✅ Sanitized documentation with placeholder values
 - ✅ Pre-commit hooks and CI security scanning
 
+## 📜 Attribution
+
+**TradingAgents** was originally developed by **Tauric Research** (Yijia Xiao, Edward Sun, Di Luo, Wei Wang).
+
+This TypeScript implementation is a complete rewrite by **[SouthernCoder](https://github.com/southerncoder)** with enterprise memory, multi-provider data, and production features.
+
+**Full Attribution**: See [ATTRIBUTION.md](./ATTRIBUTION.md) for complete project history, enhancements, and citation information.
+
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details
+
+**Original Work**: Apache License 2.0 by Tauric Research - see [TAURICRESEARCH_LICENSE](TAURICRESEARCH_LICENSE)
 

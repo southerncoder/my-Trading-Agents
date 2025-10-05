@@ -7,7 +7,7 @@ import { recordResult } from './test-helper';
   const errors: string[] = [];
   const metrics: Record<string, any> = {};
   try {
-    const agentConfig = { provider: 'remote_lmstudio', model: 'openai/gpt-oss-20b' } as any;
+    const agentConfig = { provider: 'openai', model: 'gpt-4o-mini', apiKey: process.env.OPENAI_API_KEY || 'test-key' } as any;
     const memory = new FinancialSituationMemory('roundtrip', agentConfig);
 
     const inputSituation = 'Rising interest rates are increasing banking sector volatility';
