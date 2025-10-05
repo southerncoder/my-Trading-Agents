@@ -9,6 +9,7 @@ import { ModelProvider, ModelConfig } from '../models/index';
 import { TradingAgentsConfig } from '../types/config';
 import { AgentState } from '../types/agent-states';
 import { logger } from '../utils/enhanced-logger';
+import { AgentFactory } from './agent-factory';
 
 export type AnalystType = 'market' | 'social' | 'news' | 'fundamentals';
 
@@ -26,9 +27,11 @@ export interface GraphSetupConfig {
  */
 export class LangGraphSetup {
   private config: TradingAgentsConfig;
+  private agentFactory: AgentFactory;
 
   constructor(setupConfig: GraphSetupConfig) {
     this.config = setupConfig.config;
+    this.agentFactory = new AgentFactory(this.config);
   }
 
   /**
@@ -92,7 +95,7 @@ export class LangGraphSetup {
   }
 
   /**
-   * Create a comprehensive trading workflow with all analyst types
+   * Create a comprehensive trading workflow with all 12 agents
    */
   async createComprehensiveTradingWorkflow(selectedAnalysts: AnalystType[]): Promise<any> {
     try {
@@ -108,71 +111,82 @@ export class LangGraphSetup {
 
       const workflow = new StateGraph({ channels: stateChannels } as any);
 
-      // Add analyst nodes based on selection
+      // Helper to create agent node
+      const createAgentNode = (agentName: string, agentPromise: Promise<any>) => {
+        return async (state: any) => {
+          try {
+            logger.info('graph', 'LangGraphSetup', `${agentName}_node`, `Processing ${agentName} analysis`, {
+              messagesCount: state.messages?.length || 0
+            });
+            
+            // Extract ticker and date from messages
+            const lastMessage = state.messages[state.messages.length - 1];
+            const content = lastMessage?.content || '';
+            const tickerMatch = content.match(/\b([A-Z]{1,5})\b/);
+            const dateMatch = content.match(/\d{4}-\d{2}-\d{2}/);
+            
+            const ticker = tickerMatch ? tickerMatch[1] : 'AAPL';
+            const tradeDate = dateMatch ? dateMatch[0] : new Date().toISOString().split('T')[0];
+            
+            // Process with real agent
+            const agent = await agentPromise;
+            const agentState: AgentState = {
+              messages: state.messages,
+              company_of_interest: ticker,
+              trade_date: tradeDate!,
+              sender: 'system',
+              ...state // Include any additional state properties
+            };
+            
+            const result = await agent.process(agentState);
+            
+            return {
+              messages: result.messages || state.messages,
+              ...result // Merge all result properties into state
+            };
+          } catch (error) {
+            logger.error('graph', 'LangGraphSetup', `${agentName}_node`, `Error in ${agentName} node`, {
+              error: error instanceof Error ? error.message : String(error)
+            });
+            return {
+              messages: [...state.messages, new AIMessage({
+                content: `${agentName} Error: ${error instanceof Error ? error.message : String(error)}`
+              })]
+            };
+          }
+        };
+      };
+
+      // ==== PHASE 1: ANALYSTS (4 agents) ====
       if (selectedAnalysts.includes('market')) {
-        workflow.addNode('market_analyst', async (state: any) => {
-          return { 
-            messages: [...state.messages, new AIMessage({ 
-              content: 'Market Analysis: Technical indicators show mixed signals.' 
-            })] 
-          };
-        });
+        workflow.addNode('market_analyst', createAgentNode('Market Analyst', this.agentFactory.createMarketAnalyst()));
       }
 
       if (selectedAnalysts.includes('social')) {
-        workflow.addNode('social_analyst', async (state: any) => {
-          return { 
-            messages: [...state.messages, new AIMessage({ 
-              content: 'Social Analysis: Sentiment appears neutral to slightly positive.' 
-            })] 
-          };
-        });
+        workflow.addNode('social_analyst', createAgentNode('Social Analyst', this.agentFactory.createSocialAnalyst()));
       }
 
       if (selectedAnalysts.includes('news')) {
-        workflow.addNode('news_analyst', async (state: any) => {
-          return { 
-            messages: [...state.messages, new AIMessage({ 
-              content: 'News Analysis: Recent news shows no major catalysts.' 
-            })] 
-          };
-        });
+        workflow.addNode('news_analyst', createAgentNode('News Analyst', this.agentFactory.createNewsAnalyst()));
       }
 
       if (selectedAnalysts.includes('fundamentals')) {
-        workflow.addNode('fundamentals_analyst', async (state: any) => {
-          return { 
-            messages: [...state.messages, new AIMessage({ 
-              content: 'Fundamentals Analysis: Company financials are stable.' 
-            })] 
-          };
-        });
+        workflow.addNode('fundamentals_analyst', createAgentNode('Fundamentals Analyst', this.agentFactory.createFundamentalsAnalyst()));
       }
 
-      // Add research and trading nodes
-      workflow.addNode('bull_researcher', async (state: any) => {
-        return { 
-          messages: [...state.messages, new AIMessage({ 
-            content: 'Bull Case: Strong potential for growth based on analysis.' 
-          })] 
-        };
-      });
+      // ==== PHASE 2: RESEARCHERS (3 agents) ====
+      workflow.addNode('bull_researcher', createAgentNode('Bull Researcher', this.agentFactory.createBullResearcher()));
+      workflow.addNode('bear_researcher', createAgentNode('Bear Researcher', this.agentFactory.createBearResearcher()));
+      workflow.addNode('research_manager', createAgentNode('Research Manager', this.agentFactory.createResearchManager()));
 
-      workflow.addNode('bear_researcher', async (state: any) => {
-        return { 
-          messages: [...state.messages, new AIMessage({ 
-            content: 'Bear Case: Potential risks identified in current environment.' 
-          })] 
-        };
-      });
+      // ==== PHASE 3: RISK MANAGEMENT (4 agents) ====
+      workflow.addNode('risky_analyst', createAgentNode('Risky Analyst', this.agentFactory.createRiskyAnalyst()));
+      workflow.addNode('safe_analyst', createAgentNode('Safe Analyst', this.agentFactory.createSafeAnalyst()));
+      workflow.addNode('neutral_analyst', createAgentNode('Neutral Analyst', this.agentFactory.createNeutralAnalyst()));
+      workflow.addNode('portfolio_manager', createAgentNode('Portfolio Manager', this.agentFactory.createPortfolioManager()));
 
-      workflow.addNode('final_decision', async (state: any) => {
-        return { 
-          messages: [...state.messages, new AIMessage({ 
-            content: 'Final Decision: HOLD - Balanced risk-reward profile.' 
-          })] 
-        };
-      });
+      // ==== PHASE 4: TRADING (1 agent) ====
+      workflow.addNode('learning_trader', createAgentNode('Learning Trader', this.agentFactory.createLearningTrader()));
 
       // Build the workflow edges
       this.addWorkflowEdges(workflow, selectedAnalysts);
@@ -188,13 +202,18 @@ export class LangGraphSetup {
   }
 
   /**
-   * Add edges to connect the workflow nodes
+   * Add edges to connect all 12 agents in the workflow
+   * 
+   * Flow: Analysts → Researchers → Research Manager → Risk Analysts → Portfolio Manager → Trader → End
    */
   private addWorkflowEdges(workflow: any, selectedAnalysts: AnalystType[]) {
-    // Start with the first analyst
+    // ==== PHASE 1: ANALYSTS SEQUENTIAL PROCESSING ====
     const firstAnalyst = selectedAnalysts[0];
     if (firstAnalyst) {
       workflow.addEdge('__start__', `${firstAnalyst}_analyst`);
+    } else {
+      // If no analysts selected, go directly to researchers
+      workflow.addEdge('__start__', 'bull_researcher');
     }
 
     // Connect analysts in sequence
@@ -205,14 +224,30 @@ export class LangGraphSetup {
         const next = `${selectedAnalysts[i + 1]}_analyst`;
         workflow.addEdge(current, next);
       } else {
+        // Last analyst connects to bull researcher
         workflow.addEdge(current, 'bull_researcher');
       }
     }
 
-    // Connect research and decision nodes
+    // ==== PHASE 2: RESEARCH TEAM ====
+    // Bull and Bear researchers work in parallel conceptually, but execute sequentially
     workflow.addEdge('bull_researcher', 'bear_researcher');
-    workflow.addEdge('bear_researcher', 'final_decision');
-    workflow.addEdge('final_decision', '__end__');
+    // Research Manager synthesizes both perspectives
+    workflow.addEdge('bear_researcher', 'research_manager');
+
+    // ==== PHASE 3: RISK MANAGEMENT TEAM ====
+    // After research, assess risk from different perspectives
+    workflow.addEdge('research_manager', 'risky_analyst');
+    workflow.addEdge('risky_analyst', 'safe_analyst');
+    workflow.addEdge('safe_analyst', 'neutral_analyst');
+    // Portfolio Manager synthesizes risk assessments
+    workflow.addEdge('neutral_analyst', 'portfolio_manager');
+
+    // ==== PHASE 4: TRADING EXECUTION ====
+    // Portfolio Manager hands off to Learning Trader for final decision
+    workflow.addEdge('portfolio_manager', 'learning_trader');
+    // Trading decision is final
+    workflow.addEdge('learning_trader', '__end__');
   }
 
   /**

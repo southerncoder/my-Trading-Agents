@@ -4,10 +4,12 @@ import { EmbeddingProviderFactory } from '../../src/providers/memory-provider';
 import { FinancialSituationMemory } from '../../src/agents/utils/memory';
 import { recordResult } from './test-helper';
 
+// Test with Docker service providers (OpenAI via Zep Graphiti)
 const testAgentConfigs = {
-  openai_agent: { provider: 'openai' as const, model: 'gpt-4-turbo-preview' },
-  anthropic_agent: { provider: 'anthropic' as const, model: 'claude-3-5-sonnet-20241022' },
-  local_agent: { provider: 'remote_lmstudio' as const, model: 'local-model', baseUrl: process.env.LM_STUDIO_BASE_URL || 'http://localhost:1234/v1' }
+  openai_agent: { provider: 'openai' as const, model: 'gpt-4o-mini', apiKey: process.env.OPENAI_API_KEY },
+  anthropic_agent: { provider: 'anthropic' as const, model: 'claude-3-5-sonnet-20241022', apiKey: process.env.ANTHROPIC_API_KEY },
+  // Skip if no API keys available
+  ...(process.env.OPENAI_API_KEY ? { openai_backup: { provider: 'openai' as const, model: 'gpt-4o', apiKey: process.env.OPENAI_API_KEY } } : {})
 };
 
 async function run() {

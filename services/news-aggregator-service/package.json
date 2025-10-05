@@ -39,7 +39,8 @@
     "yahoo-finance2": "^2.0.0",
     "winston": "^3.11.0",
     "dotenv": "^16.3.1",
-    "node-cache": "^5.1.2"
+    "node-cache": "^5.1.2",
+    "@tavily/core": "^0.5.12"
   },
   "devDependencies": {
     "nodemon": "^3.0.1",

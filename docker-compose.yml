@@ -9,6 +9,11 @@
 # 2. AI/Memory Layer: Zep-Graphiti for enhanced memory and AI processing
 # 3. Data Services Layer: Reddit and News aggregation services
 # 4. Application Layer: Main trading agents application
+#
+# Environment Variables:
+# - All configuration is in .env.local (see .env.example for template)
+# - Run: docker compose --env-file .env.local up
+# - Or set: export COMPOSE_FILE=docker-compose.yml and export ENV_FILE=.env.local
 # =====================================================================================
 
 services:
@@ -50,12 +55,13 @@ services:
     container_name: trading-agents-zep-graphiti
     ports:
       - "8000:8000"
+    env_file:
+      - .env.local
     environment:
       NEO4J_URI: bolt://trading-agents-neo4j:7687
       NEO4J_USER: ${NEO4J_USER:-neo4j}
       NEO4J_PASSWORD: ${NEO4J_PASSWORD}
       EMBEDDER_PROVIDER: openai
-      OPENAI_BASE_URL: ${LM_STUDIO_BASE_URL}
     # Use centralized secrets instead of env_file
     secrets:
       - openai_api_key
@@ -76,7 +82,8 @@ services:
       - remote_lmstudio_api_key
     volumes:
       - ./services/zep_graphiti/graph_service/zep_graphiti.py:/app/graph_service/zep_graphiti.py:ro
-    command: ["/bin/sh", "/start-wrapper.sh", "python3", "/init.py"]
+      - ./services/zep_graphiti/secrets/init.py:/init.py:ro
+    command: ["python3", "/init.py", "uvicorn", "graph_service.main:app", "--host", "0.0.0.0", "--port", "8000"]
     depends_on:
       neo4j:
         condition: service_healthy
@@ -168,6 +175,7 @@ services:
 
     # Use centralized secrets instead of env_file
     secrets:
+      - tavily_api_key
       - brave_news_api_key
       - news_api_key
       - yahoo_finance_api_key
@@ -235,6 +243,7 @@ services:
       - anthropic_api_key
       - google_api_key
       - embedder_api_key
+      - tavily_api_key
       - brave_news_api_key
       - news_api_key
       - finnhub_api_key
@@ -345,6 +354,8 @@ secrets:
     file: ./docker/secrets/embedder_api_key.txt
 
   # News and Data Provider Secrets
+  tavily_api_key:
+    file: ./docker/secrets/tavily_api_key.txt
   brave_news_api_key:
     file: ./docker/secrets/brave_news_api_key.txt
   news_api_key:

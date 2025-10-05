@@ -259,10 +259,14 @@ export class TradingAgentsCLI {
       
       logSystemInfo();
 
-      // Load config.json directly
+      // Load config.json directly from the correct location
       const fs = await import('fs');
       const path = await import('path');
-      const configPath = path.join(process.cwd(), 'config.json');
+      const { fileURLToPath } = await import('url');
+      const __filename = fileURLToPath(import.meta.url);
+      const __dirname = path.dirname(__filename);
+      // Go up from dist/cli/ or src/cli/ to the services/trading-agents root
+      const configPath = path.join(__dirname, '..', '..', 'config.json');
       const configRaw = fs.readFileSync(configPath, 'utf-8');
       const cliConfig = JSON.parse(configRaw);
       // Patch in CLI selections for ticker, analysts, models, etc.
@@ -276,9 +280,10 @@ export class TradingAgentsCLI {
         }
       }
       // If using LM Studio, start a background preload of the quick/deep models (non-blocking)
-      const quickModel = cliConfig.analysis?.models?.quickThinking?.model;
-      const deepModel = cliConfig.analysis?.models?.deepThinking?.model;
-      const llmProvider = cliConfig.analysis?.models?.quickThinking?.provider;
+      // Use selections values (user's choice) instead of config.json defaults
+      const quickModel = selections.shallowThinker || cliConfig.analysis?.models?.quickThinking?.model;
+      const deepModel = selections.deepThinker || cliConfig.analysis?.models?.deepThinking?.model;
+      const llmProvider = selections.llmProvider || cliConfig.analysis?.models?.quickThinking?.provider;
       if (llmProvider === 'local_lmstudio' || llmProvider === 'remote_lmstudio') {
         try {
           const lmStudioConfig = resolveLLMProviderConfig(llmProvider as LLMProvider);
@@ -302,9 +307,19 @@ export class TradingAgentsCLI {
       }
 
       // Initialize the enhanced graph with config.json (all flow/logging fields included)
+      // Add top-level model fields for backward compatibility with ModelProvider.createFromConfig
+      // CRITICAL: Use selections values (user's saved config) instead of config.json defaults
+      const enhancedConfig = {
+        ...cliConfig,
+        quickThinkLlm: selections.shallowThinker || cliConfig.analysis?.models?.quickThinking?.model,
+        deepThinkLlm: selections.deepThinker || cliConfig.analysis?.models?.deepThinking?.model,
+        llmProvider: selections.llmProvider || cliConfig.analysis?.models?.quickThinking?.provider
+      };
+      
       console.log('🔍 DEBUG: About to create EnhancedTradingAgentsGraph with config:', {
-        quickThinkLlm: cliConfig.analysis?.models?.quickThinking?.model,
-        deepThinkLlm: cliConfig.analysis?.models?.deepThinking?.model,
+        quickThinkLlm: enhancedConfig.quickThinkLlm,
+        deepThinkLlm: enhancedConfig.deepThinkLlm,
+        llmProvider: enhancedConfig.llmProvider,
         runMode: cliConfig.flow?.runMode,
         timeout: cliConfig.flow?.timeout,
         parallelism: cliConfig.flow?.parallelism,
@@ -313,14 +328,14 @@ export class TradingAgentsCLI {
         logLevel: cliConfig.logging?.logLevel
       });
       const graph = new EnhancedTradingAgentsGraph({
-        config: cliConfig,
+        config: enhancedConfig,
         selectedAnalysts: selections.analysts,
         enableLangGraph: true
       });
       console.log('🔍 DEBUG: EnhancedTradingAgentsGraph created successfully');
 
       // Create result directories
-  const resultsDir = join(process.cwd(), cliConfig.resultsDir, selections.ticker, selections.analysisDate);
+      const resultsDir = join(process.cwd(), enhancedConfig.resultsDir || 'results', selections.ticker, selections.analysisDate);
       mkdirSync(resultsDir, { recursive: true });
       const reportDir = join(resultsDir, 'reports');
       mkdirSync(reportDir, { recursive: true });
@@ -422,13 +437,18 @@ export class TradingAgentsCLI {
       } catch (error: any) {
         timer(); // Complete timer on error
         this.display.stopLiveDisplay();
+        console.error('🔍 DEBUG: Analysis error caught:', error);
+        console.error('🔍 DEBUG: Error stack:', error?.stack);
         this.display.showError(`Analysis failed: ${error instanceof Error ? error.message : String(error)}`);
         throw error;
       }
 
     } catch (error) {
+      console.error('🔍 DEBUG: CLI error caught:', error);
+      console.error('🔍 DEBUG: Error details:', error instanceof Error ? error.stack : String(error));
       this.display.showError(`CLI error: ${error instanceof Error ? error.message : String(error)}`);
-      process.exit(1);
+      // Don't exit, return to menu for debugging
+      return;
     }
   }
 

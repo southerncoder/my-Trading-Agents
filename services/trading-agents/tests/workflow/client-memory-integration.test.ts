@@ -9,7 +9,15 @@ async function run() {
   logger.info('start', '🧪 Client Memory Integration Workflow Test');
   try {
     const zepConfig = { sessionId: 'workflow-session', userId: 'workflow-user', maxResults: 10 };
-    const agentConfig = { provider: 'remote_lmstudio' as const, model: 'dolphin-2.9-llama3-8b', apiKey: process.env.OPENAI_API_KEY || 'test-key-placeholder', baseUrl: 'http://localhost:1234/v1', temperature: 0.3, maxTokens: 1000 };
+    // Use OpenAI provider with Docker container
+    const agentConfig = { 
+      provider: 'openai' as const, 
+      model: 'gpt-4o-mini', 
+      apiKey: process.env.OPENAI_API_KEY || 'test-key-placeholder', 
+      baseUrl: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1', 
+      temperature: 0.3, 
+      maxTokens: 1000 
+    };
     let provider: any | null = null;
     let connected = false;
     try {

@@ -5,15 +5,20 @@ import winston from 'winston';
 import dotenv from 'dotenv';
 import NodeCache from 'node-cache';
 
+// Load environment variables first
+dotenv.config();
+
+// Load Docker secrets (overrides .env if running in container)
+import { loadSecrets } from './utils/secrets.js';
+loadSecrets();
+
 // Import provider modules
 import BingNewsProvider from './providers/bing-news.js';
 import BraveNewsProvider from './providers/brave-news.js';
 import NewsAPIProvider from './providers/newsapi.js';
 import YahooFinanceProvider from './providers/yahoo-finance.js';
 import GoogleNewsProvider from './providers/google-news.js';
-
-// Load environment variables
-dotenv.config();
+import TavilyProvider from './providers/tavily.js';
 
 // Configure Winston logger
 const logger = winston.createLogger({
@@ -43,29 +48,32 @@ const PORT = process.env.PORT || 3004;
 
 // Provider configurations (keeping for backward compatibility)
 const PROVIDERS = {
+  TAVILY: 'tavily',
+  BRAVE_NEWS: 'brave-news',
   GOOGLE_NEWS: 'google-news',
   YAHOO_FINANCE: 'yahoo-finance',
   BING_NEWS: 'bing-news',
-  BRAVE_NEWS: 'brave-news',
   NEWSAPI: 'newsapi'
 };
 
 // Provider status tracking
 const providerStatus = {
+  [PROVIDERS.TAVILY]: { healthy: false, lastChecked: null, consecutiveFailures: 0 },
+  [PROVIDERS.BRAVE_NEWS]: { healthy: false, lastChecked: null, consecutiveFailures: 0 },
   [PROVIDERS.GOOGLE_NEWS]: { healthy: false, lastChecked: null, consecutiveFailures: 0 },
   [PROVIDERS.YAHOO_FINANCE]: { healthy: false, lastChecked: null, consecutiveFailures: 0 },
   [PROVIDERS.BING_NEWS]: { healthy: false, lastChecked: null, consecutiveFailures: 0 },
-  [PROVIDERS.BRAVE_NEWS]: { healthy: false, lastChecked: null, consecutiveFailures: 0 },
   [PROVIDERS.NEWSAPI]: { healthy: false, lastChecked: null, consecutiveFailures: 0 }
 };
 
 // Initialize providers
 const providers = {
-  'bing-news': new BingNewsProvider(),
+  'tavily': new TavilyProvider(),
   'brave-news': new BraveNewsProvider(),
   'newsapi': new NewsAPIProvider(),
   'yahoo-finance': new YahooFinanceProvider(),
-  'google-news': new GoogleNewsProvider()
+  'google-news': new GoogleNewsProvider(),
+  'bing-news': new BingNewsProvider()
 };
 
 // Middleware
@@ -210,8 +218,8 @@ app.get('/api/news', async (req, res) => {
       return res.json(cachedResult);
     }
 
-    // Try providers in order of preference (Brave News first, then others)
-    const providers = [PROVIDERS.BRAVE_NEWS, PROVIDERS.GOOGLE_NEWS, PROVIDERS.NEWSAPI, PROVIDERS.BING_NEWS];
+    // Try providers in order of preference (Tavily first for AI-optimized results, then Brave News, then others)
+    const providers = [PROVIDERS.TAVILY, PROVIDERS.BRAVE_NEWS, PROVIDERS.GOOGLE_NEWS, PROVIDERS.NEWSAPI, PROVIDERS.BING_NEWS];
     let result = null;
     let usedProvider = null;
 

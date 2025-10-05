@@ -18,9 +18,13 @@ async function leanEnvironmentValidation() {
 		addCheck(`env:${v}`, !!process.env[v], process.env[v] ? 'set' : 'missing');
 	}
 
-	// LM Studio base url heuristic
-	const lm = process.env.REMOTE_LM_STUDIO_BASE_URL || process.env.LOCAL_LM_STUDIO_BASE_URL || process.env.OPENAI_BASE_URL;
-	addCheck('lm_studio.base_url.detected', !!lm, lm || 'none');
+	// Docker service URLs
+	const zepUrl = process.env.ZEP_GRAPHITI_URL || 'http://localhost:8000';
+	const neo4jUrl = process.env.NEO4J_URL || 'bolt://localhost:7687';
+	const newsUrl = process.env.NEWS_AGGREGATOR_URL || 'http://localhost:3004';
+	addCheck('docker.zep_graphiti', !!zepUrl, zepUrl);
+	addCheck('docker.neo4j', !!neo4jUrl, neo4jUrl);
+	addCheck('docker.news_aggregator', !!newsUrl, newsUrl);
 
 	// Summarize
 	const passed = checks.filter(c => c.ok).length;

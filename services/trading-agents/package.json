@@ -18,6 +18,8 @@
     "cli:dev": "vite-node src/cli/main.ts",
     "cli:dev:menu": "vite-node src/cli/main.ts menu",
     "cli:build": "vite build && node dist/index.js",
+    "cli:test": "vite-node tests/cli/automated-cli-test.ts",
+    "cli:test:watch": "nodemon --watch src --watch tests/cli --ext ts --exec \"npx vite-node tests/cli/automated-cli-test.ts\"",
   "test": "npm run test:workflow",
   "test:workflow": "vite-node scripts/run-workflow-tests.ts",
   "test:all": "npm run test:workflow",

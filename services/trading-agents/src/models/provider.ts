@@ -392,6 +392,37 @@ export class ModelProvider {
   }
 
   /**
+   * Get OpenAI configuration with official API
+   * 
+   * @param modelName OpenAI model name (default: gpt-4o-mini)
+   * @returns ModelConfig for OpenAI provider
+   * 
+   * @example
+   * ```typescript
+   * // Use default GPT-4o-mini model
+   * const config = ModelProvider.getOpenAIConfig();
+   * 
+   * // Use GPT-4o model
+   * const config = ModelProvider.getOpenAIConfig('gpt-4o');
+   * 
+   * // Create model instance
+   * const model = await ModelProvider.createModelAsync(config);
+   * ```
+   */
+  static getOpenAIConfig(modelName: string = 'gpt-4o-mini'): ModelConfig {
+    const providerConfig = resolveLLMProviderConfig('openai');
+    return {
+      provider: 'openai',
+      modelName,
+      baseURL: providerConfig.baseUrl,
+      apiKey: providerConfig.apiKey,
+      temperature: 0.7,
+      maxTokens: 2048,
+      streaming: false
+    };
+  }
+
+  /**
    * Validate model configuration
    */
   static validateConfig(config: ModelConfig): { isValid: boolean; errors: string[] } {
@@ -405,7 +436,7 @@ export class ModelProvider {
       errors.push('Model name is required');
     }
 
-    if (['anthropic', 'google'].includes(config.provider) && !config.apiKey) {
+    if (['openai', 'anthropic', 'google'].includes(config.provider) && !config.apiKey) {
       errors.push(`API key is required for ${config.provider} provider`);
     }
 
@@ -443,7 +474,7 @@ export class ModelProvider {
     const status: Record<LLMProvider, { available: boolean; description: string }> = {
       'openai': {
         available: false,
-        description: 'OpenAI GPT models (requires EMBEDDING_LLM_URL and EMBEDDING_API_KEY)'
+        description: 'OpenAI GPT models (requires OPENAI_API_KEY, optionally OPENAI_BASE_URL)'
       },
       'anthropic': {
         available: false,

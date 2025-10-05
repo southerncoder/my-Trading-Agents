@@ -1,0 +1,26 @@
+{
+  "version": "1.0.0",
+  "configs": {
+    "gpt30mixed": {
+      "name": "GPT30mixed",
+      "description": "",
+      "selections": {
+        "ticker": "FIG",
+        "analysisDate": "2025-10-04",
+        "analysts": [
+          "market",
+          "social",
+          "news",
+          "fundamentals"
+        ],
+        "researchDepth": 5,
+        "llmProvider": "openai",
+        "shallowThinker": "gpt-4.1-nano",
+        "deepThinker": "gpt-4o"
+      },
+      "createdAt": "2025-10-04T21:56:14.534Z",
+      "useCount": 2,
+      "lastUsed": "2025-10-04T22:03:59.152Z"
+    }
+  }
+}
