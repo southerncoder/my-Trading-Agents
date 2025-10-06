@@ -1,0 +1,27 @@
+version: '3.8'
+services:
+  registry:
+    image: registry:2
+    restart: unless-stopped
+    ports:
+      - "${LOCAL_REGISTRY_BIND:-127.0.0.1}:5000:5000"
+    volumes:
+      - ./docker/registry_data:/var/lib/registry
+      - ./docker/certs:/certs:ro
+    environment:
+      REGISTRY_HTTP_TLS_CERTIFICATE: /certs/domain.crt
+      REGISTRY_HTTP_TLS_KEY: /certs/domain.key
+
+  finance-aggregator:
+    image: localhost:5000/finance-aggregator:local
+    ports:
+      - "3010:3010"
+    environment:
+      - NODE_ENV=production
+
+  news-aggregator:
+    image: localhost:5000/news-aggregator:local
+    ports:
+      - "3004:3004"
+    environment:
+      - NODE_ENV=production

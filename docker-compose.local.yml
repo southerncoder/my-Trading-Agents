@@ -1,0 +1,15 @@
+version: '3.8'
+services:
+  registry:
+    image: registry:2
+    restart: unless-stopped
+    # Bind host can be overridden via LOCAL_REGISTRY_BIND env var (e.g., 192.168.1.10)
+    ports:
+      - "${LOCAL_REGISTRY_BIND:-127.0.0.1}:5000:5000"
+    volumes:
+      - ./docker/registry_data:/var/lib/registry
+      - ./docker/certs:/certs:ro
+    environment:
+      # Registry will use the provided TLS cert/key under /certs
+      REGISTRY_HTTP_TLS_CERTIFICATE: /certs/domain.crt
+      REGISTRY_HTTP_TLS_KEY: /certs/domain.key

@@ -484,6 +484,27 @@ file_search: **/*backtesting*.ts
 
 ---
 
+## Finance Aggregator: Implementation progress (Oct 2025)
+
+### Recent work
+- Created a new service scaffold: `services/finance-aggregator-service` with Express entrypoint and basic routes (`/health`, `/quote/:symbol`, `/historical/:symbol`, `/prospectus/:symbol`).
+- Implemented a robust Yahoo Finance provider by reusing/adapting existing SDK-based code (from `services/yahoo-finance-service` and `news-aggregator-service`). This provider supports quote, historical, news search, market summary, and health checks.
+- Implemented a MarketWatch provider that uses public MarketWatch RSS feeds for news and light page scraping for profile/prospectus fallbacks. MarketWatch quote/historical is intentionally delegated to Yahoo (MarketWatch doesn't provide a free quote API here).
+- Hardened endpoints to avoid a single-provider failure taking down the whole endpoint (try/catch around MarketWatch calls so Yahoo results still return).
+- Installed dependencies and validated that the service starts locally; secrets loader currently reports no secrets found (expected without .env or Docker secrets).
+
+### Current status
+- Files created/updated: `src/index.js`, `src/providers/yahoo-finance.js`, `src/providers/marketwatch.js`, `src/utils/secrets.js` (scaffolded earlier).
+- Service boots locally but will show missing secret logs until `.env.local` or Docker secrets are provided. Yahoo provider works without keys for common endpoints.
+- MarketWatch provides news and profile fallbacks via RSS and page scraping; quote/historical operations should use Yahoo provider.
+
+### Remaining tasks / recommendations
+- Add basic integration tests: health check (happy path) + quote endpoint test for `AAPL` using the Yahoo provider.
+- Add a `docker-compose` entry and `.env.local.example` for the service if you want it managed with other services.
+- If you want MarketWatch to return quotes/historical data, either provide a paid API or accept a scraping approach (requires more work and robustness checks).
+- Update top-level `docs/todos` to mark finance-aggregator tasks as complete after tests and Docker integration are added.
+
+
 ## Summary Statistics
 
 ### Implementation Completeness

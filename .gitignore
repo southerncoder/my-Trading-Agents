@@ -118,8 +118,4 @@ data/cache/
 *.bak
 *.backup
 
-# =====================================
-# ARCHIVE & DEBUG
-# =====================================
-py_graphiti_debug/
-archive/py_graphiti_debug/
+docker/registry_data/

@@ -28,31 +28,30 @@ export function loadSecrets() {
 
   for (const [secretFile, envVar] of Object.entries(secretMappings)) {
     const secretFilePath = join(secretsPath, secretFile);
-    
     try {
-      // Try to read from Docker secrets first
+      // Prefer Docker secrets when available
       if (existsSync(secretFilePath)) {
         const secretValue = readFileSync(secretFilePath, 'utf8').trim();
         if (secretValue) {
           secrets[envVar] = secretValue;
           console.log(`[Secrets] Loaded ${envVar} from Docker secret: ${secretFile}`);
+          continue;
         }
       }
-      // Fall back to environment variable if secret file doesn't exist
-      else if (process.env[envVar]) {
+
+      // Fallback: use environment variable when Docker secret is missing or empty
+      if (process.env[envVar]) {
         secrets[envVar] = process.env[envVar];
-        console.log(`[Secrets] Using ${envVar} from environment variable`);
+        console.log(`[Secrets] Using ${envVar} from environment variable (fallback)`);
       } else {
         console.log(`[Secrets] ${envVar} not found (checked ${secretFilePath} and env)`);
       }
     } catch (error) {
-      // Silently continue if secret file can't be read
-      // The provider will handle missing keys gracefully
+      console.log(`[Secrets] Error reading ${secretFile}: ${error.message}`);
+      // If reading the secret file failed, still allow environment variable fallback
       if (process.env[envVar]) {
         secrets[envVar] = process.env[envVar];
         console.log(`[Secrets] Using ${envVar} from environment variable (after error)`);
-      } else {
-        console.log(`[Secrets] Error reading ${secretFile}: ${error.message}`);
       }
     }
   }
