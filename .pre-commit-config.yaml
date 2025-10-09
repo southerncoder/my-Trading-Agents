@@ -1,0 +1,13 @@
+repos:
+  - repo: local
+    hooks:
+      - id: block-personaldev
+        name: Block PersonalDev token and quick secret patterns
+        entry: scripts/hooks/pre-commit
+        language: script
+        stages: [commit]
+      - id: block-personaldev-powershell
+        name: Block PersonalDev token (PowerShell)
+        entry: scripts/hooks/pre-commit.ps1
+        language: script
+        stages: [commit]

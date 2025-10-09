@@ -1,0 +1,12 @@
+#!/bin/sh
+# Basic pre-commit hook (Bash) to block accidental commits containing high-risk tokens
+echo "Running pre-commit security checks..."
+for file in $(git diff --cached --name-only); do
+  if git show :"$file" | grep -q "PersonalDev"; then
+    echo "[ERROR] Forbidden token 'PersonalDev' found in staged file: $file"
+    echo "Please remove sensitive references before committing."
+    exit 1
+  fi
+done
+echo "Pre-commit checks passed."
+exit 0
