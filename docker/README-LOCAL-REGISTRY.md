@@ -5,7 +5,7 @@ This repository includes helper files to run a local Docker registry and push bu
 Start a local registry:
 
 ```cmd
-cd D:\Code\PersonalDev\my-Trading-Agents
+cd .\my-Trading-Agents
 docker compose -f docker-compose.local.yml up -d
 ```
 
