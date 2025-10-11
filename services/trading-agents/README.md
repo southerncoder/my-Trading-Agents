@@ -81,6 +81,28 @@ npm install
 npm test
 ```
 
+### Risk Management Testing
+
+Comprehensive risk management unit tests validate all core risk calculation functions:
+
+- **Technical Risk Assessment**: RSI, MACD, Bollinger Band analysis
+- **Quantitative Models**: VaR, CVaR, Monte Carlo simulation  
+- **Sector Sentiment**: Real news integration with sentiment analysis
+- **Volatility Analysis**: GARCH modeling, ARCH tests, clustering detection
+- **Portfolio Risk**: Multi-asset risk calculations and stress testing
+- **Extreme Scenarios**: Market crashes, sector crises, black swan events
+
+**Performance Requirements Met**:
+- Individual assessments: < 500ms average
+- Comprehensive analysis: < 2 seconds average
+- Large portfolios (50 assets): < 5 seconds
+- Stress scenarios: < 30 seconds for 10 extreme scenarios
+
+Run risk management tests specifically:
+```powershell
+npm test -- --testPathPattern="risk-management.*test"
+```
+
 Admin endpoint diagnostics
 
 If you are having trouble with LM Studio admin commands (load/unload/switch), the following quick checks can help:
