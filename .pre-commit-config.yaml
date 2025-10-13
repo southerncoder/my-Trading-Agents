@@ -2,8 +2,8 @@ repos:
   - repo: local
     hooks:
       - id: block-quick-secret-patterns
-        name: Block quick secret patterns (python)
-        entry: python scripts/hooks/pre_commit_check.py
-        language: python
+        name: Block quick secret patterns (node)
+        entry: node scripts/hooks/pre_commit_check.cjs
+        language: node
         types: [text]
         stages: [pre-commit]
