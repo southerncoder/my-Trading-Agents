@@ -198,6 +198,8 @@ graph TB
 - **[Quick Start Guide](docs/QUICK-START.md)** - Get up and running in 5 minutes
 - **[Configuration Guide](docs/CONFIGURATION.md)** - Complete config.json reference
 - **[Git Hooks](docs/GIT-HOOKS.md)** - Pre-commit security scanning for contributors
+- **[Docker Secrets](docs/DOCKER-SECRETS.md)** - Secure secret management via Docker secrets
+- **[Local Docker Registry](docs/DOCKER-LOCAL-REGISTRY.md)** - Run and use a local container registry
 
 ### Architecture & Components
 - [docs/zep-graphiti/ARCHITECTURE.md](docs/zep-graphiti/ARCHITECTURE.md) - Memory system architecture
@@ -322,7 +324,7 @@ This repository follows strict security practices:
 
 This TypeScript implementation is a complete rewrite by **[SouthernCoder](https://github.com/southerncoder)** with enterprise memory, multi-provider data, and production features.
 
-**Full Attribution**: See [ATTRIBUTION.md](./ATTRIBUTION.md) for complete project history, enhancements, and citation information.
+**Full Attribution**: See [docs/ATTRIBUTION.md](docs/ATTRIBUTION.md) for complete project history, enhancements, and citation information.
 
 ## License
 
