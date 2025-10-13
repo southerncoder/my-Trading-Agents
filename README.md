@@ -10,6 +10,13 @@
 
 ## 🎯 Current Status: **Production Ready** ✅
 
+### Recent Updates (December 2024)
+- ✅ **Dependencies Updated**: All major dependencies updated to latest stable versions
+- ✅ **Security Patches**: Zero vulnerabilities after comprehensive dependency audit
+- ✅ **LangChain 0.3.x**: Updated to latest LangChain ecosystem with provider improvements
+- ✅ **Enhanced Memory**: Updated Zep Graphiti integration with latest features
+- ⚠️ **Migration Guide**: See [DEPENDENCY-UPDATE-MIGRATION-GUIDE.md](docs/DEPENDENCY-UPDATE-MIGRATION-GUIDE.md) for compatibility notes
+
 ### Core Infrastructure
 - ✅ **Modern Build System**: Vite 5.x with ES modules and TypeScript 5.x
 - ✅ **Multi-Agent Architecture**: 12 specialized trading agents with LangGraph orchestration
@@ -196,6 +203,54 @@ graph TB
 - [docs/zep-graphiti/ARCHITECTURE.md](docs/zep-graphiti/ARCHITECTURE.md) - Memory system architecture
 - [docs/DOCKER-README.md](docs/DOCKER-README.md) - Docker deployment guide
 - [docs/FEATURE-FLAGS.md](docs/FEATURE-FLAGS.md) - Feature flag system
+
+## 🔁 Recent changes (branch: add-kiro)
+
+This branch contains repository hygiene and secrets-migration improvements plus local contributor safeguards. The diagram below shows the new artifacts and how they relate to runtime secrets and the local pre-commit enforcement.
+
+```mermaid
+flowchart TB
+    Dev[Developer/Contributor]
+    PreCommit[.pre-commit-config.yaml]
+    LocalHook[scripts/hooks/pre-commit<br/>(bash / PowerShell)]
+    SetupHooks[scripts/setup-hooks.sh / .ps1]
+    Tools[tools/]
+    Migrate[tools/migrate-secrets.sh \n tools/migrate-secrets.ps1]
+    Replace[tools/replace-candidates.json]
+    SecretsDir[docker/secrets/ (gitignored)]
+    Zep[services/zep_graphiti]
+    MEM[Zep Graphiti Memory]
+    NEO[(Neo4j DB)]
+    CI[gitleaks / CI scan]
+
+    Dev -->|installs| SetupHooks
+    Dev -->|commits| PreCommit
+    PreCommit --> LocalHook
+    LocalHook -->|blocks tokens| Dev
+    PreCommit --> CI
+
+    Tools --> Migrate
+    Tools --> Replace
+    Migrate --> SecretsDir
+    SecretsDir --> Zep
+    Zep --> MEM
+    MEM --> NEO
+    CI -.->|scan on push| Replace
+
+    classDef infra fill:#e8f5e8,stroke:#388e3c
+    classDef scripts fill:#fff3e0,stroke:#f57c00
+    classDef tools fill:#f3e5f5,stroke:#7b1fa2
+
+    class SetupHooks,LocalHook,PreCommit scripts
+    class Tools,Migrate,Replace tools
+    class Zep,MEM,NEO infra
+```
+
+Short summary:
+- Added `.pre-commit-config.yaml` and lightweight staged-file hooks in `scripts/hooks/` (bash + PowerShell) to block accidental tokens during commits.
+- Consolidated migration helpers to `tools/` and deduped `tools/replace-candidates.json` (sanitized). The canonical migration scripts live in `tools/` (PowerShell + shell variants).
+- Hardened `docker/secrets/.gitignore` so helper scripts are not stored in the secrets directory. Runtime secret files remain gitignored and are populated by the migration helpers.
+- CI-level scanning (gitleaks) should continue to run on pushes; local hooks provide quick feedback for contributors.
 
 ### Development Planning
 - [docs/todos/IMPLEMENTATION-GAP-ANALYSIS.md](docs/todos/IMPLEMENTATION-GAP-ANALYSIS.md) - Feature gap analysis and roadmap

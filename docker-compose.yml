@@ -21,6 +21,74 @@ services:
   # DATABASE LAYER
   # ============================================================================
 
+  # PostgreSQL Database for Structured Data and Agent Memory
+  postgresql:
+    image: pgvector/pgvector:pg16
+    container_name: trading-agents-postgresql
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-trading_agents}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256
+    volumes:
+      - postgresql_data:/var/lib/postgresql/data
+      - ./services/trading-agents/database/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - trading-agents
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-trading_agents}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+
+  # Redis Cache for Multi-Level Caching System
+  redis:
+    image: redis:7.4-alpine
+    container_name: trading-agents-redis
+    ports:
+      - "6379:6379"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+    command: >
+      sh -c "
+        if [ -n \"$$REDIS_PASSWORD\" ]; then
+          redis-server --requirepass $$REDIS_PASSWORD --appendonly yes --appendfsync everysec
+        else
+          redis-server --appendonly yes --appendfsync everysec
+        fi
+      "
+    volumes:
+      - redis_data:/data
+    networks:
+      - trading-agents
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+
   # Neo4j Database for Knowledge Graph Storage
   neo4j:
     image: neo4j:5.26.0
@@ -213,6 +281,58 @@ services:
     networks:
       - trading-agents
 
+  # Government Data Service
+  government-data:
+    build:
+      context: ./services/government-data-service
+      dockerfile: Dockerfile
+    image: government-data-service:latest
+    container_name: trading-government-data
+    restart: unless-stopped
+
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=info
+      - PORT=3005
+
+    # Use centralized secrets instead of env_file
+    secrets:
+      - fred_api_key
+      - bls_api_key
+
+    ports:
+      - "3005:3005"
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3005/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    # Security settings
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+      - /app/logs:rw,noexec,nosuid,size=50m
+
+    # Network isolation
+    networks:
+      - trading-agents
+
   # ============================================================================
   # APPLICATION LAYER
   # ============================================================================
@@ -232,10 +352,24 @@ services:
       - LOG_LEVEL=info
       - REDDIT_SERVICE_URL=http://reddit-service:3001
       - NEWS_AGGREGATOR_URL=http://news-aggregator:3004
+      - GOVERNMENT_DATA_URL=http://government-data:3005
       - ZEP_GRAPHITI_URL=http://zep-graphiti:8000
       - NEO4J_URI=bolt://neo4j:7687
       - NEO4J_USER=${NEO4J_USER:-neo4j}
       - NEO4J_PASSWORD=${NEO4J_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - REDIS_DB=0
+      - POSTGRES_HOST=postgresql
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB:-trading_agents}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_SSL=false
+      - POSTGRES_POOL_SIZE=20
+      - POSTGRES_CONNECTION_TIMEOUT=30000
+      - POSTGRES_IDLE_TIMEOUT=10000
 
     # Use centralized secrets instead of env_file
     secrets:
@@ -256,6 +390,12 @@ services:
       - reddit_password
       - neo4j_user
       - neo4j_password
+      - redis_password
+      - postgres_user
+      - postgres_password
+      - postgres_db
+      - fred_api_key
+      - bls_api_key
       - local_lmstudio_base_url
       - local_lmstudio_api_key
       - remote_lmstudio_base_url
@@ -268,11 +408,17 @@ services:
       - ./services/trading-agents/config:/app/config:ro
 
     depends_on:
+      postgresql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
       neo4j:
         condition: service_healthy
       zep-graphiti:
         condition: service_started
       news-aggregator:
+        condition: service_healthy
+      government-data:
         condition: service_healthy
       # reddit-service dependency removed - will only be included when --profile reddit is used
 
@@ -326,6 +472,14 @@ networks:
 # ============================================================================
 
 volumes:
+  # PostgreSQL data persistence
+  postgresql_data:
+    driver: local
+
+  # Redis data persistence
+  redis_data:
+    driver: local
+
   # Neo4j data persistence
   neo4j_data:
     driver: local
@@ -390,6 +544,20 @@ secrets:
     file: ./docker/secrets/neo4j_user.txt
   neo4j_password:
     file: ./docker/secrets/neo4j_password.txt
+  redis_password:
+    file: ./docker/secrets/redis_password.txt
+  postgres_user:
+    file: ./docker/secrets/postgres_user.txt
+  postgres_password:
+    file: ./docker/secrets/postgres_password.txt
+  postgres_db:
+    file: ./docker/secrets/postgres_db.txt
+
+  # Government Data API Keys
+  fred_api_key:
+    file: ./docker/secrets/fred_api_key.txt
+  bls_api_key:
+    file: ./docker/secrets/bls_api_key.txt
 
   # LM Studio Configuration
   local_lmstudio_base_url:

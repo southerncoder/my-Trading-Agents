@@ -123,13 +123,13 @@ export class SectorRotationAnalyzer {
     try {
       // Query for entities in the same sector or correlated entities
       const query = `related entities to ${entityId} sector correlation`;
-      const searchResults = await this.zepClient.searchMemory?.(query, { maxResults: 20 });
+      const searchResults = await this.zepClient.memory.searchSessions?.({ query, limit: 20 });
 
       const relatedEntities: Set<string> = new Set();
 
-      if (searchResults?.facts) {
-        for (const fact of searchResults.facts) {
-          // Extract entity mentions from facts
+      if (searchResults?.results) {
+        for (const result of searchResults.results) {
+          // Extract entity mentions from results
           const factText = fact.fact || '';
           const entityMatches = factText.match(/\b[A-Z]{1,5}\b/g); // Stock symbols
 
@@ -169,10 +169,10 @@ export class SectorRotationAnalyzer {
   private async getEntityTimeSeriesData(entityId: string, windowDays: number): Promise<Array<{ date: string; value: number }>> {
     try {
       const query = `price data for ${entityId} last ${windowDays} days`;
-      const searchResults = await this.zepClient.searchMemory?.(query, { maxResults: 30 });
+      const searchResults = await this.zepClient.memory.searchSessions?.({ query, limit: 30 });
 
-      if (searchResults?.facts) {
-        return this.extractTimeSeriesFromFacts(searchResults.facts, entityId);
+      if (searchResults?.results) {
+        return this.extractTimeSeriesFromFacts(searchResults.results, entityId);
       }
 
       return [];

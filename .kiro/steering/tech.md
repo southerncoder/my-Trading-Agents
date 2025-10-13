@@ -214,6 +214,87 @@ DEFAULT_LLM_MODEL=llama-3.2-3b-instruct
 - Consistent error handling across providers
 - Automatic retry and failover mechanisms
 
+## Library Research & Best Practices
+
+### CRITICAL: Research Before Building
+- **NEVER** create utilities from scratch without thorough research
+- **ALWAYS** use Context7 tools to find existing, well-maintained libraries
+- **ALWAYS** perform web searches for best practices and security considerations
+- **PREFER** established libraries with active maintenance and security updates
+
+### Library Selection Process
+1. **Research Phase**: Use Context7 tools to identify existing solutions
+2. **Security Assessment**: Verify library has no known vulnerabilities
+3. **Maintenance Check**: Ensure active development and recent updates
+4. **Compatibility Verification**: Confirm TypeScript support and ES modules
+5. **Performance Evaluation**: Check bundle size and runtime performance
+
+### Research Tools & Methods
+```typescript
+// Use Context7 to research libraries before implementation
+// Example: Before building a custom retry mechanism
+// 1. Search for "retry library typescript"
+// 2. Evaluate options like: p-retry, async-retry, retry-ts
+// 3. Check security, maintenance, and compatibility
+// 4. Select the most appropriate solution
+```
+
+### Library Categories to Research
+
+#### Utility Libraries
+- **Date/Time**: date-fns, dayjs (avoid moment.js)
+- **Validation**: zod, joi, yup
+- **HTTP Clients**: axios, node-fetch, undici
+- **Retry Logic**: p-retry, async-retry
+- **Rate Limiting**: bottleneck, p-limit
+- **Caching**: node-cache, lru-cache
+- **Logging**: winston, pino, bunyan
+
+#### Security Libraries
+- **Input Sanitization**: validator, dompurify
+- **Encryption**: crypto (built-in), bcrypt, argon2
+- **JWT**: jsonwebtoken, jose
+- **CORS**: cors middleware
+- **Rate Limiting**: express-rate-limit, rate-limiter-flexible
+
+#### Financial/Trading Libraries
+- **Technical Analysis**: technicalindicators, tulind
+- **Market Data**: yahoo-finance2, alpha-vantage
+- **Math/Statistics**: mathjs, simple-statistics
+- **Time Series**: d3-time, moment-business-days
+
+### Implementation Guidelines
+```typescript
+// ❌ WRONG - Building custom utility without research
+class CustomRetryHandler {
+  // Custom implementation that may have bugs or security issues
+}
+
+// ✅ CORRECT - Using researched, established library
+import pRetry from 'p-retry';
+
+const result = await pRetry(
+  () => apiCall(),
+  {
+    retries: 3,
+    factor: 2,
+    minTimeout: 1000
+  }
+);
+```
+
+### Security-First Approach
+- **Vulnerability Scanning**: Always check npm audit and Snyk
+- **Dependency Updates**: Regular updates for security patches
+- **Minimal Dependencies**: Prefer libraries with fewer transitive dependencies
+- **License Compatibility**: Ensure license compatibility with project requirements
+
+### Documentation Requirements
+- **Library Justification**: Document why specific libraries were chosen
+- **Security Assessment**: Record security evaluation results
+- **Alternative Analysis**: Note other options considered and why they were rejected
+- **Update Strategy**: Plan for keeping libraries current
+
 ## Development Workflow
 
 ### Code Organization
@@ -222,6 +303,7 @@ DEFAULT_LLM_MODEL=llama-3.2-3b-instruct
 - Type-safe configuration management
 - Comprehensive error handling
 - **Provider-agnostic agent implementations**
+- **Library-first approach**: Research existing solutions before building
 
 ### Testing Strategy
 - Unit tests for core components
@@ -229,3 +311,4 @@ DEFAULT_LLM_MODEL=llama-3.2-3b-instruct
 - Manual tests for external APIs
 - CLI automation testing
 - **Provider switching tests** to ensure no hard dependencies
+- **Library integration tests** to verify third-party library behavior

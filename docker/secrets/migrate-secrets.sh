@@ -111,6 +111,7 @@ migrate_secrets() {
     # Database Secrets
     create_secret_file "NEO4J_USER" "$SECRETS_DIR/neo4j_user.txt" "Neo4j Username"
     create_secret_file "NEO4J_PASSWORD" "$SECRETS_DIR/neo4j_password.txt" "Neo4j Password"
+    create_secret_file "REDIS_PASSWORD" "$SECRETS_DIR/redis_password.txt" "Redis Password"
 
     # LM Studio Configuration
     create_secret_file "LM_STUDIO_BASE_URL" "$SECRETS_DIR/lm_studio_url.txt" "LM Studio Base URL"
@@ -172,6 +173,7 @@ list_secrets() {
     echo "Database Secrets:"
     echo "  - neo4j_user.txt"
     echo "  - neo4j_password.txt"
+    echo "  - redis_password.txt"
     echo ""
     echo "LM Studio Configuration:"
     echo "  - lm_studio_url.txt"

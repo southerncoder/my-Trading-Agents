@@ -46,6 +46,7 @@
 export * from './modern-portfolio-theory';
 export * from './portfolio-optimization';
 export * from './risk-management';
+export * from './simple-position-sizer';
 
 // Re-export key types for convenience
 export type {

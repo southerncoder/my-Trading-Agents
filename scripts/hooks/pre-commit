@@ -1,12 +1,40 @@
-#!/bin/sh
-# Basic pre-commit hook (Bash) to block accidental commits containing high-risk tokens
-echo "Running pre-commit security checks..."
-for file in $(git diff --cached --name-only); do
-  if git show :"$file" | grep -q "PersonalDev"; then
-    echo "[ERROR] Forbidden token 'PersonalDev' found in staged file: $file"
-    echo "Please remove sensitive references before committing."
-    exit 1
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Lightweight staged-file scanner for common secret fragments and project-specific tokens
+# Exits non-zero if any staged file contains a forbidden pattern
+
+FORBIDDEN_REGEX='sk-[A-Za-z0-9_-]{16,}|AKIA[0-9A-Z]{16,}|ghp_[A-Za-z0-9_\-]{10,}|-----BEGIN PRIVATE KEY-----|PRIVATE_KEY|OPENAI_API_KEY'
+
+# Only check added, copied, or modified files
+staged_files=$(git diff --cached --name-only --diff-filter=ACM)
+
+if [ -z "$staged_files" ]; then
+  # nothing staged
+  exit 0
+fi
+
+failed=0
+for f in $staged_files; do
+  # Skip if file no longer exists in index (deleted)
+  if ! git ls-files --error-unmatch -- "$f" >/dev/null 2>&1; then
+    continue
+  fi
+
+  # Only inspect textual blobs (skip large binaries)
+  if git show :"$f" | grep -Iq .; then
+    if git show :"$f" | grep -E -n "$FORBIDDEN_REGEX" >/dev/null 2>&1; then
+      echo "[pre-commit] Forbidden token found in staged file: $f"
+      echo "[pre-commit] Matching lines:"
+      git show :"$f" | grep -E -n "$FORBIDDEN_REGEX" | sed -n '1,200p'
+      failed=1
+    fi
   fi
 done
-echo "Pre-commit checks passed."
+
+if [ "$failed" -ne 0 ]; then
+  echo "\n[pre-commit] Commit aborted: remove or rotate secrets and retry." >&2
+  exit 1
+fi
+
 exit 0

@@ -288,11 +288,23 @@ export class TemporalRelationshipMapper {
    * Execute temporal search using Zep Graphiti's capabilities
    */
   private async executeTemporalSearch(query: TemporalMarketQuery): Promise<any> {
-    // Use adapter if available on zepClient
-    if (this.zepClient && typeof this.zepClient.temporalSearch === 'function') {
+    // Use Zep.js v2 API for temporal search
+    if (this.zepClient && this.zepClient.memory && typeof this.zepClient.memory.searchSessions === 'function') {
       try {
-        const res = await this.zepClient.temporalSearch(query);
-        return res;
+        const searchQuery = {
+          query: `temporal_range:${query.time_range.start_date} TO ${query.time_range.end_date}`,
+          limit: 100
+        };
+        const res = await this.zepClient.memory.searchSessions(searchQuery);
+        return {
+          entities: res.results || [],
+          relationships: [],
+          metadata: {
+            total_results: res.results?.length || 0,
+            search_time_ms: 0,
+            temporal_range_covered: query.time_range
+          }
+        };
       } catch (_err) {
         // fall through to empty result
       }
@@ -448,9 +460,9 @@ export class TemporalRelationshipMapper {
     try {
       // Query Zep Graphiti for recent price/performance data
       const query = `recent price data for ${entityId} last ${windowDays} days`;
-      const searchResults = await this.zepClient.searchMemory?.(query, { maxResults: 50 });
+      const searchResults = await this.zepClient.memory.searchSessions?.({ query, limit: 50 });
       
-      if (!searchResults?.facts || searchResults.facts.length === 0) {
+      if (!searchResults?.results || searchResults.results.length === 0) {
         this.logger.warn('No recent data found for correlation calculation', {
           component: 'TemporalRelationshipMapper',
           entity_id: entityId,
@@ -517,12 +529,12 @@ export class TemporalRelationshipMapper {
     try {
       // Query for historical correlation data
       const query = `historical correlation baseline ${entityId}`;
-      const searchResults = await this.zepClient.searchMemory?.(query, { maxResults: 100 });
+      const searchResults = await this.zepClient.memory.searchSessions?.({ query, limit: 100 });
       
       const correlationBaselines: Record<string, { mean: number; std: number; count: number }> = {};
       
-      if (searchResults?.facts) {
-        // Extract correlation data from historical facts
+      if (searchResults?.results) {
+        // Extract correlation data from historical results
         const correlationData: Record<string, number[]> = {};
         
         for (const fact of searchResults.facts) {
@@ -765,12 +777,12 @@ export class TemporalRelationshipMapper {
     try {
       // Query for entities in the same sector or correlated entities
       const query = `related entities to ${entityId} sector correlation`;
-      const searchResults = await this.zepClient.searchMemory?.(query, { maxResults: 20 });
+      const searchResults = await this.zepClient.memory.searchSessions?.({ query, limit: 20 });
 
       const relatedEntities: Set<string> = new Set();
 
-      if (searchResults?.facts) {
-        for (const fact of searchResults.facts) {
+      if (searchResults?.results) {
+        for (const result of searchResults.results) {
           // Extract entity mentions from facts
           const factText = fact.fact || '';
           const entityMatches = factText.match(/\b[A-Z]{1,5}\b/g); // Stock symbols
@@ -811,10 +823,10 @@ export class TemporalRelationshipMapper {
   private async getEntityTimeSeriesData(entityId: string, windowDays: number): Promise<Array<{ date: string; value: number }>> {
     try {
       const query = `price data for ${entityId} last ${windowDays} days`;
-      const searchResults = await this.zepClient.searchMemory?.(query, { maxResults: 30 });
+      const searchResults = await this.zepClient.memory.searchSessions?.({ query, limit: 30 });
 
-      if (searchResults?.facts) {
-        return this.extractTimeSeriesFromFacts(searchResults.facts, entityId);
+      if (searchResults?.results) {
+        return this.extractTimeSeriesFromFacts(searchResults.results, entityId);
       }
 
       return [];
