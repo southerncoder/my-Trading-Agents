@@ -81,6 +81,28 @@ npm install
 npm test
 ```
 
+### Risk Management Testing
+
+Comprehensive risk management unit tests validate all core risk calculation functions:
+
+- **Technical Risk Assessment**: RSI, MACD, Bollinger Band analysis
+- **Quantitative Models**: VaR, CVaR, Monte Carlo simulation  
+- **Sector Sentiment**: Real news integration with sentiment analysis
+- **Volatility Analysis**: GARCH modeling, ARCH tests, clustering detection
+- **Portfolio Risk**: Multi-asset risk calculations and stress testing
+- **Extreme Scenarios**: Market crashes, sector crises, black swan events
+
+**Performance Requirements Met**:
+- Individual assessments: < 500ms average
+- Comprehensive analysis: < 2 seconds average
+- Large portfolios (50 assets): < 5 seconds
+- Stress scenarios: < 30 seconds for 10 extreme scenarios
+
+Run risk management tests specifically:
+```powershell
+npm test -- --testPathPattern="risk-management.*test"
+```
+
 Admin endpoint diagnostics
 
 If you are having trouble with LM Studio admin commands (load/unload/switch), the following quick checks can help:
@@ -115,3 +137,46 @@ docker logs <lm_studio_container_id>
 Notes:
 - The admin endpoints are typically container-specific and can be behind reverse proxies; double-check the exact path and port used by your LM Studio build.
 - If LM Studio is behind authentication, ensure CLI calls include the required auth headers by setting environment variables or updating `LMStudioManager` to include authentication headers.
+
+## Runtime workflow (focus)
+
+The diagram below shows the runtime, high-level workflow the TradingAgents system follows during an analysis run — this focuses on the interesting runtime pieces (CLI/orchestrator, agents, memory, LLM, decision and trader) and omits infra/tools details.
+
+```mermaid
+flowchart TD
+  CLI["CLI / Programmatic API"]
+  Orchestrator["EnhancedTradingAgentsGraph<br/>(orchestrator)"]
+  Analysts["Analysts / Researchers / Risk Managers\n(market, news, fundamentals, bull/bear, risk)"]
+  Memory["Memory / Episodes\n(zep-graphiti) — long/short term"]
+  LLM["LLM Provider\n(LM Studio / OpenAI / other)"]
+  Decision["Decision Maker / Aggregator\n(consolidates agent outputs)"]
+  Trader["Trader / Execution Adapter\n(send orders / signals)"]
+  DataSources["Data Sources\n(market data, news, social, fundamentals)"]
+  NewServices["Branch: data providers\nnews-aggregator-service\nfinance-aggregator-service"]
+  RefSrc["ref_src/SEC_government_data_service\n(reference datasets)"]
+
+  CLI --> Orchestrator
+  Orchestrator --> Analysts
+  Analysts --> Memory
+  Analysts --> LLM
+  DataSources --> Analysts
+  NewServices --> DataSources
+  RefSrc --> DataSources
+  Memory --> Orchestrator
+  LLM --> Decision
+  Analysts --> Decision
+  Decision --> Trader
+
+  classDef component fill:#e3f2fd,stroke:#1565c0
+  classDef data fill:#fff3e0,stroke:#ef6c00
+  class CLI,Orchestrator,Analysts,Memory,LLM,Decision,Trader component
+  class DataSources data
+```
+
+Notes:
+- The orchestrator (EnhancedTradingAgentsGraph) coordinates parallel analyst agents, collects their outputs, and records episodes to memory.
+- Analysts may call the LLM for reasoning or summarization and also read/write memory episodes; memory supports search and retrieval across past episodes.
+- The Decision Maker aggregates analyst outputs (structured summaries + confidences) into a single recommendation the Trader can act upon.
+- The Decision Maker aggregates analyst outputs (structured summaries + confidences) into a single recommendation the Trader can act upon.
+- Data sources feed the analysts (market ticks, news articles, social streams, fundamentals). The branch adds local data providers (`news-aggregator-service`, `finance-aggregator-service`) and reference datasets in `ref_src/` which are treated as additional data sources during analysis runs.
+

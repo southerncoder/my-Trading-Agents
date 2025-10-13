@@ -55,6 +55,7 @@ The following secret files are created by the migration script:
 ### Database Secrets
 - `neo4j_user.txt` - Neo4j database username
 - `neo4j_password.txt` - Neo4j database password
+- `redis_password.txt` - Redis cache password (optional, leave empty for no auth)
 
 ### LM Studio Configuration
 - `lm_studio_url.txt` - Local LM Studio base URL

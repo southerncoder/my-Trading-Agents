@@ -32,7 +32,9 @@ Get your Brave API key from: https://api-dashboard.search.brave.com/
 
 ## Features
 
-- **Multi-Provider Support**: Integrates Google News, Yahoo Finance, Bing News, and NewsAPI
+- **Multi-Provider Support**: Integrates Tavily API, Brave News, NewsAPI, SERP API (Bing News), and Google News
+- **Enterprise Resilience**: Circuit breakers, retry with exponential backoff, graceful degradation
+- **Dual Response Modes**: Bulk JSON responses and Server-Sent Events streaming
 - **Intelligent Fallback**: Automatically switches to healthy providers when others fail
 - **Health Monitoring**: Continuous monitoring of provider status and performance
 - **Caching**: Built-in response caching for improved performance
@@ -40,6 +42,7 @@ Get your Brave API key from: https://api-dashboard.search.brave.com/
 - **Structured Logging**: Winston-based logging with trace correlation
 - **Security**: Helmet.js security headers and CORS configuration
 - **Docker Ready**: Containerized deployment with health checks
+- **Comprehensive Testing**: 37 total tests (15 integration + 22 unit tests)
 
 ## Quick Start
 
@@ -108,11 +111,30 @@ GET /health
 ```
 Returns service health status and provider availability.
 
-### News Search
+### News Aggregation (Bulk)
+```http
+GET /api/news/aggregate?q={query}&count={limit}&freshness={freshness}&language={language}
+```
+Aggregate news from all providers with comprehensive error handling.
+
+**Parameters:**
+- `q`: Search query (required)
+- `count`: Maximum results per provider (default: 10)
+- `freshness`: News freshness (optional: day, week, month)
+- `language`: Language code (optional: en, es, fr, etc.)
+
+### News Aggregation (Streaming)
+```http
+GET /api/news/aggregate/stream?q={query}&count={limit}
+Accept: text/event-stream
+```
+Progressive Server-Sent Events streaming for real-time results.
+
+### Legacy News Search
 ```http
 GET /api/news/search?q={query}&limit={limit}&provider={provider}
 ```
-Search for news articles across all providers.
+Legacy endpoint for backward compatibility.
 
 **Parameters:**
 - `q`: Search query (required)
@@ -129,11 +151,23 @@ Get financial news for a specific stock symbol.
 - `symbol`: Stock symbol (e.g., AAPL, TSLA) (required)
 - `limit`: Maximum results (default: 10, max: 50)
 
-### Provider Status
+### Provider Health
+```http
+GET /api/news/health
+```
+Get detailed health status of all providers including circuit breaker states.
+
+### Provider Statistics
+```http
+GET /api/news/statistics
+```
+Get comprehensive statistics including request counts, error rates, and response times.
+
+### Legacy Provider Status
 ```http
 GET /api/providers/status
 ```
-Get detailed status of all news providers including health, response times, and error rates.
+Legacy endpoint for provider status (backward compatibility).
 
 ### Cache Statistics
 ```http
@@ -242,15 +276,31 @@ services/news-aggregator-service/
 
 ### Testing
 ```bash
-# Run tests
+# Run all tests (37 total: 15 integration + 22 unit)
 npm test
+
+# Run integration tests (HTTP endpoints via supertest)
+npm run test:integration
+
+# Run unit tests (direct function calls with mocks)
+npm run test:unit
 
 # Run with coverage
 npm run test:coverage
 
+# Watch mode for development
+npm run test:watch
+
 # Run linting
 npm run lint
 ```
+
+**Test Coverage**:
+- **Integration Tests**: All Express endpoints tested via HTTP
+- **Unit Tests**: Direct function testing with comprehensive mocks
+- **Resilience Testing**: Circuit breaker behavior, retry logic, error handling
+- **Performance Testing**: Response time validation, concurrent execution
+- **Provider Testing**: All 5 news providers with failure scenarios
 
 ### Building for Production
 ```bash

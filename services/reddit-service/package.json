@@ -14,14 +14,14 @@
     "docker:run": "docker run -p 3001:3001 --env-file .env reddit-service"
   },
   "dependencies": {
-    "express": "^4.21.1",
-    "axios": "^1.11.0",
+    "express": "^5.1.0",
+    "axios": "^1.12.2",
     "cors": "^2.8.5",
-    "helmet": "^7.1.0",
+    "helmet": "^8.1.0",
     "compression": "^1.7.4",
     "rate-limiter-flexible": "^7.3.0",
-    "winston": "^3.17.0",
-    "dotenv": "^17.2.2",
+    "winston": "^3.18.3",
+    "dotenv": "^17.2.3",
     "node-fetch": "^3.3.2"
   },
   "devDependencies": {
