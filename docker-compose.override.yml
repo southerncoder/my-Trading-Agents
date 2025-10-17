@@ -1,69 +1,28 @@
-# =====================================================================================
-# Trading Agents - Docker Compose Override for Development
-# =====================================================================================
-# This file provides development-specific overrides for the main docker-compose.yml
-# It automatically applies when running docker-compose commands in development
-#
-# Usage:
-#   docker-compose up          # Automatically includes this override
-#   docker-compose up redis    # Start only Redis for development
-# =====================================================================================
+# Development overrides for docker-compose.yml
+# Automatically applied when running docker-compose commands
 
 services:
-  # ============================================================================
-  # DEVELOPMENT OVERRIDES
-  # ============================================================================
-
-  # Redis Development Configuration
+  # Development configuration for services
   redis:
-    # Expose Redis port for local development tools
-    ports:
-      - "6379:6379"
-    # Development-friendly configuration
-    command: >
-      sh -c "
-        echo 'Starting Redis in development mode...'
-        redis-server --appendonly yes --appendfsync everysec --save 60 1000 --loglevel notice
-      "
-    # Development volumes for data persistence
-    volumes:
-      - redis_dev_data:/data
-    # Development environment
     environment:
       - REDIS_PASSWORD=  # No password for development
-
-  # Neo4j Development Configuration
+    
   neo4j:
-    # Development environment with relaxed security
     environment:
       - NEO4J_AUTH=neo4j/development
-      - NEO4J_PLUGINS=["apoc"]
-      - NEO4J_dbms_security_procedures_unrestricted=apoc.*
-      - NEO4J_dbms_logs_debug_level=INFO
-
-  # Trading Agents Development Configuration
+      
   trading-agents:
-    # Development environment variables
     environment:
       - NODE_ENV=development
       - LOG_LEVEL=debug
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_PASSWORD=
-      - REDIS_DB=0
-    # Development volumes for hot reload
     volumes:
       - ./services/trading-agents/src:/app/src:ro
-      - ./services/trading-agents/scripts:/app/scripts:ro
-      - ./data:/app/data:rw
-      - ./logs:/app/logs:rw
-      - ./exports:/app/exports:rw
-
-# ============================================================================
-# DEVELOPMENT VOLUMES
-# ============================================================================
-
-volumes:
-  # Redis development data
-  redis_dev_data:
-    driver: local
+      
+  web-api:
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
+      
+  web-frontend:
+    environment:
+      - NODE_ENV=development

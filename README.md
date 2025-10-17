@@ -10,20 +10,13 @@
 
 ## 🎯 Current Status: **Production Ready** ✅
 
-### Recent Updates (December 2024)
-- ✅ **Dependencies Updated**: All major dependencies updated to latest stable versions
-- ✅ **Security Patches**: Zero vulnerabilities after comprehensive dependency audit
-- ✅ **LangChain 0.3.x**: Updated to latest LangChain ecosystem with provider improvements
-- ✅ **Enhanced Memory**: Updated Zep Graphiti integration with latest features
-- ⚠️ **Migration Guide**: See [DEPENDENCY-UPDATE-MIGRATION-GUIDE.md](docs/DEPENDENCY-UPDATE-MIGRATION-GUIDE.md) for compatibility notes
-
 ### Core Infrastructure
-- ✅ **Modern Build System**: Vite 5.x with ES modules and TypeScript 5.x
-- ✅ **Multi-Agent Architecture**: 12 specialized trading agents with LangGraph orchestration
-- ✅ **Enterprise Memory**: Zep Graphiti client-based integration with knowledge graphs
-- ✅ **Multi-Provider Data**: Yahoo Finance, Alpha Vantage, MarketStack with automatic failover
-- ✅ **Social Sentiment**: Reddit OAuth integration with feature switching
-- ✅ **100% Test Coverage**: Comprehensive test suite with zero vulnerabilities
+- **Modern Build System**: Vite 7.x with ES modules and TypeScript 5.x
+- **Multi-Agent Architecture**: 12 specialized trading agents with LangGraph orchestration
+- **Enterprise Memory**: Zep Graphiti integration with knowledge graphs
+- **Multi-Provider Data**: Yahoo Finance, Alpha Vantage, MarketStack with automatic failover
+- **Social Sentiment**: Reddit OAuth integration with feature switching
+- **Comprehensive Testing**: Full test suite with zero vulnerabilities
 
 ### Key Features
 - **12 Specialized Agents**: Market, Social, News, Fundamentals analysts + Risk management
@@ -37,29 +30,38 @@
 ## Quick Start
 
 ```bash
-# 1. Clone and install dependencies
+# 1. Clone and setup
 git clone https://github.com/southerncoder/my-Trading-Agents
-cd my-Trading-Agents/services/trading-agents
-npm install
+cd my-Trading-Agents
 
-# 2. Configure environment (copy and edit .env.local)
+# 2. Configure environment and secrets
 cp .env.example .env.local
+# Edit .env.local with basic settings
 
-# 3. Start services (optional for basic usage)
-cd ../zep_graphiti
-.\start-zep-services.ps1
+# Set up API keys in secret files
+# Edit files in docker/secrets/ with your actual API keys
 
-# 4. Run interactive trading analysis
-cd ../services/trading-agents
-npm run cli
+# 3. Start all services
+docker compose up -d
+
+# 4. Run CLI analysis
+docker compose exec trading-agents npm run cli
 ```
 
-### Feature Flags
+### Service Profiles
 
-**Reddit Service**: Disabled by default
 ```bash
-# To include Reddit service:
-docker compose --profile reddit up
+# Start all core services
+docker compose up -d
+
+# Include Reddit service
+docker compose --profile reddit up -d
+
+# Include local registry
+docker compose --profile registry up -d
+
+# Web interface only
+docker compose up web-frontend web-api -d
 ```
 
 ## Configuration

@@ -1,0 +1,43 @@
+{
+  "name": "trading-agents-web-api",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Web API server for TradingAgents frontend",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "nodemon --exec \"node --loader ts-node/esm src/server.ts\"",
+    "dev:https": "cross-env HTTPS_ENABLED=true nodemon --exec \"node --loader ts-node/esm src/server.ts\"",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "start:https": "cross-env HTTPS_ENABLED=true node dist/server.js",
+    "generate-certs": "bash scripts/generate-local-certs.sh",
+    "generate-certs:windows": "powershell -ExecutionPolicy Bypass -File scripts/generate-local-certs.ps1",
+    "lint": "eslint src/**/*.ts",
+    "type-check": "tsc --noEmit",
+    "docker:build": "docker build -t trading-agents-web-api .",
+    "docker:run": "docker run -p 3001:3001 trading-agents-web-api"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.0.1",
+    "express-rate-limit": "^7.4.1",
+    "helmet": "^8.0.0",
+    "uuid": "^10.0.0",
+    "ws": "^8.18.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.9.0",
+    "@types/uuid": "^10.0.0",
+    "@types/ws": "^8.5.12",
+    "@typescript-eslint/eslint-plugin": "^8.15.0",
+    "@typescript-eslint/parser": "^8.15.0",
+    "cross-env": "^7.0.3",
+    "eslint": "^9.15.0",
+    "nodemon": "^3.1.7",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.3"
+  }
+}

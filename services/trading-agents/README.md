@@ -76,27 +76,21 @@ Design note: The `ModelProvider` is intentionally generic. Do not hardcode provi
 Test files live in `services/trading-agents/tests/`. Use the project's npm scripts to run tests:
 
 ```powershell
-cd js
 npm install
 npm test
 ```
 
+### Performance Testing
+
+Performance tests validate system efficiency and detect regressions:
+
+```powershell
+npm run test:performance              # Run all performance tests
+npm run test:performance:regression   # Run regression detection tests
+npm run test:performance:comprehensive # Run comprehensive benchmarks
+```
+
 ### Risk Management Testing
-
-Comprehensive risk management unit tests validate all core risk calculation functions:
-
-- **Technical Risk Assessment**: RSI, MACD, Bollinger Band analysis
-- **Quantitative Models**: VaR, CVaR, Monte Carlo simulation  
-- **Sector Sentiment**: Real news integration with sentiment analysis
-- **Volatility Analysis**: GARCH modeling, ARCH tests, clustering detection
-- **Portfolio Risk**: Multi-asset risk calculations and stress testing
-- **Extreme Scenarios**: Market crashes, sector crises, black swan events
-
-**Performance Requirements Met**:
-- Individual assessments: < 500ms average
-- Comprehensive analysis: < 2 seconds average
-- Large portfolios (50 assets): < 5 seconds
-- Stress scenarios: < 30 seconds for 10 extreme scenarios
 
 Run risk management tests specifically:
 ```powershell

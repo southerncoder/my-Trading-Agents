@@ -1,0 +1,227 @@
+name: Performance Regression Testing
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run performance tests daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+jobs:
+  performance-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: trading_agents_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch full history for baseline comparison
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: 'npm'
+        cache-dependency-path: services/trading-agents/package-lock.json
+
+    - name: Install dependencies
+      working-directory: services/trading-agents
+      run: |
+        npm ci
+        npm install cacheable@^15.0.7 prom-client@^15.1.3
+
+    - name: Setup environment
+      working-directory: services/trading-agents
+      run: |
+        cp .env.local.example .env.local
+        echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/trading_agents_test" >> .env.local
+        echo "REDIS_URL=redis://localhost:6379" >> .env.local
+        echo "NODE_ENV=test" >> .env.local
+
+    - name: Build application
+      working-directory: services/trading-agents
+      run: npm run build
+
+    - name: Download previous performance baseline
+      uses: actions/cache@v4
+      with:
+        path: services/trading-agents/performance-baseline.json
+        key: performance-baseline-${{ github.ref_name }}
+        restore-keys: |
+          performance-baseline-main
+          performance-baseline-
+
+    - name: Run performance tests
+      working-directory: services/trading-agents
+      run: |
+        # Set memory limits for consistent testing
+        export NODE_OPTIONS="--max-old-space-size=2048 --expose-gc"
+        
+        # Run performance test suite (now properly organized in tests folder)
+        npm run test:performance
+      env:
+        CI: true
+        NODE_ENV: test
+
+    - name: Upload performance reports
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: performance-reports-${{ github.run_number }}
+        path: |
+          services/trading-agents/performance-reports/
+          services/trading-agents/performance-baseline.json
+        retention-days: 30
+
+    - name: Save performance baseline
+      uses: actions/cache@v4
+      if: success() && github.ref == 'refs/heads/main'
+      with:
+        path: services/trading-agents/performance-baseline.json
+        key: performance-baseline-${{ github.ref_name }}-${{ github.sha }}
+
+    - name: Comment PR with performance results
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+          
+          try {
+            const reportPath = path.join('services/trading-agents/performance-reports/latest-performance-report.json');
+            if (fs.existsSync(reportPath)) {
+              const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+              
+              let comment = `## 🚀 Performance Test Results\n\n`;
+              comment += `**Test Suite:** ${report.suite}\n`;
+              comment += `**Timestamp:** ${report.timestamp}\n\n`;
+              
+              comment += `### Summary\n`;
+              comment += `- ✅ **Passed:** ${report.summary.passed}\n`;
+              comment += `- ❌ **Failed:** ${report.summary.failed}\n`;
+              comment += `- 📉 **Regressions:** ${report.summary.regressions}\n`;
+              comment += `- 📈 **Improvements:** ${report.summary.improvements}\n\n`;
+              
+              if (report.regressions.length > 0) {
+                comment += `### ⚠️ Performance Regressions\n`;
+                for (const regression of report.regressions) {
+                  comment += `- **${regression.test}**: ${regression.regression.toFixed(2)}% regression (${regression.severity})\n`;
+                }
+                comment += `\n`;
+              }
+              
+              if (report.recommendations.length > 0) {
+                comment += `### 💡 Recommendations\n`;
+                for (const rec of report.recommendations) {
+                  comment += `- ${rec}\n`;
+                }
+                comment += `\n`;
+              }
+              
+              comment += `<details>\n<summary>📊 Detailed Results</summary>\n\n`;
+              comment += `| Test | Category | Status | Duration (ms) | Throughput (ops/s) |\n`;
+              comment += `|------|----------|--------|---------------|--------------------|\n`;
+              
+              for (const result of report.results) {
+                const status = result.passed ? '✅' : '❌';
+                comment += `| ${result.name} | ${result.category} | ${status} | ${result.duration} | ${result.throughput.toFixed(2)} |\n`;
+              }
+              
+              comment += `\n</details>`;
+              
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            }
+          } catch (error) {
+            console.error('Failed to post performance results:', error);
+          }
+
+    - name: Fail on critical regressions
+      if: always()
+      working-directory: services/trading-agents
+      run: |
+        if [ -f "performance-reports/latest-performance-report.json" ]; then
+          # Check for critical regressions
+          CRITICAL_REGRESSIONS=$(node -e "
+            const report = require('./performance-reports/latest-performance-report.json');
+            const critical = report.regressions.filter(r => r.severity === 'critical').length;
+            console.log(critical);
+          ")
+          
+          if [ "$CRITICAL_REGRESSIONS" -gt "0" ]; then
+            echo "❌ Critical performance regressions detected: $CRITICAL_REGRESSIONS"
+            exit 2
+          fi
+          
+          # Check for test failures
+          FAILED_TESTS=$(node -e "
+            const report = require('./performance-reports/latest-performance-report.json');
+            console.log(report.summary.failed);
+          ")
+          
+          if [ "$FAILED_TESTS" -gt "0" ]; then
+            echo "❌ Performance tests failed: $FAILED_TESTS"
+            exit 3
+          fi
+          
+          echo "✅ All performance tests passed"
+        else
+          echo "❌ Performance report not found"
+          exit 1
+        fi
+
+  benchmark-comparison:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    needs: performance-tests
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download performance reports
+      uses: actions/download-artifact@v4
+      with:
+        name: performance-reports-${{ github.run_number }}
+        path: performance-reports/
+
+    - name: Compare with main branch
+      run: |
+        echo "Performance comparison with main branch would be implemented here"
+        echo "This could include:"
+        echo "- Downloading baseline from main branch"
+        echo "- Comparing key metrics"
+        echo "- Generating comparison charts"
+        echo "- Posting detailed comparison to PR"

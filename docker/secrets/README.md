@@ -166,10 +166,15 @@ To update existing secrets:
 
 If migrating from environment variables:
 
-1. **Backup current setup**
-2. **Update docker-compose.yml** to use secrets instead of `env_file` or `environment`
-3. **Run migration script** to create secret files
-4. **Test thoroughly** before removing old environment variables
+## Current Setup
+
+All services now use Docker secrets instead of environment variables for sensitive data.
+
+### Quick Setup
+
+1. **Edit secret files** in this directory with your actual API keys
+2. **Keep .env.local** for non-sensitive configuration
+3. **Start services** with `docker compose up -d`
 5. **Update documentation** to reflect new approach
 
 ## Related Files

@@ -87,8 +87,9 @@ migrate_secrets() {
     create_secret_file "ANTHROPIC_API_KEY" "$SECRETS_DIR/anthropic_api_key.txt" "Anthropic API Key"
     create_secret_file "GOOGLE_API_KEY" "$SECRETS_DIR/google_api_key.txt" "Google API Key"
     create_secret_file "EMBEDDER_API_KEY" "$SECRETS_DIR/embedder_api_key.txt" "Embedder API Key"
+    create_secret_file "EMBEDDING_API_KEY" "$SECRETS_DIR/embedder_api_key.txt" "Embedding API Key (fallback)"
 
-    # News Provider Secrets
+    # News and Data Provider Secrets
     create_secret_file "TAVILY_API_KEY" "$SECRETS_DIR/tavily_api_key.txt" "Tavily API Key"
     create_secret_file "BRAVE_NEWS_API_KEY" "$SECRETS_DIR/brave_news_api_key.txt" "Brave News API Key"
     create_secret_file "NEWS_API_KEY" "$SECRETS_DIR/news_api_key.txt" "News API Key"
@@ -98,6 +99,11 @@ migrate_secrets() {
     create_secret_file "FINNHUB_API_KEY" "$SECRETS_DIR/finnhub_api_key.txt" "Finnhub API Key"
     create_secret_file "ALPHA_VANTAGE_API_KEY" "$SECRETS_DIR/alpha_vantage_api_key.txt" "Alpha Vantage API Key"
     create_secret_file "MARKETSTACK_API_KEY" "$SECRETS_DIR/marketstack_api_key.txt" "Marketstack API Key"
+    create_secret_file "SIMFIN_API_KEY" "$SECRETS_DIR/simfin_api_key.txt" "SimFin API Key"
+    create_secret_file "IEX_CLOUD_TOKEN" "$SECRETS_DIR/iex_cloud_token.txt" "IEX Cloud Token"
+
+    # Social Media API Secrets
+    create_secret_file "TWITTER_BEARER_TOKEN" "$SECRETS_DIR/twitter_bearer_token.txt" "Twitter Bearer Token"
 
     # Reddit API Secrets
     create_secret_file "REDDIT_CLIENT_ID" "$SECRETS_DIR/reddit_client_id.txt" "Reddit Client ID"
@@ -112,10 +118,23 @@ migrate_secrets() {
     create_secret_file "NEO4J_USER" "$SECRETS_DIR/neo4j_user.txt" "Neo4j Username"
     create_secret_file "NEO4J_PASSWORD" "$SECRETS_DIR/neo4j_password.txt" "Neo4j Password"
     create_secret_file "REDIS_PASSWORD" "$SECRETS_DIR/redis_password.txt" "Redis Password"
+    create_secret_file "POSTGRES_USER" "$SECRETS_DIR/postgres_user.txt" "PostgreSQL Username"
+    create_secret_file "POSTGRES_PASSWORD" "$SECRETS_DIR/postgres_password.txt" "PostgreSQL Password"
+    create_secret_file "POSTGRES_DB" "$SECRETS_DIR/postgres_db.txt" "PostgreSQL Database"
+
+    # Government Data API Keys
+    create_secret_file "FRED_API_KEY" "$SECRETS_DIR/fred_api_key.txt" "FRED API Key"
+    create_secret_file "BLS_API_KEY" "$SECRETS_DIR/bls_api_key.txt" "BLS API Key"
 
     # LM Studio Configuration
-    create_secret_file "LM_STUDIO_BASE_URL" "$SECRETS_DIR/lm_studio_url.txt" "LM Studio Base URL"
-    create_secret_file "REMOTE_LM_STUDIO_BASE_URL" "$SECRETS_DIR/lm_studio_remote_url.txt" "LM Studio Remote URL"
+    create_secret_file "LM_STUDIO_BASE_URL" "$SECRETS_DIR/local_lmstudio_base_url.txt" "Local LM Studio Base URL"
+    create_secret_file "LOCAL_LM_STUDIO_BASE_URL" "$SECRETS_DIR/local_lmstudio_base_url.txt" "Local LM Studio Base URL (alt)"
+    create_secret_file "REMOTE_LM_STUDIO_BASE_URL" "$SECRETS_DIR/remote_lmstudio_base_url.txt" "Remote LM Studio Base URL"
+    create_secret_file "LOCAL_LM_STUDIO_API_KEY" "$SECRETS_DIR/local_lmstudio_api_key.txt" "Local LM Studio API Key"
+    create_secret_file "REMOTE_LM_STUDIO_API_KEY" "$SECRETS_DIR/remote_lmstudio_api_key.txt" "Remote LM Studio API Key"
+
+    # Zep Service Configuration
+    create_secret_file "ZEP_API_KEY" "$SECRETS_DIR/zep_api_key.txt" "Zep API Key"
 
     print_success "Docker secrets migration completed!"
     print_status "Created secrets files in: $SECRETS_DIR"
@@ -150,7 +169,7 @@ list_secrets() {
     echo "  - google_api_key.txt"
     echo "  - embedder_api_key.txt"
     echo ""
-    echo "News Provider Secrets:"
+    echo "News and Data Provider Secrets:"
     echo "  - tavily_api_key.txt"
     echo "  - brave_news_api_key.txt"
     echo "  - news_api_key.txt"
@@ -160,6 +179,11 @@ list_secrets() {
     echo "  - finnhub_api_key.txt"
     echo "  - alpha_vantage_api_key.txt"
     echo "  - marketstack_api_key.txt"
+    echo "  - simfin_api_key.txt"
+    echo "  - iex_cloud_token.txt"
+    echo ""
+    echo "Social Media API Secrets:"
+    echo "  - twitter_bearer_token.txt"
     echo ""
     echo "Reddit API Secrets:"
     echo "  - reddit_client_id.txt"
@@ -174,10 +198,22 @@ list_secrets() {
     echo "  - neo4j_user.txt"
     echo "  - neo4j_password.txt"
     echo "  - redis_password.txt"
+    echo "  - postgres_user.txt"
+    echo "  - postgres_password.txt"
+    echo "  - postgres_db.txt"
+    echo ""
+    echo "Government Data API Keys:"
+    echo "  - fred_api_key.txt"
+    echo "  - bls_api_key.txt"
     echo ""
     echo "LM Studio Configuration:"
-    echo "  - lm_studio_url.txt"
-    echo "  - lm_studio_remote_url.txt"
+    echo "  - local_lmstudio_base_url.txt"
+    echo "  - local_lmstudio_api_key.txt"
+    echo "  - remote_lmstudio_base_url.txt"
+    echo "  - remote_lmstudio_api_key.txt"
+    echo ""
+    echo "Zep Service Configuration:"
+    echo "  - zep_api_key.txt"
     echo ""
 }
 
