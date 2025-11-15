@@ -216,7 +216,15 @@ export class SECClient extends BaseClient {
         });
 
         try {
-            const response = await this.makeRequest({
+            const response = await this.makeRequest<{
+                cik: string;
+                taxonomy: string;
+                tag: string;
+                label: string;
+                description: string;
+                entityName: string;
+                units: any;
+            }>({
                 method: 'GET',
                 url: `/api/xbrl/companyconcept/CIK${formattedCIK}/${taxonomy}/${concept}.json`,
             }, options);

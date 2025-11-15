@@ -11,7 +11,3 @@ coverage
 .idea
 *.log
 dist
-src
-tsconfig.json
-.eslintrc.js
-vitest.config.ts

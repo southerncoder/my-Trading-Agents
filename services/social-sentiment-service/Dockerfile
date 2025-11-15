@@ -18,7 +18,7 @@ RUN apk add --no-cache dumb-init
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
-    adduser -S reddit-service -u 1001 -G nodejs
+    adduser -S social-sentiment -u 1001 -G nodejs
 
 # Set working directory
 WORKDIR /app
@@ -30,17 +30,17 @@ COPY package*.json ./
 RUN npm ci --only=production && npm cache clean --force
 
 # Copy application code
-COPY --chown=reddit-service:nodejs src/ ./src/
+COPY --chown=social-sentiment:nodejs src/ ./src/
 
 # Switch to non-root user
-USER reddit-service
+USER social-sentiment
 
 # Expose port
-EXPOSE 3001
+EXPOSE 3007
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-  CMD node -e "fetch('http://localhost:3001/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"
+  CMD node -e "fetch('http://localhost:3007/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"
 
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]

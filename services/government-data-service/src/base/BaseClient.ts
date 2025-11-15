@@ -28,7 +28,7 @@ export abstract class BaseClient {
     if (rateLimit) {
       this.rateLimiter = new RateLimiter({
         tokensPerInterval: rateLimit.tokensPerInterval,
-        interval: rateLimit.interval,
+        interval: typeof rateLimit.interval === 'string' ? rateLimit.interval as any : rateLimit.interval,
         fireImmediately: true
       });
     }

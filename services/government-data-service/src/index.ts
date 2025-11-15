@@ -40,10 +40,10 @@ app.get('/api/sec/company/:ticker', async (req, res) => {
       return res.status(404).json({ error: `Company not found: ${ticker}` });
     }
     
-    res.json(company);
+    return res.json(company);
   } catch (error) {
     logger.error('SEC company lookup failed', { error, ticker: req.params.ticker });
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -97,10 +97,10 @@ app.get('/api/fred/series/:seriesId', async (req, res) => {
       limit: limit ? parseInt(limit as string) : undefined
     });
     
-    res.json(observations);
+    return res.json(observations);
   } catch (error) {
     logger.error('FRED series request failed', { error, seriesId: req.params.seriesId });
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -122,10 +122,10 @@ app.get('/api/fred/search', async (req, res) => {
       limit: parseInt(limit as string)
     });
     
-    res.json(series);
+    return res.json(series);
   } catch (error) {
     logger.error('FRED search request failed', { error, query: req.query.q });
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -143,10 +143,10 @@ app.get('/api/fred/indicators', async (req, res) => {
       endDate: endDate as string
     });
     
-    res.json(indicators);
+    return res.json(indicators);
   } catch (error) {
     logger.error('FRED indicators request failed', { error });
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -288,10 +288,10 @@ app.get('/api/search', async (req, res) => {
     logger.info(`Cross-source search request: "${query}"`);
     
     const results = await govData.searchAllSources(query as string);
-    res.json(results);
+    return res.json(results);
   } catch (error) {
     logger.error('Cross-source search request failed', { error, query: req.query.q });
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 

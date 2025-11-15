@@ -8,8 +8,49 @@ import dotenv from 'dotenv';
 import { RedditAPIClient } from './reddit-client.js';
 import { SentimentAnalyzer } from './sentiment-analyzer.js';
 
+// Initialize Reddit client and sentiment analyzer
+const redditConfig = {
+  clientId: process.env.REDDIT_CLIENT_ID,
+  clientSecret: process.env.REDDIT_CLIENT_SECRET,
+  username: process.env.REDDIT_USERNAME,
+  password: process.env.REDDIT_PASSWORD,
+  userAgent: process.env.REDDIT_USER_AGENT || 'TradingAgents-SocialSentiment/1.0'
+};
+
+const redditClient = new RedditAPIClient(redditConfig);
+const sentimentAnalyzer = new SentimentAnalyzer();
+
+// Simple in-memory cache
+const cache = new Map();
+
+// Cache middleware
+function cacheMiddleware(ttlSeconds) {
+  return (req, res, next) => {
+    const key = req.originalUrl;
+    const cached = cache.get(key);
+    
+    if (cached && (Date.now() - cached.timestamp) < (ttlSeconds * 1000)) {
+      logger.info('Serving cached response', { key, age: Date.now() - cached.timestamp });
+      return res.json(cached.data);
+    }
+    
+    // Override res.json to cache the response
+    const originalJson = res.json;
+    res.json = function(data) {
+      cache.set(key, { data, timestamp: Date.now() });
+      return originalJson.call(this, data);
+    };
+    
+    next();
+  };
+}
+
 // Load environment variables
 dotenv.config();
+
+// Load Docker secrets (overrides .env if running in container)
+import { loadSecrets } from './utils/secrets.js';
+loadSecrets();
 
 // Initialize logger
 const logger = winston.createLogger({
@@ -20,13 +61,13 @@ const logger = winston.createLogger({
   ),
   transports: [
     new winston.transports.Console(),
-    new winston.transports.File({ filename: 'reddit-service.log' })
+    new winston.transports.File({ filename: 'social-sentiment-service.log' })
   ]
 });
 
 // Initialize Express app
 const app = express();
-const port = process.env.PORT || 3001;
+const port = process.env.PORT || 3007;
 
 // Security middleware
 app.use(helmet());
@@ -88,10 +129,15 @@ app.use(rateLimitMiddleware);
 // Health check endpoint (before authentication middleware)
 app.get('/health', (req, res) => {
   res.json({ 
-    status: 'healthy', 
+    status: 'healthy',
+    service: 'social-sentiment-service',
     timestamp: new Date().toISOString(),
     version: '1.0.0',
-    uptime: process.uptime()
+    uptime: process.uptime(),
+    platforms: {
+      reddit: !!process.env.REDDIT_CLIENT_ID,
+      twitter: !!process.env.TWITTER_BEARER_TOKEN
+    }
   });
 });
 
@@ -326,8 +372,8 @@ app.use((req, res) => {
 
 // Start server
 app.listen(port, '0.0.0.0', () => {
-  logger.info(`Reddit sentiment service running on port ${port}`);
-  console.log(`🚀 Reddit Sentiment Service running on http://0.0.0.0:${port}`);
+  logger.info(`Social sentiment service running on port ${port}`);
+  console.log(`🚀 Social Sentiment Service running on http://0.0.0.0:${port}`);
   console.log(`📊 Health check: http://0.0.0.0:${port}/health`);
 });
 

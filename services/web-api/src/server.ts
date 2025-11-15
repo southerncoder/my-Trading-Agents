@@ -199,18 +199,24 @@ server.listen(PORT, () => {
 })
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully')
-  server.close(() => {
-    console.log('Server closed')
-    process.exit(0)
-  })
-})
+async function gracefulShutdown(signal: string) {
+  console.log(`${signal} received, shutting down gracefully`)
+  
+  try {
+    // Shutdown analysis service
+    const { shutdownAnalysisService } = await import('./services/analysis-service.js')
+    await shutdownAnalysisService()
+    
+    // Close server
+    server.close(() => {
+      console.log('Server closed')
+      process.exit(0)
+    })
+  } catch (error) {
+    console.error('Error during shutdown:', error)
+    process.exit(1)
+  }
+}
 
-process.on('SIGINT', () => {
-  console.log('SIGINT received, shutting down gracefully')
-  server.close(() => {
-    console.log('Server closed')
-    process.exit(0)
-  })
-})
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'))
+process.on('SIGINT', () => gracefulShutdown('SIGINT'))

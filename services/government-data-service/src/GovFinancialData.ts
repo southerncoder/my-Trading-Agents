@@ -292,9 +292,7 @@ export class GovFinancialData {
 
     // Census demographic data
     promises.push(
-      this.census.getMarketCorrelationData(year, {
-        state: options?.state
-      }).then(data => {
+      this.census.getMarketCorrelationData(year).then(data => {
         results.demographic = data;
         logger.info('Census demographic data retrieved for correlation');
       }).catch(error => {

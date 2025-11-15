@@ -26,6 +26,16 @@ docker/secrets/migrate-log.txt
 **/secrets/**
 **/*-secrets.*
 **/*-credentials.*
+
+# Allow essential tools (these don't contain actual secrets)
+!tools/migrate-secrets.ps1
+!tools/migrate-secrets.sh
+!tools/secrets-setup.md
+!tools/start-web-services.ps1
+!tools/start-web-services.sh
+!tools/setup-monitoring-secrets.ps1
+!tools/setup-monitoring-secrets.sh
+!tools/pre-commit
 **/api-keys.*
 **/config.local.*
 **/credentials.*

@@ -8,8 +8,52 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { globalPerformanceMonitor } from '../../../trading-agents/src/performance/performance-monitor';
-import { globalCache } from '../../../trading-agents/src/performance/advanced-caching';
+// TODO: Import from shared performance monitoring when available
+// import { globalPerformanceMonitor } from '../../../trading-agents/src/performance/performance-monitor';
+// import { globalCache } from '../../../trading-agents/src/performance/advanced-caching';
+
+// Stub implementations for now
+const globalPerformanceMonitor = {
+  recordRequest: (_duration: number, _success: boolean) => {
+    // Stub implementation
+  },
+  getCurrentMetrics: () => ({
+    requestCount: 0,
+    averageResponseTime: 0,
+    errorRate: 0,
+    memory: {
+      used: 0,
+      total: 0,
+      percentage: 0,
+      heapUsed: 0,
+      heapTotal: 100
+    },
+    cpu: {
+      usage: 0
+    },
+    api: {
+      requestCount: 0,
+      averageResponseTime: 0,
+      errorRate: 0
+    }
+  })
+};
+
+const globalCache = {
+  get: async (_key: string) => null,
+  set: async (_key: string, _value: any, _ttl: number) => {},
+  getStats: () => ({
+    hits: 0,
+    misses: 0,
+    hitRate: 0,
+    l1: {
+      hits: 0,
+      misses: 0,
+      hitRate: 0,
+      size: 0
+    }
+  })
+};
 
 export interface PerformanceMiddlewareConfig {
   enableCaching: boolean;
@@ -36,7 +80,7 @@ export function performanceMonitoring(config: Partial<PerformanceMiddlewareConfi
     const startTime = Date.now();
     
     // Add performance headers
-    if (settings.cacheHeaders) {
+    if (settings.cacheHeaders && !res.headersSent) {
       res.setHeader('X-Performance-Start', startTime.toString());
     }
 
@@ -52,8 +96,8 @@ export function performanceMonitoring(config: Partial<PerformanceMiddlewareConfi
         globalPerformanceMonitor.recordRequest(duration, success);
       }
       
-      // Add performance headers
-      if (settings.cacheHeaders) {
+      // Add performance headers (only if headers haven't been sent)
+      if (settings.cacheHeaders && !res.headersSent) {
         res.setHeader('X-Response-Time', `${duration}ms`);
         res.setHeader('X-Performance-End', endTime.toString());
       }
@@ -86,8 +130,10 @@ export function responseCache(ttl: number = 300000) { // 5 minutes default
       // Try to get cached response
       const cached = await globalCache.get(cacheKey);
       if (cached) {
-        res.setHeader('X-Cache', 'HIT');
-        res.setHeader('X-Cache-Key', cacheKey);
+        if (!res.headersSent) {
+          res.setHeader('X-Cache', 'HIT');
+          res.setHeader('X-Cache-Key', cacheKey);
+        }
         return res.json(cached);
       }
 
@@ -96,13 +142,15 @@ export function responseCache(ttl: number = 300000) { // 5 minutes default
       res.json = function(body: any) {
         // Cache successful responses
         if (res.statusCode < 400) {
-          globalCache.set(cacheKey, body, ttl).catch(error => {
+          globalCache.set(cacheKey, body, ttl).catch((error: any) => {
             console.warn('Failed to cache response:', error);
           });
         }
         
-        res.setHeader('X-Cache', 'MISS');
-        res.setHeader('X-Cache-Key', cacheKey);
+        if (!res.headersSent) {
+          res.setHeader('X-Cache', 'MISS');
+          res.setHeader('X-Cache-Key', cacheKey);
+        }
         return originalJson.call(this, body);
       };
 
@@ -118,13 +166,13 @@ export function responseCache(ttl: number = 300000) { // 5 minutes default
  * Request compression middleware
  */
 export function requestCompression(threshold: number = 1024) {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (_req: Request, res: Response, next: NextFunction) => {
     // Add compression headers for responses above threshold
     const originalJson = res.json;
     res.json = function(body: any) {
       const bodySize = Buffer.byteLength(JSON.stringify(body), 'utf8');
       
-      if (bodySize > threshold) {
+      if (bodySize > threshold && !res.headersSent) {
         res.setHeader('Content-Encoding', 'gzip');
         res.setHeader('X-Original-Size', bodySize.toString());
       }
@@ -169,7 +217,7 @@ export function memoryMonitoring() {
  * Request timeout middleware
  */
 export function requestTimeout(timeout: number = 30000) { // 30 seconds default
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (_req: Request, res: Response, next: NextFunction) => {
     const timer = setTimeout(() => {
       if (!res.headersSent) {
         res.status(408).json({
@@ -220,11 +268,13 @@ export function apiMetrics() {
         errorCounts.set(endpoint, (errorCounts.get(endpoint) || 0) + 1);
       }
       
-      // Add metrics to response headers
-      res.setHeader('X-Request-Count', requestCounts.get(endpoint)?.toString() || '0');
-      res.setHeader('X-Average-Response-Time', 
-        times.length > 0 ? (times.reduce((a, b) => a + b, 0) / times.length).toFixed(2) : '0'
-      );
+      // Add metrics to response headers (only if headers haven't been sent)
+      if (!res.headersSent) {
+        res.setHeader('X-Request-Count', requestCounts.get(endpoint)?.toString() || '0');
+        res.setHeader('X-Average-Response-Time', 
+          times.length > 0 ? (times.reduce((a, b) => a + b, 0) / times.length).toFixed(2) : '0'
+        );
+      }
     });
 
     // Expose metrics endpoint

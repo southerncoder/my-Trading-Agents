@@ -284,12 +284,14 @@ export class FREDClient extends BaseClient {
   /**
    * Get latest observation for a series
    */
-  async getLatestObservation(seriesId: string, options?: RequestOptions): Promise<FREDObservation | null> {
+  async getLatestObservation(seriesId: string, options?: RequestOptions & Partial<DateRange>): Promise<FREDObservation | null> {
     logger.info(`Fetching latest FRED observation for series: ${seriesId}`);
     
     try {
       const observations = await this.getObservations(seriesId, {
         ...options,
+        startDate: options?.startDate || new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Default to 1 year ago
+        endDate: options?.endDate || new Date().toISOString().split('T')[0], // Default to today
         limit: 1,
         sort_order: 'desc',
       });
