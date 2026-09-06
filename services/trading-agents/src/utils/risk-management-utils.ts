@@ -437,6 +437,10 @@ export function calculateRiskConfidence(components: any[]): number {
   const successfulAssessments = components.filter(component => component.status === 'fulfilled').length;
   const totalAssessments = components.length;
 
+  if (totalAssessments === 0) {
+    return 0; // No assessments means no confidence
+  }
+
   return successfulAssessments / totalAssessments;
 }
 
@@ -736,19 +740,67 @@ function generateBasicRecommendations(riskLevel: string, riskScore: number): str
 // Helper functions (extracted from original implementation)
 
 /**
- * Assess technical indicator risk
+ * Assess technical indicator risk using the RiskManagementEngine
  */
 async function assessTechnicalIndicatorRisk(symbol: string): Promise<{ score: number; factors: string[] }> {
-  // Placeholder implementation - would need to be extracted from original
-  return { score: 0.3, factors: ['Technical analysis not implemented'] };
+  try {
+    // Import and use the simplified RiskManagementEngine
+    const { RiskManagementEngine } = await import('./risk-management-engine-simple');
+    
+    // Create a basic config for the engine
+    const config = {
+      llm: { provider: 'openai', model: 'gpt-4' },
+      dataProviders: {},
+      agents: {}
+    };
+    
+    const engine = new RiskManagementEngine(config);
+    const result = await engine.assessTechnicalIndicatorRisk(symbol);
+    
+    return {
+      score: result.overallRiskScore,
+      factors: result.riskFactors
+    };
+  } catch (error) {
+    logger.warn('assessTechnicalIndicatorRisk', `Failed to assess technical indicator risk for ${symbol}`, {
+      error: error instanceof Error ? error.message : String(error)
+    });
+    
+    // Fallback to conservative assessment
+    return { 
+      score: 0.6, 
+      factors: ['Technical indicator analysis unavailable - using conservative estimate'] 
+    };
+  }
 }
 
 /**
- * Get sector sentiment
+ * Get sector sentiment using the RiskManagementEngine
  */
 async function getSectorSentiment(symbol: string): Promise<number> {
-  // Placeholder implementation - would need to be extracted from original
-  return 0;
+  try {
+    // Import and use the simplified RiskManagementEngine
+    const { RiskManagementEngine } = await import('./risk-management-engine-simple');
+    
+    // Create a basic config for the engine
+    const config = {
+      llm: { provider: 'openai', model: 'gpt-4' },
+      dataProviders: {},
+      agents: {}
+    };
+    
+    const engine = new RiskManagementEngine(config);
+    const result = await engine.getSectorSentiment(symbol);
+    
+    return result.sentiment;
+  } catch (error) {
+    logger.warn('getSectorSentiment', `Failed to get sector sentiment for ${symbol}`, {
+      error: error instanceof Error ? error.message : String(error)
+    });
+    
+    // Return neutral sentiment on error
+    return 0;
+  }
 }
 
 /**
@@ -770,27 +822,115 @@ function calculateNewsImpactScore(newsReport: string, symbol: string): number {
 }
 
 /**
- * Apply quantitative fundamental risk models
+ * Apply quantitative fundamental risk models using the RiskManagementEngine
  */
 async function applyQuantitativeFundamentalRiskModels(symbol: string): Promise<{ score: number; factors: string[] }> {
-  // Placeholder implementation - would need to be extracted from original
-  return { score: 0.3, factors: ['Quantitative models not implemented'] };
+  try {
+    // Import and use the simplified RiskManagementEngine
+    const { RiskManagementEngine } = await import('./risk-management-engine-simple');
+    
+    // Create a basic config for the engine
+    const config = {
+      llm: { provider: 'openai', model: 'gpt-4' },
+      dataProviders: {},
+      agents: {}
+    };
+    
+    const engine = new RiskManagementEngine(config);
+    const result = await engine.applyQuantitativeFundamentalRiskModels(symbol);
+    
+    const factors: string[] = [];
+    
+    // Generate descriptive factors based on the quantitative results
+    if (result.valueAtRisk > 0.05) {
+      factors.push(`High Value at Risk: ${(result.valueAtRisk * 100).toFixed(2)}% daily VaR`);
+    }
+    
+    if (result.conditionalVaR > 0.08) {
+      factors.push(`High tail risk: ${(result.conditionalVaR * 100).toFixed(2)}% CVaR`);
+    }
+    
+    if (result.sharpeRatio < 0.5) {
+      factors.push(`Poor risk-adjusted returns: Sharpe ratio ${result.sharpeRatio.toFixed(2)}`);
+    }
+    
+    if (result.maxDrawdown > 0.2) {
+      factors.push(`High drawdown risk: ${(result.maxDrawdown * 100).toFixed(1)}% max drawdown`);
+    }
+    
+    if (factors.length === 0) {
+      factors.push('Quantitative risk metrics within acceptable ranges');
+    }
+    
+    return {
+      score: result.riskScore,
+      factors
+    };
+  } catch (error) {
+    logger.warn('applyQuantitativeFundamentalRiskModels', `Failed to apply quantitative risk models for ${symbol}`, {
+      error: error instanceof Error ? error.message : String(error)
+    });
+    
+    // Fallback to conservative assessment
+    return { 
+      score: 0.7, 
+      factors: ['Quantitative risk models unavailable - using conservative estimate'] 
+    };
+  }
 }
 
 /**
- * Get recent volatility
+ * Get recent volatility using the RiskManagementEngine
  */
 async function getRecentVolatility(symbol: string): Promise<number> {
-  // Placeholder implementation - would need to be extracted from original
-  return 0.2;
+  try {
+    // Import and use the simplified RiskManagementEngine
+    const { RiskManagementEngine } = await import('./risk-management-engine-simple');
+    
+    // Create a basic config for the engine
+    const config = {
+      llm: { provider: 'openai', model: 'gpt-4' },
+      dataProviders: {},
+      agents: {}
+    };
+    
+    const engine = new RiskManagementEngine(config);
+    return await engine.getRecentVolatility(symbol);
+  } catch (error) {
+    logger.warn('getRecentVolatility', `Failed to get recent volatility for ${symbol}`, {
+      error: error instanceof Error ? error.message : String(error)
+    });
+    
+    // Return moderate volatility estimate on error
+    return 0.2;
+  }
 }
 
 /**
- * Detect volatility clustering
+ * Detect volatility clustering using the RiskManagementEngine
  */
 async function detectVolatilityClustering(symbol: string): Promise<boolean> {
-  // Placeholder implementation - would need to be extracted from original
-  return false;
+  try {
+    // Import and use the simplified RiskManagementEngine
+    const { RiskManagementEngine } = await import('./risk-management-engine-simple');
+    
+    // Create a basic config for the engine
+    const config = {
+      llm: { provider: 'openai', model: 'gpt-4' },
+      dataProviders: {},
+      agents: {}
+    };
+    
+    const engine = new RiskManagementEngine(config);
+    return await engine.detectVolatilityClustering(symbol);
+  } catch (error) {
+    logger.warn('detectVolatilityClustering', `Failed to detect volatility clustering for ${symbol}`, {
+      error: error instanceof Error ? error.message : String(error)
+    });
+    
+    // Return false on error (assume no clustering)
+    return false;
+  }
 }
 
 /**
