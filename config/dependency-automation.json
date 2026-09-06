@@ -1,0 +1,411 @@
+{
+  "version": "1.0.0",
+  "description": "Dependency automation configuration for TradingAgents framework",
+  "
+": {
+    "security_updates": {
+      "enabled": true,
+      "frequency": "daily",
+      "time": "06:00",
+      "timezone": "UTC",
+      "auto_apply": {
+        "critical": true,
+        "high": false,
+        "moderate": false,
+        "low": false
+      },
+      "notification_channels": ["slack", "email"],
+      "rollback_on_failure": true
+    },
+    "minor_updates": {
+      "enabled": true,
+      "frequency": "weekly",
+      "day": "sunday",
+      "time": "02:00",
+      "timezone": "UTC",
+      "auto_apply": true,
+      "require_tests": true,
+      "notification_channels": ["slack"],
+      "rollback_on_failure": true
+    },
+    "major_updates": {
+      "enabled": false,
+      "frequency": "monthly",
+      "day": "first_sunday",
+      "time": "01:00",
+      "timezone": "UTC",
+      "auto_apply": false,
+      "require_manual_approval": true,
+      "notification_channels": ["slack", "email", "github_issue"],
+      "breaking_change_analysis": true
+    },
+    "vulnerability_scanning": {
+      "enabled": true,
+      "frequency": "daily",
+      "time": "05:00",
+      "timezone": "UTC",
+      "tools": ["npm_audit", "snyk", "github_advisories"],
+      "notification_channels": ["slack"]
+    },
+    "compatibility_checks": {
+      "enabled": true,
+      "frequency": "weekly",
+      "day": "saturday",
+      "time": "23:00",
+      "timezone": "UTC",
+      "pre_update": true,
+      "post_update": true,
+      "notification_channels": ["slack"]
+    }
+  },
+  "services": {
+    "trading-agents": {
+      "enabled": true,
+      "priority": "high",
+      "critical_packages": [
+        "winston",
+        "express",
+        "@getzep/zep-js",
+        "langchain",
+        "@langchain/langgraph",
+        "@langchain/openai",
+        "@langchain/anthropic"
+      ],
+      "test_commands": [
+        "npm run type-check",
+        "npm run lint",
+        "npm test",
+        "npm run smoke"
+      ],
+      "rollback_commands": [
+        "npm ci"
+      ]
+    },
+    "reddit-service": {
+      "enabled": true,
+      "priority": "medium",
+      "critical_packages": [
+        "express",
+        "axios",
+        "winston"
+      ],
+      "test_commands": [
+        "npm run type-check",
+        "npm test"
+      ]
+    },
+    "yahoo-finance-service": {
+      "enabled": true,
+      "priority": "high",
+      "critical_packages": [
+        "yahoo-finance2",
+        "axios",
+        "winston"
+      ],
+      "test_commands": [
+        "npm run type-check",
+        "npm test"
+      ]
+    },
+    "google-news-service": {
+      "enabled": true,
+      "priority": "medium",
+      "critical_packages": [
+        "newsapi",
+        "axios",
+        "winston"
+      ],
+      "test_commands": [
+        "npm run type-check",
+        "npm test"
+      ]
+    },
+    "finance-aggregator-service": {
+      "enabled": true,
+      "priority": "medium",
+      "critical_packages": [
+        "axios",
+        "winston"
+      ],
+      "test_commands": [
+        "npm run type-check",
+        "npm test"
+      ]
+    }
+  },
+  "thresholds": {
+    "vulnerability_limits": {
+      "critical": 0,
+      "high": 5,
+      "moderate": 15,
+      "low": 50
+    },
+    "outdated_package_limits": {
+      "warning": 10,
+      "critical": 25
+    },
+    "update_frequency_limits": {
+      "max_days_without_update": 30,
+      "max_days_with_vulnerabilities": 7
+    },
+    "test_failure_tolerance": {
+      "unit_tests": 0,
+      "integration_tests": 0,
+      "smoke_tests": 1
+    }
+  },
+  "breaking_change_detection": {
+    "enabled": true,
+    "packages": {
+      "winston": {
+        "versions": {
+          "3.0.0": {
+            "breaking_changes": [
+              "Logger.log() signature changed - now requires level as first parameter",
+              "Transport configuration format changed",
+              "Default log format changed to JSON"
+            ],
+            "migration_steps": [
+              "Update logger.log(message) to logger.log('info', message)",
+              "Review transport configurations",
+              "Update log format expectations in tests"
+            ],
+            "affected_files": [
+              "src/**/*logger*.ts",
+              "src/**/*log*.ts",
+              "tests/**/*log*.test.ts"
+            ]
+          },
+          "3.18.0": {
+            "breaking_changes": [
+              "New logging API methods introduced",
+              "Deprecated methods may show warnings"
+            ],
+            "migration_steps": [
+              "Review deprecated method usage",
+              "Update to new API methods where applicable"
+            ],
+            "affected_files": [
+              "src/**/*logger*.ts",
+              "tests/**/*log*.test.ts"
+            ]
+          }
+        }
+      },
+      "express": {
+        "versions": {
+          "5.0.0": {
+            "breaking_changes": [
+              "Middleware signature changes",
+              "Router behavior changes",
+              "Error handling changes"
+            ],
+            "migration_steps": [
+              "Update middleware to use new signature",
+              "Review error handling patterns",
+              "Update router configurations"
+            ],
+            "affected_files": [
+              "src/**/*server*.ts",
+              "src/**/*middleware*.ts",
+              "tests/**/*express*.test.ts"
+            ]
+          }
+        }
+      },
+      "@getzep/zep-js": {
+        "versions": {
+          "2.0.0": {
+            "breaking_changes": [
+              "Client initialization API changed",
+              "Memory API methods renamed",
+              "Session management changes"
+            ],
+            "migration_steps": [
+              "Update ZepClient initialization",
+              "Migrate memory API calls to new methods",
+              "Update session management code"
+            ],
+            "affected_files": [
+              "src/**/*zep*.ts",
+              "src/**/*memory*.ts",
+              "tests/**/*zep*.test.ts"
+            ]
+          }
+        }
+      },
+      "langchain": {
+        "versions": {
+          "0.3.0": {
+            "breaking_changes": [
+              "Provider abstraction changes",
+              "Chain interface updates",
+              "Memory system changes"
+            ],
+            "migration_steps": [
+              "Update provider configurations",
+              "Review chain implementations",
+              "Update memory integrations"
+            ],
+            "affected_files": [
+              "src/**/*chain*.ts",
+              "src/**/*llm*.ts",
+              "tests/**/*langchain*.test.ts"
+            ]
+          }
+        }
+      },
+      "@langchain/langgraph": {
+        "versions": {
+          "0.6.0": {
+            "breaking_changes": [
+              "Graph definition API changes",
+              "Node execution model updates",
+              "State management changes"
+            ],
+            "migration_steps": [
+              "Update graph definitions",
+              "Review node implementations",
+              "Update state management"
+            ],
+            "affected_files": [
+              "src/**/*graph*.ts",
+              "src/**/*workflow*.ts",
+              "src/**/*agent*.ts",
+              "tests/**/*graph*.test.ts"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "api_compatibility_tests": {
+    "enabled": true,
+    "packages": {
+      "winston": {
+        "test_script": "// Winston API Compatibility Test\nconst winston = require('winston');\nconst logger = winston.createLogger({\n  level: 'info',\n  format: winston.format.json(),\n  transports: [new winston.transports.Console()]\n});\nlogger.info('Test message');\nconsole.log('✅ Winston API compatibility test passed');",
+        "expected_output": ["Test message", "Winston API compatibility test passed"],
+        "critical_apis": ["createLogger", "transports.Console", "format.json"]
+      },
+      "express": {
+        "test_script": "// Express API Compatibility Test\nconst express = require('express');\nconst app = express();\napp.use(express.json());\napp.get('/test', (req, res) => res.json({message: 'test'}));\nconsole.log('✅ Express API compatibility test passed');",
+        "expected_output": ["Express API compatibility test passed"],
+        "critical_apis": ["express", "express.json", "app.use", "app.get"]
+      },
+      "@getzep/zep-js": {
+        "test_script": "// Zep.js API Compatibility Test\nconst { ZepClient } = require('@getzep/zep-js');\nconst client = new ZepClient({apiKey: 'test', baseURL: 'http://localhost:8000'});\nconsole.log('✅ Zep.js API compatibility test passed');",
+        "expected_output": ["Zep.js API compatibility test passed"],
+        "critical_apis": ["ZepClient", "memory", "user"]
+      }
+    }
+  },
+  "notifications": {
+    "slack": {
+      "enabled": true,
+      "webhook_url_env": "SLACK_WEBHOOK_URL",
+      "channels": {
+        "security": "#security-alerts",
+        "updates": "#dependency-updates",
+        "general": "#trading-agents"
+      }
+    },
+    "email": {
+      "enabled": false,
+      "smtp_config": {
+        "host": "smtp.company.com",
+        "port": 587,
+        "secure": false,
+        "auth": {
+          "user_env": "SMTP_USER",
+          "pass_env": "SMTP_PASS"
+        }
+      },
+      "recipients": {
+        "security": ["security@company.com"],
+        "updates": ["dev-team@company.com"],
+        "critical": ["on-call@company.com"]
+      }
+    },
+    "github_issues": {
+      "enabled": true,
+      "labels": {
+        "security": ["security", "dependencies", "critical"],
+        "breaking_changes": ["dependencies", "breaking-changes", "manual-review"],
+        "updates": ["dependencies", "automated-update"]
+      }
+    }
+  },
+  "rollback": {
+    "enabled": true,
+    "automatic_triggers": [
+      "test_failure",
+      "security_audit_failure",
+      "api_compatibility_failure",
+      "build_failure"
+    ],
+    "backup_retention_days": 90,
+    "backup_location": "backups/dependency-updates",
+    "rollback_timeout_minutes": 30
+  },
+  "reporting": {
+    "enabled": true,
+    "formats": ["markdown", "json"],
+    "frequency": {
+      "daily": ["security_scan", "health_check"],
+      "weekly": ["update_summary", "compatibility_report"],
+      "monthly": ["comprehensive_report", "maintenance_summary"]
+    },
+    "storage_location": "reports",
+    "retention_days": 365
+  },
+  "monitoring": {
+    "enabled": true,
+    "metrics": [
+      "vulnerability_count_by_severity",
+      "outdated_package_count",
+      "update_success_rate",
+      "test_failure_rate",
+      "rollback_frequency",
+      "mean_time_to_update",
+      "mean_time_to_recovery"
+    ],
+    "alerts": {
+      "critical_vulnerability_detected": {
+        "severity": "critical",
+        "channels": ["slack", "email", "github_issue"]
+      },
+      "multiple_high_vulnerabilities": {
+        "threshold": 5,
+        "severity": "high",
+        "channels": ["slack", "email"]
+      },
+      "update_failure": {
+        "severity": "medium",
+        "channels": ["slack"]
+      },
+      "outdated_packages_threshold": {
+        "threshold": 25,
+        "severity": "medium",
+        "channels": ["slack"]
+      }
+    }
+  },
+  "compliance": {
+    "audit_logging": true,
+    "change_approval_required": {
+      "major_updates": true,
+      "critical_packages": true,
+      "production_deployments": true
+    },
+    "documentation_required": {
+      "breaking_changes": true,
+      "security_updates": true,
+      "rollbacks": true
+    },
+    "retention_policies": {
+      "audit_logs": "7_years",
+      "backup_files": "1_year",
+      "reports": "1_year"
+    }
+  }
+}

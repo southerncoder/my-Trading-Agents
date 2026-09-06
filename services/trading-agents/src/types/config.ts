@@ -31,6 +31,52 @@ export interface TradingAgentsConfig {
 
   // Data source paths
   simfinDataPath?: string | undefined;
+
+  // Database configuration
+  database?: DatabaseConfig;
+
+  // Government data configuration
+  governmentData?: GovernmentDataConfig;
+}
+
+export interface DatabaseConfig {
+  postgresql: {
+    host: string;
+    port: number;
+    database: string;
+    username: string;
+    password: string;
+    ssl: boolean;
+    poolSize: number;
+    connectionTimeoutMillis: number;
+    idleTimeoutMillis: number;
+    maxUses: number;
+    allowExitOnIdle: boolean;
+  };
+  storageStrategy: {
+    performanceMetrics: 'postgresql' | 'both';
+    backtestResults: 'postgresql' | 'both';
+    timeSeriesData: 'postgresql';
+    graphRelationships: 'zep_graphiti';
+    agentMemory: 'zep_graphiti' | 'postgresql' | 'both';
+    episodicMemory: 'postgresql';
+    semanticMemory: 'postgresql';
+    workingMemory: 'postgresql';
+    proceduralMemory: 'postgresql';
+  };
+  pgvector: {
+    enabled: boolean;
+    embeddingDimensions: number;
+    similarityThreshold: number;
+  };
+}
+
+export interface GovernmentDataConfig {
+  baseUrl: string;
+  timeout?: number;
+  enabled?: boolean;
+  fredApiKey?: string;
+  blsApiKey?: string;
 }
 
 export type LLMProvider = 'openai' | 'anthropic' | 'google' | 'ollama' | 'openrouter' | 'local_lmstudio' | 'remote_lmstudio';

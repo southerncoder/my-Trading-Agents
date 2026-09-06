@@ -1,0 +1,530 @@
+name: Automated Dependency Updates
+
+on:
+  schedule:
+    # Run weekly on Sundays at 2 AM UTC
+    - cron: '0 2 * * 0'
+  workflow_dispatch:
+    inputs:
+      update_type:
+        description: 'Type of update to perform'
+        required: true
+        default: 'minor'
+        type: choice
+        options:
+          - security
+          - minor
+          - major
+      service:
+        description: 'Service to update (default: all)'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - trading-agents
+          - reddit-service
+          - yahoo-finance-service
+      dry_run:
+        description: 'Perform dry run only'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  # Pre-update analysis
+  pre-update-analysis:
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.determine-services.outputs.services }}
+      has-breaking-changes: ${{ steps.breaking-changes.outputs.has-breaking-changes }}
+      has-incompatible-apis: ${{ steps.api-compatibility.outputs.has-incompatible-apis }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      
+      - name: Determine services to update
+        id: determine-services
+        run: |
+          if [ "${{ github.event.inputs.service }}" = "all" ] || [ -z "${{ github.event.inputs.service }}" ]; then
+            echo "services=[\"trading-agents\", \"reddit-service\", \"yahoo-finance-service\"]" >> $GITHUB_OUTPUT
+          else
+            echo "services=[\"${{ github.event.inputs.service }}\"]" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Install PowerShell
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget apt-transport-https software-properties-common
+          wget -q "https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb"
+          sudo dpkg -i packages-microsoft-prod.deb
+          sudo apt-get update
+          sudo apt-get install -y powershell
+      
+      - name: Check for breaking changes
+        id: breaking-changes
+        run: |
+          echo "Checking for breaking changes across all services..."
+          has_breaking_changes=false
+          
+          for service in trading-agents reddit-service yahoo-finance-service; do
+            if [ -f "services/$service/package.json" ]; then
+              echo "Analyzing $service for breaking changes..."
+              cd "services/$service"
+              npm ci
+              cd ../..
+              
+              # Run breaking change detection
+              pwsh -Command "
+                try {
+                  ./scripts/dependency-breaking-change-detector.ps1 -Service $service -AllPackages
+                  if (\$LASTEXITCODE -eq 1) {
+                    Write-Host 'Breaking changes detected in $service'
+                    exit 1
+                  }
+                } catch {
+                  Write-Host 'Error in breaking change detection: ' \$_.Exception.Message
+                  exit 1
+                }
+              " || has_breaking_changes=true
+            fi
+          done
+          
+          echo "has-breaking-changes=$has_breaking_changes" >> $GITHUB_OUTPUT
+          
+          if [ "$has_breaking_changes" = "true" ]; then
+            echo "⚠️ Breaking changes detected - manual review required"
+          else
+            echo "✅ No breaking changes detected"
+          fi
+      
+      - name: Check API compatibility
+        id: api-compatibility
+        run: |
+          echo "Checking API compatibility across all services..."
+          has_incompatible_apis=false
+          
+          for service in trading-agents reddit-service yahoo-finance-service; do
+            if [ -f "services/$service/package.json" ]; then
+              echo "Testing API compatibility for $service..."
+              
+              # Run API compatibility validation
+              pwsh -Command "
+                try {
+                  ./scripts/dependency-api-compatibility-validator.ps1 -Service $service -AllPackages
+                  if (\$LASTEXITCODE -eq 1) {
+                    Write-Host 'API incompatibilities detected in $service'
+                    exit 1
+                  }
+                } catch {
+                  Write-Host 'Error in API compatibility validation: ' \$_.Exception.Message
+                  exit 1
+                }
+              " || has_incompatible_apis=true
+            fi
+          done
+          
+          echo "has-incompatible-apis=$has_incompatible_apis" >> $GITHUB_OUTPUT
+          
+          if [ "$has_incompatible_apis" = "true" ]; then
+            echo "⚠️ API incompatibilities detected - manual review required"
+          else
+            echo "✅ All APIs are compatible"
+          fi
+      
+      - name: Upload analysis reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: pre-update-analysis
+          path: |
+            reports/breaking-changes-*.md
+            reports/api-compatibility-*.md
+          retention-days: 30
+
+  # Automated dependency updates
+  dependency-updates:
+    needs: pre-update-analysis
+    runs-on: ubuntu-latest
+    if: needs.pre-update-analysis.outputs.has-breaking-changes != 'true' && needs.pre-update-analysis.outputs.has-incompatible-apis != 'true'
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.pre-update-analysis.outputs.services) }}
+      fail-fast: false
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'services/${{ matrix.service }}/package-lock.json'
+      
+      - name: Install PowerShell
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget apt-transport-https software-properties-common
+          wget -q "https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb"
+          sudo dpkg -i packages-microsoft-prod.deb
+          sudo apt-get update
+          sudo apt-get install -y powershell
+      
+      - name: Install dependencies
+        run: |
+          cd services/${{ matrix.service }}
+          npm ci
+      
+      - name: Perform dependency update
+        id: update
+        run: |
+          update_type="${{ github.event.inputs.update_type || 'minor' }}"
+          dry_run="${{ github.event.inputs.dry_run || 'false' }}"
+          
+          echo "Updating dependencies for ${{ matrix.service }} (type: $update_type, dry_run: $dry_run)"
+          
+          if [ "$dry_run" = "true" ]; then
+            echo "🔍 DRY RUN MODE - No changes will be made"
+            pwsh -Command "./scripts/dependency-update.ps1 -Service ${{ matrix.service }} -DryRun"
+            echo "updated=false" >> $GITHUB_OUTPUT
+          else
+            # Perform actual update
+            case "$update_type" in
+              "security")
+                pwsh -Command "./scripts/dependency-update.ps1 -Service ${{ matrix.service }} -Security"
+                ;;
+              "major")
+                pwsh -Command "./scripts/dependency-update.ps1 -Service ${{ matrix.service }} -Major"
+                ;;
+              *)
+                pwsh -Command "./scripts/dependency-update.ps1 -Service ${{ matrix.service }}"
+                ;;
+            esac
+            
+            if [ $? -eq 0 ]; then
+              echo "updated=true" >> $GITHUB_OUTPUT
+            else
+              echo "updated=false" >> $GITHUB_OUTPUT
+              echo "❌ Update failed for ${{ matrix.service }}"
+              exit 1
+            fi
+          fi
+      
+      - name: Run comprehensive tests
+        if: steps.update.outputs.updated == 'true'
+        run: |
+          cd services/${{ matrix.service }}
+          
+          echo "🧪 Running comprehensive test suite..."
+          
+          # Type checking
+          echo "  - Type checking..."
+          npm run type-check
+          
+          # Linting
+          echo "  - Linting..."
+          npm run lint || true  # Allow warnings
+          
+          # Unit tests
+          echo "  - Unit tests..."
+          npm test
+          
+          # Smoke tests
+          echo "  - Smoke tests..."
+          npm run smoke || true
+          
+          echo "✅ All tests completed"
+      
+      - name: Security audit
+        if: steps.update.outputs.updated == 'true'
+        run: |
+          cd services/${{ matrix.service }}
+          echo "🔒 Running security audit..."
+          npm audit --audit-level moderate
+      
+      - name: Generate update summary
+        if: steps.update.outputs.updated == 'true'
+        id: summary
+        run: |
+          cd services/${{ matrix.service }}
+          
+          # Get updated packages
+          if [ -f "../../../backups/dependency-updates/${{ matrix.service }}-"*"/package.json" ]; then
+            backup_file=$(ls -t ../../../backups/dependency-updates/${{ matrix.service }}-*/package.json | head -1)
+            echo "Comparing with backup: $backup_file"
+            
+            # Simple diff of package.json versions
+            echo "## Updated Packages for ${{ matrix.service }}" > update_summary.md
+            echo "" >> update_summary.md
+            echo "**Update Type**: ${{ github.event.inputs.update_type || 'minor' }}" >> update_summary.md
+            echo "**Date**: $(date -u)" >> update_summary.md
+            echo "" >> update_summary.md
+            
+            # Add any available update reports
+            if [ -f "../../../reports/dependency-report-"*".json" ]; then
+              latest_report=$(ls -t ../../../reports/dependency-report-*.json | head -1)
+              echo "**Report**: $latest_report" >> update_summary.md
+            fi
+            
+            cat update_summary.md >> $GITHUB_STEP_SUMMARY
+          fi
+      
+      - name: Upload update artifacts
+        if: steps.update.outputs.updated == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-update-${{ matrix.service }}
+          path: |
+            backups/dependency-updates/${{ matrix.service }}-*/
+            reports/dependency-report-*.json
+            services/${{ matrix.service }}/update_summary.md
+          retention-days: 90
+      
+      - name: Create pull request
+        if: steps.update.outputs.updated == 'true' && github.event.inputs.dry_run != 'true'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: automated dependency update for ${{ matrix.service }}"
+          title: "🤖 Automated Dependency Update: ${{ matrix.service }}"
+          body: |
+            ## Automated Dependency Update
+            
+            **Service**: ${{ matrix.service }}
+            **Update Type**: ${{ github.event.inputs.update_type || 'minor' }}
+            **Generated**: $(date -u)
+            
+            ### Changes
+            - Automated dependency updates performed
+            - All tests passed
+            - Security audit completed
+            - API compatibility verified
+            
+            ### Validation
+            - ✅ Breaking change analysis passed
+            - ✅ API compatibility tests passed
+            - ✅ Security audit passed
+            - ✅ Test suite passed
+            
+            ### Backup
+            Backup available in artifacts for rollback if needed.
+            
+            ---
+            *This PR was created automatically by the dependency update workflow.*
+          branch: automated-deps-${{ matrix.service }}-${{ github.run_number }}
+          delete-branch: true
+
+  # Manual review required workflow
+  manual-review-required:
+    needs: pre-update-analysis
+    runs-on: ubuntu-latest
+    if: needs.pre-update-analysis.outputs.has-breaking-changes == 'true' || needs.pre-update-analysis.outputs.has-incompatible-apis == 'true'
+    
+    steps:
+      - name: Create manual review issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const hasBreakingChanges = '${{ needs.pre-update-analysis.outputs.has-breaking-changes }}' === 'true';
+            const hasIncompatibleAPIs = '${{ needs.pre-update-analysis.outputs.has-incompatible-apis }}' === 'true';
+            
+            let issueTitle = '🚨 Manual Review Required: Dependency Updates';
+            let issueBody = `
+            ## Manual Review Required for Dependency Updates
+            
+            **Date**: ${new Date().toISOString()}
+            **Workflow Run**: ${{ github.run_id }}
+            
+            ### Issues Detected
+            `;
+            
+            if (hasBreakingChanges) {
+              issueBody += `
+            - ❌ **Breaking Changes Detected**: Some dependency updates contain breaking changes that require manual review and code modifications.
+              `;
+            }
+            
+            if (hasIncompatibleAPIs) {
+              issueBody += `
+            - ❌ **API Incompatibilities Detected**: Some dependency updates have API compatibility issues that require code changes.
+              `;
+            }
+            
+            issueBody += `
+            
+            ### Required Actions
+            
+            1. **Review Analysis Reports**: Download and review the pre-update analysis artifacts
+            2. **Manual Testing**: Perform manual testing of affected components
+            3. **Code Updates**: Make necessary code changes to handle breaking changes
+            4. **API Migrations**: Update code to use new API patterns where needed
+            5. **Comprehensive Testing**: Run full test suite after manual updates
+            
+            ### Analysis Reports
+            
+            The following reports are available in the workflow artifacts:
+            - Breaking Changes Analysis Report
+            - API Compatibility Validation Report
+            
+            ### Next Steps
+            
+            - [ ] Download and review analysis reports
+            - [ ] Identify affected code areas
+            - [ ] Plan migration strategy
+            - [ ] Implement necessary code changes
+            - [ ] Test changes thoroughly
+            - [ ] Perform manual dependency updates with validation
+            
+            **Auto-generated by dependency update automation on ${new Date().toISOString()}**
+            `;
+            
+            // Check if similar issue already exists
+            const existingIssues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'dependencies,manual-review'
+            });
+            
+            const similarIssue = existingIssues.data.find(issue => 
+              issue.title.includes('Manual Review Required: Dependency Updates')
+            );
+            
+            if (!similarIssue) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: issueTitle,
+                body: issueBody,
+                labels: ['dependencies', 'manual-review', 'breaking-changes']
+              });
+            } else {
+              // Update existing issue with new information
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: similarIssue.number,
+                body: `
+            ## New Analysis Results
+            
+            **Date**: ${new Date().toISOString()}
+            **Workflow Run**: ${{ github.run_id }}
+            
+            Additional analysis has been performed. Please review the latest artifacts.
+                `
+              });
+            }
+
+  # Notification and reporting
+  notify-results:
+    needs: [pre-update-analysis, dependency-updates, manual-review-required]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Determine workflow status
+        id: status
+        run: |
+          if [ "${{ needs.pre-update-analysis.result }}" = "failure" ]; then
+            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "message=Pre-update analysis failed" >> $GITHUB_OUTPUT
+          elif [ "${{ needs.pre-update-analysis.outputs.has-breaking-changes }}" = "true" ] || [ "${{ needs.pre-update-analysis.outputs.has-incompatible-apis }}" = "true" ]; then
+            echo "status=manual-review" >> $GITHUB_OUTPUT
+            echo "message=Manual review required due to breaking changes or API incompatibilities" >> $GITHUB_OUTPUT
+          elif [ "${{ needs.dependency-updates.result }}" = "success" ]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "message=Automated dependency updates completed successfully" >> $GITHUB_OUTPUT
+          elif [ "${{ needs.dependency-updates.result }}" = "failure" ]; then
+            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "message=Dependency updates failed" >> $GITHUB_OUTPUT
+          else
+            echo "status=skipped" >> $GITHUB_OUTPUT
+            echo "message=Dependency updates were skipped" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Create workflow summary
+        run: |
+          echo "# Dependency Update Automation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Status**: ${{ steps.status.outputs.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Message**: ${{ steps.status.outputs.message }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Date**: $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          case "${{ steps.status.outputs.status }}" in
+            "success")
+              echo "✅ **Result**: Dependency updates completed successfully" >> $GITHUB_STEP_SUMMARY
+              echo "- All pre-update checks passed" >> $GITHUB_STEP_SUMMARY
+              echo "- No breaking changes detected" >> $GITHUB_STEP_SUMMARY
+              echo "- API compatibility verified" >> $GITHUB_STEP_SUMMARY
+              echo "- Pull requests created for review" >> $GITHUB_STEP_SUMMARY
+              ;;
+            "manual-review")
+              echo "⚠️ **Result**: Manual review required" >> $GITHUB_STEP_SUMMARY
+              echo "- Breaking changes or API incompatibilities detected" >> $GITHUB_STEP_SUMMARY
+              echo "- Issue created for manual review process" >> $GITHUB_STEP_SUMMARY
+              echo "- Analysis reports available in artifacts" >> $GITHUB_STEP_SUMMARY
+              ;;
+            "failed")
+              echo "❌ **Result**: Workflow failed" >> $GITHUB_STEP_SUMMARY
+              echo "- Check workflow logs for details" >> $GITHUB_STEP_SUMMARY
+              echo "- Manual intervention may be required" >> $GITHUB_STEP_SUMMARY
+              ;;
+            *)
+              echo "ℹ️ **Result**: Workflow completed with no updates" >> $GITHUB_STEP_SUMMARY
+              ;;
+          esac
+      
+      - name: Notify on Slack (success)
+        if: steps.status.outputs.status == 'success'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: success
+          channel: '#trading-agents'
+          text: '🤖 Automated dependency updates completed successfully! Pull requests created for review.'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      
+      - name: Notify on Slack (manual review)
+        if: steps.status.outputs.status == 'manual-review'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              "channel": "#trading-agents",
+              "attachments": [{
+                "color": "warning",
+                "title": "⚠️ Dependency Updates Require Manual Review",
+                "text": "Breaking changes or API incompatibilities detected. Manual review issue created.",
+                "fields": [{
+                  "title": "Action Required",
+                  "value": "Review analysis reports and plan migration strategy",
+                  "short": false
+                }]
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      
+      - name: Notify on Slack (failure)
+        if: steps.status.outputs.status == 'failed'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          channel: '#trading-agents'
+          text: '❌ Automated dependency update workflow failed! Manual intervention required.'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

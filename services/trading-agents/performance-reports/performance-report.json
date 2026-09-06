@@ -1,0 +1,47 @@
+{
+  "timestamp": "2025-10-17T17:22:39.123Z",
+  "suite": "Performance Tests",
+  "summary": {
+    "total": 5,
+    "passed": 5,
+    "failed": 0,
+    "totalDuration": 472
+  },
+  "results": [
+    {
+      "name": "Basic Cache Operations",
+      "success": true,
+      "duration": 0,
+      "throughput": null,
+      "memoryUsageMB": 0.0588531494140625
+    },
+    {
+      "name": "Memory Allocation Test",
+      "success": true,
+      "duration": 2,
+      "throughput": 10000,
+      "memoryUsageMB": -0.117919921875
+    },
+    {
+      "name": "Async Operations Test",
+      "success": true,
+      "duration": 457,
+      "throughput": 65.64551422319474,
+      "memoryUsageMB": 0.34014892578125
+    },
+    {
+      "name": "JSON Processing Test",
+      "success": true,
+      "duration": 10,
+      "throughput": 10000,
+      "memoryUsageMB": -0.08090972900390625
+    },
+    {
+      "name": "Database Query Simulation",
+      "success": true,
+      "duration": 1,
+      "throughput": 25000,
+      "memoryUsageMB": 0.4972991943359375
+    }
+  ]
+}

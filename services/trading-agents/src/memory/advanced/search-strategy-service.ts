@@ -79,9 +79,10 @@ export class SearchStrategyService {
       const searchQuery = this.buildSearchQuery(criteria);
 
       // Execute search in Zep
-      const searchResults = await zepClient.searchMemory?.(searchQuery, {
-        maxResults: maxSearchResults * 2 // Get more results for better filtering
-      }) || { facts: [] };
+      const searchResults = await zepClient.memory.searchSessions?.({
+        query: searchQuery,
+        limit: maxSearchResults * 2 // Get more results for better filtering
+      }) || { results: [] };
 
       this.logger.info('Executed multi-dimensional search', {
         component: 'SearchStrategyService',

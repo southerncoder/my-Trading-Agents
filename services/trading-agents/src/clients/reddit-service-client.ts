@@ -60,7 +60,7 @@ export class RedditServiceClient {
   private cache = new Map<string, { data: any; timestamp: number }>();
   private readonly cacheTimeout = 5 * 60 * 1000; // 5 minutes
 
-  constructor(serviceUrl: string = 'http://reddit-service:3001') {
+  constructor(serviceUrl: string = 'http://social-sentiment:3007') {
     this.client = axios.create({
       baseURL: serviceUrl,
       timeout: 30000,
@@ -356,7 +356,7 @@ export class RedditServiceClient {
 
 // Export singleton instance
 export const redditServiceClient = new RedditServiceClient(
-  process.env.REDDIT_SERVICE_URL || 'http://reddit-service:3001'
+  process.env.SOCIAL_SENTIMENT_SERVICE_URL || 'http://social-sentiment:3007'
 );
 
 export default redditServiceClient;

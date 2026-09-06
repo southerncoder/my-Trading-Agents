@@ -1,25 +1,58 @@
 # =====================================================================================
 # Trading Agents - Consolidated Docker Compose Configuration
 # =====================================================================================
-# This file consolidates all services into a single, comprehensive setup while
-# maintaining clear separation of concerns across different layers.
-#
-# Architecture Layers:
-# 1. Database Layer: Neo4j for knowledge graph storage
-# 2. AI/Memory Layer: Zep-Graphiti for enhanced memory and AI processing
-# 3. Data Services Layer: Reddit and News aggregation services
-# 4. Application Layer: Main trading agents application
-#
-# Environment Variables:
-# - All configuration is in .env.local (see .env.example for template)
-# - Run: docker compose --env-file .env.local up
-# - Or set: export COMPOSE_FILE=docker-compose.yml and export ENV_FILE=.env.local
-# =====================================================================================
+
+name: my-Trading-Agents
 
 services:
   # ============================================================================
   # DATABASE LAYER
   # ============================================================================
+
+  # PostgreSQL Database for Structured Data and Agent Memory
+  postgresql:
+    image: pgvector/pgvector:pg16
+    container_name: trading-agents-postgresql
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB_FILE=/run/secrets/postgres_db
+      - POSTGRES_USER_FILE=/run/secrets/postgres_user
+      - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
+    secrets:
+      - postgres_db
+      - postgres_user
+      - postgres_password
+    volumes:
+      - postgresql_data:/var/lib/postgresql/data
+    networks:
+      - my-Trading-Agents
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-trading_agents}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
+  # Redis Cache for Multi-Level Caching System
+  redis:
+    image: redis:7.4-alpine
+    container_name: trading-agents-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --appendfsync everysec
+    volumes:
+      - redis_data:/data
+    networks:
+      - my-Trading-Agents
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
 
   # Neo4j Database for Knowledge Graph Storage
   neo4j:
@@ -32,11 +65,14 @@ services:
       - NEO4J_AUTH=${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD}
       - NEO4J_PLUGINS=["apoc"]
       - NEO4J_dbms_security_procedures_unrestricted=apoc.*
+    secrets:
+      - neo4j_user
+      - neo4j_password
     volumes:
       - neo4j_data:/data
       - neo4j_logs:/logs
     networks:
-      - trading-agents
+      - my-Trading-Agents
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:7474 || exit 1"]
       interval: 30s
@@ -55,40 +91,19 @@ services:
     container_name: trading-agents-zep-graphiti
     ports:
       - "8000:8000"
-    env_file:
-      - .env.local
     environment:
-      NEO4J_URI: bolt://trading-agents-neo4j:7687
-      NEO4J_USER: ${NEO4J_USER:-neo4j}
-      NEO4J_PASSWORD: ${NEO4J_PASSWORD}
-      EMBEDDER_PROVIDER: openai
-    # Use centralized secrets instead of env_file
-    secrets:
-      - openai_api_key
-      - embedder_api_key
-      - neo4j_user
-      - neo4j_password
-      - brave_news_api_key
-      - news_api_key
-      - reddit_client_id
-      - reddit_client_secret
-      - reddit_refresh_token
-      - reddit_username
-      - reddit_password
-      - marketstack_api_key
-      - local_lmstudio_base_url
-      - local_lmstudio_api_key
-      - remote_lmstudio_base_url
-      - remote_lmstudio_api_key
-    volumes:
-      - ./services/zep_graphiti/graph_service/zep_graphiti.py:/app/graph_service/zep_graphiti.py:ro
-      - ./services/zep_graphiti/secrets/init.py:/init.py:ro
-    command: ["python3", "/init.py", "uvicorn", "graph_service.main:app", "--host", "0.0.0.0", "--port", "8000"]
+      - NEO4J_URI=bolt://trading-agents-neo4j:7687
+      - neo4j_uri=bolt://trading-agents-neo4j:7687
+      - neo4j_user=neo4j  
+      - neo4j_password=password
+      - OPENAI_API_KEY=/run/secrets/openai_api_key
+      - openai_api_key=/run/secrets/news_api_key
+      - EMBEDDER_PROVIDER=openai
     depends_on:
       neo4j:
         condition: service_healthy
     networks:
-      - trading-agents
+      - my-Trading-Agents
     healthcheck:
       test: ["CMD", "python3", "-c", "import socket; s=socket.socket(); s.connect(('localhost',8000)); s.close()"]
       interval: 30s
@@ -101,64 +116,6 @@ services:
   # DATA SERVICES LAYER
   # ============================================================================
 
-  # Reddit Sentiment Analysis Service (FEATURE-FLAGGED)
-  reddit-service:
-    profiles: ["reddit"]  # Only starts when --profile reddit is used
-    build:
-      context: ./services/reddit-service
-      dockerfile: Dockerfile
-    image: reddit-service:latest
-    container_name: trading-reddit-service
-    restart: unless-stopped
-
-    environment:
-      - NODE_ENV=production
-      - PORT=3001
-      - LOG_LEVEL=info
-
-    # Use centralized secrets instead of env_file
-    secrets:
-      - reddit_client_id
-      - reddit_client_secret
-      - reddit_refresh_token
-      - reddit_username
-      - reddit_password
-      - reddit_service_api_key
-
-    ports:
-      - "3001:3001"
-
-    # Resource limits
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: '0.5'
-        reservations:
-          memory: 256M
-          cpus: '0.25'
-
-    # Health check
-    healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://localhost:3001/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-    # Security settings
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /tmp:noexec,nosuid,size=100m
-      - /app/reddit-service.log:rw,noexec,nosuid,size=50m
-
-    # Network isolation
-    networks:
-      - reddit-network
-      - trading-agents
-
   # Unified News Aggregator Service
   news-aggregator:
     build:
@@ -167,238 +124,261 @@ services:
     image: news-aggregator-service:latest
     container_name: trading-news-aggregator
     restart: unless-stopped
-
     environment:
-      - NODE_ENV=production
-      - LOG_LEVEL=info
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
       - PORT=3004
-
-    # Use centralized secrets instead of env_file
+      - NEWS_API_KEY_FILE=/run/secrets/news_api_key
+      - BRAVE_NEWS_API_KEY_FILE=/run/secrets/brave_news_api_key
+      - GOOGLE_API_KEY_FILE=/run/secrets/google_api_key
     secrets:
-      - tavily_api_key
-      - brave_news_api_key
       - news_api_key
-      - yahoo_finance_api_key
-
+      - brave_news_api_key
+      - google_api_key
     ports:
       - "3004:3004"
-
-    # Resource limits
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: '0.5'
-        reservations:
-          memory: 256M
-          cpus: '0.25'
-
-    # Health check
-    healthcheck:
-      test: ["CMD", "node", "healthcheck.cjs"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-    # Security settings
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /tmp:noexec,nosuid,size=100m
-      - /app/news-aggregator-service.log:rw,noexec,nosuid,size=50m
-
-    # Network isolation
     networks:
-      - trading-agents
+      - my-Trading-Agents
+
+  # Government Data Service
+  government-data:
+    build:
+      context: ./services/government-data-service
+      dockerfile: Dockerfile
+    image: government-data-service:latest
+    container_name: trading-government-data
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
+      - PORT=3005
+    ports:
+      - "3005:3005"
+    networks:
+      - my-Trading-Agents
+
+  # Finance Aggregator Service
+  finance-aggregator:
+    build:
+      context: ./services/finance-aggregator-service
+      dockerfile: Dockerfile
+    image: finance-aggregator-service:latest
+    container_name: trading-finance-aggregator
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
+      - PORT=3006
+    ports:
+      - "3006:3006"
+    networks:
+      - my-Trading-Agents
+
+  # Social Sentiment Service
+  social-sentiment:
+    build:
+      context: ./services/social-sentiment-service
+      dockerfile: Dockerfile
+    image: social-sentiment-service:latest
+    container_name: trading-social-sentiment
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
+      - PORT=3007
+      - REDDIT_CLIENT_ID_FILE=/run/secrets/reddit_client_id
+      - REDDIT_CLIENT_SECRET_FILE=/run/secrets/reddit_client_secret
+      - REDDIT_USERNAME_FILE=/run/secrets/reddit_username
+      - REDDIT_PASSWORD_FILE=/run/secrets/reddit_password
+      - REDDIT_USER_AGENT_FILE=/run/secrets/reddit_user_agent
+      - TWITTER_BEARER_TOKEN_FILE=/run/secrets/twitter_bearer_token
+    secrets:
+      - reddit_client_id
+      - reddit_client_secret
+      - reddit_username
+      - reddit_password
+      - reddit_user_agent
+      - twitter_bearer_token
+    ports:
+      - "3007:3007"
+    networks:
+      - my-Trading-Agents
 
   # ============================================================================
   # APPLICATION LAYER
   # ============================================================================
 
-  # Main Trading Agents Application
+  # Main Trading Agents Service
   trading-agents:
     build:
       context: ./services/trading-agents
       dockerfile: Dockerfile
-      target: production
-    image: trading-agents:latest
-    container_name: trading-agents-cli
+    container_name: trading-agents-main
     restart: unless-stopped
-
     environment:
-      - NODE_ENV=production
-      - LOG_LEVEL=info
-      - REDDIT_SERVICE_URL=http://reddit-service:3001
-      - NEWS_AGGREGATOR_URL=http://news-aggregator:3004
-      - ZEP_GRAPHITI_URL=http://zep-graphiti:8000
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
+      - TRADING_AGENTS_WEB_MODE=true
+      - DATABASE_URL=postgresql://postgres:password@postgresql:5432/trading_agents
       - NEO4J_URI=bolt://neo4j:7687
-      - NEO4J_USER=${NEO4J_USER:-neo4j}
-      - NEO4J_PASSWORD=${NEO4J_PASSWORD}
-
-    # Use centralized secrets instead of env_file
-    secrets:
-      - openai_api_key
-      - anthropic_api_key
-      - google_api_key
-      - embedder_api_key
-      - tavily_api_key
-      - brave_news_api_key
-      - news_api_key
-      - finnhub_api_key
-      - alpha_vantage_api_key
-      - marketstack_api_key
-      - reddit_client_id
-      - reddit_client_secret
-      - reddit_refresh_token
-      - reddit_username
-      - reddit_password
-      - neo4j_user
-      - neo4j_password
-      - local_lmstudio_base_url
-      - local_lmstudio_api_key
-      - remote_lmstudio_base_url
-      - remote_lmstudio_api_key
-
-    volumes:
-      - ./data:/app/data:rw
-      - ./logs:/app/logs:rw
-      - ./exports:/app/exports:rw
-      - ./services/trading-agents/config:/app/config:ro
-
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=password
+      - ZEP_GRAPHITI_URL=http://zep-graphiti:8000
+      - REDIS_URL=redis://redis:6379
     depends_on:
+      postgresql:
+        condition: service_healthy
       neo4j:
         condition: service_healthy
       zep-graphiti:
-        condition: service_started
-      news-aggregator:
         condition: service_healthy
-      # reddit-service dependency removed - will only be included when --profile reddit is used
-
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: '1.0'
-        reservations:
-          memory: 512M
-          cpus: '0.5'
-
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./.env.local:/app/.env.local:ro
+      - ./logs:/app/logs
+      - ./exports:/app/exports
+    networks:
+      - my-Trading-Agents
     healthcheck:
-      test: ["CMD", "node", "-e", "process.exit(0)"]
+      test: ["CMD", "node", "-e", "console.log('Trading agents service healthy')"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 60s
 
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /tmp:noexec,nosuid,size=100m
+  # ============================================================================
+  # WEB SERVICES LAYER
+  # ============================================================================
 
+  # Web API Backend
+  web-api:
+    build:
+      context: ./services/web-api
+      dockerfile: Dockerfile
+    container_name: trading-agents-web-api
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
+      - PORT=3001
+      - CORS_ORIGIN=http://localhost:3000
+      - FRONTEND_URL=http://localhost:3000
+      - TRADING_AGENTS_SERVICE_PATH=/app/trading-agents
+      - ANALYSIS_TIMEOUT=300000
+      - MAX_CONCURRENT_ANALYSES=3
+      - ENABLE_ANALYSIS_CACHING=true
+      - ANALYSIS_CACHE_TIMEOUT=300000
+    depends_on:
+      trading-agents:
+        condition: service_healthy
+    volumes:
+      - ./.env.local:/app/.env.local:ro
+      - ./services/trading-agents:/app/trading-agents:ro
+      - ./logs:/app/logs
+    ports:
+      - "3001:3001"
     networks:
-      - trading-agents
+      - my-Trading-Agents
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Web Frontend
+  web-frontend:
+    build:
+      context: ./services/web-frontend
+      dockerfile: Dockerfile
+    container_name: trading-agents-web-frontend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:3001/api
+      - VITE_WS_URL=ws://localhost:3001
+    ports:
+      - "3000:80"
+    depends_on:
+      web-api:
+        condition: service_healthy
+    networks:
+      - my-Trading-Agents
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
 # ============================================================================
 # NETWORKS
 # ============================================================================
 
 networks:
-  # Internal network for Reddit service (only created when reddit profile is active)
+  # Internal network for Reddit service
   reddit-network:
     driver: bridge
     internal: true
-    ipam:
-      config:
-        - subnet: 172.21.0.0/16
 
   # Main trading network with external access
-  trading-agents:
+  my-Trading-Agents:
     driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16
 
 # ============================================================================
 # VOLUMES
 # ============================================================================
 
 volumes:
-  # Neo4j data persistence
+  postgresql_data:
+    driver: local
+  redis_data:
+    driver: local
   neo4j_data:
     driver: local
   neo4j_logs:
     driver: local
 
-  # Trading agents data persistence
-  trading-data:
-    driver: local
-  trading-logs:
-    driver: local
-
 # ============================================================================
-# SECRETS - Centralized Secret Management
+# SECRETS
 # ============================================================================
 
 secrets:
-  # OpenAI and AI Provider Secrets
-  openai_api_key:
-    file: ./docker/secrets/openai_api_key.txt
-  anthropic_api_key:
-    file: ./docker/secrets/anthropic_api_key.txt
-  google_api_key:
-    file: ./docker/secrets/google_api_key.txt
-  embedder_api_key:
-    file: ./docker/secrets/embedder_api_key.txt
-
-  # News and Data Provider Secrets
-  tavily_api_key:
-    file: ./docker/secrets/tavily_api_key.txt
-  brave_news_api_key:
-    file: ./docker/secrets/brave_news_api_key.txt
-  news_api_key:
-    file: ./docker/secrets/news_api_key.txt
-  yahoo_finance_api_key:
-    file: ./docker/secrets/yahoo_finance_api_key.txt
-
-  # Market Data Provider Secrets
-  finnhub_api_key:
-    file: ./docker/secrets/finnhub_api_key.txt
-  alpha_vantage_api_key:
-    file: ./docker/secrets/alpha_vantage_api_key.txt
-  marketstack_api_key:
-    file: ./docker/secrets/marketstack_api_key.txt
-
-  # Reddit API Secrets
-  reddit_client_id:
-    file: ./docker/secrets/reddit_client_id.txt
-  reddit_client_secret:
-    file: ./docker/secrets/reddit_client_secret.txt
-  reddit_refresh_token:
-    file: ./docker/secrets/reddit_refresh_token.txt
-  reddit_username:
-    file: ./docker/secrets/reddit_username.txt
-  reddit_password:
-    file: ./docker/secrets/reddit_password.txt
-  reddit_service_api_key:
-    file: ./docker/secrets/reddit_service_api_key.txt
-
   # Database Secrets
+  postgres_db:
+    file: ./docker/secrets/postgres_db.txt
+  postgres_user:
+    file: ./docker/secrets/postgres_user.txt
+  postgres_password:
+    file: ./docker/secrets/postgres_password.txt
   neo4j_user:
     file: ./docker/secrets/neo4j_user.txt
   neo4j_password:
     file: ./docker/secrets/neo4j_password.txt
-
-  # LM Studio Configuration
-  local_lmstudio_base_url:
-    file: ./docker/secrets/local_lmstudio_base_url.txt
-  local_lmstudio_api_key:
-    file: ./docker/secrets/local_lmstudio_api_key.txt
-
-  # Remote LM Studio
-  remote_lmstudio_base_url:
-    file: ./docker/secrets/remote_lmstudio_base_url.txt
-  remote_lmstudio_api_key:
-    file: ./docker/secrets/remote_lmstudio_api_key.txt
+  
+  # AI Provider Secrets
+  openai_api_key:
+    file: ./docker/secrets/openai_api_key.txt
+  
+  # News API Secrets
+  news_api_key:
+    file: ./docker/secrets/news_api_key.txt
+  brave_news_api_key:
+    file: ./docker/secrets/brave_news_api_key.txt
+  google_api_key:
+    file: ./docker/secrets/google_api_key.txt
+  
+  # Social Media API Secrets
+  reddit_client_id:
+    file: ./docker/secrets/reddit_client_id.txt
+  reddit_client_secret:
+    file: ./docker/secrets/reddit_client_secret.txt
+  reddit_username:
+    file: ./docker/secrets/reddit_username.txt
+  reddit_password:
+    file: ./docker/secrets/reddit_password.txt
+  reddit_user_agent:
+    file: ./docker/secrets/reddit_user_agent.txt
+  twitter_bearer_token:
+    file: ./docker/secrets/twitter_bearer_token.txt

@@ -352,6 +352,82 @@ export class HealthMonitor {
       });
     }
 
+    // Resilience System Health
+    try {
+      const { resilienceManager } = await import('./enhanced-error-integration.js');
+      const resilienceHealth = await resilienceManager.getHealthStatus();
+      
+      let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
+      
+      if (!resilienceHealth.initialized) {
+        status = 'unhealthy';
+      } else {
+        // Check circuit breaker states
+        if (resilienceHealth.circuitBreakers) {
+          const openBreakers = Object.values(resilienceHealth.circuitBreakers).filter(
+            (breaker: any) => breaker.status === 'unhealthy'
+          );
+          if (openBreakers.length > 0) {
+            status = 'degraded';
+          }
+        }
+      }
+      
+      components.push({
+        name: 'Resilience System',
+        status,
+        lastChecked: new Date(),
+        details: {
+          initialized: resilienceHealth.initialized,
+          circuitBreakers: resilienceHealth.circuitBreakers ? Object.keys(resilienceHealth.circuitBreakers).length : 0,
+          caches: resilienceHealth.caches ? Object.keys(resilienceHealth.caches).length : 0
+        }
+      });
+    } catch (error) {
+      components.push({
+        name: 'Resilience System',
+        status: 'unhealthy',
+        lastChecked: new Date(),
+        error: (error as Error).message
+      });
+    }
+
+    // Data Provider Failover Health
+    try {
+      const { DataProviderFailover } = await import('../resilience/data-provider-failover.js');
+      const failover = new DataProviderFailover();
+      const healthStatuses = failover.getHealthStatus();
+      
+      const unhealthyProviders = healthStatuses.filter(h => h.status === 'unhealthy').length;
+      const degradedProviders = healthStatuses.filter(h => h.status === 'degraded').length;
+      
+      let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
+      if (unhealthyProviders > healthStatuses.length / 2) {
+        status = 'unhealthy';
+      } else if (degradedProviders > 0 || unhealthyProviders > 0) {
+        status = 'degraded';
+      }
+      
+      components.push({
+        name: 'Data Provider Failover',
+        status,
+        lastChecked: new Date(),
+        details: {
+          totalProviders: healthStatuses.length,
+          healthyProviders: healthStatuses.filter(h => h.status === 'healthy').length,
+          degradedProviders,
+          unhealthyProviders
+        }
+      });
+    } catch (error) {
+      components.push({
+        name: 'Data Provider Failover',
+        status: 'unhealthy',
+        lastChecked: new Date(),
+        error: (error as Error).message
+      });
+    }
+
     return components;
   }
 

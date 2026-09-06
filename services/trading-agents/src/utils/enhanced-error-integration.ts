@@ -13,7 +13,10 @@ import {
   globalErrorManager,
   wrapWithErrorHandling,
   CircuitBreaker
-} from './error-handler';
+} from './error-handler.js';
+import { createLogger } from './enhanced-logger.js';
+
+const logger = createLogger('system', 'enhanced-error-integration');
 
 // ========================================
 // Enhanced Error Handling Wrappers
@@ -142,10 +145,22 @@ export class EnhancedDataFlowWrapper {
         { maxAttempts: 2, baseDelay: 2000 }
       );
     } catch (error) {
-      // TODO: Implement proper news data fallback system
-      // Should include cached news data, alternative news providers, and graceful degradation
-      globalErrorManager.handleError(error, context).catch(() => {});
-      throw new Error(`News data unavailable for ${ticker}. Need to implement news provider failover and caching system.`);
+      // Use the new data provider failover system
+      const { DataProviderFailover } = await import('../resilience/data-provider-failover.js');
+      const failover = new DataProviderFailover();
+      
+      try {
+        const result = await failover.executeWithFailover('news', 'getNews', {
+          query: ticker,
+          currDate: new Date().toISOString().split('T')[0],
+          lookBackDays: 7
+        });
+        
+        return result.data ? [result.data] : [];
+      } catch (failoverError) {
+        globalErrorManager.handleError(error, context).catch(() => {});
+        return []; // Return empty array as graceful fallback
+      }
     }
   }
 
@@ -164,10 +179,20 @@ export class EnhancedDataFlowWrapper {
         { maxAttempts: 2, baseDelay: 1500 }
       );
     } catch (error) {
-      // TODO: Implement proper social media data fallback system  
-      // Should include cached sentiment data, alternative social providers, and sentiment trend analysis
-      globalErrorManager.handleError(error, context).catch(() => {});
-      throw new Error(`Social media data unavailable for ${ticker}. Need to implement social media provider failover and sentiment caching system.`);
+      // Use the new data provider failover system
+      const { DataProviderFailover } = await import('../resilience/data-provider-failover.js');
+      const failover = new DataProviderFailover();
+      
+      try {
+        const result = await failover.executeWithFailover('social', 'analyzeSentiment', {
+          symbol: ticker
+        });
+        
+        return result.data || { sentiment: 'neutral', confidence: 0.5 };
+      } catch (failoverError) {
+        globalErrorManager.handleError(error, context).catch(() => {});
+        return { sentiment: 'neutral', confidence: 0.5 }; // Return neutral sentiment as fallback
+      }
     }
   }
 
@@ -182,10 +207,21 @@ export class EnhancedDataFlowWrapper {
     try {
       return await circuitBreaker.execute(() => this.dataFlow.fetchFundamentals(ticker));
     } catch (error) {
-      // TODO: Implement proper fundamentals data fallback system
-      // Should include cached financial data, alternative data providers, and financial metrics calculation
-      globalErrorManager.handleError(error, context).catch(() => {});
-      throw new Error(`Fundamentals data unavailable for ${ticker}. Need to implement financial data provider failover and caching system.`);
+      // Use the new data provider failover system
+      const { DataProviderFailover } = await import('../resilience/data-provider-failover.js');
+      const failover = new DataProviderFailover();
+      
+      try {
+        const result = await failover.executeWithFailover('fundamentals', 'getFundamentals', {
+          symbol: ticker,
+          startDate: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // 1 year ago
+        });
+        
+        return result.data || {};
+      } catch (failoverError) {
+        globalErrorManager.handleError(error, context).catch(() => {});
+        return {}; // Return empty object as fallback
+      }
     }
   }
 }
@@ -506,4 +542,330 @@ export function createGracefulHandler<T>(
       return fallbackValue;
     }
   };
+}
+
+// ----------------------------------------
+// Resilience System Integration
+// ----------------------------------------
+
+/**
+ * Enhanced Resilience Manager that integrates all resilience components
+ */
+export class ResilienceManager {
+  private dataProviderFailover?: any;
+  private circuitBreakerManager?: any;
+  private cacheManager?: any;
+  private initialized = false;
+
+  constructor() {
+    this.initialize();
+  }
+
+  private async initialize(): Promise<void> {
+    try {
+      // Initialize data provider failover
+      const { DataProviderFailover } = await import('../resilience/data-provider-failover.js');
+      this.dataProviderFailover = new DataProviderFailover();
+
+      // Initialize circuit breaker manager
+      const { CircuitBreakerManager } = await import('../resilience/enhanced-circuit-breaker.js');
+      this.circuitBreakerManager = new CircuitBreakerManager();
+
+      // Initialize cache manager
+      const { CacheManager } = await import('../resilience/intelligent-caching.js');
+      this.cacheManager = new CacheManager();
+
+      this.initialized = true;
+      
+      logger.info('resilience-manager-initialized', 'Resilience manager initialized successfully');
+    } catch (error) {
+      logger.error('resilience-manager-init-error', 'Failed to initialize resilience manager', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  }
+
+  /**
+   * Execute operation with full resilience protection
+   */
+  public async executeWithResilience<T>(
+    operation: () => Promise<T>,
+    options: {
+      providerType: 'news' | 'social' | 'fundamentals' | 'market_data';
+      operationName: string;
+      cacheKey?: string;
+      cacheTTL?: number;
+      fallbackValue?: T;
+    }
+  ): Promise<T> {
+    if (!this.initialized) {
+      await this.initialize();
+    }
+
+    const { providerType, operationName, cacheKey, cacheTTL, fallbackValue } = options;
+
+    try {
+      // Try cache first if cache key is provided
+      if (cacheKey && this.cacheManager) {
+        const cache = this.cacheManager.get(providerType);
+        if (cache) {
+          const cached = await cache.get(cacheKey) as T;
+          if (cached !== null) {
+            return cached;
+          }
+        }
+      }
+
+      // Execute operation with circuit breaker protection
+      let result: T;
+      if (this.circuitBreakerManager) {
+        const circuitBreaker = this.circuitBreakerManager.get(`${providerType}-${operationName}`);
+        if (circuitBreaker) {
+          result = await circuitBreaker.executeWithRetry(operation);
+        } else {
+          result = await operation();
+        }
+      } else {
+        result = await operation();
+      }
+
+      // Cache the result if cache key is provided
+      if (cacheKey && this.cacheManager && result !== undefined) {
+        const cache = this.cacheManager.get(providerType);
+        if (cache) {
+          await cache.set(cacheKey, result, cacheTTL);
+        }
+      }
+
+      return result;
+
+    } catch (error) {
+      logger.warn('resilience-operation-failed', `Resilient operation failed: ${operationName}`, {
+        providerType,
+        operationName,
+        error: error instanceof Error ? error.message : String(error)
+      });
+
+      // Return fallback value if provided
+      if (fallbackValue !== undefined) {
+        return fallbackValue;
+      }
+
+      throw error;
+    }
+  }
+
+  /**
+   * Execute data provider operation with failover
+   */
+  public async executeWithFailover<T>(
+    providerType: 'news' | 'social' | 'fundamentals' | 'market_data',
+    operation: string,
+    params: any
+  ): Promise<T> {
+    if (!this.initialized) {
+      await this.initialize();
+    }
+
+    if (!this.dataProviderFailover) {
+      throw new Error('Data provider failover not initialized');
+    }
+
+    const result = await this.dataProviderFailover.executeWithFailover(providerType, operation, params);
+    return result.data;
+  }
+
+  /**
+   * Get resilience system health status
+   */
+  public async getHealthStatus(): Promise<any> {
+    const status = {
+      initialized: this.initialized,
+      dataProviderFailover: null as any,
+      circuitBreakers: null as any,
+      caches: null as any
+    };
+
+    if (this.dataProviderFailover) {
+      status.dataProviderFailover = this.dataProviderFailover.getHealthStatus();
+    }
+
+    if (this.circuitBreakerManager) {
+      status.circuitBreakers = this.circuitBreakerManager.getAllHealthStatuses();
+    }
+
+    if (this.cacheManager) {
+      status.caches = this.cacheManager.getAllMetrics();
+    }
+
+    return status;
+  }
+
+  /**
+   * Optimize all resilience components
+   */
+  public async optimize(): Promise<void> {
+    if (!this.initialized) {
+      return;
+    }
+
+    const promises: Promise<void>[] = [];
+
+    if (this.cacheManager) {
+      promises.push(this.cacheManager.optimizeAll());
+    }
+
+    await Promise.allSettled(promises);
+    
+    logger.info('resilience-optimized', 'Resilience system optimization completed');
+  }
+
+  /**
+   * Destroy resilience manager and cleanup resources
+   */
+  public async destroy(): Promise<void> {
+    const promises: Promise<void>[] = [];
+
+    if (this.circuitBreakerManager) {
+      promises.push(this.circuitBreakerManager.destroyAll());
+    }
+
+    if (this.cacheManager) {
+      promises.push(this.cacheManager.destroyAll());
+    }
+
+    await Promise.allSettled(promises);
+
+    this.initialized = false;
+    
+    logger.info('resilience-destroyed', 'Resilience manager destroyed');
+  }
+}
+
+/**
+ * Global resilience manager instance
+ */
+export const resilienceManager = new ResilienceManager();
+
+/**
+ * Enhanced wrapper factory that includes resilience features
+ */
+export function createResilientWrapper<T>(
+  component: T,
+  componentName: string,
+  wrapperType: 'llm' | 'dataflow' | 'agent' | 'graph',
+  resilienceOptions?: {
+    enableFailover?: boolean;
+    enableCaching?: boolean;
+    enableCircuitBreaker?: boolean;
+  }
+): any {
+  const options = {
+    enableFailover: true,
+    enableCaching: true,
+    enableCircuitBreaker: true,
+    ...resilienceOptions
+  };
+
+  // Create base wrapper
+  const baseWrapper = createEnhancedWrapper(component, componentName, wrapperType);
+
+  // Add resilience features if enabled
+  if (options.enableFailover || options.enableCaching || options.enableCircuitBreaker) {
+    return new Proxy(baseWrapper, {
+      get(target, prop, receiver) {
+        const originalMethod = Reflect.get(target, prop, receiver);
+        
+        if (typeof originalMethod === 'function') {
+          return async function(...args: any[]) {
+            // Determine provider type based on component name
+            let providerType: 'news' | 'social' | 'fundamentals' | 'market_data' = 'fundamentals';
+            if (componentName.toLowerCase().includes('news')) {
+              providerType = 'news';
+            } else if (componentName.toLowerCase().includes('social') || componentName.toLowerCase().includes('reddit')) {
+              providerType = 'social';
+            } else if (componentName.toLowerCase().includes('market')) {
+              providerType = 'market_data';
+            }
+
+            // Generate cache key if caching is enabled
+            const cacheKey = options.enableCaching ? 
+              `${componentName}:${String(prop)}:${JSON.stringify(args).substring(0, 100)}` : 
+              undefined;
+
+            const resilienceOptions: any = {
+              providerType,
+              operationName: String(prop),
+              cacheTTL: 300 // 5 minutes default
+            };
+            
+            if (cacheKey) {
+              resilienceOptions.cacheKey = cacheKey;
+            }
+
+            return await resilienceManager.executeWithResilience(
+              () => originalMethod.apply(target, args),
+              resilienceOptions
+            );
+          };
+        }
+        
+        return originalMethod;
+      }
+    });
+  }
+
+  return baseWrapper;
+}
+
+/**
+ * Update health monitor to include resilience components
+ */
+export async function updateHealthMonitorWithResilience(): Promise<void> {
+  try {
+    const { healthMonitor } = await import('./health-monitor.js');
+    
+    // Add resilience health checks to the health monitor
+    const resilienceHealth = await resilienceManager.getHealthStatus();
+    
+    logger.info('health-monitor-updated', 'Health monitor updated with resilience components', {
+      resilienceInitialized: resilienceHealth.initialized
+    });
+    
+  } catch (error) {
+    logger.error('health-monitor-update-error', 'Failed to update health monitor with resilience', {
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+}
+
+/**
+ * Initialize resilience system integration
+ */
+export async function initializeResilienceIntegration(): Promise<void> {
+  try {
+    // Initialize resilience manager
+    await resilienceManager.getHealthStatus(); // This triggers initialization
+    
+    // Update health monitoring
+    await updateHealthMonitorWithResilience();
+    
+    // Set up periodic optimization
+    setInterval(async () => {
+      try {
+        await resilienceManager.optimize();
+      } catch (error) {
+        logger.error('resilience-optimization-error', 'Resilience optimization failed', {
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
+    }, 60 * 60 * 1000); // Every hour
+    
+    logger.info('resilience-integration-initialized', 'Resilience system integration initialized successfully');
+    
+  } catch (error) {
+    logger.error('resilience-integration-error', 'Failed to initialize resilience integration', {
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
 }

@@ -1,8 +1,6 @@
-# Neo4j Security Hardening Guide
+This document has moved to the centralized docs:
 
-## Overview
-
-This document describes the secure Neo4j password generation system implemented for the Trading Agents project. The system generates cryptographically secure random passwords and manages them through Docker secrets.
+- See `docs/zep-graphiti/NEO4J_SECURITY_GUIDE.md`
 
 ## Security Features
 

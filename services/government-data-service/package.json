@@ -1,0 +1,53 @@
+{
+  "name": "government-data-service",
+  "version": "1.0.0",
+  "description": "Unified government data service integrating SEC, FRED, BLS, and Census APIs",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "test": "vitest --run",
+    "test:watch": "vitest",
+    "test:unit": "vitest --run --config vitest.config.ts",
+    "test:integration": "vitest --run --config vitest.integration.config.ts",
+    "test:performance": "vitest --run tests/performance/**/*.test.ts",
+    "test:all": "npm run test:unit && npm run test:integration && npm run test:performance",
+    "test:coverage": "vitest --run --coverage",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "axios": "^1.7.7",
+    "express": "^4.21.1",
+    "limiter": "^2.1.0",
+    "winston": "^3.17.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.1",
+    "@typescript-eslint/eslint-plugin": "^8.18.0",
+    "@typescript-eslint/parser": "^8.18.0",
+    "@vitest/coverage-v8": "^2.1.8",
+    "dotenv": "^16.4.5",
+    "eslint": "^9.17.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "keywords": [
+    "government",
+    "data",
+    "SEC",
+    "FRED",
+    "BLS",
+    "Census",
+    "financial",
+    "economic"
+  ],
+  "author": "Trading Agents",
+  "license": "MIT"
+}

@@ -11,12 +11,12 @@
 ## 🎯 Current Status: **Production Ready** ✅
 
 ### Core Infrastructure
-- ✅ **Modern Build System**: Vite 5.x with ES modules and TypeScript 5.x
-- ✅ **Multi-Agent Architecture**: 12 specialized trading agents with LangGraph orchestration
-- ✅ **Enterprise Memory**: Zep Graphiti client-based integration with knowledge graphs
-- ✅ **Multi-Provider Data**: Yahoo Finance, Alpha Vantage, MarketStack with automatic failover
-- ✅ **Social Sentiment**: Reddit OAuth integration with feature switching
-- ✅ **100% Test Coverage**: Comprehensive test suite with zero vulnerabilities
+- **Modern Build System**: Vite 7.x with ES modules and TypeScript 5.x
+- **Multi-Agent Architecture**: 12 specialized trading agents with LangGraph orchestration
+- **Enterprise Memory**: Zep Graphiti integration with knowledge graphs
+- **Multi-Provider Data**: Yahoo Finance, Alpha Vantage, MarketStack with automatic failover
+- **Social Sentiment**: Reddit OAuth integration with feature switching
+- **Comprehensive Testing**: Full test suite with zero vulnerabilities
 
 ### Key Features
 - **12 Specialized Agents**: Market, Social, News, Fundamentals analysts + Risk management
@@ -30,29 +30,38 @@
 ## Quick Start
 
 ```bash
-# 1. Clone and install dependencies
+# 1. Clone and setup
 git clone https://github.com/southerncoder/my-Trading-Agents
-cd my-Trading-Agents/services/trading-agents
-npm install
+cd my-Trading-Agents
 
-# 2. Configure environment (copy and edit .env.local)
+# 2. Configure environment and secrets
 cp .env.example .env.local
+# Edit .env.local with basic settings
 
-# 3. Start services (optional for basic usage)
-cd ../zep_graphiti
-.\start-zep-services.ps1
+# Set up API keys in secret files
+# Edit files in docker/secrets/ with your actual API keys
 
-# 4. Run interactive trading analysis
-cd ../services/trading-agents
-npm run cli
+# 3. Start all services
+docker compose up -d
+
+# 4. Run CLI analysis
+docker compose exec trading-agents npm run cli
 ```
 
-### Feature Flags
+### Service Profiles
 
-**Reddit Service**: Disabled by default
 ```bash
-# To include Reddit service:
-docker compose --profile reddit up
+# Start all core services
+docker compose up -d
+
+# Include Reddit service
+docker compose --profile reddit up -d
+
+# Include local registry
+docker compose --profile registry up -d
+
+# Web interface only
+docker compose up web-frontend web-api -d
 ```
 
 ## Configuration
@@ -191,11 +200,61 @@ graph TB
 - **[Quick Start Guide](docs/QUICK-START.md)** - Get up and running in 5 minutes
 - **[Configuration Guide](docs/CONFIGURATION.md)** - Complete config.json reference
 - **[Git Hooks](docs/GIT-HOOKS.md)** - Pre-commit security scanning for contributors
+- **[Docker Secrets](docs/DOCKER-SECRETS.md)** - Secure secret management via Docker secrets
+- **[Local Docker Registry](docs/DOCKER-LOCAL-REGISTRY.md)** - Run and use a local container registry
 
 ### Architecture & Components
 - [docs/zep-graphiti/ARCHITECTURE.md](docs/zep-graphiti/ARCHITECTURE.md) - Memory system architecture
 - [docs/DOCKER-README.md](docs/DOCKER-README.md) - Docker deployment guide
 - [docs/FEATURE-FLAGS.md](docs/FEATURE-FLAGS.md) - Feature flag system
+
+## 🔁 Recent changes (branch: add-kiro)
+
+This branch contains repository hygiene and secrets-migration improvements plus local contributor safeguards. The diagram below shows the new artifacts and how they relate to runtime secrets and the local pre-commit enforcement.
+
+```mermaid
+flowchart TB
+    Dev[Developer/Contributor]
+    PreCommit[.pre-commit-config.yaml]
+    LocalHook[scripts/hooks/pre-commit<br/>(bash / PowerShell)]
+    SetupHooks[scripts/setup-hooks.sh / .ps1]
+    Tools[tools/]
+    Migrate[tools/migrate-secrets.sh \n tools/migrate-secrets.ps1]
+    Replace[tools/replace-candidates.json]
+    SecretsDir[docker/secrets/ (gitignored)]
+    Zep[services/zep_graphiti]
+    MEM[Zep Graphiti Memory]
+    NEO[(Neo4j DB)]
+    CI[gitleaks / CI scan]
+
+    Dev -->|installs| SetupHooks
+    Dev -->|commits| PreCommit
+    PreCommit --> LocalHook
+    LocalHook -->|blocks tokens| Dev
+    PreCommit --> CI
+
+    Tools --> Migrate
+    Tools --> Replace
+    Migrate --> SecretsDir
+    SecretsDir --> Zep
+    Zep --> MEM
+    MEM --> NEO
+    CI -.->|scan on push| Replace
+
+    classDef infra fill:#e8f5e8,stroke:#388e3c
+    classDef scripts fill:#fff3e0,stroke:#f57c00
+    classDef tools fill:#f3e5f5,stroke:#7b1fa2
+
+    class SetupHooks,LocalHook,PreCommit scripts
+    class Tools,Migrate,Replace tools
+    class Zep,MEM,NEO infra
+```
+
+Short summary:
+- Added `.pre-commit-config.yaml` and lightweight staged-file hooks in `scripts/hooks/` (bash + PowerShell) to block accidental tokens during commits.
+- Consolidated migration helpers to `tools/` and deduped `tools/replace-candidates.json` (sanitized). The canonical migration scripts live in `tools/` (PowerShell + shell variants).
+- Hardened `docker/secrets/.gitignore` so helper scripts are not stored in the secrets directory. Runtime secret files remain gitignored and are populated by the migration helpers.
+- CI-level scanning (gitleaks) should continue to run on pushes; local hooks provide quick feedback for contributors.
 
 ### Development Planning
 - [docs/todos/IMPLEMENTATION-GAP-ANALYSIS.md](docs/todos/IMPLEMENTATION-GAP-ANALYSIS.md) - Feature gap analysis and roadmap
@@ -267,7 +326,7 @@ This repository follows strict security practices:
 
 This TypeScript implementation is a complete rewrite by **[SouthernCoder](https://github.com/southerncoder)** with enterprise memory, multi-provider data, and production features.
 
-**Full Attribution**: See [ATTRIBUTION.md](./ATTRIBUTION.md) for complete project history, enhancements, and citation information.
+**Full Attribution**: See [docs/ATTRIBUTION.md](docs/ATTRIBUTION.md) for complete project history, enhancements, and citation information.
 
 ## License
 

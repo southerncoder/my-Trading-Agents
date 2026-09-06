@@ -1,0 +1,46 @@
+{
+  "name": "social-sentiment-service",
+  "version": "1.0.0",
+  "description": "Social media sentiment analysis service with Reddit, Twitter, and other social platform integrations",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "build": "echo 'No build step needed for this service'",
+    "test": "node --test",
+    "lint": "eslint src/**/*.js",
+    "docker:build": "docker build -t social-sentiment-service .",
+    "docker:run": "docker run -p 3007:3007 --env-file .env social-sentiment-service"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "axios": "^1.12.2",
+    "cors": "^2.8.5",
+    "helmet": "^8.1.0",
+    "compression": "^1.7.4",
+    "rate-limiter-flexible": "^7.3.0",
+    "winston": "^3.18.3",
+    "dotenv": "^17.2.3",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "eslint": "^9.35.0",
+    "nodemon": "^3.1.10"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "keywords": [
+    "social-media",
+    "sentiment",
+    "reddit",
+    "twitter",
+    "api",
+    "microservice",
+    "trading",
+    "social-sentiment"
+  ],
+  "author": "southernCoder",
+  "license": "MIT"
+}
