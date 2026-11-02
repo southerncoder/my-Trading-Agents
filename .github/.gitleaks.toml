@@ -13,8 +13,6 @@ regexes = [
 ]
 paths = [
   "js/.env.example",
-  "py_zep/.env.example",
-  "py_zep/.env.local.example",
   "js/tests/README.md",
   "README.md"
 ]

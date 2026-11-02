@@ -6,4 +6,5 @@ export * from './reddit';
 export * from './simfin';
 export * from './openai-data';
 export * from './technical-indicators';
+export * from './government-data';
 export * from '../types/dataflows';

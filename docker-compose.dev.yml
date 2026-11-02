@@ -1,0 +1,70 @@
+# Development override for docker-compose.yml
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
+name: my-Trading-Agents
+
+services:
+  # Development overrides for web services
+  web-api:
+    build:
+      context: ./services/web-api
+      dockerfile: Dockerfile
+      target: development
+    volumes:
+      - ./services/web-api/src:/app/src:ro
+      - ./services/web-api/package.json:/app/package.json:ro
+      - ./services/web-api/tsconfig.json:/app/tsconfig.json:ro
+      - ./.env.local:/app/.env.local:ro
+      - ./services/trading-agents:/app/trading-agents:ro
+      - ./logs:/app/logs
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
+      - PORT=3001
+      - CORS_ORIGIN=http://localhost:3000
+      - FRONTEND_URL=http://localhost:3000
+      - TRADING_AGENTS_SERVICE_PATH=/app/trading-agents
+      - ANALYSIS_TIMEOUT=300000
+      - MAX_CONCURRENT_ANALYSES=3
+      - ENABLE_ANALYSIS_CACHING=true
+      - ANALYSIS_CACHE_TIMEOUT=300000
+    command: npm run dev
+
+  web-frontend:
+    build:
+      context: ./services/web-frontend
+      dockerfile: Dockerfile
+      target: development
+    volumes:
+      - ./services/web-frontend/src:/app/src:ro
+      - ./services/web-frontend/public:/app/public:ro
+      - ./services/web-frontend/package.json:/app/package.json:ro
+      - ./services/web-frontend/vite.config.ts:/app/vite.config.ts:ro
+      - ./services/web-frontend/tsconfig.json:/app/tsconfig.json:ro
+      - ./services/web-frontend/tailwind.config.js:/app/tailwind.config.js:ro
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:3001/api
+      - VITE_WS_URL=ws://localhost:3001
+    ports:
+      - "3000:5173"  # Vite dev server port
+    command: npm run dev
+
+  trading-agents:
+    volumes:
+      - ./services/trading-agents/src:/app/src:ro
+      - ./services/trading-agents/package.json:/app/package.json:ro
+      - ./services/trading-agents/tsconfig.json:/app/tsconfig.json:ro
+      - ./.env.local:/app/.env.local:ro
+      - ./logs:/app/logs
+      - ./exports:/app/exports
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
+      - TRADING_AGENTS_WEB_MODE=true
+      - DATABASE_URL=postgresql://postgres:password@postgresql:5432/trading_agents
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=password
+      - ZEP_GRAPHITI_URL=http://zep-graphiti:8000
+      - REDIS_URL=redis://redis:6379

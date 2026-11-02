@@ -1,0 +1,225 @@
+name: Dependency Security Monitor
+
+on:
+  schedule:
+    # Run daily at 6 AM UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Service to check (default: all)'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - trading-agents
+          - reddit-service
+          - yahoo-finance-service
+
+jobs:
+  dependency-audit:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: 
+          - trading-agents
+          - reddit-service
+          - yahoo-finance-service
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: 'services/${{ matrix.service }}/package-lock.json'
+      
+      - name: Install dependencies
+        run: |
+          cd services/${{ matrix.service }}
+          npm ci
+      
+      - name: Run security audit
+        id: audit
+        run: |
+          cd services/${{ matrix.service }}
+          
+          # Run audit and capture results
+          npm audit --audit-level=moderate --json > audit-results.json || true
+          
+          # Parse results
+          VULN_COUNT=$(cat audit-results.json | jq -r '.metadata.vulnerabilities.total // 0')
+          CRITICAL_COUNT=$(cat audit-results.json | jq -r '.metadata.vulnerabilities.critical // 0')
+          HIGH_COUNT=$(cat audit-results.json | jq -r '.metadata.vulnerabilities.high // 0')
+          
+          echo "vuln_count=$VULN_COUNT" >> $GITHUB_OUTPUT
+          echo "critical_count=$CRITICAL_COUNT" >> $GITHUB_OUTPUT
+          echo "high_count=$HIGH_COUNT" >> $GITHUB_OUTPUT
+          
+          # Create summary
+          echo "## Security Audit Results for ${{ matrix.service }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Total vulnerabilities: $VULN_COUNT" >> $GITHUB_STEP_SUMMARY
+          echo "- Critical: $CRITICAL_COUNT" >> $GITHUB_STEP_SUMMARY
+          echo "- High: $HIGH_COUNT" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "$VULN_COUNT" -gt 0 ]; then
+            echo "⚠️ Vulnerabilities found!" >> $GITHUB_STEP_SUMMARY
+            cat audit-results.json | jq -r '.vulnerabilities | to_entries[] | select(.value.severity == "critical" or .value.severity == "high") | "- **\(.value.title)** (\(.value.severity)): \(.key)"' >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ No vulnerabilities found" >> $GITHUB_STEP_SUMMARY
+          fi
+      
+      - name: Check for outdated packages
+        id: outdated
+        run: |
+          cd services/${{ matrix.service }}
+          
+          # Check for outdated packages
+          npm outdated --json > outdated-results.json || true
+          
+          OUTDATED_COUNT=$(cat outdated-results.json | jq -r 'length // 0')
+          echo "outdated_count=$OUTDATED_COUNT" >> $GITHUB_OUTPUT
+          
+          echo "## Outdated Packages for ${{ matrix.service }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Outdated packages: $OUTDATED_COUNT" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "$OUTDATED_COUNT" -gt 0 ]; then
+            echo "📦 Outdated packages found:" >> $GITHUB_STEP_SUMMARY
+            cat outdated-results.json | jq -r 'to_entries[] | "- **\(.key)**: \(.value.current) → \(.value.latest)"' >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ All packages are up to date" >> $GITHUB_STEP_SUMMARY
+          fi
+      
+      - name: Upload audit results
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-audit-${{ matrix.service }}
+          path: |
+            services/${{ matrix.service }}/audit-results.json
+            services/${{ matrix.service }}/outdated-results.json
+          retention-days: 30
+      
+      - name: Create issue for critical vulnerabilities
+        if: steps.audit.outputs.critical_count > 0
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const auditResults = JSON.parse(fs.readFileSync('services/${{ matrix.service }}/audit-results.json', 'utf8'));
+            
+            const criticalVulns = Object.entries(auditResults.vulnerabilities || {})
+              .filter(([_, vuln]) => vuln.severity === 'critical')
+              .map(([pkg, vuln]) => `- **${vuln.title}** in \`${pkg}\`: ${vuln.url}`)
+              .join('\n');
+            
+            const issueTitle = `🚨 Critical Security Vulnerabilities in ${{ matrix.service }}`;
+            const issueBody = `
+            ## Critical Security Alert
+            
+            Critical vulnerabilities have been detected in the **${{ matrix.service }}** service.
+            
+            ### Critical Vulnerabilities:
+            ${criticalVulns}
+            
+            ### Action Required:
+            - [ ] Review and assess impact
+            - [ ] Update affected packages
+            - [ ] Test for compatibility
+            - [ ] Deploy security fixes
+            
+            **Auto-generated by dependency monitor on ${new Date().toISOString()}**
+            `;
+            
+            // Check if similar issue already exists
+            const existingIssues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'security,dependencies'
+            });
+            
+            const similarIssue = existingIssues.data.find(issue => 
+              issue.title.includes('Critical Security Vulnerabilities') && 
+              issue.title.includes('${{ matrix.service }}')
+            );
+            
+            if (!similarIssue) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: issueTitle,
+                body: issueBody,
+                labels: ['security', 'dependencies', 'critical']
+              });
+            }
+
+  dependency-summary:
+    needs: dependency-audit
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: audit-results
+      
+      - name: Create summary report
+        run: |
+          echo "# Dependency Security Summary" > summary.md
+          echo "" >> summary.md
+          echo "**Date**: $(date -u)" >> summary.md
+          echo "" >> summary.md
+          
+          total_vulns=0
+          total_critical=0
+          total_high=0
+          total_outdated=0
+          
+          for service in trading-agents reddit-service yahoo-finance-service; do
+            if [ -f "audit-results/dependency-audit-$service/audit-results.json" ]; then
+              vulns=$(cat "audit-results/dependency-audit-$service/audit-results.json" | jq -r '.metadata.vulnerabilities.total // 0')
+              critical=$(cat "audit-results/dependency-audit-$service/audit-results.json" | jq -r '.metadata.vulnerabilities.critical // 0')
+              high=$(cat "audit-results/dependency-audit-$service/audit-results.json" | jq -r '.metadata.vulnerabilities.high // 0')
+              outdated=$(cat "audit-results/dependency-audit-$service/outdated-results.json" | jq -r 'length // 0')
+              
+              total_vulns=$((total_vulns + vulns))
+              total_critical=$((total_critical + critical))
+              total_high=$((total_high + high))
+              total_outdated=$((total_outdated + outdated))
+              
+              echo "## $service" >> summary.md
+              echo "- Vulnerabilities: $vulns (Critical: $critical, High: $high)" >> summary.md
+              echo "- Outdated packages: $outdated" >> summary.md
+              echo "" >> summary.md
+            fi
+          done
+          
+          echo "## Overall Summary" >> summary.md
+          echo "- **Total vulnerabilities**: $total_vulns" >> summary.md
+          echo "- **Critical vulnerabilities**: $total_critical" >> summary.md
+          echo "- **High vulnerabilities**: $total_high" >> summary.md
+          echo "- **Total outdated packages**: $total_outdated" >> summary.md
+          
+          if [ "$total_critical" -gt 0 ]; then
+            echo "- **Status**: 🚨 **CRITICAL - Immediate action required**" >> summary.md
+          elif [ "$total_high" -gt 0 ]; then
+            echo "- **Status**: ⚠️ **HIGH - Action required**" >> summary.md
+          elif [ "$total_vulns" -gt 0 ]; then
+            echo "- **Status**: ⚠️ **MODERATE - Review recommended**" >> summary.md
+          else
+            echo "- **Status**: ✅ **SECURE - No critical issues**" >> summary.md
+          fi
+          
+          cat summary.md >> $GITHUB_STEP_SUMMARY
+      
+      - name: Upload summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-summary
+          path: summary.md
+          retention-days: 90

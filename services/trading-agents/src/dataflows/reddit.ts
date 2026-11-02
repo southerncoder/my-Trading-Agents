@@ -136,7 +136,7 @@ export class RedditAPI {
     
     this.logger.info('constructor', 'Initializing Reddit service client', {
       enabled: true,
-      serviceUrl: process.env.REDDIT_SERVICE_URL || 'http://reddit-service:3001'
+      serviceUrl: process.env.SOCIAL_SENTIMENT_SERVICE_URL || 'http://social-sentiment:3007'
     });
     
     // Initialize service connection (async, but don't wait)

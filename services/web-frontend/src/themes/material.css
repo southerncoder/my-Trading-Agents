@@ -1,0 +1,554 @@
+/* Material Design Theme - Google Material Design 3 */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500&display=swap');
+
+.theme-material {
+  font-family: 'Roboto', sans-serif;
+  background: var(--color-background);
+  color: var(--color-text-primary);
+  min-height: 100vh;
+}
+
+.theme-material * {
+  font-family: 'Roboto', sans-serif;
+}
+
+.theme-material .font-mono,
+.theme-material code,
+.theme-material pre {
+  font-family: 'Roboto Mono', monospace !important;
+}
+
+.theme-material .btn-primary,
+.theme-material .btn-secondary {
+  font-family: 'Roboto', sans-serif !important;
+}
+
+.theme-material .btn-primary {
+  background: var(--color-primary);
+  color: white;
+  font-family: 'Roboto', sans-serif;
+  font-weight: 500;
+  padding: clamp(0.5rem, 1.5vw, 0.75rem) clamp(1rem, 3vw, 1.5rem);
+  border: none;
+  border-radius: var(--border-radius-lg);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-sm);
+  text-transform: uppercase;
+  letter-spacing: clamp(0.25px, 0.5vw, 0.5px);
+  font-size: clamp(0.75rem, 2vw, 0.875rem);
+  min-height: clamp(2.25rem, 6vw, 2.5rem);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.theme-material .btn-primary:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.theme-material .btn-primary:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
+}
+
+.theme-material .btn-secondary {
+  background: transparent;
+  color: var(--color-primary);
+  border: 1px solid var(--color-border);
+  font-family: 'Roboto', sans-serif;
+  font-weight: 500;
+  padding: clamp(0.5rem, 1.5vw, 0.75rem) clamp(1rem, 3vw, 1.5rem);
+  border-radius: var(--border-radius-lg);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-transform: uppercase;
+  letter-spacing: clamp(0.25px, 0.5vw, 0.5px);
+  font-size: clamp(0.75rem, 2vw, 0.875rem);
+  min-height: clamp(2.25rem, 6vw, 2.5rem);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.theme-material .btn-secondary:hover {
+  background: rgba(25, 118, 210, 0.04);
+  border-color: var(--color-primary);
+}
+
+.theme-material .card {
+  background: var(--color-surface);
+  border-radius: var(--border-radius-lg);
+  padding: clamp(1rem, 4vw, 1.5rem);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid var(--color-border);
+  margin-bottom: clamp(1rem, 3vw, 1.5rem);
+  max-width: 100%;
+  overflow-wrap: break-word;
+}
+
+.theme-material .card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.theme-material .input-field {
+  width: 100%;
+  padding: clamp(0.75rem, 2.5vw, 1rem);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-sm);
+  color: var(--color-text-primary);
+  font-family: 'Roboto', sans-serif;
+  font-size: clamp(0.875rem, 2.5vw, 1rem);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  min-height: clamp(2.5rem, 6vw, 3rem);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.theme-material .input-field:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2);
+}
+
+/* Material Design floating labels */
+.theme-material .input-group {
+  position: relative;
+  margin-bottom: 1.5rem;
+}
+
+.theme-material .input-group label {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  color: var(--color-text-muted);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  background: var(--color-surface);
+  padding: 0 0.25rem;
+}
+
+.theme-material .input-group input:focus + label,
+.theme-material .input-group input:not(:placeholder-shown) + label {
+  top: -0.5rem;
+  left: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--color-primary);
+}
+
+.theme-material .bull-text {
+  color: var(--color-bull);
+  font-weight: 500;
+}
+
+.theme-material .bear-text {
+  color: var(--color-bear);
+  font-weight: 500;
+}
+
+.theme-material .neutral-text {
+  color: var(--color-neutral);
+}
+
+/* Material Design responsive typography - Following Material Design 3 type scale */
+.theme-material h1 {
+  font-family: 'Roboto', sans-serif;
+  font-size: clamp(1.75rem, 4vw, 3.5rem); /* Display Large */
+  font-weight: 400;
+  line-height: 1.12;
+  letter-spacing: -0.25px;
+  margin-bottom: clamp(0.75rem, 2vw, 1rem);
+}
+
+.theme-material h2 {
+  font-family: 'Roboto', sans-serif;
+  font-size: clamp(1.5rem, 3.5vw, 2.875rem); /* Display Medium */
+  font-weight: 400;
+  line-height: 1.16;
+  letter-spacing: 0px;
+  margin-bottom: clamp(0.625rem, 1.5vw, 0.875rem);
+}
+
+.theme-material h3 {
+  font-family: 'Roboto', sans-serif;
+  font-size: clamp(1.25rem, 3vw, 2.25rem); /* Display Small */
+  font-weight: 400;
+  line-height: 1.22;
+  letter-spacing: 0px;
+  margin-bottom: clamp(0.5rem, 1.25vw, 0.75rem);
+}
+
+.theme-material h4 {
+  font-family: 'Roboto', sans-serif;
+  font-size: clamp(1.125rem, 2.5vw, 2rem); /* Headline Large */
+  font-weight: 400;
+  line-height: 1.25;
+  letter-spacing: 0px;
+  margin-bottom: clamp(0.5rem, 1vw, 0.625rem);
+}
+
+.theme-material h5 {
+  font-family: 'Roboto', sans-serif;
+  font-size: clamp(1rem, 2vw, 1.75rem); /* Headline Medium */
+  font-weight: 400;
+  line-height: 1.29;
+  letter-spacing: 0px;
+  margin-bottom: clamp(0.375rem, 0.75vw, 0.5rem);
+}
+
+.theme-material h6 {
+  font-family: 'Roboto', sans-serif;
+  font-size: clamp(0.875rem, 1.75vw, 1.5rem); /* Headline Small */
+  font-weight: 400;
+  line-height: 1.33;
+  letter-spacing: 0px;
+  margin-bottom: clamp(0.375rem, 0.75vw, 0.5rem);
+}
+
+.theme-material p {
+  font-family: 'Roboto', sans-serif;
+  font-size: clamp(0.875rem, 2vw, 1rem); /* Body Large */
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0.5px;
+  margin-bottom: clamp(0.75rem, 1.5vw, 1rem);
+}
+
+/* Material Design body text variants */
+.theme-material .body-medium {
+  font-size: clamp(0.8125rem, 1.75vw, 0.875rem); /* Body Medium */
+  font-weight: 400;
+  line-height: 1.43;
+  letter-spacing: 0.25px;
+}
+
+.theme-material .body-small {
+  font-size: clamp(0.75rem, 1.5vw, 0.75rem); /* Body Small */
+  font-weight: 400;
+  line-height: 1.33;
+  letter-spacing: 0.4px;
+}
+
+/* Material Design label text */
+.theme-material .label-large {
+  font-size: clamp(0.8125rem, 1.75vw, 0.875rem); /* Label Large */
+  font-weight: 500;
+  line-height: 1.43;
+  letter-spacing: 0.1px;
+}
+
+.theme-material .label-medium {
+  font-size: clamp(0.75rem, 1.5vw, 0.75rem); /* Label Medium */
+  font-weight: 500;
+  line-height: 1.33;
+  letter-spacing: 0.5px;
+}
+
+.theme-material .label-small {
+  font-size: clamp(0.6875rem, 1.25vw, 0.6875rem); /* Label Small */
+  font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: 0.5px;
+}
+
+/* Mobile-specific adjustments for Material theme */
+@media (max-width: 480px) {
+  .theme-material .btn-primary,
+  .theme-material .btn-secondary {
+    font-size: 0.75rem;
+    padding: 0.5rem 0.875rem;
+    letter-spacing: 0.25px;
+    min-height: 2.25rem;
+  }
+  
+  .theme-material .card {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: var(--border-radius-md);
+  }
+  
+  .theme-material .input-field {
+    padding: 0.75rem;
+    font-size: 16px; /* Prevent zoom on iOS */
+    border-width: 1px;
+    min-height: 2.75rem;
+  }
+  
+  .theme-material h1 {
+    font-size: 1.75rem; /* Smaller display on mobile */
+    line-height: 1.2;
+    margin-bottom: 0.75rem;
+  }
+  
+  .theme-material h2 {
+    font-size: 1.5rem;
+    line-height: 1.25;
+    margin-bottom: 0.625rem;
+  }
+  
+  .theme-material h3 {
+    font-size: 1.25rem;
+    line-height: 1.3;
+    margin-bottom: 0.5rem;
+  }
+  
+  .theme-material .fab {
+    width: 48px;
+    height: 48px;
+    bottom: 1rem;
+    right: 1rem;
+    font-size: 1.25rem;
+  }
+  
+  .theme-material .snackbar {
+    left: 1rem;
+    right: 1rem;
+    transform: none;
+    max-width: none;
+  }
+}
+
+/* Tablet adjustments */
+@media (min-width: 481px) and (max-width: 768px) {
+  .theme-material .btn-primary,
+  .theme-material .btn-secondary {
+    font-size: 0.8125rem;
+    padding: 0.5625rem 1.125rem;
+    min-height: 2.375rem;
+  }
+  
+  .theme-material .card {
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+  
+  .theme-material h1 {
+    font-size: 2.25rem;
+    margin-bottom: 0.875rem;
+  }
+  
+  .theme-material h2 {
+    font-size: 1.875rem;
+    margin-bottom: 0.75rem;
+  }
+}
+
+/* Large mobile landscape */
+@media (max-height: 500px) and (orientation: landscape) {
+  .theme-material .card {
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+  
+  .theme-material h1,
+  .theme-material h2,
+  .theme-material h3 {
+    margin-bottom: 0.5rem;
+  }
+  
+  .theme-material .fab {
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+  }
+}
+
+/* Material Design elevation system */
+.theme-material .elevation-1 {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+}
+
+.theme-material .elevation-2 {
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23);
+}
+
+.theme-material .elevation-3 {
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.19), 0 6px 6px rgba(0, 0, 0, 0.23);
+}
+
+/* Scrollbar styling */
+.theme-material ::-webkit-scrollbar {
+  width: 8px;
+}
+
+.theme-material ::-webkit-scrollbar-track {
+  background: var(--color-background);
+}
+
+.theme-material ::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+.theme-material ::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+/* Material Design ripple effect */
+.theme-material .ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.theme-material .ripple::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.theme-material .ripple:active::before {
+  width: 300px;
+  height: 300px;
+}
+
+/* Material Design FAB (Floating Action Button) */
+.theme-material .fab {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--color-secondary);
+  color: white;
+  border: none;
+  box-shadow: var(--shadow-md);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.theme-material .fab:hover {
+  box-shadow: var(--shadow-lg);
+  transform: scale(1.1);
+}
+
+/* Material Design snackbar */
+.theme-material .snackbar {
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #323232;
+  color: white;
+  padding: 0.875rem 1.5rem;
+  border-radius: var(--border-radius-sm);
+  box-shadow: var(--shadow-md);
+  z-index: 1000;
+}
+
+/* Material Design layout improvements */
+.theme-material .container {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.theme-material .grid {
+  display: grid;
+  gap: clamp(1rem, 3vw, 1.5rem);
+  width: 100%;
+}
+
+.theme-material .grid-cols-1 {
+  grid-template-columns: 1fr;
+}
+
+.theme-material .grid-cols-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.theme-material .grid-cols-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+/* Responsive grid for Material theme */
+@media (max-width: 480px) {
+  .theme-material .grid-cols-2,
+  .theme-material .grid-cols-3 {
+    grid-template-columns: 1fr;
+  }
+  
+  .theme-material .grid {
+    gap: 1rem;
+  }
+}
+
+@media (min-width: 481px) and (max-width: 768px) {
+  .theme-material .grid-cols-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .theme-material .grid {
+    gap: 1.25rem;
+  }
+}
+
+/* Material Design spacing utilities */
+.theme-material .space-y-2 > * + * {
+  margin-top: 0.5rem;
+}
+
+.theme-material .space-y-4 > * + * {
+  margin-top: 1rem;
+}
+
+.theme-material .space-y-6 > * + * {
+  margin-top: 1.5rem;
+}
+
+.theme-material .space-x-2 > * + * {
+  margin-left: 0.5rem;
+}
+
+.theme-material .space-x-4 > * + * {
+  margin-left: 1rem;
+}
+
+/* Mobile spacing adjustments */
+@media (max-width: 480px) {
+  .theme-material .space-y-6 > * + * {
+    margin-top: 1rem;
+  }
+  
+  .theme-material .space-x-4 > * + * {
+    margin-left: 0.5rem;
+  }
+}
+
+/* Material Design surface improvements */
+.theme-material .surface-variant {
+  background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
+}
+
+.theme-material .on-surface {
+  color: var(--color-text-primary);
+}
+
+.theme-material .on-surface-variant {
+  color: var(--color-text-secondary);
+}
+
+/* Prevent text overflow in Material theme */
+.theme-material * {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.theme-material .text-truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

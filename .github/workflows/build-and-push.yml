@@ -1,0 +1,51 @@
+name: Build and push images
+
+on:
+  push:
+    paths:
+      - 'services/**'
+      - '.github/workflows/**'
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    env:
+      REGISTRY: ${{ secrets.GHCR_REGISTRY }} # e.g., ghcr.io
+      IMAGE_NAMESPACE: ${{ github.repository_owner }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build and push finance image (to GHCR if token provided)
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services/finance-aggregator-service
+          push: true
+          tags: ${{ secrets.GHCR_REGISTRY || 'localhost:5000' }}/${{ github.repository_owner }}/finance-aggregator:${{ github.sha }}
+          cache-from: type=registry,ref=${{ secrets.GHCR_REGISTRY || 'localhost:5000' }}/${{ github.repository_owner }}/finance-aggregator:cache
+          cache-to: type=inline
+        env:
+          DOCKER_BUILDKIT: 1
+
+      - name: Build and push news image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services/news-aggregator-service
+          push: true
+          tags: ${{ secrets.GHCR_REGISTRY || 'localhost:5000' }}/${{ github.repository_owner }}/news-aggregator:${{ github.sha }}
+          cache-from: type=registry,ref=${{ secrets.GHCR_REGISTRY || 'localhost:5000' }}/${{ github.repository_owner }}/news-aggregator:cache
+          cache-to: type=inline
+        env:
+          DOCKER_BUILDKIT: 1
+
+      - name: Output images
+        run: |
+          echo "Built images:"
+          echo "${{ secrets.GHCR_REGISTRY || 'localhost:5000' }}/${{ github.repository_owner }}/finance-aggregator:${{ github.sha }}"
+          echo "${{ secrets.GHCR_REGISTRY || 'localhost:5000' }}/${{ github.repository_owner }}/news-aggregator:${{ github.sha }}"

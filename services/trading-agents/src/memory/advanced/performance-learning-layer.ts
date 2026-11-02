@@ -10,7 +10,7 @@
  * - Provide performance analytics and optimization recommendations
  */
 
-import { ZepClient } from '@getzep/zep-cloud';
+import { ZepClient } from '@getzep/zep-js';
 
 // Import ML libraries for advanced optimization
 import { Matrix as _Matrix } from 'ml-matrix';
@@ -47,7 +47,14 @@ import {
 // Type declarations for ML libraries
 // Extend ZepClient interface for performance learning
 interface ExtendedZepClient extends ZepClient {
-  searchMemory?: (query: string, options?: { maxResults?: number }) => Promise<{ facts?: any[] }>;
+  // Zep.js v2 API methods
+  memory: {
+    searchSessions?: (request?: any) => Promise<any>;
+    addSession?: (request: any) => Promise<any>;
+    get?: (sessionId: string, request?: any) => Promise<any>;
+    add?: (sessionId: string, request: any) => Promise<any>;
+  };
+  // Custom methods for performance learning
   storePerformanceData?: (data: any) => Promise<{ id: string }>;
 }
 
@@ -572,8 +579,27 @@ export class PerformanceLearningLayer {
   }
 
   private async storePerformanceInsights(insights: PerformanceLearningInsights): Promise<void> {
-    if (this.zepClient.storePerformanceData) {
-      await this.zepClient.storePerformanceData(insights);
+    try {
+      // Store performance insights using Zep.js v2 API
+      const sessionId = `performance_${insights.agentId}_${Date.now()}`;
+      
+      // Create session if it doesn't exist
+      await this.zepClient.memory.addSession?.({ sessionId });
+      
+      // Add performance data as memory
+      await this.zepClient.memory.add?.(sessionId, {
+        messages: [{
+          role: 'system',
+          content: `Performance insights for agent ${insights.agentId}`,
+          metadata: {
+            type: 'performance_insights',
+            agentId: insights.agentId,
+            insights: JSON.stringify(insights)
+          }
+        }]
+      });
+    } catch (error) {
+      this.logger.warn('Failed to store performance insights', { error });
     }
   }
 
@@ -827,16 +853,16 @@ export class PerformanceLearningLayer {
   
   private async getHistoricalPerformance(agentId: string): Promise<AgentPerformanceRecord[]> {
     try {
-      // Query the Zep memory system for historical performance data
-      const query = `agent_id:${agentId} AND performance_data:*`;
-      const searchResults = await this.zepClient.searchMemory?.(query, { maxResults: 100 }) || { facts: [] };
+      // Query the Zep memory system for historical performance data using v2 API
+      const searchQuery = { query: `agent_id:${agentId} AND performance_data:*`, limit: 100 };
+      const searchResults = await this.zepClient.memory.searchSessions?.(searchQuery) || { results: [] };
       
       const performanceRecords: AgentPerformanceRecord[] = [];
       
-      for (const fact of searchResults.facts || []) {
+      for (const result of searchResults.results || []) {
         try {
           // Extract performance data from memory records
-          const record = this.parsePerformanceRecord(fact, agentId);
+          const record = this.parsePerformanceRecord(result, agentId);
           if (record) {
             performanceRecords.push(record);
           }
