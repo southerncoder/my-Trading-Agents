@@ -14,16 +14,16 @@ jobs:
       IMAGE_NAMESPACE: ${{ github.repository_owner }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v4
 
       - name: Build and push finance image (to GHCR if token provided)
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: ./services/finance-aggregator-service
           push: true
@@ -34,7 +34,7 @@ jobs:
           DOCKER_BUILDKIT: 1
 
       - name: Build and push news image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: ./services/news-aggregator-service
           push: true
