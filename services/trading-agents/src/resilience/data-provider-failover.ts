@@ -16,7 +16,8 @@
 
 import { createLogger } from '../utils/enhanced-logger';
 import { CircuitBreaker } from '../utils/circuit-breaker';
-import { TradingAgentError, ErrorType, ErrorSeverity, createErrorContext } from '../utils/trading-agent-error';
+import { TradingAgentError, ErrorType, ErrorSeverity } from '../utils/trading-agent-error';
+import { createErrorContext } from '../utils/error-handler';
 
 const logger = createLogger('resilience', 'data-provider-failover');
 

@@ -1,5 +1,5 @@
-import { createLogger } from '../../../utils/enhanced-logger';
-import { ContextRetrievalCriteria } from '../context-retrieval/types';
+import { createLogger } from '../../utils/enhanced-logger';
+import { ContextRetrievalCriteria } from './context-retrieval/types';
 
 /**
  * SearchStrategyService - Handles search strategy determination and execution

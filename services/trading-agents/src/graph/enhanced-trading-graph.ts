@@ -28,14 +28,21 @@ import {
 
 // Enhanced components integration
 import { BacktestEngine } from '../backtesting/backtest-engine';
-import { RiskManagementEngine } from '../utils/risk-management-utils';
 import { StrategyEnsemble } from '../strategies/strategy-ensemble';
 import { PositionSizer } from '../portfolio/position-sizer';
 import { DataProviderFailover } from '../resilience/data-provider-failover';
 import { PerformanceMonitor } from '../monitoring/performance-monitor';
 import { DatabaseManager } from '../database/database-manager';
-import { AgentMemoryManager } from '../memory/agent-memory-manager';
+import { AgentMemoryManager } from '../database/agent-memory-manager';
 import { GovernmentDataClient } from '../clients/government-data-client';
+
+/** Structural type for the optional risk engine (the former utils/risk-management-utils engine was removed). */
+interface RiskManagementEngine {
+  assessComprehensiveRisk(
+    ticker: string,
+    options: { includeGovernmentData: boolean; governmentData?: unknown }
+  ): Promise<{ overallRiskScore?: number } & Record<string, unknown>>;
+}
 
 const logger = createLogger('graph', 'enhanced-trading-graph');
 
@@ -257,7 +264,8 @@ export class EnhancedTradingAgentsGraph {
 
       // Initialize risk management engine
       if (this.enableRiskManagement) {
-        this.riskManagementEngine = new RiskManagementEngine(this.config);
+        // No RiskManagementEngine implementation is wired in yet; assessments are skipped.
+        logger.warn('initialize', 'Risk management requested but no engine is available');
       }
 
       // Initialize strategy ensemble
