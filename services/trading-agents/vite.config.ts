@@ -5,7 +5,14 @@ import { builtinModules } from 'module';
 import { readFileSync } from 'fs';
 
 const pkg = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf-8'));
-const dependencyNames: string[] = Object.keys({ ...pkg.dependencies, ...pkg.optionalDependencies, ...pkg.peerDependencies });
+const dependencyNames: string[] = [
+  ...Object.keys({ ...pkg.dependencies, ...pkg.optionalDependencies, ...pkg.peerDependencies }),
+  // transitive packages that source files import directly
+  '@inquirer/prompts',
+  '@inquirer/core',
+  '@inquirer/external-editor',
+  'chardet'
+];
 
 export default defineConfig({
   plugins: [tsconfigPaths()],
