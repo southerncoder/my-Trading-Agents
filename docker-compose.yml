@@ -37,7 +37,7 @@ services:
 
   # Redis Cache for Multi-Level Caching System
   redis:
-    image: redis:7.4-alpine
+    image: redis:8.10-alpine
     container_name: trading-agents-redis
     ports:
       - "6379:6379"
@@ -56,7 +56,7 @@ services:
 
   # Neo4j Database for Knowledge Graph Storage
   neo4j:
-    image: neo4j:5.26.0
+    image: neo4j:5.26.33
     container_name: trading-agents-neo4j
     ports:
       - "7474:7474"
@@ -87,7 +87,7 @@ services:
 
   # Zep Graphiti Memory Service
   zep-graphiti:
-    image: zepai/graphiti:latest
+    image: zepai/graphiti:0.31.2
     container_name: trading-agents-zep-graphiti
     ports:
       - "8000:8000"
