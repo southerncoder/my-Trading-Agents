@@ -8,21 +8,21 @@ import express from 'express';
 import { jest } from '@jest/globals';
 
 // Mock providers to avoid real API calls
-jest.mock('../src/providers/newsapi.js');
-jest.mock('../src/providers/tavily.js');
-jest.mock('../src/providers/brave-news.js');
-jest.mock('../src/providers/serp-api.js');
-jest.mock('../src/providers/google-news.js');
+jest.mock('../../src/providers/newsapi.js');
+jest.mock('../../src/providers/tavily.js');
+jest.mock('../../src/providers/brave-news.js');
+jest.mock('../../src/providers/serp-api.js');
+jest.mock('../../src/providers/google-news.js');
 
 // Import mocked providers
-import NewsAPIProvider from '../src/providers/newsapi.js';
-import TavilyProvider from '../src/providers/tavily.js';
-import BraveNewsProvider from '../src/providers/brave-news.js';
-import SerpApiProvider from '../src/providers/serp-api.js';
-import GoogleNewsProvider from '../src/providers/google-news.js';
+import NewsAPIProvider from '../../src/providers/newsapi.js';
+import TavilyProvider from '../../src/providers/tavily.js';
+import BraveNewsProvider from '../../src/providers/brave-news.js';
+import SerpApiProvider from '../../src/providers/serp-api.js';
+import GoogleNewsProvider from '../../src/providers/google-news.js';
 
 // Import aggregator
-import { ResilientNewsAggregator } from '../src/aggregators/resilient-news-aggregator.js';
+import { ResilientNewsAggregator } from '../../src/aggregators/resilient-news-aggregator.js';
 
 // Test server setup
 let app;

@@ -7,11 +7,11 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "test": "jest",
-    "test:unit": "jest tests/unit",
-    "test:integration": "jest tests/integration",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
+    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
+    "test:unit": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js tests/unit",
+    "test:integration": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js tests/integration",
+    "test:watch": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --watch",
+    "test:coverage": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --coverage",
     "lint": "eslint src/**/*.js",
     "lint:fix": "eslint src/**/*.js --fix",
     "test:manual:bing": "node tests/manual/bing-news.manual.test.js",
@@ -33,23 +33,23 @@
   "author": "TradingAgents",
   "license": "MIT",
   "dependencies": {
-    "express": "^5.1.0",
-    "cors": "^2.8.5",
-    "helmet": "^8.1.0",
+    "@tavily/core": "^1.1.0",
     "axios": "^1.6.2",
+    "cors": "^2.8.5",
+    "dotenv": "^18.0.10",
+    "express": "^5.1.0",
+    "helmet": "^8.1.0",
     "newsapi": "^2.4.1",
-    "yahoo-finance2": "^2.0.0",
-    "winston": "^3.18.3",
-    "dotenv": "^17.2.3",
     "node-cache": "^5.1.2",
-    "@tavily/core": "^0.5.12"
+    "winston": "^3.18.3",
+    "yahoo-finance2": "^4.0.6"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1",
-    "jest": "^29.7.0",
+    "@jest/globals": "^30.5.2",
     "eslint": "^8.53.0",
-    "supertest": "^6.3.3",
-    "@jest/globals": "^29.7.0"
+    "jest": "^30.5.2",
+    "nodemon": "^3.0.1",
+    "supertest": "^7.3.2"
   },
   "engines": {
     "node": ">=18.0.0"

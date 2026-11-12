@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from 'url';
 import NodeCache from "node-cache";
+import YahooFinance from "yahoo-finance2";
 
 // Load environment variables first (look for repo root .env.local) using module path
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -741,6 +742,8 @@ async function fetchFromNewsAPI(operation, params) {
       throw new Error(`Unsupported operation: ${operation}`);
   }
 }
+
+const yahooFinance = new YahooFinance();
 
 // Yahoo Finance fetch function
 async function fetchFromYahooFinance(operation, params) {
