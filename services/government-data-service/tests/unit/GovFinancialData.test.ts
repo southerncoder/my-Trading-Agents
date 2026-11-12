@@ -52,10 +52,10 @@ describe('GovFinancialData', () => {
     };
 
     // Mock constructors
-    (SECClient as any).mockImplementation(() => mockSECClient);
-    (FREDClient as any).mockImplementation(() => mockFREDClient);
-    (BLSClient as any).mockImplementation(() => mockBLSClient);
-    (CensusClient as any).mockImplementation(() => mockCensusClient);
+    (SECClient as any).mockImplementation(function () { return mockSECClient; });
+    (FREDClient as any).mockImplementation(function () { return mockFREDClient; });
+    (BLSClient as any).mockImplementation(function () { return mockBLSClient; });
+    (CensusClient as any).mockImplementation(function () { return mockCensusClient; });
 
     govData = new GovFinancialData({
       fredApiKey: 'test-fred-key',

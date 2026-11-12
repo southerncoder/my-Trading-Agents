@@ -5,7 +5,7 @@ import { CensusVariable, CensusData } from '../../../src/types/index.js';
 // Mock axios
 vi.mock('axios', () => ({
   default: {
-    create: vi.fn(() => ({
+    create: vi.fn(() => Object.assign(vi.fn(), {
       interceptors: {
         request: { use: vi.fn() },
         response: { use: vi.fn() }
@@ -20,10 +20,12 @@ vi.mock('axios', () => ({
 
 // Mock limiter
 vi.mock('limiter', () => ({
-  RateLimiter: vi.fn(() => ({
+  RateLimiter: vi.fn(function () {
+    return {
     removeTokens: vi.fn().mockResolvedValue(1),
     getTokensRemaining: vi.fn().mockReturnValue(50)
-  }))
+    };
+  })
 }));
 
 describe('CensusClient', () => {
