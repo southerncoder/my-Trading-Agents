@@ -18,12 +18,12 @@
   "author": "TradingAgents",
   "license": "MIT",
   "dependencies": {
-    "yahoo-finance2": "^2.13.3",
-    "express": "^5.1.0",
     "cors": "^2.8.5",
+    "dotenv": "^18.0.10",
+    "express": "^5.1.0",
     "helmet": "^8.1.0",
     "winston": "^3.18.3",
-    "dotenv": "^17.2.3"
+    "yahoo-finance2": "^4.0.6"
   },
   "engines": {
     "node": ">=22.0.0"
