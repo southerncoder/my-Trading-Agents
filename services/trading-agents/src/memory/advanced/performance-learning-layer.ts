@@ -10,7 +10,7 @@
  * - Provide performance analytics and optimization recommendations
  */
 
-import { ZepClient } from '@getzep/zep-js';
+import { ZepClient } from '@getzep/zep-cloud';
 
 // Import ML libraries for advanced optimization
 import { Matrix as _Matrix } from 'ml-matrix';
