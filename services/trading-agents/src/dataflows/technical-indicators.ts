@@ -1,5 +1,7 @@
 import { TradingAgentsConfig } from '@/types/config';
-import yahooFinance from 'yahoo-finance2';
+import YahooFinance from 'yahoo-finance2';
+
+const yahooFinance = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
 
 /**
  * Technical Indicators API with comprehensive analysis capabilities
@@ -130,7 +132,8 @@ export class TechnicalIndicatorsAPI {
         interval: interval as '1d' | '1wk' | '1mo',
       };
 
-      const result = await yahooFinance.historical(symbol, queryOptions);
+      const chartResult = await yahooFinance.chart(symbol, queryOptions);
+      const result = chartResult.quotes;
 
       const mappedResult = result.map(item => ({
         date: item.date?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],

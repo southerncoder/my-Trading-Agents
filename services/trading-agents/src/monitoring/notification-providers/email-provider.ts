@@ -127,7 +127,7 @@ export class EmailProvider {
       // Dynamic import to handle optional dependency
       const nodemailer = await import('nodemailer');
       
-      const transporter = nodemailer.createTransporter({
+      const transporter = nodemailer.createTransport({
         host: this.config.smtp.host,
         port: this.config.smtp.port,
         secure: this.config.smtp.secure,
