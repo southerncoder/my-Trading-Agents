@@ -10,8 +10,8 @@ export default defineConfig({
     port: 3000,
     host: true,
     https: process.env.HTTPS_ENABLED === 'true' ? (() => {
-      const keyPath = resolve(__dirname, 'certs/frontend-key.pem')
-      const certPath = resolve(__dirname, 'certs/frontend-cert.pem')
+      const keyPath = resolve(import.meta.dirname, 'certs/frontend-key.pem')
+      const certPath = resolve(import.meta.dirname, 'certs/frontend-cert.pem')
       
       if (existsSync(keyPath) && existsSync(certPath)) {
         return {

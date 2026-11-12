@@ -21,7 +21,7 @@ const WS_BASE_URL = import.meta.env.VITE_WS_URL ||
 const AnalysisRequestSchema = z.object({
   symbol: z.string().min(1).max(10),
   type: z.enum(['market', 'social', 'news', 'fundamentals', 'comprehensive']),
-  parameters: z.record(z.any()).optional()
+  parameters: z.record(z.string(), z.any()).optional()
 })
 
 const BacktestRequestSchema = z.object({
@@ -30,7 +30,7 @@ const BacktestRequestSchema = z.object({
   startDate: z.string(),
   endDate: z.string(),
   initialCapital: z.number().positive(),
-  parameters: z.record(z.any()).optional()
+  parameters: z.record(z.string(), z.any()).optional()
 })
 
 // API client class
