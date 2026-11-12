@@ -1,14 +1,14 @@
 import { spawn, ChildProcess } from 'child_process'
 import { join } from 'path'
 import { z } from 'zod'
-import { v4 as uuidv4 } from 'uuid'
+import { randomUUID } from 'node:crypto'
 import { broadcastProgress } from '../websocket/index.js'
 
 // Zod schemas for request/response validation
 const AnalysisRequestSchema = z.object({
   symbol: z.string().min(1).max(10),
   type: z.enum(['market', 'social', 'news', 'fundamentals', 'comprehensive']),
-  parameters: z.record(z.any()).optional()
+  parameters: z.record(z.string(), z.any()).optional()
 })
 
 const TradingAgentsConfigSchema = z.object({
@@ -18,7 +18,7 @@ const TradingAgentsConfigSchema = z.object({
   enableBacktesting: z.boolean().optional(),
   enableRiskManagement: z.boolean().optional(),
   enableGovernmentData: z.boolean().optional(),
-  parameters: z.record(z.any()).optional()
+  parameters: z.record(z.string(), z.any()).optional()
 })
 
 export interface AnalysisRequest {
@@ -103,7 +103,7 @@ export class TradingAgentsClient {
     // Validate request
     const validatedRequest = AnalysisRequestSchema.parse(request)
     
-    const analysisId = uuidv4()
+    const analysisId = randomUUID()
     
     return new Promise((resolve, reject) => {
       // Add to queue

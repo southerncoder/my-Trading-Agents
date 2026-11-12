@@ -5,7 +5,7 @@ import { securityConfig, securityHeaders, securityPatterns } from '../config/sec
 // Rate limiting for API endpoints
 export const apiRateLimit = rateLimit({
   windowMs: securityConfig.rateLimit.windowMs,
-  max: securityConfig.rateLimit.max,
+  limit: securityConfig.rateLimit.max,
   message: {
     success: false,
     error: 'Too many requests from this IP, please try again later.',
@@ -20,7 +20,7 @@ export const apiRateLimit = rateLimit({
 // Stricter rate limiting for analysis endpoints
 export const analysisRateLimit = rateLimit({
   windowMs: securityConfig.analysisRateLimit.windowMs,
-  max: securityConfig.analysisRateLimit.max,
+  limit: securityConfig.analysisRateLimit.max,
   message: {
     success: false,
     error: 'Too many analysis requests. Please wait before starting another analysis.',

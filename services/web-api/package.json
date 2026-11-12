@@ -20,21 +20,19 @@
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^5.0.1",
-    "express-rate-limit": "^7.4.1",
+    "express-rate-limit": "^8.7.4",
     "helmet": "^8.0.0",
-    "uuid": "^10.0.0",
     "ws": "^8.18.0",
-    "zod": "^3.23.8"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
-    "@types/node": "^22.9.0",
-    "@types/uuid": "^10.0.0",
+    "@types/node": "^22.20.5",
     "@types/ws": "^8.5.12",
     "@typescript-eslint/eslint-plugin": "^8.15.0",
     "@typescript-eslint/parser": "^8.15.0",
-    "cross-env": "^7.0.3",
+    "cross-env": "^10.1.0",
     "eslint": "^9.15.0",
     "nodemon": "^3.1.7",
     "ts-node": "^10.9.2",
