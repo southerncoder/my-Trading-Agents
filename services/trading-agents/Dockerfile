@@ -43,7 +43,7 @@ COPY --from=builder --chown=trading:nodejs /app/package.json ./
 
 # Copy CLI entry point and secrets init script
 COPY --chown=trading:nodejs cli.js ./
-COPY --chown=trading:nodejs secrets/init.js ./secrets/
+COPY --chown=trading:nodejs secrets/init.cjs ./secrets/
 
 # Create data directories with proper permissions
 RUN mkdir -p /app/.tradingagents /app/data /app/logs /app/exports && \
@@ -59,7 +59,7 @@ USER trading
 EXPOSE 3000
 
 # Use secrets init script with dumb-init for proper signal handling and environment setup
-ENTRYPOINT ["dumb-init", "--", "node", "/app/secrets/init.js"]
+ENTRYPOINT ["dumb-init", "--", "node", "/app/secrets/init.cjs"]
 
 # Default command - run interactive menu (passed to init.js)
 CMD ["node", "cli.js", "menu"]

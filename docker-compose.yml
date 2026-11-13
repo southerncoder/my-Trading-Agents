@@ -94,8 +94,8 @@ services:
     environment:
       - NEO4J_URI=bolt://trading-agents-neo4j:7687
       - neo4j_uri=bolt://trading-agents-neo4j:7687
-      - neo4j_user=neo4j  
-      - neo4j_password=password
+      - neo4j_user=${NEO4J_USER:-neo4j}
+      - neo4j_password=${NEO4J_PASSWORD}
       - OPENAI_API_KEY=/run/secrets/openai_api_key
       - openai_api_key=/run/secrets/news_api_key
       - EMBEDDER_PROVIDER=openai
@@ -222,7 +222,7 @@ services:
       - DATABASE_URL=postgresql://postgres:password@postgresql:5432/trading_agents
       - NEO4J_URI=bolt://neo4j:7687
       - NEO4J_USER=neo4j
-      - NEO4J_PASSWORD=password
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD}
       - ZEP_GRAPHITI_URL=http://zep-graphiti:8000
       - REDIS_URL=redis://redis:6379
     depends_on:
@@ -281,7 +281,7 @@ services:
     networks:
       - my-Trading-Agents
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001/api/health"]
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3001/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -306,7 +306,7 @@ services:
     networks:
       - my-Trading-Agents
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      test: ["CMD", "wget", "-qO-", "http://localhost/health"]
       interval: 30s
       timeout: 10s
       retries: 3
