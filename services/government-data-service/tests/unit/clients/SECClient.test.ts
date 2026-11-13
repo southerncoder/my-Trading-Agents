@@ -81,7 +81,8 @@ describe('SECClient', () => {
       const mockError = new Error('Network error');
       mockAxiosInstance.mockRejectedValueOnce(mockError);
 
-      await expect(secClient.getCompanyTickers()).rejects.toThrow('Network error');
+      // retries: 0 so the single rejected call is the only attempt (network errors are otherwise retried)
+      await expect(secClient.getCompanyTickers({ retries: 0 })).rejects.toThrow('Network error');
     });
 
     it('should handle timeout errors', async () => {

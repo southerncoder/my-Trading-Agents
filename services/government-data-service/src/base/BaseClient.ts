@@ -122,11 +122,11 @@ export abstract class BaseClient {
   ): Promise<T> {
     const requestConfig = {
       ...config,
-      timeout: options?.timeout || this.defaultTimeout,
+      timeout: options?.timeout ?? this.defaultTimeout,
     };
 
     let attempts = 0;
-    const maxAttempts = (options?.retries || this.maxRetries) + 1;
+    const maxAttempts = (options?.retries ?? this.maxRetries) + 1;
 
     while (attempts < maxAttempts) {
       try {
@@ -144,7 +144,7 @@ export abstract class BaseClient {
         }
 
         if (this.shouldRetry(error)) {
-          const delay = options?.retryDelay || this.retryDelay;
+          const delay = options?.retryDelay ?? this.retryDelay;
           logger.warn(`Request failed, retrying in ${delay}ms (attempt ${attempts}/${maxAttempts})`, {
             url: requestConfig.url,
             error: error instanceof Error ? error.message : 'Unknown error'

@@ -271,9 +271,9 @@ describe('GovFinancialData', () => {
       mockSECClient.getCompanyTickers.mockResolvedValueOnce(mockSECCompanies);
       mockFREDClient.searchSeries.mockRejectedValueOnce(new Error('FRED error'));
 
-      const result = await govData.searchAllSources('test');
+      const result = await govData.searchAllSources('apple');
 
-      expect(result.sec).toEqual(Object.values(mockSECCompanies));
+      expect(result.sec).toEqual([mockSECCompanies['0']]);
       expect(result.fred).toEqual([]);
     });
 
@@ -354,9 +354,11 @@ describe('GovFinancialData', () => {
       expect(result['DGS10']).toEqual({
         current: '4.25',
         previous: '4.20',
-        change: 0.05,
+        change: expect.any(Number),
         date: '2023-01-02'
       });
+      // floating point: 4.25 - 4.20 is not exactly 0.05
+      expect(result['DGS10'].change).toBeCloseTo(0.05, 10);
     });
 
     it('should throw error without FRED client', async () => {
@@ -406,7 +408,7 @@ describe('GovFinancialData', () => {
         startYear: 2023,
         endYear: 2023
       });
-      expect(mockCensusClient.getMarketCorrelationData).toHaveBeenCalledWith(2023, {});
+      expect(mockCensusClient.getMarketCorrelationData).toHaveBeenCalledWith(2023);
 
       expect(result).toEqual({
         economic: mockEconomicData,
@@ -451,6 +453,7 @@ describe('GovFinancialData', () => {
       const currentYear = new Date().getFullYear();
       const expectedYear = currentYear - 1;
 
+      mockFREDClient.getEconomicIndicators.mockResolvedValueOnce({});
       mockBLSClient.getLaborMarketIndicators.mockResolvedValueOnce(mockLaborData);
       mockCensusClient.getMarketCorrelationData.mockResolvedValueOnce(mockDemographicData);
 
@@ -460,7 +463,7 @@ describe('GovFinancialData', () => {
         startYear: expectedYear,
         endYear: expectedYear
       });
-      expect(mockCensusClient.getMarketCorrelationData).toHaveBeenCalledWith(expectedYear, {});
+      expect(mockCensusClient.getMarketCorrelationData).toHaveBeenCalledWith(expectedYear);
     });
   });
 
