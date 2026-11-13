@@ -162,7 +162,7 @@ app.get('/api/subreddit/:subreddit/posts', cacheMiddleware(300), async (req, res
       timeframe
     });
 
-    let result = { subreddit, posts, count: posts.length };
+    const result = { subreddit, posts, count: posts.length };
 
     if (analyzeSentiment === 'true') {
       const texts = posts.map(post => `${post.title} ${post.selftext}`).filter(Boolean);
@@ -320,7 +320,7 @@ app.get('/api/post/:subreddit/:postId/comments', cacheMiddleware(600), async (re
       limit: parseInt(limit)
     });
 
-    let result = { subreddit, postId, comments, count: comments.length };
+    const result = { subreddit, postId, comments, count: comments.length };
 
     if (analyzeSentiment === 'true') {
       const texts = comments.map(comment => comment.body).filter(Boolean);

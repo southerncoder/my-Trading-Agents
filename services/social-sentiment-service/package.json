@@ -9,9 +9,10 @@
     "dev": "node --watch src/index.js",
     "build": "echo 'No build step needed for this service'",
     "test": "node --test",
-    "lint": "eslint src/**/*.js",
+    "lint": "eslint .",
     "docker:build": "docker build -t social-sentiment-service .",
-    "docker:run": "docker run -p 3007:3007 --env-file .env social-sentiment-service"
+    "docker:run": "docker run -p 3007:3007 --env-file .env social-sentiment-service",
+    "lint:fix": "eslint . --fix"
   },
   "dependencies": {
     "axios": "^1.12.2",
@@ -25,7 +26,9 @@
     "winston": "^3.18.3"
   },
   "devDependencies": {
-    "eslint": "^9.35.0",
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.14.0",
+    "globals": "^17.14.0",
     "nodemon": "^3.1.10"
   },
   "engines": {

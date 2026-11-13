@@ -13,7 +13,7 @@ const PORT = parseInt(process.env.HEALTH_CHECK_PORT || process.env.PORT || '3004
 const TIMEOUT = parseInt(process.env.HEALTH_CHECK_TIMEOUT || '5000');
 
 function checkHealth() {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const options = {
       hostname: HOST,
       port: PORT,

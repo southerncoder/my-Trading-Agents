@@ -15,8 +15,8 @@
     "test:performance": "vitest --run tests/performance/**/*.test.ts",
     "test:all": "npm run test:unit && npm run test:integration && npm run test:performance",
     "test:coverage": "vitest --run --coverage",
-    "lint": "eslint src --ext .ts",
-    "lint:fix": "eslint src --ext .ts --fix",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
@@ -26,15 +26,16 @@
     "winston": "^3.17.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/express": "^5.0.0",
     "@types/node": "^22.10.1",
-    "@typescript-eslint/eslint-plugin": "^8.18.0",
-    "@typescript-eslint/parser": "^8.18.0",
     "@vitest/coverage-v8": "^5.1.0",
     "dotenv": "^18.0.10",
-    "eslint": "^9.17.0",
+    "eslint": "^10.14.0",
+    "globals": "^17.14.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
+    "typescript-eslint": "^8.72.2",
     "vitest": "^5.1.0"
   },
   "keywords": [

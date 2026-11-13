@@ -12,8 +12,8 @@
     "test:integration": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js tests/integration",
     "test:watch": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --watch",
     "test:coverage": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --coverage",
-    "lint": "eslint src/**/*.js",
-    "lint:fix": "eslint src/**/*.js --fix",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "test:manual:bing": "node tests/manual/bing-news.manual.test.js",
     "test:manual:brave-config": "node tests/manual/brave-config.manual.test.js",
     "test:manual:providers": "node tests/manual/all-providers.manual.test.js",
@@ -45,8 +45,10 @@
     "yahoo-finance2": "^4.0.6"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@jest/globals": "^30.5.2",
-    "eslint": "^8.53.0",
+    "eslint": "^10.14.0",
+    "globals": "^17.14.0",
     "jest": "^30.5.2",
     "nodemon": "^3.0.1",
     "supertest": "^7.3.2"
