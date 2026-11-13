@@ -41,5 +41,19 @@
     "typescript": "^5.6.3",
     "typescript-eslint": "^8.72.2",
     "vite": "^8.3.8"
+  },
+  "overrides": {
+    "eslint": {
+      "minimatch": "^11.0.8"
+    },
+    "@eslint/config-array": {
+      "minimatch": "^11.0.8"
+    },
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^11.0.8"
+    },
+    "nodemon": {
+      "minimatch": "^11.0.8"
+    }
   }
 }

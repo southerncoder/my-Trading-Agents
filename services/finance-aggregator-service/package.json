@@ -32,5 +32,20 @@
   "jest": {
     "testEnvironment": "node",
     "transform": {}
+  },
+  "overrides": {
+    "eslint": {
+      "minimatch": "^11.0.8"
+    },
+    "@eslint/config-array": {
+      "minimatch": "^11.0.8"
+    },
+    "nodemon": {
+      "minimatch": "^11.0.8"
+    },
+    "glob": "^14.0.6",
+    "test-exclude": {
+      "minimatch": "^11.0.8"
+    }
   }
 }

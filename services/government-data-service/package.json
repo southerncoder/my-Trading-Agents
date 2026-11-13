@@ -49,5 +49,19 @@
     "economic"
   ],
   "author": "Trading Agents",
-  "license": "MIT"
+  "license": "MIT",
+  "overrides": {
+    "eslint": {
+      "minimatch": "^11.0.8"
+    },
+    "@eslint/config-array": {
+      "minimatch": "^11.0.8"
+    },
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^11.0.8"
+    },
+    "nodemon": {
+      "minimatch": "^11.0.8"
+    }
+  }
 }
