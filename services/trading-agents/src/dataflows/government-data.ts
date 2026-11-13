@@ -1,5 +1,4 @@
 import { GovernmentDataClient, CompanyProfile, EconomicDashboard, MarketIndicators } from '../clients/government-data-client.js';
-import { DataflowInterface } from './interface.js';
 
 export interface GovernmentDataConfig {
   baseUrl: string;
@@ -7,8 +6,8 @@ export interface GovernmentDataConfig {
   enabled?: boolean;
 }
 
-export class GovernmentDataflow implements DataflowInterface {
-  private client: GovernmentDataClient;
+export class GovernmentDataflow {
+  private client!: GovernmentDataClient;
   private enabled: boolean;
 
   constructor(config: GovernmentDataConfig) {
@@ -17,7 +16,7 @@ export class GovernmentDataflow implements DataflowInterface {
     if (this.enabled) {
       this.client = new GovernmentDataClient({
         baseUrl: config.baseUrl,
-        timeout: config.timeout
+        ...(config.timeout !== undefined ? { timeout: config.timeout } : {})
       });
     }
   }
@@ -82,6 +81,17 @@ export class GovernmentDataflow implements DataflowInterface {
   /**
    * Get market indicators for trading context
    */
+  async getCorrelationAnalysis(
+    options?: Parameters<GovernmentDataClient['getCorrelationAnalysis']>[0]
+  ): Promise<Awaited<ReturnType<GovernmentDataClient['getCorrelationAnalysis']>> | null> {
+    if (!this.enabled) return null;
+    try {
+      return await this.client.getCorrelationAnalysis(options);
+    } catch {
+      return null;
+    }
+  }
+
   async getMarketIndicators(): Promise<MarketIndicators | null> {
     if (!this.enabled) return null;
     
@@ -125,7 +135,7 @@ export class GovernmentDataflow implements DataflowInterface {
    * Get economic indicators for strategy development
    */
   async getEconomicIndicators(): Promise<{
-    fred?: MarketIndicators;
+    fred?: MarketIndicators | undefined;
     bls?: any;
     correlation?: any;
   } | null> {
@@ -139,7 +149,7 @@ export class GovernmentDataflow implements DataflowInterface {
       ]);
 
       return {
-        fred: marketIndicators,
+        fred: marketIndicators ?? undefined,
         bls: dashboard?.bls,
         correlation
       };
@@ -234,7 +244,7 @@ export class GovernmentDataflow implements DataflowInterface {
    * Get demographic data for market research
    */
   async getDemographicData(year?: number): Promise<{
-    states?: any[];
+    states?: any[] | undefined;
     correlation?: any;
   } | null> {
     if (!this.enabled) return null;
@@ -248,7 +258,7 @@ export class GovernmentDataflow implements DataflowInterface {
       ]);
 
       return {
-        states: stateData,
+        states: stateData ?? undefined,
         correlation
       };
     } catch (error) {

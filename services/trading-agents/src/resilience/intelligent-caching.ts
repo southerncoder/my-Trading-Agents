@@ -42,7 +42,7 @@ export interface CacheConfig {
     url?: string;
     host?: string;
     port?: number;
-    password?: string;
+    password?: string | undefined;
     database?: number;
     keyPrefix: string;
     defaultTTL: number; // TTL in seconds
@@ -784,7 +784,7 @@ export class IntelligentCache extends EventEmitter {
       compressed: false
     };
     
-    this.l1Cache.set(key, entry, { ttl: ttl ? ttl * 1000 : undefined });
+    this.l1Cache.set(key, entry, ttl ? { ttl: ttl * 1000 } : {});
   }
 
   /**
@@ -1110,7 +1110,7 @@ export function createIntelligentCache(
     ...customConfig
   };
   
-  return new IntelligentCache(config);
+  return new IntelligentCache(config as any);
 }
 
 /**

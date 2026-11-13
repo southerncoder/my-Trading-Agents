@@ -1049,15 +1049,15 @@ export class AlertTemplateManager {
         type: 'threshold',
         metric: env[`${prefix}_METRIC`] || 'system.health',
         operator: (env[`${prefix}_OPERATOR`] as any) || 'gt',
-        value: env[`${prefix}_VALUE`] ? parseFloat(env[`${prefix}_VALUE`]) : 1
+        value: env[`${prefix}_VALUE`] ? parseFloat(env[`${prefix}_VALUE`]!) : 1
       },
-      threshold: env[`${prefix}_THRESHOLD`] ? parseFloat(env[`${prefix}_THRESHOLD`]) : 1,
-      timeframe: env[`${prefix}_TIMEFRAME`] ? parseInt(env[`${prefix}_TIMEFRAME`]) : 5,
-      cooldownPeriod: env[`${prefix}_COOLDOWN`] ? parseInt(env[`${prefix}_COOLDOWN`]) : 15,
+      threshold: env[`${prefix}_THRESHOLD`] ? parseFloat(env[`${prefix}_THRESHOLD`]!) : 1,
+      timeframe: env[`${prefix}_TIMEFRAME`] ? parseInt(env[`${prefix}_TIMEFRAME`]!) : 5,
+      cooldownPeriod: env[`${prefix}_COOLDOWN`] ? parseInt(env[`${prefix}_COOLDOWN`]!) : 15,
       escalationRules: [],
       notificationChannels: [],
       enabled: env[`${prefix}_ENABLED`] !== 'false',
-      tags: env[`${prefix}_TAGS`] ? env[`${prefix}_TAGS`].split(',') : []
+      tags: env[`${prefix}_TAGS`] ? env[`${prefix}_TAGS`]!.split(',') : []
     };
 
     return template;

@@ -1070,8 +1070,8 @@ export class PortfolioRiskManager extends PositionSizer {
     
     for (let i = 0; i < portfolio.holdings.length; i++) {
       for (let j = i + 1; j < portfolio.holdings.length; j++) {
-        const symbol1 = portfolio.holdings[i].symbol;
-        const symbol2 = portfolio.holdings[j].symbol;
+        const symbol1 = portfolio.holdings[i]!.symbol;
+        const symbol2 = portfolio.holdings[j]!.symbol;
         const correlation = Math.abs(this.getCorrelation(symbol1, symbol2));
         
         if (correlation > this.riskLimits.maxCorrelation) {

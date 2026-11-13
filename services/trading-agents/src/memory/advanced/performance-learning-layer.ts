@@ -581,7 +581,7 @@ export class PerformanceLearningLayer {
   private async storePerformanceInsights(insights: PerformanceLearningInsights): Promise<void> {
     try {
       // Store performance insights using Zep.js v2 API
-      const sessionId = `performance_${insights.agentId}_${Date.now()}`;
+      const sessionId = `performance_${insights.agent_id}_${Date.now()}`;
       
       // Create session if it doesn't exist
       await this.zepClient.memory.addSession?.({ sessionId });
@@ -590,10 +590,10 @@ export class PerformanceLearningLayer {
       await this.zepClient.memory.add?.(sessionId, {
         messages: [{
           role: 'system',
-          content: `Performance insights for agent ${insights.agentId}`,
+          content: `Performance insights for agent ${insights.agent_id}`,
           metadata: {
             type: 'performance_insights',
-            agentId: insights.agentId,
+            agentId: insights.agent_id,
             insights: JSON.stringify(insights)
           }
         }]
@@ -867,7 +867,7 @@ export class PerformanceLearningLayer {
             performanceRecords.push(record);
           }
         } catch (error) {
-          this.logger.warn('Failed to parse performance record', { error, fact });
+          this.logger.warn('Failed to parse performance record', { error, result });
         }
       }
       

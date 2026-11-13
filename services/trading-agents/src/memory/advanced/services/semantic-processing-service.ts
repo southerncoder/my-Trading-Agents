@@ -113,7 +113,7 @@ export class SemanticProcessingService {
               const text = batch[j];
               const embedding = response.data[j]?.embedding;
               if (embedding) {
-                embeddings[text] = embedding;
+                embeddings[text!] = embedding;
               }
             }
 

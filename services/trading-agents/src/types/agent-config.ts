@@ -7,7 +7,7 @@ export interface AgentLLMConfig {
   provider: LLMProvider;
   model: string;
   apiKey?: string;
-  baseUrl?: string;
+  baseUrl?: string | undefined;
   temperature?: number;
   maxTokens?: number;
   timeout?: number;

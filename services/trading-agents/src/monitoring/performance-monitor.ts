@@ -308,11 +308,11 @@ export class PerformanceMonitor {
       for (let i = 0; i < strategyIds.length; i++) {
         const strategyId = strategyIds[i];
         const data = performanceData[i];
-        const totalReturn = this.calculateTotalReturn(data);
-        relativePerformance[strategyId] = totalReturn;
+        const totalReturn = this.calculateTotalReturn(data!);
+        relativePerformance[strategyId!] = totalReturn;
         
         // Extract daily returns for correlation calculation
-        const dailyReturns = this.extractDailyReturns(data);
+        const dailyReturns = this.extractDailyReturns(data!);
         returns.push(dailyReturns);
       }
 
@@ -323,7 +323,7 @@ export class PerformanceMonitor {
       const statisticalSignificance: Record<string, number> = {};
       for (const strategyId of strategyIds) {
         statisticalSignificance[strategyId] = this.calculateStatisticalSignificance(
-          performanceData[strategyIds.indexOf(strategyId)]
+          performanceData[strategyIds.indexOf(strategyId)]!
         );
       }
 
@@ -514,9 +514,9 @@ export class PerformanceMonitor {
     for (let i = 0; i < n; i++) {
       for (let j = 0; j < n; j++) {
         if (i === j) {
-          matrix[i][j] = 1.0;
+          matrix[i]![j] = 1.0;
         } else {
-          matrix[i][j] = this.calculateCorrelation(returns[i], returns[j]);
+          matrix[i]![j] = this.calculateCorrelation(returns[i]!, returns[j]!);
         }
       }
     }
@@ -539,8 +539,8 @@ export class PerformanceMonitor {
     let sumYSquared = 0;
 
     for (let i = 0; i < n; i++) {
-      const deltaX = x[i] - meanX;
-      const deltaY = y[i] - meanY;
+      const deltaX = x[i]! - meanX;
+      const deltaY = y[i]! - meanY;
       numerator += deltaX * deltaY;
       sumXSquared += deltaX * deltaX;
       sumYSquared += deltaY * deltaY;
@@ -580,7 +580,7 @@ export class PerformanceMonitor {
     
     for (let i = 0; i < strategyIds.length; i++) {
       const data = performanceData[i];
-      sharpeRatios[strategyIds[i]] = this.calculateSharpeRatio(data);
+      sharpeRatios[strategyIds[i]!] = this.calculateSharpeRatio(data!);
     }
 
     return this.rankByMetric(strategyIds, sharpeRatios);
@@ -594,7 +594,7 @@ export class PerformanceMonitor {
     
     for (let i = 0; i < strategyIds.length; i++) {
       const data = performanceData[i];
-      drawdowns[strategyIds[i]] = -this.calculateMaxDrawdown(data); // Negative for ascending sort
+      drawdowns[strategyIds[i]!] = -this.calculateMaxDrawdown(data!); // Negative for ascending sort
     }
 
     return this.rankByMetric(strategyIds, drawdowns);
@@ -608,7 +608,7 @@ export class PerformanceMonitor {
     
     for (let i = 0; i < strategyIds.length; i++) {
       const data = performanceData[i];
-      winRates[strategyIds[i]] = this.calculateWinRate(data);
+      winRates[strategyIds[i]!] = this.calculateWinRate(data!);
     }
 
     return this.rankByMetric(strategyIds, winRates);
@@ -624,12 +624,12 @@ export class PerformanceMonitor {
       const strategyId = strategyIds[i];
       const data = performanceData[i];
       
-      const sharpe = this.calculateSharpeRatio(data);
-      const totalReturn = this.calculateTotalReturn(data);
-      const maxDrawdown = this.calculateMaxDrawdown(data);
+      const sharpe = this.calculateSharpeRatio(data!);
+      const totalReturn = this.calculateTotalReturn(data!);
+      const maxDrawdown = this.calculateMaxDrawdown(data!);
       
       // Composite risk-adjusted score
-      riskAdjustedScores[strategyId] = (sharpe * 0.4) + (totalReturn * 0.3) - (Math.abs(maxDrawdown) * 0.3);
+      riskAdjustedScores[strategyId!] = (sharpe * 0.4) + (totalReturn * 0.3) - (Math.abs(maxDrawdown) * 0.3);
     }
 
     return this.rankByMetric(strategyIds, riskAdjustedScores);

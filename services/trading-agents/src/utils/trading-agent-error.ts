@@ -67,6 +67,7 @@ export interface ErrorContext {
   timestamp: Date;
   requestId?: string;
   metadata?: Record<string, any>;
+  [key: string]: unknown;
 }
 
 // ========================================

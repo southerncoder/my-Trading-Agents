@@ -136,8 +136,8 @@ export class ModernPortfolioTheoryEngine {
     for (let i = 0; i < symbols.length; i++) {
       matrix[i] = [];
       for (let j = 0; j < symbols.length; j++) {
-        const returns1 = historicalReturns.get(symbols[i])?.slice(-lookbackPeriod) || [];
-        const returns2 = historicalReturns.get(symbols[j])?.slice(-lookbackPeriod) || [];
+        const returns1 = historicalReturns.get(symbols[i]!)?.slice(-lookbackPeriod) || [];
+        const returns2 = historicalReturns.get(symbols[j]!)?.slice(-lookbackPeriod) || [];
 
         if (returns1.length === 0 || returns2.length === 0) {
           matrix[i]![j] = 0;
@@ -510,7 +510,7 @@ export class ModernPortfolioTheoryEngine {
 
     const optimalWeights: Record<string, number> = {};
     for (let i = 0; i < assets.length; i++) {
-      optimalWeights[assets[i].symbol] = bestWeights[i] || 0;
+      optimalWeights[assets[i]!.symbol] = bestWeights[i] || 0;
     }
 
     return {
@@ -559,7 +559,7 @@ export class ModernPortfolioTheoryEngine {
 
     const optimalWeights: Record<string, number> = {};
     for (let i = 0; i < assets.length; i++) {
-      optimalWeights[assets[i].symbol] = bestWeights[i] || 0;
+      optimalWeights[assets[i]!.symbol] = bestWeights[i] || 0;
     }
 
     const sharpeRatio = bestVolatility > 0 ? bestReturn / bestVolatility : 0;
@@ -615,7 +615,7 @@ export class ModernPortfolioTheoryEngine {
 
     const optimalWeights: Record<string, number> = {};
     for (let i = 0; i < assets.length; i++) {
-      optimalWeights[assets[i].symbol] = bestWeights[i] || 0;
+      optimalWeights[assets[i]!.symbol] = bestWeights[i] || 0;
     }
 
     const sharpeRatio = bestVolatility > 0 ? bestReturn / bestVolatility : 0;
@@ -662,7 +662,7 @@ export class ModernPortfolioTheoryEngine {
 
     // Normalize weights
     for (let i = 0; i < weights.length; i++) {
-      weights[i] = weights[i] / totalWeight;
+      weights[i] = weights[i]! / totalWeight;
     }
 
     // Apply constraints if provided
@@ -680,7 +680,7 @@ export class ModernPortfolioTheoryEngine {
       // Re-normalize after applying constraints
       totalWeight = weights.reduce((sum, w) => sum + w, 0);
       for (let i = 0; i < weights.length; i++) {
-        weights[i] = weights[i] / totalWeight;
+        weights[i] = weights[i]! / totalWeight;
       }
     }
 

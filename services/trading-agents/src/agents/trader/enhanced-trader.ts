@@ -190,13 +190,13 @@ Remember: Position sizing is as important as signal generation for successful tr
         // Extract confidence (look for percentages)
         const confidenceMatch = line.match(/(\d+)%/);
         if (confidenceMatch) {
-          currentSignal.confidence = parseInt(confidenceMatch[1]);
+          currentSignal.confidence = parseInt(confidenceMatch[1]!);
         }
         
         // Extract price (look for dollar amounts)
         const priceMatch = line.match(/\$(\d+(?:\.\d{2})?)/);
         if (priceMatch) {
-          currentSignal.price = parseFloat(priceMatch[1]);
+          currentSignal.price = parseFloat(priceMatch[1]!);
         }
         
         // If we have enough information, create a signal
@@ -290,7 +290,7 @@ Remember: Position sizing is as important as signal generation for successful tr
         
         if (recommendation.alternatives && recommendation.alternatives.length > 0) {
           enhancedSections.push('- **Alternatives**:');
-          recommendation.alternatives.forEach((alt, idx) => {
+          recommendation.alternatives.forEach((alt: { portfolioPercentage: number; algorithm: string }, idx: number) => {
             enhancedSections.push(`  - Option ${idx + 1}: ${(alt.portfolioPercentage * 100).toFixed(2)}% (${alt.algorithm})`);
           });
         }

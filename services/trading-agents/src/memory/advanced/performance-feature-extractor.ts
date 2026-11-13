@@ -5,7 +5,7 @@
  * from agent trading records for machine learning models.
  */
 
-import { AgentPerformanceRecord } from './performance-learning-layer';
+import { AgentPerformanceRecord } from './performance-learning-types';
 
 /**
  * Interface for extracted performance features

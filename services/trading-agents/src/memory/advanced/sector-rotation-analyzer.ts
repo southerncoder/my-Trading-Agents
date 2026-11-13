@@ -130,7 +130,7 @@ export class SectorRotationAnalyzer {
       if (searchResults?.results) {
         for (const result of searchResults.results) {
           // Extract entity mentions from results
-          const factText = fact.fact || '';
+          const factText = (result as any).fact || '';
           const entityMatches = factText.match(/\b[A-Z]{1,5}\b/g); // Stock symbols
 
           if (entityMatches) {

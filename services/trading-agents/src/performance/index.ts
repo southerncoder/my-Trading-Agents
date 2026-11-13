@@ -7,6 +7,11 @@
  * Requirements: 5.1, 5.3 - Performance optimization for web-based workloads
  */
 
+import { globalCache } from './advanced-caching';
+import { initializeDatabaseOptimizer, getDatabaseOptimizer } from './database-optimization';
+import { globalPerformanceMonitor } from './performance-monitor';
+import { globalMemoryOptimizer } from './memory-optimization';
+
 // Advanced Caching System
 export {
   AdvancedCachingSystem,
@@ -92,7 +97,7 @@ export function getPerformanceStatus(): {
   cache: any;
   memory: any;
   performance: any;
-  database?: any;
+  database?: any | undefined;
 } {
   const status = {
     cache: globalCache.getStats(),
@@ -116,7 +121,7 @@ export function getPerformanceStatus(): {
 export async function optimizeAllSystems(): Promise<{
   cache: boolean;
   memory: any;
-  database?: boolean;
+  database?: boolean | undefined;
 }> {
   const results = {
     cache: false,

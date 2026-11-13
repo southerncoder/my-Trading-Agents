@@ -107,7 +107,7 @@ const mockTradingConfig: TradingAgentsConfig = {
     temperature: 0.7,
     maxTokens: 1000
   }
-} as TradingAgentsConfig;
+} as unknown as TradingAgentsConfig;
 
 async function testConflictResolution() {
   console.log('🧪 Testing Conflict Resolution System...\n');
@@ -161,7 +161,7 @@ async function testConflictResolution() {
   const consolidatedSignals = await strategyManager.generateConsolidatedSignals('AAPL', marketData);
   
   console.log(`   Original signals: BUY (80% confidence) vs SELL (70% confidence)`);
-  console.log(`   Resolved to: ${consolidatedSignals[0]?.signal || consolidatedSignals[0]?.action} with ${((consolidatedSignals[0]?.confidence || 0) * 100).toFixed(1)}% confidence`);
+  console.log(`   Resolved to: ${consolidatedSignals[0]?.signal || (consolidatedSignals[0] as any)?.action} with ${((consolidatedSignals[0]?.confidence || 0) * 100).toFixed(1)}% confidence`);
   console.log(`   Resolution reasoning: ${consolidatedSignals[0]?.reasoning || 'No reasoning provided'}`);
   console.log('');
 
@@ -178,8 +178,8 @@ async function testConflictResolution() {
   const consolidatedSignals2 = await strategyManager.generateConsolidatedSignals('GOOGL', marketData2);
   
   console.log(`   Original signals: BUY (85% confidence) + BUY (75% confidence)`);
-  console.log(`   Aggregated to: ${consolidatedSignals2[0]?.signal || consolidatedSignals2[0]?.action} with ${((consolidatedSignals2[0]?.confidence || 0) * 100).toFixed(1)}% confidence`);
-  console.log(`   Consensus strength: ${((consolidatedSignals2[0]?.consensus_strength || 0) * 100).toFixed(1)}%`);
+  console.log(`   Aggregated to: ${consolidatedSignals2[0]?.signal || (consolidatedSignals2[0] as any)?.action} with ${((consolidatedSignals2[0]?.confidence || 0) * 100).toFixed(1)}% confidence`);
+  console.log(`   Consensus strength: ${(((consolidatedSignals2[0] as any)?.consensus_strength || 0) * 100).toFixed(1)}%`);
   console.log('');
 
   // Test Case 3: Strong vs Weak conflicting signals
@@ -195,8 +195,8 @@ async function testConflictResolution() {
   const consolidatedSignals3 = await strategyManager.generateConsolidatedSignals('MSFT', marketData3);
   
   console.log(`   Original signals: STRONG_BUY (95% confidence) vs SELL (55% confidence)`);
-  console.log(`   Resolved to: ${consolidatedSignals3[0]?.signal || consolidatedSignals3[0]?.action} with ${((consolidatedSignals3[0]?.confidence || 0) * 100).toFixed(1)}% confidence`);
-  console.log(`   Conflict resolutions: ${JSON.stringify(consolidatedSignals3[0]?.conflictResolutions || [], null, 2)}`);
+  console.log(`   Resolved to: ${consolidatedSignals3[0]?.signal || (consolidatedSignals3[0] as any)?.action} with ${((consolidatedSignals3[0]?.confidence || 0) * 100).toFixed(1)}% confidence`);
+  console.log(`   Conflict resolutions: ${JSON.stringify((consolidatedSignals3[0] as any)?.conflictResolutions || [], null, 2)}`);
   console.log('');
 
   console.log('✅ Conflict Resolution System Test Complete!');

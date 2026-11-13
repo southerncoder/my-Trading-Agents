@@ -59,7 +59,7 @@ export interface ChartAnnotation {
 }
 
 export interface EquityCurveChart extends ChartConfig {
-  benchmarkSeries?: ChartSeries;
+  benchmarkSeries?: ChartSeries | undefined;
   drawdownSeries?: ChartSeries;
 }
 

@@ -115,11 +115,11 @@ export const MarketRegimeSchema = z.object({
     avg_volatility: z.number().optional(),
     dominant_sectors: z.array(z.string()).optional(),
     key_drivers: z.array(z.string()).optional(),
-    typical_correlations: z.record(z.number()).optional()
+    typical_correlations: z.record(z.string(), z.number()).optional()
   }).optional(),
   
   // Agent performance during this regime
-  agent_performance: z.record(z.object({
+  agent_performance: z.record(z.string(), z.object({
     accuracy: z.number(),
     confidence_adjustment: z.number(),
     best_strategies: z.array(z.string())
@@ -222,7 +222,7 @@ export const AnalysisOutcomeSchema = z.object({
     actual_direction: z.enum(["UP", "DOWN", "FLAT"]).optional(),
     actual_return: z.number().optional().describe("Actual return percentage"),
     prediction_accuracy: z.number().optional().describe("How accurate prediction was"),
-    key_factors_relevance: z.record(z.number()).optional().describe("How relevant each factor was")
+    key_factors_relevance: z.record(z.string(), z.number()).optional().describe("How relevant each factor was")
   }).optional(),
   
   // Timestamps

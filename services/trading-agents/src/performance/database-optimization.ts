@@ -53,7 +53,7 @@ export interface QueryMetrics {
   duration: number;
   timestamp: Date;
   success: boolean;
-  error?: string;
+  error?: string | undefined;
   rowCount?: number;
 }
 
@@ -61,9 +61,9 @@ export interface QueryMetrics {
  * Optimized database connection manager with advanced pooling
  */
 export class DatabaseOptimizer {
-  private pool: Pool;
+  private pool!: Pool;
   private config: DatabaseConfig;
-  private stats: ConnectionStats;
+  private stats!: ConnectionStats;
   private queryMetrics: QueryMetrics[] = [];
   private healthCheckTimer?: NodeJS.Timeout;
   
@@ -213,7 +213,7 @@ export class DatabaseOptimizer {
       const duration = Date.now() - startTime;
       
       // Record metrics
-      this.recordQueryMetrics(text, duration, true, result.rowCount);
+      this.recordQueryMetrics(text, duration, true, result.rowCount ?? 0);
       
       // Log slow queries
       if (duration > this.config.slowQueryThreshold!) {
@@ -282,7 +282,7 @@ export class DatabaseOptimizer {
           const result = await client.query(text, params);
           const duration = Date.now() - startTime;
           
-          this.recordQueryMetrics(text, duration, true, result.rowCount);
+          this.recordQueryMetrics(text, duration, true, result.rowCount ?? 0);
           results.push({
             rows: result.rows,
             rowCount: result.rowCount || 0

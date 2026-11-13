@@ -55,7 +55,7 @@ export interface PerformanceReport {
   };
   regressions: RegressionResult[];
   recommendations: string[];
-  baseline?: PerformanceBaseline;
+  baseline?: PerformanceBaseline | null;
 }
 
 export interface TestResult {

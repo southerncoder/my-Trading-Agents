@@ -292,7 +292,7 @@ export class TemporalRelationshipMapper {
     if (this.zepClient && this.zepClient.memory && typeof this.zepClient.memory.searchSessions === 'function') {
       try {
         const searchQuery = {
-          query: `temporal_range:${query.time_range.start_date} TO ${query.time_range.end_date}`,
+          query: `temporal_range:${query.time_range.start} TO ${query.time_range.end}`,
           limit: 100
         };
         const res = await this.zepClient.memory.searchSessions(searchQuery);
@@ -784,7 +784,7 @@ export class TemporalRelationshipMapper {
       if (searchResults?.results) {
         for (const result of searchResults.results) {
           // Extract entity mentions from facts
-          const factText = fact.fact || '';
+          const factText = (result as any).fact || '';
           const entityMatches = factText.match(/\b[A-Z]{1,5}\b/g); // Stock symbols
 
           if (entityMatches) {
@@ -872,8 +872,8 @@ export class TemporalRelationshipMapper {
     let sumSquares2 = 0;
 
     for (let i = 0; i < values1.length; i++) {
-      const diff1 = values1[i] - mean1;
-      const diff2 = values2[i] - mean2;
+      const diff1 = values1[i]! - mean1;
+      const diff2 = values2[i]! - mean2;
 
       numerator += diff1 * diff2;
       sumSquares1 += diff1 * diff1;

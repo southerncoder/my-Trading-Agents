@@ -35,7 +35,7 @@ export class BollingerBandsMeanReversionStrategy extends BaseTradingStrategy {
   private standardDeviations: number;
   private bandTouchThreshold: number;
   private requireVolumeConfirmation: boolean;
-  private logger = createLogger('agent', 'bollinger-bands-strategy');
+  protected logger = createLogger('agent', 'bollinger-bands-strategy');
 
   constructor(config: StrategyConfig, tradingConfig: TradingAgentsConfig) {
     super(
@@ -316,7 +316,7 @@ export class PriceActionMeanReversionStrategy extends BaseTradingStrategy {
   private lookbackPeriod: number;
   private extremeThreshold: number; // Percentage for price extremes
   private supportResistanceStrength: number; // Minimum touches for S/R level
-  private logger = createLogger('agent', 'price-action-strategy');
+  protected logger = createLogger('agent', 'price-action-strategy');
 
   constructor(config: StrategyConfig, tradingConfig: TradingAgentsConfig) {
     super(

@@ -146,7 +146,7 @@ export class ContextRetrievalOrchestrator {
           // Extract insights and recommendations
           const insights = this.contextRetrievalUtils.extractKeyInsights(fact);
           const recommendations = this.contextRetrievalUtils.generateRecommendations(
-            this.dataExtractionService.extractPerformanceData(fact),
+            this.extractPerformanceData(fact),
             queryFeatures
           );
 
@@ -171,7 +171,7 @@ export class ContextRetrievalOrchestrator {
             relevance_score: 0.1,
             insights: [],
             recommendations: [],
-            processing_error: factError.message
+            processing_error: factError instanceof Error ? factError.message : String(factError)
           });
         }
       }
@@ -493,7 +493,7 @@ export class ContextRetrievalOrchestrator {
       };
     } catch (error) {
       this.logger.error('Error getting health status', { error });
-      return { status: 'error', error: error.message };
+      return { status: 'error', error: error instanceof Error ? error.message : String(error) };
     }
   }
 
@@ -510,7 +510,7 @@ export class ContextRetrievalOrchestrator {
       };
     } catch (error) {
       this.logger.warn('Error getting performance metrics', { error });
-      return { error: error.message };
+      return { error: error instanceof Error ? error.message : String(error) };
     }
   }
 

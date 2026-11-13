@@ -37,6 +37,18 @@ export interface TradingAgentsConfig {
 
   // Government data configuration
   governmentData?: GovernmentDataConfig;
+
+  // Runtime-only credentials/endpoints, populated from environment variables by the
+  // config loaders. Never persist these to config files.
+  finnhubApiKey?: string | undefined;
+  redditClientId?: string | undefined;
+  redditClientSecret?: string | undefined;
+  redditUsername?: string | undefined;
+  redditPassword?: string | undefined;
+  newsApiKey?: string | undefined;
+  alphaVantageApiKey?: string | undefined;
+  openaiApiKey?: string | undefined;
+  backendUrl?: string | undefined;
 }
 
 export interface DatabaseConfig {
@@ -73,10 +85,10 @@ export interface DatabaseConfig {
 
 export interface GovernmentDataConfig {
   baseUrl: string;
-  timeout?: number;
-  enabled?: boolean;
-  fredApiKey?: string;
-  blsApiKey?: string;
+  timeout?: number | undefined;
+  enabled?: boolean | undefined;
+  fredApiKey?: string | undefined;
+  blsApiKey?: string | undefined;
 }
 
 export type LLMProvider = 'openai' | 'anthropic' | 'google' | 'ollama' | 'openrouter' | 'local_lmstudio' | 'remote_lmstudio';

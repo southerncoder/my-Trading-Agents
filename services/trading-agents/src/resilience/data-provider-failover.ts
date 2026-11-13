@@ -128,7 +128,7 @@ export class DataProviderFailover {
   private circuitBreakers: Map<string, CircuitBreaker> = new Map();
   private healthStatus: Map<string, ProviderHealth> = new Map();
   private performanceMetrics: Map<string, ProviderAttempt[]> = new Map();
-  private healthCheckInterval?: NodeJS.Timeout;
+  private healthCheckInterval?: NodeJS.Timeout | undefined;
 
   constructor() {
     this.initializeProviders();
@@ -456,14 +456,14 @@ export class DataProviderFailover {
         }
       },
       execute: async (operation: string, params: any) => {
-        const { MarketStackAPI } = await import('../dataflows/marketstack');
-        const api = new MarketStackAPI(params.config);
+        const { MarketStackDataProvider } = await import('../dataflows/marketstack');
+        const api = new MarketStackDataProvider(params.config);
         
         switch (operation) {
           case 'getData':
             return await api.getHistoricalData(params.symbol, params.startDate, params.endDate);
           case 'getQuote':
-            return await api.getLatestData(params.symbol);
+            return await api.getQuote(params.symbol);
           default:
             throw new Error(`Unknown operation: ${operation}`);
         }
@@ -511,7 +511,7 @@ export class DataProviderFailover {
     
     // Initialize circuit breaker
     this.circuitBreakers.set(provider.name, new CircuitBreaker(
-      provider.config.circuitBreakerConfig,
+      { minimumRequests: 5, ...provider.config.circuitBreakerConfig },
       provider.name
     ));
 
@@ -654,7 +654,7 @@ export class DataProviderFailover {
 
     throw new TradingAgentError(
       `All ${providerType} providers failed for operation ${operation}: ${lastError?.message}`,
-      ErrorType.PROVIDER_ERROR,
+      ErrorType.API_ERROR,
       ErrorSeverity.HIGH,
       createErrorContext('DataProviderFailover', 'executeWithFailover', {
         providerType,
@@ -875,7 +875,7 @@ export class DataProviderFailover {
   /**
    * Aggregate RSS feeds for news
    */
-  private async aggregateRSSFeeds(query: string, currDate: string, lookBackDays: number): string {
+  private async aggregateRSSFeeds(query: string, currDate: string, lookBackDays: number): Promise<any> {
     const rssFeeds = [
       'https://feeds.reuters.com/reuters/businessNews',
       'https://feeds.bloomberg.com/markets',
@@ -977,7 +977,7 @@ export class DataProviderFailover {
   /**
    * Get cached sentiment data
    */
-  private async getCachedSentimentData(operation: string, params: any): Promise<string> {
+  private async getCachedSentimentData(operation: string, params: any): Promise<any> {
     logger.info('cached-sentiment-fallback', `Using cached sentiment data for ${operation}`, {
       operation,
       ticker: params.ticker || params.symbol
@@ -1017,7 +1017,7 @@ export class DataProviderFailover {
   /**
    * Get cached financial data
    */
-  private async getCachedFinancialData(operation: string, params: any): Promise<string> {
+  private async getCachedFinancialData(operation: string, params: any): Promise<any> {
     logger.info('cached-financial-fallback', `Using cached financial data for ${operation}`, {
       operation,
       symbol: params.symbol

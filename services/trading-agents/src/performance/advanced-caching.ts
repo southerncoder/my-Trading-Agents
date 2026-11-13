@@ -22,7 +22,7 @@ export interface CacheConfig {
   l2?: {
     ttl: number;
     maxSize: number;
-  };
+  } | undefined;
   prefetch: {
     enabled: boolean;
     threshold: number;
@@ -46,7 +46,7 @@ export interface CacheStats {
     misses: number;
     size: number;
     hitRate: number;
-  };
+  } | undefined;
   prefetch: {
     requests: number;
     successes: number;
@@ -73,10 +73,10 @@ export interface CacheItem<T = any> {
  * Advanced multi-tier caching system with intelligent prefetching
  */
 export class AdvancedCachingSystem {
-  private l1Cache: CacheableMemory;
+  private l1Cache!: CacheableMemory;
   private l2Cache?: CacheableMemory;
   private config: CacheConfig;
-  private stats: CacheStats;
+  private stats!: CacheStats;
   private prefetchQueue: Set<string> = new Set();
   private accessPatterns: Map<string, number[]> = new Map();
   
@@ -126,7 +126,7 @@ export class AdvancedCachingSystem {
       ttl: this.config.l1.ttl,
       lruSize: this.config.l1.maxSize,
       checkInterval: this.config.l1.checkInterval,
-      useClones: true
+      useClone: true
     });
 
     // L2 Cache - Larger, longer-lived cache
@@ -134,7 +134,7 @@ export class AdvancedCachingSystem {
       this.l2Cache = new CacheableMemory({
         ttl: this.config.l2.ttl,
         lruSize: this.config.l2.maxSize,
-        useClones: true
+        useClone: true
       });
     }
   }
@@ -361,9 +361,9 @@ export class AdvancedCachingSystem {
   async optimize(): Promise<void> {
     try {
       // Remove expired items
-      this.l1Cache.checkExpired();
+      this.l1Cache.checkExpiration();
       if (this.l2Cache) {
-        this.l2Cache.checkExpired();
+        this.l2Cache.checkExpiration();
       }
 
       // Analyze access patterns for intelligent prefetching

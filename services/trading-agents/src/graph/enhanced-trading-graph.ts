@@ -259,7 +259,7 @@ export class EnhancedTradingAgentsGraph {
 
       // Initialize backtesting engine
       if (this.enableBacktesting) {
-        this.backtestEngine = new BacktestEngine(this.config);
+        this.backtestEngine = new BacktestEngine();
       }
 
       // Initialize risk management engine
@@ -275,12 +275,12 @@ export class EnhancedTradingAgentsGraph {
 
       // Initialize position sizer
       if (this.enablePositionSizing) {
-        this.positionSizer = new PositionSizer(this.config);
+        this.positionSizer = new PositionSizer();
       }
 
       // Initialize data provider failover
       if (this.enableDataResilience) {
-        this.dataProviderFailover = new DataProviderFailover(this.config);
+        this.dataProviderFailover = new DataProviderFailover();
       }
 
       // Initialize performance monitor
@@ -290,7 +290,7 @@ export class EnhancedTradingAgentsGraph {
 
       // Initialize government data client
       if (this.enableGovernmentData) {
-        this.governmentDataClient = new GovernmentDataClient();
+        this.governmentDataClient = new GovernmentDataClient({ baseUrl: this.config.governmentData?.baseUrl ?? 'http://localhost:3005' });
       }
 
       logger.info('initializeEnhancedComponents', 'Enhanced components initialized successfully', {
@@ -466,12 +466,16 @@ export class EnhancedTradingAgentsGraph {
     if (this.strategyEnsemble) {
       try {
         // Create basic trading signals from analysis results
+        // NOTE: market data is not wired into this graph yet, so the ensemble runs on an empty series.
         const signals = this.extractTradingSignalsFromMessages(messages);
         if (signals.length > 0) {
-          ensembleSignal = await this.strategyEnsemble.aggregateSignals(signals);
-          decision = ensembleSignal.type;
-          confidence = ensembleSignal.strength;
-          reasoning.push(`Ensemble Decision: ${decision} with ${(confidence * 100).toFixed(1)}% confidence from ${signals.length} strategies`);
+          const ensembleSignals = await this.strategyEnsemble.aggregateSignals(companyOfInterest, []);
+          ensembleSignal = ensembleSignals[0];
+          if (ensembleSignal) {
+            decision = ensembleSignal.type;
+            confidence = ensembleSignal.strength;
+            reasoning.push(`Ensemble Decision: ${decision} with ${(confidence * 100).toFixed(1)}% confidence from ${signals.length} strategies`);
+          }
         }
       } catch (error) {
         logger.warn('analyzeAndDecide', 'Failed to generate ensemble signal', {
@@ -536,7 +540,7 @@ export class EnhancedTradingAgentsGraph {
       try {
         const mockPortfolio = { totalValue: 100000, positions: [] }; // Mock portfolio for demo
         const signal = { type: decision, strength: confidence, symbol: companyOfInterest };
-        positionSize = await this.positionSizer.calculateOptimalSize(signal, mockPortfolio, riskAssessment);
+        positionSize = await this.positionSizer.calculateConfidenceBasedSize(signal as any, mockPortfolio as any);
         reasoning.push(`Position Size: ${positionSize.shares} shares (${(positionSize.portfolioPercentage * 100).toFixed(1)}% of portfolio)`);
       } catch (error) {
         logger.warn('analyzeAndDecide', 'Failed to calculate position size', {
@@ -567,8 +571,7 @@ export class EnhancedTradingAgentsGraph {
           metadata: {
             confidence,
             executionTime: Date.now(),
-            riskLevel: riskAssessment?.riskLevel,
-            positionSize: positionSize?.portfolioPercentage
+            ...({ riskLevel: riskAssessment?.riskLevel, positionSize: positionSize?.portfolioPercentage } as Record<string, unknown>)
           }
         });
       } catch (error) {
@@ -586,10 +589,11 @@ export class EnhancedTradingAgentsGraph {
     // Track performance metrics
     if (this.performanceMonitor) {
       try {
-        await this.performanceMonitor.trackDecision(companyOfInterest, {
+        // PerformanceMonitor tracks per-strategy metrics; per-decision tracking is logged here.
+        logger.info('analyzeAndDecide', 'Decision tracked', {
+          symbol: companyOfInterest,
           decision,
           confidence,
-          timestamp: new Date(),
           riskScore: riskAssessment?.overallRiskScore,
           ensembleStrength: ensembleSignal?.strength,
           positionSize: positionSize?.portfolioPercentage
