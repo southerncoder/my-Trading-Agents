@@ -647,7 +647,7 @@ export class PortfolioRiskManager extends PositionSizer {
     });
 
     try {
-      let adjustedPosition = { ...proposedPosition };
+      const adjustedPosition = { ...proposedPosition };
       const adjustments: string[] = [];
 
       // 1. Check position concentration limit

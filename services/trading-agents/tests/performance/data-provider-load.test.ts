@@ -387,7 +387,7 @@ describe('Data Provider Load Tests', () => {
     });
 
     test('should recover from circuit breaker after timeout', async () => {
-      const recoveringProvider = new LoadTestMarketDataProvider(50, 0.8); // Initially high failure rate
+      let recoveringProvider = new LoadTestMarketDataProvider(50, 0.8); // Initially high failure rate
       const providers = [recoveringProvider, fastProvider];
 
       // Enable circuit breaker with short timeout

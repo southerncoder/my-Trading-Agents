@@ -319,7 +319,7 @@ export class TradeSimulator {
    * Calculate execution delay based on order and market conditions
    */
   private calculateExecutionDelay(order: Order, marketConditions: MarketCondition): number {
-    let baseDelay = this.executionDelayMs;
+    const baseDelay = this.executionDelayMs;
 
     // Increase delay for large orders
     const avgVolume = 1000000; // Assume average volume

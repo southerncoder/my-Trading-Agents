@@ -223,7 +223,7 @@ export class SimplePositionSizer {
     maxConcentration: number = 0.2
   ): SimplePositionSize {
     
-    let adjustedSize = { ...positionSize };
+    const adjustedSize = { ...positionSize };
     const adjustments: string[] = [];
 
     // Check position concentration limit

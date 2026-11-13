@@ -188,6 +188,7 @@ async function run() {
         .split(',').map(s=>s.trim()).filter(Boolean).map(p => { try { return new RegExp(p); } catch { return null; } }).filter(Boolean) as RegExp[];
       const allowlistRegexes = [...defaultAllow, ...userAllow];
       // Strip ANSI for scanning
+      // eslint-disable-next-line no-control-regex
       const ansiRegex = /\u001b\[[0-9;]*m/g;
       const lines = capturedOutput.replace(ansiRegex,'').split(/\r?\n/);
       const patterns: { name: string; regex: RegExp }[] = [
