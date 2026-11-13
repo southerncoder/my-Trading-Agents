@@ -27,7 +27,7 @@ export interface EmailConfig {
 
 export interface SmsConfig {
   phoneNumbers: string[];
-  provider: 'twilio' | 'aws_sns';
+  provider: 'twilio' | 'aws_sns' | 'cloudflare';
   template?: string;
 }
 
@@ -83,7 +83,7 @@ export interface AlertCondition {
   type: 'threshold' | 'percentage_change' | 'moving_average' | 'custom';
   metric: string;
   operator: 'gt' | 'lt' | 'eq' | 'gte' | 'lte' | 'between';
-  value: number | number[];
+  value?: number | number[] | undefined;
   aggregation?: 'avg' | 'sum' | 'min' | 'max' | 'count';
   windowSize?: number; // minutes
   customExpression?: string; // For custom conditions

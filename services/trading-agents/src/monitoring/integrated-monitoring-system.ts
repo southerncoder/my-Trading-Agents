@@ -133,9 +133,9 @@ export class IntegratedMonitoringSystem {
   private alertManager: AlertManager | null = null;
   private anomalyDetector: AnomalyDetector | null = null;
   private isInitialized = false;
-  private monitoringInterval?: NodeJS.Timeout;
-  private healthCheckInterval?: NodeJS.Timeout;
-  private metricsCollectionInterval?: NodeJS.Timeout;
+  private monitoringInterval?: NodeJS.Timeout | undefined;
+  private healthCheckInterval?: NodeJS.Timeout | undefined;
+  private metricsCollectionInterval?: NodeJS.Timeout | undefined;
 
   constructor(config: Partial<MonitoringConfig> = {}) {
     this.config = this.mergeWithDefaults(config);
@@ -366,7 +366,7 @@ export class IntegratedMonitoringSystem {
       }
 
       // Memory usage alerts
-      const memoryUsagePercent = (metrics.system.memoryUsage.used / metrics.system.memoryUsage.total) * 100;
+      const memoryUsagePercent = (metrics.system.memoryUsage.heapUsed / metrics.system.memoryUsage.heapTotal) * 100;
       if (memoryUsagePercent > 90) {
         systemAlerts.push({
           id: `memory_alert_${Date.now()}`,
@@ -792,7 +792,7 @@ export class IntegratedMonitoringSystem {
               timestamp: metrics.timestamp.toISOString(),
               health: metrics.system.health,
               uptime: metrics.system.uptime,
-              memoryUsage: metrics.system.memoryUsage.used
+              memoryUsage: metrics.system.memoryUsage.heapUsed
             }
           },
           {

@@ -157,7 +157,7 @@ export class ProductionMonitoringSystem {
   private governmentDataMonitor?: GovernmentDataMonitor;
   
   private isInitialized = false;
-  private statusCheckInterval?: NodeJS.Timeout;
+  private statusCheckInterval?: NodeJS.Timeout | undefined;
 
   constructor(
     dbManager: DatabaseManager,
@@ -757,7 +757,7 @@ export async function initializeProductionMonitoringFromEnvironment(
           region: process.env.BACKUP_S3_REGION || 'us-east-1',
           prefix: 'trading-agents-backups'
         }
-      }
+      } as BackupConfig['storage']
     };
   }
 

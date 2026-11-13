@@ -31,8 +31,8 @@ export interface AlertTemplate {
 
 export interface AlertCondition {
   type: 'threshold' | 'anomaly' | 'pattern' | 'composite';
-  metric: string;
-  operator: 'gt' | 'lt' | 'eq' | 'ne' | 'gte' | 'lte';
+  metric?: string;
+  operator?: 'gt' | 'lt' | 'eq' | 'ne' | 'gte' | 'lte';
   value?: any;
   aggregation?: 'avg' | 'sum' | 'min' | 'max' | 'count';
   window?: number; // minutes
@@ -961,7 +961,7 @@ export class AlertTemplateManager {
     }
 
     const validOperators = ['gt', 'lt', 'eq', 'ne', 'gte', 'lte'];
-    if (!validOperators.includes(condition.operator)) {
+    if (!validOperators.includes(condition.operator ?? "")) {
       errors.push(`Condition operator must be one of: ${validOperators.join(', ')}`);
     }
 

@@ -48,22 +48,22 @@ export interface BackupConfig {
       enabled: boolean;
       bucket: string;
       region: string;
-      accessKeyId?: string;
-      secretAccessKey?: string;
+      accessKeyId?: string | undefined;
+      secretAccessKey?: string | undefined;
       prefix: string;
     };
     azure: {
       enabled: boolean;
       containerName: string;
       accountName: string;
-      accountKey?: string;
+      accountKey?: string | undefined;
       prefix: string;
     };
     gcp: {
       enabled: boolean;
       bucketName: string;
       projectId: string;
-      keyFilename?: string;
+      keyFilename?: string | undefined;
       prefix: string;
     };
   };
@@ -1083,7 +1083,7 @@ export class BackupRecoveryManager {
    */
   private async executeCommand(command: string, timeout: number): Promise<void> {
     return new Promise((resolve, reject) => {
-      const [cmd, ...args] = command.split(' ');
+      const [cmd = '', ...args] = command.split(' ');
       const process = spawn(cmd, args);
 
       const timer = setTimeout(() => {

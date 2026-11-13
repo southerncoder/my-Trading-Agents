@@ -44,8 +44,8 @@ export interface ProductionLoggingConfig {
   // Cloud logging settings
   cloudConfig: {
     provider: 'aws' | 'gcp' | 'azure' | 'datadog' | 'splunk';
-    endpoint?: string;
-    apiKey?: string;
+    endpoint?: string | undefined;
+    apiKey?: string | undefined;
     region?: string;
     logGroup?: string;
     logStream?: string;
@@ -255,7 +255,7 @@ export class ProductionLogger {
       // Limit log entry size
       const logSize = JSON.stringify(info).length;
       if (logSize > this.config.security.maxLogSize) {
-        info.message = info.message?.substring(0, 1000) + '... [truncated]';
+        info.message = String(info.message ?? '').substring(0, 1000) + '... [truncated]';
         info.metadata = { truncated: true, originalSize: logSize };
       }
       

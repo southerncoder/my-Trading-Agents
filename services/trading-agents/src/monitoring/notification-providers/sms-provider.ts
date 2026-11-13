@@ -138,7 +138,7 @@ export class SmsProvider {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = (await response.json()) as any;
         throw new Error(`Twilio API error: ${response.status} - ${errorData.message || response.statusText}`);
       }
     }
@@ -177,7 +177,7 @@ export class SmsProvider {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = (await response.json()) as any;
         throw new Error(`Cloudflare Worker SMS error: ${response.status} - ${errorData.message || response.statusText}`);
       }
     }
@@ -236,11 +236,11 @@ export class SmsProvider {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = (await response.json()) as any;
         throw new Error(`Vonage API error: ${response.status} - ${errorData.message || response.statusText}`);
       }
 
-      const result = await response.json();
+      const result = (await response.json()) as any;
       if (result.messages && result.messages[0].status !== '0') {
         throw new Error(`Vonage SMS failed: ${result.messages[0]['error-text']}`);
       }

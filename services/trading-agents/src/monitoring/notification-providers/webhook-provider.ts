@@ -144,7 +144,7 @@ export class WebhookProvider {
       logger.warn('webhook-provider', 'Failed to process template, using default payload', {
         error: (error as Error).message
       });
-      return this.buildWebhookPayload({ ...config, template: undefined } as WebhookConfig, alertData);
+      return this.buildWebhookPayload({} as WebhookConfig, alertData);
     }
   }
 

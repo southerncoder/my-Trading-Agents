@@ -13,6 +13,13 @@ const logger = createLogger('system', 'monitoring-config');
 
 export interface EnvironmentMonitoringConfig {
   // Database configuration from environment
+  SMTP_HOST?: string;
+  SMTP_USER?: string;
+  ALERT_EMAIL_TO?: string;
+  SLACK_WEBHOOK_URL?: string;
+  SLACK_CHANNEL?: string;
+  WEBHOOK_URL?: string;
+  WEBHOOK_AUTH_TOKEN?: string;
   POSTGRES_HOST?: string;
   POSTGRES_PORT?: string;
   POSTGRES_DB?: string;

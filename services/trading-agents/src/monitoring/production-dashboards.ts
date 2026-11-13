@@ -259,7 +259,7 @@ export class ProductionDashboardManager {
   private dbManager: DatabaseManager;
   private monitoringSystem: IntegratedMonitoringSystem;
   private dashboardCache: Map<string, any> = new Map();
-  private refreshTimer?: NodeJS.Timeout;
+  private refreshTimer?: NodeJS.Timeout | undefined;
 
   constructor(
     dbManager: DatabaseManager,
@@ -387,7 +387,7 @@ export class ProductionDashboardManager {
         totalTrades: 0, // Would need to implement trade tracking
         systemLoad: {
           cpu: 0, // Would need to implement CPU monitoring
-          memory: (integratedMetrics.system.memoryUsage.used / integratedMetrics.system.memoryUsage.total) * 100,
+          memory: (integratedMetrics.system.memoryUsage.heapUsed / integratedMetrics.system.memoryUsage.heapTotal) * 100,
           disk: 0 // Would need to implement disk monitoring
         },
         keyMetrics: {
@@ -561,7 +561,7 @@ export class ProductionDashboardManager {
             unit: '%'
           },
           memory: {
-            current: (integratedMetrics.system.memoryUsage.used / integratedMetrics.system.memoryUsage.total) * 100,
+            current: (integratedMetrics.system.memoryUsage.heapUsed / integratedMetrics.system.memoryUsage.heapTotal) * 100,
             average: 0, // Would need to calculate
             peak: 0, // Would need to track
             threshold: 85,

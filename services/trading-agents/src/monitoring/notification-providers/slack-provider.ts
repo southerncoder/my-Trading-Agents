@@ -31,6 +31,7 @@ export interface SlackBlock {
     text: string;
   }>;
   accessory?: any;
+  elements?: any[];
 }
 
 export interface SlackAttachment {

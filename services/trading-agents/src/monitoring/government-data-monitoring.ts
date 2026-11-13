@@ -205,8 +205,8 @@ export class GovernmentDataMonitor {
   private metrics: Map<string, GovernmentDataMetrics> = new Map();
   private alerts: Map<string, GovernmentDataAlert> = new Map();
   private rateLimitCounters: Map<string, number[]> = new Map();
-  private monitoringInterval?: NodeJS.Timeout;
-  private healthCheckInterval?: NodeJS.Timeout;
+  private monitoringInterval?: NodeJS.Timeout | undefined;
+  private healthCheckInterval?: NodeJS.Timeout | undefined;
 
   constructor(dbManager: DatabaseManager, config: Partial<GovernmentDataConfig> = {}) {
     this.dbManager = dbManager;
@@ -719,7 +719,7 @@ export class GovernmentDataMonitor {
     currentRate: number
   ): 'safe' | 'warning' | 'critical' {
     const limits = this.config.rateLimits[service];
-    const limit = service === 'sec' ? limits.requestsPerSecond : limits.requestsPerMinute;
+    const limit = service === 'sec' ? (limits as any).requestsPerSecond : (limits as any).requestsPerMinute;
     const percentage = (currentRate / limit) * 100;
     
     if (percentage >= limits.criticalThreshold) {
@@ -764,7 +764,7 @@ export class GovernmentDataMonitor {
     const recentRequests = requests.filter(t => t > (now - timeWindow)).length;
     
     const limits = this.config.rateLimits[service];
-    const limit = service === 'sec' ? limits.requestsPerSecond : limits.requestsPerMinute;
+    const limit = service === 'sec' ? (limits as any).requestsPerSecond : (limits as any).requestsPerMinute;
     
     return {
       current: recentRequests,

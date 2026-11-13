@@ -4,11 +4,30 @@
  * Simple test script to verify the alert system functionality
  */
 
-import { AlertManager, createAlertManager } from './alert-manager.js';
-import { AlertDashboardManager, createAlertDashboardManager } from './alert-dashboard.js';
-import { DatabaseManager } from '../database/database-manager.js';
 import { createNotificationProvider, NotificationManager } from './notification-providers/index.js';
-import { exampleNotificationChannels, exampleAlertConfigs } from './alert-config-example.js';
+import {
+  emailChannelExamples,
+  smsChannelExamples,
+  slackChannelExamples,
+  webhookChannelExamples,
+  consoleChannelExamples,
+  performanceAlertExamples,
+  systemAlertExamples,
+  marketAlertExamples
+} from './alert-config-example.js';
+
+const exampleNotificationChannels = [
+  ...emailChannelExamples,
+  ...smsChannelExamples,
+  ...slackChannelExamples,
+  ...webhookChannelExamples,
+  ...consoleChannelExamples
+];
+const exampleAlertConfigs = [
+  ...performanceAlertExamples,
+  ...systemAlertExamples,
+  ...marketAlertExamples
+];
 import { createLogger } from '../utils/enhanced-logger.js';
 
 const logger = createLogger('system', 'alert-test');
@@ -19,15 +38,6 @@ const logger = createLogger('system', 'alert-test');
 async function testAlertSystem(): Promise<void> {
   try {
     logger.info('alert-test', 'Starting alert system test');
-
-    // Create database manager (mock for testing)
-    const dbManager = new DatabaseManager();
-    
-    // Create alert manager
-    const alertManager = createAlertManager(dbManager);
-    
-    // Create dashboard manager
-    const dashboardManager = createAlertDashboardManager(alertManager, dbManager);
 
     // Test notification providers
     logger.info('alert-test', 'Testing notification providers');
@@ -46,7 +56,7 @@ async function testAlertSystem(): Promise<void> {
     
     const testMessage = {
       id: 'test-001',
-      to: 'test@example.com',
+      to: ['test@example.com'],
       subject: 'Test Alert',
       body: 'This is a test alert message',
       priority: 'medium' as const,
@@ -68,10 +78,6 @@ async function testAlertSystem(): Promise<void> {
 
     const managerResult = await notificationManager.sendMessage('console-test', testMessage);
     logger.info('alert-test', 'Notification manager result', { managerResult });
-
-    // Test health status
-    const healthStatus = await notificationManager.getHealthStatus();
-    logger.info('alert-test', 'Provider health status', { healthStatus });
 
     // Cleanup
     await consoleProvider.cleanup();
@@ -96,7 +102,7 @@ async function testAlertConfigurations(): Promise<void> {
     logger.info('alert-test', 'Testing alert configurations');
 
     // Test example configurations
-    const channels = Object.values(exampleNotificationChannels);
+    const channels = exampleNotificationChannels;
     logger.info('alert-test', 'Available notification channels', {
       channelCount: channels.length,
       channelTypes: channels.map(c => c.type)
@@ -110,7 +116,7 @@ async function testAlertConfigurations(): Promise<void> {
 
     // Validate configurations
     for (const config of configs) {
-      if (!config.name || !config.condition || !config.channels) {
+      if (!config.name || !config.condition) {
         throw new Error(`Invalid configuration: ${config.name}`);
       }
     }

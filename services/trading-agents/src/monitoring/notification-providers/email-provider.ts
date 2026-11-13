@@ -110,7 +110,7 @@ export class EmailProvider {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData = (await response.json()) as any;
       throw new Error(`Cloudflare Email API error: ${response.status} - ${errorData.message || response.statusText}`);
     }
   }
@@ -194,7 +194,7 @@ export class EmailProvider {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData = (await response.json()) as any;
       throw new Error(`SendGrid API error: ${response.status} - ${errorData.message || response.statusText}`);
     }
   }
@@ -227,7 +227,7 @@ export class EmailProvider {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData = (await response.json()) as any;
       throw new Error(`Resend API error: ${response.status} - ${errorData.message || response.statusText}`);
     }
   }

@@ -51,7 +51,7 @@ export class VercelAISDKProviderFactory {
    */
   private static createLMStudioModel(config: VercelAISDKConfig): LanguageModel {
     // Resolve provider configuration from environment variables
-    const providerConfig = resolveLLMProviderConfig(config.provider, 'prompt');
+    const providerConfig = resolveLLMProviderConfig(config.provider);
 
     const baseURL = config.baseURL || providerConfig.baseUrl;
     const apiKey = config.apiKey || providerConfig.apiKey;
@@ -74,7 +74,7 @@ export class VercelAISDKProviderFactory {
    */
   private static createOllamaModel(config: VercelAISDKConfig): LanguageModel {
     // Resolve provider configuration from environment variables
-    const providerConfig = resolveLLMProviderConfig(config.provider, 'prompt');
+    const providerConfig = resolveLLMProviderConfig(config.provider);
 
     const baseURL = config.baseURL || providerConfig.baseUrl;
 
