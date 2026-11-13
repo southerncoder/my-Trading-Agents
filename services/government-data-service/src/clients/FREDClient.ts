@@ -13,6 +13,9 @@ export class FREDClient extends BaseClient {
 
   constructor(apiKey: string, userAgent?: string) {
     // FRED rate limit: 120 requests per minute (2 per second)
+    if (!apiKey) {
+      throw new Error('FRED API key is required');
+    }
     super(
       'https://api.stlouisfed.org/fred', 
       userAgent || 'TradingAgents/1.0.0 (trading-agents@example.com)',

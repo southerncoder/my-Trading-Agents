@@ -28,6 +28,15 @@ vi.mock('limiter', () => ({
   })
 }));
 
+// The client posts the body as a JSON string to the v2 base URL configured in BLSClient
+const blsRequest = (body: Record<string, unknown>) => ({
+  method: 'POST',
+  url: '/timeseries/data/',
+  data: JSON.stringify(body),
+  headers: { 'Content-Type': 'application/json' },
+  timeout: 30000
+});
+
 describe('BLSClient', () => {
   let blsClient: BLSClient;
   let mockAxiosInstance: any;
@@ -92,15 +101,10 @@ describe('BLSClient', () => {
 
       const result = await blsClient.getSeriesData(['LNS14000000']);
 
-      expect(mockAxiosInstance).toHaveBeenCalledWith({
-        method: 'POST',
-        url: '/publicAPI/v2/timeseries/data/',
-        data: {
+      expect(mockAxiosInstance).toHaveBeenCalledWith(blsRequest({
           seriesid: ['LNS14000000'],
           registrationkey: testApiKey
-        },
-        timeout: 30000
-      });
+        }));
       expect(result).toEqual([mockSeriesData]);
     });
 
@@ -118,17 +122,12 @@ describe('BLSClient', () => {
         endYear: 2023
       });
 
-      expect(mockAxiosInstance).toHaveBeenCalledWith({
-        method: 'POST',
-        url: '/publicAPI/v2/timeseries/data/',
-        data: {
+      expect(mockAxiosInstance).toHaveBeenCalledWith(blsRequest({
           seriesid: ['LNS14000000'],
           startyear: '2022',
           endyear: '2023',
           registrationkey: testApiKey
-        },
-        timeout: 30000
-      });
+        }));
     });
 
     it('should work without API key (public access)', async () => {
@@ -145,14 +144,9 @@ describe('BLSClient', () => {
 
       const result = await publicClient.getSeriesData(['LNS14000000']);
 
-      expect(publicMockAxios).toHaveBeenCalledWith({
-        method: 'POST',
-        url: '/publicAPI/v2/timeseries/data/',
-        data: {
+      expect(publicMockAxios).toHaveBeenCalledWith(blsRequest({
           seriesid: ['LNS14000000']
-        },
-        timeout: 30000
-      });
+        }));
       expect(result).toEqual([mockSeriesData]);
     });
 
@@ -232,17 +226,12 @@ describe('BLSClient', () => {
         endYear: 2023
       });
 
-      expect(mockAxiosInstance).toHaveBeenCalledWith({
-        method: 'POST',
-        url: '/publicAPI/v2/timeseries/data/',
-        data: {
+      expect(mockAxiosInstance).toHaveBeenCalledWith(blsRequest({
           seriesid: ['LNS14000000'],
           startyear: '2023',
           endyear: '2023',
           registrationkey: testApiKey
-        },
-        timeout: 30000
-      });
+        }));
       expect(result).toEqual(mockUnemploymentData);
     });
 
@@ -255,11 +244,11 @@ describe('BLSClient', () => {
         status: 200
       });
 
-      await expect(blsClient.getUnemploymentRate()).rejects.toThrow('Unemployment data not found');
+      await expect(blsClient.getUnemploymentRate()).rejects.toThrow('No unemployment rate data found');
     });
   });
 
-  describe('getConsumerPriceIndex', () => {
+  describe('getCPI', () => {
     const mockCPIData: BLSSeries = {
       seriesID: 'CUUR0000SA0',
       data: [
@@ -283,7 +272,7 @@ describe('BLSClient', () => {
         status: 200
       });
 
-      const result = await blsClient.getConsumerPriceIndex({
+      const result = await blsClient.getCPI({
         startYear: 2023,
         endYear: 2023
       });
@@ -292,7 +281,7 @@ describe('BLSClient', () => {
     });
   });
 
-  describe('getProducerPriceIndex', () => {
+  describe('getPPI', () => {
     const mockPPIData: BLSSeries = {
       seriesID: 'WPUFD49207',
       data: [
@@ -316,7 +305,7 @@ describe('BLSClient', () => {
         status: 200
       });
 
-      const result = await blsClient.getProducerPriceIndex({
+      const result = await blsClient.getPPI({
         startYear: 2023,
         endYear: 2023
       });
@@ -363,7 +352,9 @@ describe('BLSClient', () => {
       const mockIndicators = [
         { seriesID: 'LNS14000000', data: [{ year: '2023', period: 'M12', periodName: 'December', latest: 'true', value: '3.7', footnotes: [] }] },
         { seriesID: 'CUUR0000SA0', data: [{ year: '2023', period: 'M12', periodName: 'December', latest: 'true', value: '307.026', footnotes: [] }] },
-        { seriesID: 'WPUFD49207', data: [{ year: '2023', period: 'M12', periodName: 'December', latest: 'true', value: '195.8', footnotes: [] }] }
+        { seriesID: 'WPUFD49207', data: [{ year: '2023', period: 'M12', periodName: 'December', latest: 'true', value: '195.8', footnotes: [] }] },
+        { seriesID: 'CES0000000001', data: [{ year: '2023', period: 'M12', periodName: 'December', latest: 'true', value: '157000', footnotes: [] }] },
+        { seriesID: 'CES0500000003', data: [{ year: '2023', period: 'M12', periodName: 'December', latest: 'true', value: '34.27', footnotes: [] }] }
       ];
 
       mockAxiosInstance.mockResolvedValueOnce({
@@ -379,21 +370,22 @@ describe('BLSClient', () => {
         endYear: 2023
       });
 
-      expect(mockAxiosInstance).toHaveBeenCalledWith({
-        method: 'POST',
-        url: '/publicAPI/v2/timeseries/data/',
-        data: {
-          seriesid: ['LNS14000000', 'CUUR0000SA0', 'WPUFD49207', 'CES0500000003'],
-          startyear: '2023',
-          endyear: '2023',
-          registrationkey: testApiKey
-        },
-        timeout: 30000
+      expect(mockAxiosInstance).toHaveBeenCalledWith(blsRequest({
+        seriesid: ['LNS14000000', 'CUUR0000SA0', 'WPUFD49207', 'CES0000000001', 'CES0500000003'],
+        startyear: '2023',
+        endyear: '2023',
+        registrationkey: testApiKey
+      }));
+      expect(result).toEqual({
+        unemployment: mockIndicators[0],
+        cpi: mockIndicators[1],
+        ppi: mockIndicators[2],
+        employment: mockIndicators[3],
+        earnings: mockIndicators[4]
       });
-      expect(result).toEqual(mockIndicators);
     });
 
-    it('should handle partial failures in economic indicators', async () => {
+    it('should fill missing indicators with empty series on partial results', async () => {
       const partialResults = [
         { seriesID: 'LNS14000000', data: [{ year: '2023', period: 'M12', periodName: 'December', latest: 'true', value: '3.7', footnotes: [] }] }
       ];
@@ -411,7 +403,11 @@ describe('BLSClient', () => {
         endYear: 2023
       });
 
-      expect(result).toEqual(partialResults);
+      expect(result.unemployment).toEqual(partialResults[0]);
+      expect(result.cpi).toEqual({ seriesID: 'CUUR0000SA0', data: [] });
+      expect(result.ppi).toEqual({ seriesID: 'WPUFD49207', data: [] });
+      expect(result.employment).toEqual({ seriesID: 'CES0000000001', data: [] });
+      expect(result.earnings).toEqual({ seriesID: 'CES0500000003', data: [] });
     });
   });
 
@@ -435,7 +431,10 @@ describe('BLSClient', () => {
         endYear: 2023
       });
 
-      expect(result).toEqual(mockLaborData);
+      expect(result).toEqual({
+        unemployment_rate: mockLaborData[0],
+        labor_force_participation: mockLaborData[1]
+      });
     });
   });
 
@@ -529,7 +528,8 @@ describe('BLSClient', () => {
         status: 200
       });
 
-      await expect(blsClient.getSeriesData(['LNS14000000'])).rejects.toThrow();
+      // A successful response without Results is treated as "no series returned"
+      await expect(blsClient.getSeriesData(['LNS14000000'])).resolves.toEqual([]);
     });
   });
 
