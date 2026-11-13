@@ -18,11 +18,13 @@
     "docker:run": "docker run -p 3000:80 trading-agents-web-frontend"
   },
   "dependencies": {
+    "@tailwindcss/vite": "^4.3.5",
     "clsx": "^2.1.1",
     "lucide-react": "^1.72.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.18.5",
+    "tailwindcss": "^4.3.5",
     "zod": "^4.6.7",
     "zustand": "^5.0.1"
   },
@@ -31,14 +33,11 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^6.3.0",
-    "autoprefixer": "^10.4.20",
     "cross-env": "^10.1.0",
     "eslint": "^10.14.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.7",
     "globals": "^17.14.0",
-    "postcss": "^8.5.1",
-    "tailwindcss": "^3.4.14",
     "typescript": "^5.6.3",
     "typescript-eslint": "^8.72.2",
     "vite": "^8.3.8"
