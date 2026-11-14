@@ -95,6 +95,11 @@ export class NewsAnalyst extends AbstractAgent {
         company: state.company_of_interest
       });
 
+      // Surface a failed data fetch in the report itself so downstream agents and the guard see it.
+      if (/DATA UNAVAILABLE/.test(digest)) {
+        newsReport = digest.split('\n')[0] + '\n\n' + newsReport;
+      }
+
       // Add response message to state
       const updatedMessages = [...state.messages, response];
 

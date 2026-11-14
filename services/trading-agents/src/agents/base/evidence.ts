@@ -54,3 +54,15 @@ export function buildEvidenceBlock(state: Partial<AgentState>, maxPerReport = 18
     `DATA QUALITY: ${q.missing.length ? 'UNAVAILABLE -> ' + q.missing.join(', ') + '. Do not claim conclusions that depend on missing data; lower confidence accordingly.' : 'all reports available'}\n`
   );
 }
+
+/** Shared output rules appended to debate / planning prompts: short, sourced, honest about unverified claims. */
+export function outputDiscipline(maxWords: number): string {
+  return (
+    '\n\nOUTPUT RULES:\n' +
+    `- Maximum ${maxWords} words. Use short bullet points; no preamble and no repeated restatement of the inputs.\n` +
+    '- Tag every figure with its source in brackets: [market], [news], [fundamentals] or [social]. Do not use figures that are not in the supplied reports.\n' +
+    '- Label any news item you rely on as confirmed (primary source or several outlets) or unconfirmed. Never present an unconfirmed item as fact.\n' +
+    '- If a report is marked UNAVAILABLE or a figure is missing, say so plainly instead of guessing.\n' +
+    '- Address the opposing arguments directly by naming the specific point you are answering.'
+  );
+}

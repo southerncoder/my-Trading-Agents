@@ -221,10 +221,21 @@ Analysis Date: ${trade_date}
 
 Make a decisive portfolio management decision that optimizes risk-adjusted returns at the portfolio level.
 
-End your response with exactly these two lines and nothing after them:
+CONFIDENCE RUBRIC (be honest; most real decisions fall between 0.40 and 0.70):
+- 0.75 or higher: market, news and fundamentals independently agree, and a concrete near-term catalyst or trigger exists.
+- 0.55 to 0.74: evidence mostly agrees but one report is weak, or key figures are missing.
+- 0.35 to 0.54: signals conflict, or the main driver is unverified (for example, an unconfirmed headline).
+- below 0.35: core data is missing. Any report marked UNAVAILABLE caps confidence at 0.60.
+
+EVIDENCE RULES: use only the supplied evidence; tag each figure with its source in brackets, e.g. [market], [news], [fundamentals]; label news items you rely on as confirmed (primary source or several outlets) or unconfirmed. Never present an unconfirmed item as fact.
+
+End your response with a single fenced JSON block, then these two lines, and nothing after them:
+\`\`\`json
+{"decision": "BUY|HOLD|SELL", "confidence": 0.00, "action_now": "enter_now|wait_for_trigger|hold_existing|reduce|exit", "rationale": "<=60 words", "key_risks": ["..."], "data_gaps": ["..."], "what_would_change_my_mind": "..."}
+\`\`\`
 FINAL DECISION: <exactly one word: BUY or HOLD or SELL>
-CONFIDENCE: <a decimal between 0.00 and 1.00 showing how strongly the evidence supports the decision>
-Replace the angle-bracket placeholders with your actual answer; do not repeat the placeholder text.`;
+CONFIDENCE: <a decimal between 0.00 and 1.00>
+In the JSON, choose exactly one value for decision and for action_now (BUY means you would enter now; if you would wait for a trigger, the decision is HOLD). Replace all placeholders with real values; do not repeat the placeholder text.`;
 
     return new HumanMessage(prompt + buildEvidenceBlock(state));
   }

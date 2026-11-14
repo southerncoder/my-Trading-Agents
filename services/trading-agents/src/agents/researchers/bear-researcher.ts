@@ -6,6 +6,7 @@ import { StructuredTool } from '@langchain/core/tools';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AbstractAgent } from '../base/index';
 import { AgentState, AgentStateHelpers } from '../../types/agent-states';
+import { outputDiscipline } from '../base/evidence';
 
 /**
  * Bear Researcher Agent
@@ -236,6 +237,6 @@ Analysis Date: ${trade_date}
 
 Develop strong arguments for why investors should be concerned about the risks and potential downsides of this investment opportunity.`;
 
-    return new HumanMessage(prompt);
+    return new HumanMessage(prompt + outputDiscipline(350));
   }
 }

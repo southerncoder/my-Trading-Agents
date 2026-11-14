@@ -16,6 +16,7 @@ import { SafeAnalyst } from '../agents/risk-mgmt/safe-analyst';
 import { NeutralAnalyst } from '../agents/risk-mgmt/neutral-analyst';
 import { PortfolioManager } from '../agents/risk-mgmt/portfolio-manager';
 import { LearningTrader } from '../agents/traders/learning-trader';
+import { Trader } from '../agents/trader/trader';
 import { ModelProvider, LLMProvider } from '../models/provider';
 import { createLogger } from '../utils/enhanced-logger';
 import { YahooFinanceAPI } from '../dataflows/yahoo-finance';
@@ -261,6 +262,16 @@ export class AgentFactory {
     
     const llm = await this.createLLM('deepThinkLlm'); // Use deep thinking model
     return new PortfolioManager(llm, []);
+  }
+
+  /**
+   * Create Trader (drafts the trading plan the risk team reviews)
+   */
+  async createTrader(): Promise<Trader> {
+    logger.info('createTrader', 'Creating Trader instance');
+
+    const llm = await this.createLLM();
+    return new Trader(llm, []);
   }
 
   /**

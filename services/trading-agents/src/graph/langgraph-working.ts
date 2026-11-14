@@ -188,6 +188,9 @@ export class LangGraphSetup {
       workflow.addNode('bear_researcher', createAgentNode('Bear Researcher', this.agentFactory.createBearResearcher()));
       workflow.addNode('research_manager', createAgentNode('Research Manager', this.agentFactory.createResearchManager()));
 
+      // Trader drafts the plan that the risk team debates (TradingAgents order: RM -> Trader -> Risk -> PM)
+      workflow.addNode('trader', createAgentNode('Trader', this.agentFactory.createTrader()));
+
       // ==== PHASE 3: RISK MANAGEMENT (4 agents) ====
       workflow.addNode('risky_analyst', createAgentNode('Risky Analyst', this.agentFactory.createRiskyAnalyst()));
       workflow.addNode('safe_analyst', createAgentNode('Safe Analyst', this.agentFactory.createSafeAnalyst()));
@@ -246,7 +249,8 @@ export class LangGraphSetup {
 
     // ==== PHASE 3: RISK MANAGEMENT TEAM ====
     // After research, assess risk from different perspectives
-    workflow.addEdge('research_manager', 'risky_analyst');
+    workflow.addEdge('research_manager', 'trader');
+    workflow.addEdge('trader', 'risky_analyst');
     workflow.addEdge('risky_analyst', 'safe_analyst');
     workflow.addEdge('safe_analyst', 'neutral_analyst');
     // Portfolio Manager synthesizes risk assessments

@@ -6,6 +6,7 @@ import { StructuredTool } from '@langchain/core/tools';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AbstractAgent } from '../base/index';
 import { AgentState, AgentStateHelpers } from '../../types/agent-states';
+import { outputDiscipline } from '../base/evidence';
 
 /**
  * Bull Researcher Agent
@@ -249,6 +250,6 @@ Analysis Date: ${trade_date}
 
 Develop strong arguments for why investors should be optimistic about this investment opportunity.`;
 
-    return new HumanMessage(prompt);
+    return new HumanMessage(prompt + outputDiscipline(350));
   }
 }

@@ -7,6 +7,7 @@
  */
 
 import { assessDataQuality } from '../agents/base/evidence';
+import { parseDecision } from '../agents/base/decision-parser';
 import { TradingAgentsConfig } from '../types/config';
 import { ModelProvider } from '../models/index';
 import { AnalystType } from './langgraph-working';
@@ -525,18 +526,16 @@ export class EnhancedTradingAgentsGraph {
       const pmText = String(
         execution.result?.risk_debate_state?.judge_decision ?? execution.result?.final_trade_decision ?? ''
       );
-      // Line-anchored so an echoed template ("BUY, HOLD or SELL") is rejected rather than read as BUY.
-      const lastMatch = (re: RegExp): RegExpMatchArray | undefined => [...pmText.matchAll(re)].pop();
-      const decisionMatch = lastMatch(/^[\s*_`#>-]*FINAL DECISION:\s*[*_`\s]*(BUY|HOLD|SELL)[\s*_`.]*$/gim);
-      const confidenceMatch = lastMatch(/^[\s*_`#>-]*CONFIDENCE:\s*[*_`\s]*(0(?:\.\d+)?|1(?:\.0+)?)[\s*_`.]*$/gim);
-      if (decisionMatch && decisionMatch[1]) {
-        decision = decisionMatch[1].toUpperCase();
-        confidence = confidenceMatch && confidenceMatch[1] ? Number(confidenceMatch[1]) : 0.5;
-      } else {
-        decision = 'HOLD';
-        confidence = 0.3;
-        reasoning.push('No explicit FINAL DECISION from the Portfolio Manager; defaulting to HOLD with low confidence.');
+      const parsed = parseDecision(pmText);
+      decision = parsed.decision;
+      confidence = parsed.confidence;
+      if (parsed.source === 'default') {
+        reasoning.push('No explicit decision from the Portfolio Manager; defaulting to HOLD with low confidence.');
       }
+      if (parsed.downgradeReason) reasoning.push(`CONSISTENCY CHECK: ${parsed.downgradeReason}`);
+      if (parsed.dataGaps?.length) reasoning.push(`Data gaps: ${parsed.dataGaps.join('; ')}`);
+      if (parsed.keyRisks?.length) reasoning.push(`Key risks: ${parsed.keyRisks.join('; ')}`);
+      if (parsed.changeMyMind) reasoning.push(`What would change the decision: ${parsed.changeMyMind}`);
       if (pmText) {
         reasoning.push(pmText);
       }
