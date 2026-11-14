@@ -9,7 +9,7 @@ import winston from 'winston';
 import { emitLog } from '../observability/logs-bridge';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'critical';
-export type LogContext = 'agent' | 'dataflow' | 'graph' | 'cli' | 'test' | 'system';
+export type LogContext = 'agent' | 'resilience' | 'dataflow' | 'graph' | 'cli' | 'test' | 'system';
 
 // Simplified error interface to avoid circular dependency
 export interface SimpleError extends Error {
@@ -396,20 +396,44 @@ export class ContextLogger {
     private component: string
   ) {}
 
-  public debug(operation: string, message: string, metadata?: Record<string, any>): void {
+  public debug(message: string, metadata?: Record<string, any>): void;
+  public debug(operation: string, message: string, metadata?: Record<string, any>): void;
+  public debug(a: string, b?: string | Record<string, any>, c?: Record<string, any>): void {
+    const [operation, message, metadata] = ContextLogger.normalize(a, b, c);
     this.parent.debug(this.context, this.component, operation, message, metadata);
   }
 
-  public info(operation: string, message: string, metadata?: Record<string, any>): void {
+  public info(message: string, metadata?: Record<string, any>): void;
+  public info(operation: string, message: string, metadata?: Record<string, any>): void;
+  public info(a: string, b?: string | Record<string, any>, c?: Record<string, any>): void {
+    const [operation, message, metadata] = ContextLogger.normalize(a, b, c);
     this.parent.info(this.context, this.component, operation, message, metadata);
   }
 
-  public warn(operation: string, message: string, metadata?: Record<string, any>): void {
+  public warn(message: string, metadata?: Record<string, any>): void;
+  public warn(operation: string, message: string, metadata?: Record<string, any>): void;
+  public warn(a: string, b?: string | Record<string, any>, c?: Record<string, any>): void {
+    const [operation, message, metadata] = ContextLogger.normalize(a, b, c);
     this.parent.warn(this.context, this.component, operation, message, metadata);
   }
 
-  public error(operation: string, message: string, metadata?: Record<string, any>): void {
+  public error(message: string, metadata?: Record<string, any>): void;
+  public error(operation: string, message: string, metadata?: Record<string, any>): void;
+  public error(a: string, b?: string | Record<string, any>, c?: Record<string, any>): void {
+    const [operation, message, metadata] = ContextLogger.normalize(a, b, c);
     this.parent.error(this.context, this.component, operation, message, metadata);
+  }
+
+  /** Accepts (message, metadata?) or (operation, message, metadata?). */
+  private static normalize(
+    a: string,
+    b?: string | Record<string, any>,
+    c?: Record<string, any>
+  ): [string, string, Record<string, any> | undefined] {
+    if (typeof b === 'string') {
+      return [a, b, c];
+    }
+    return ['log', a, b];
   }
 
   // Removed critical log method from ContextLogger

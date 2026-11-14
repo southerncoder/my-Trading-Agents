@@ -56,6 +56,9 @@ export interface AgentState {
   // Risk management outputs
   risk_debate_state?: RiskDebateState;          // Risk debate state
   final_trade_decision?: string;                // Final trading decision
+  
+  // Enhanced features metadata
+  metadata?: Record<string, any>;               // Flexible metadata for enhancements
 }
 
 /**

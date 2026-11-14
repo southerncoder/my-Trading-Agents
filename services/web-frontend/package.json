@@ -1,0 +1,59 @@
+{
+  "name": "trading-agents-web-frontend",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Modern React 19.x web frontend for TradingAgents",
+  "scripts": {
+    "dev": "vite",
+    "dev:https": "cross-env HTTPS_ENABLED=true vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "preview:https": "cross-env HTTPS_ENABLED=true vite preview",
+    "generate-certs": "bash scripts/generate-local-certs.sh",
+    "generate-certs:windows": "powershell -ExecutionPolicy Bypass -File scripts/generate-local-certs.ps1",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "type-check": "tsc --noEmit",
+    "docker:build": "docker build -t trading-agents-web-frontend .",
+    "docker:run": "docker run -p 3000:80 trading-agents-web-frontend"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.3.5",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.72.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.18.5",
+    "tailwindcss": "^4.3.5",
+    "zod": "^4.6.7",
+    "zustand": "^5.0.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "cross-env": "^10.1.0",
+    "eslint": "^10.14.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.7",
+    "globals": "^17.14.0",
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.72.2",
+    "vite": "^8.3.8"
+  },
+  "overrides": {
+    "eslint": {
+      "minimatch": "^11.0.8"
+    },
+    "@eslint/config-array": {
+      "minimatch": "^11.0.8"
+    },
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^11.0.8"
+    },
+    "nodemon": {
+      "minimatch": "^11.0.8"
+    }
+  }
+}

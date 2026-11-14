@@ -31,6 +31,64 @@ export interface TradingAgentsConfig {
 
   // Data source paths
   simfinDataPath?: string | undefined;
+
+  // Database configuration
+  database?: DatabaseConfig;
+
+  // Government data configuration
+  governmentData?: GovernmentDataConfig;
+
+  // Runtime-only credentials/endpoints, populated from environment variables by the
+  // config loaders. Never persist these to config files.
+  finnhubApiKey?: string | undefined;
+  redditClientId?: string | undefined;
+  redditClientSecret?: string | undefined;
+  redditUsername?: string | undefined;
+  redditPassword?: string | undefined;
+  newsApiKey?: string | undefined;
+  alphaVantageApiKey?: string | undefined;
+  openaiApiKey?: string | undefined;
+  backendUrl?: string | undefined;
+}
+
+export interface DatabaseConfig {
+  postgresql: {
+    host: string;
+    port: number;
+    database: string;
+    username: string;
+    password: string;
+    ssl: boolean;
+    poolSize: number;
+    connectionTimeoutMillis: number;
+    idleTimeoutMillis: number;
+    maxUses: number;
+    allowExitOnIdle: boolean;
+  };
+  storageStrategy: {
+    performanceMetrics: 'postgresql' | 'both';
+    backtestResults: 'postgresql' | 'both';
+    timeSeriesData: 'postgresql';
+    graphRelationships: 'zep_graphiti';
+    agentMemory: 'zep_graphiti' | 'postgresql' | 'both';
+    episodicMemory: 'postgresql';
+    semanticMemory: 'postgresql';
+    workingMemory: 'postgresql';
+    proceduralMemory: 'postgresql';
+  };
+  pgvector: {
+    enabled: boolean;
+    embeddingDimensions: number;
+    similarityThreshold: number;
+  };
+}
+
+export interface GovernmentDataConfig {
+  baseUrl: string;
+  timeout?: number | undefined;
+  enabled?: boolean | undefined;
+  fredApiKey?: string | undefined;
+  blsApiKey?: string | undefined;
 }
 
 export type LLMProvider = 'openai' | 'anthropic' | 'google' | 'ollama' | 'openrouter' | 'local_lmstudio' | 'remote_lmstudio';

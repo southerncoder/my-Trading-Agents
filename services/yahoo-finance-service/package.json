@@ -7,7 +7,9 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "keywords": [
     "yahoo-finance",
@@ -18,14 +20,27 @@
   "author": "TradingAgents",
   "license": "MIT",
   "dependencies": {
-    "yahoo-finance2": "^2.4.2",
-    "express": "^4.19.2",
     "cors": "^2.8.5",
-    "helmet": "^7.1.0",
-    "winston": "^3.13.0",
-    "dotenv": "^16.4.5"
+    "dotenv": "^18.0.10",
+    "express": "^5.1.0",
+    "helmet": "^8.1.0",
+    "winston": "^3.18.3",
+    "yahoo-finance2": "^4.0.6"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.14.0",
+    "globals": "^17.14.0"
+  },
+  "overrides": {
+    "eslint": {
+      "minimatch": "^11.0.8"
+    },
+    "@eslint/config-array": {
+      "minimatch": "^11.0.8"
+    }
   }
 }

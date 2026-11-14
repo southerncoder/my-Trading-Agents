@@ -14,7 +14,7 @@ const __dirname = dirname(__filename);// This script ensures that all .js import
 
 const distDir = join(__dirname, 'dist');
 
-/**/**
+
 
 async function fixImports(dir) {
 

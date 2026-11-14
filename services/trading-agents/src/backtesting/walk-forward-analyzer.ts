@@ -202,8 +202,8 @@ export class WalkForwardAnalyzer {
           const backtestConfig: BacktestConfig = {
             strategy,
             symbols: [...new Set(data.map(d => d.symbol))],
-            startDate: data[0].timestamp,
-            endDate: data[data.length - 1].timestamp,
+            startDate: data[0]!.timestamp,
+            endDate: data[data.length - 1]!.timestamp,
             initialCapital: 100000,
             commission: 0.001,
             slippage: 0.0005,
@@ -507,10 +507,10 @@ export class WalkForwardAnalyzer {
       }
       
       const paramName = paramNames[index];
-      const range = parameterRanges[paramName];
+      const range = parameterRanges[paramName!];
       
-      for (let value = range.min; value <= range.max; value += range.step) {
-        current[paramName] = value;
+      for (let value = range!.min; value <= range!.max; value += range!.step) {
+        current[paramName!] = value;
         generateCombos(index + 1, current);
       }
     };
@@ -548,8 +548,8 @@ export class WalkForwardAnalyzer {
       const backtestConfig: BacktestConfig = {
         strategy,
         symbols: [...new Set(data.map(d => d.symbol))],
-        startDate: data[0].timestamp,
-        endDate: data[data.length - 1].timestamp,
+        startDate: data[0]!.timestamp,
+        endDate: data[data.length - 1]!.timestamp,
         initialCapital: 100000,
         commission: 0.001,
         slippage: 0.0005,

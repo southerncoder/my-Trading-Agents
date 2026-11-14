@@ -5,7 +5,7 @@ import { SECCompany, SECFiling, SECCompanyFacts } from '../../../src/types/index
 // Mock axios
 vi.mock('axios', () => ({
   default: {
-    create: vi.fn(() => ({
+    create: vi.fn(() => Object.assign(vi.fn(), {
       interceptors: {
         request: { use: vi.fn() },
         response: { use: vi.fn() }
@@ -20,10 +20,12 @@ vi.mock('axios', () => ({
 
 // Mock limiter
 vi.mock('limiter', () => ({
-  RateLimiter: vi.fn(() => ({
+  RateLimiter: vi.fn(function () {
+    return {
     removeTokens: vi.fn().mockResolvedValue(1),
     getTokensRemaining: vi.fn().mockReturnValue(10)
-  }))
+    };
+  })
 }));
 
 describe('SECClient', () => {
@@ -79,7 +81,8 @@ describe('SECClient', () => {
       const mockError = new Error('Network error');
       mockAxiosInstance.mockRejectedValueOnce(mockError);
 
-      await expect(secClient.getCompanyTickers()).rejects.toThrow('Network error');
+      // retries: 0 so the single rejected call is the only attempt (network errors are otherwise retried)
+      await expect(secClient.getCompanyTickers({ retries: 0 })).rejects.toThrow('Network error');
     });
 
     it('should handle timeout errors', async () => {

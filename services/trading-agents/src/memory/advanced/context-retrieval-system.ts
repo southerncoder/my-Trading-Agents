@@ -466,10 +466,10 @@ export class ContextRetrievalSystem {
 
     if (strictMode) {
       // Use more specific keywords for strict matching (first 3 keywords)
-      return keywords.slice(0, 3).join(' AND ');
+      return keywords!.slice(0, 3).join(' AND ');
     } else {
       // Use broader keyword set for flexible matching
-      return keywords.join(' OR ');
+      return keywords!.join(' OR ');
     }
   }
 

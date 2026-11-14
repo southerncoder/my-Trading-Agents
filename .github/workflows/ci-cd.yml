@@ -9,7 +9,7 @@ on:
     types: [ published ]
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '24'
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}/trading-agents
 
@@ -20,10 +20,10 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       
     - name: Setup Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v7
       with:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
@@ -50,10 +50,10 @@ jobs:
     needs: test
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Setup Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v7
       with:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
@@ -76,31 +76,68 @@ jobs:
       
     - name: Upload coverage to Codecov
       if: success()
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v7
       with:
         directory: ./services/trading-agents
         fail_ci_if_error: false
 
-  # Security Scan Job
+  # Enhanced Security Scan Job with Dependency Automation
   security:
     runs-on: ubuntu-latest
     needs: test
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       
-    - name: Run security audit
+    - name: Setup Node.js
+      uses: actions/setup-node@v7
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: 'services/trading-agents/package-lock.json'
+    
+    - name: Install dependencies
+      working-directory: ./services/trading-agents
+      run: npm ci
+      
+    - name: Install PowerShell
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y wget apt-transport-https software-properties-common
+        wget -q "https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb"
+        sudo dpkg -i packages-microsoft-prod.deb
+        sudo apt-get update
+        sudo apt-get install -y powershell
+      
+    - name: Run enhanced security audit
       working-directory: ./services/trading-agents
       run: npm audit --audit-level moderate
       
+    - name: Run breaking change detection
+      run: |
+        pwsh -Command "./scripts/dependency-breaking-change-detector.ps1 -Service trading-agents -AllPackages" || true
+      
+    - name: Run API compatibility validation
+      run: |
+        pwsh -Command "./scripts/dependency-api-compatibility-validator.ps1 -Service trading-agents -AllPackages" || true
+      
     - name: Run Snyk to check for vulnerabilities
-      uses: snyk/actions/node@master
+      uses: snyk/actions/node@v1.0.0
       continue-on-error: true
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       with:
         args: --project-name=trading-agents --file=services/trading-agents/package.json
+    
+    - name: Upload security analysis reports
+      uses: actions/upload-artifact@v7
+      with:
+        name: security-analysis-reports
+        path: |
+          reports/breaking-changes-*.md
+          reports/api-compatibility-*.md
+        retention-days: 30
 
   # Build Docker Image Job
   build:
@@ -113,13 +150,13 @@ jobs:
       
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      uses: docker/setup-buildx-action@v4
       
     - name: Log in to Container Registry
-      uses: docker/login-action@v3
+      uses: docker/login-action@v4
       with:
         registry: ${{ env.REGISTRY }}
         username: ${{ github.actor }}
@@ -127,7 +164,7 @@ jobs:
         
     - name: Extract metadata
       id: meta
-      uses: docker/metadata-action@v5
+      uses: docker/metadata-action@v6
       with:
         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
         tags: |
@@ -138,7 +175,7 @@ jobs:
           type=semver,pattern={{major}}.{{minor}}
           
     - name: Build and push Docker image
-      uses: docker/build-push-action@v5
+      uses: docker/build-push-action@v7
       with:
         context: ./services/trading-agents
         file: ./services/trading-agents/Dockerfile
@@ -159,7 +196,7 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       
     - name: Deploy to production
       run: |
@@ -172,7 +209,7 @@ jobs:
         
     # Example for VM deployment
     # - name: Deploy to server
-    #   uses: appleboy/ssh-action@v0.1.5
+    #   uses: appleboy/ssh-action@v1
     #   with:
     #     host: ${{ secrets.HOST }}
     #     username: ${{ secrets.USERNAME }}

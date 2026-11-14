@@ -81,37 +81,10 @@ This setup **does not include any custom or 3rd party source code**. All service
 
 ## Setup
 
-1. Install dependencies using uv:
-```bash
-uv sync
-```
+See central docs for setup and security guides:
 
-2. Set up environment variables in `.env`:
-```bash
-# LM Studio configuration (for local LLM)
-OPENAI_API_KEY=your-api-key
-OPENAI_BASE_URL=http://your-host:port/v1
-OPENAI_MODEL=your-model-name
-
-# Neo4j configuration
-NEO4J_URI=bolt://your-host:port
-NEO4J_USER=your-username
-NEO4J_PASSWORD=your-secure-password
-
-# Service configuration
-ZEP_SERVICE_HOST=your-host
-ZEP_SERVICE_PORT=your-port
-```
-
-3. Start Neo4j (required for Graphiti):
-```bash
-docker run -p port:port -p port:port -e NEO4J_AUTH=username/password neo4j:5.26.0
-```
-
-4. Run the Zep Graphiti service:
-```bash
-uv run python main.py
-```
+- docs/zep-graphiti/DEV-SETUP.md
+- docs/zep-graphiti/NEO4J_SECURITY_GUIDE.md
 
 ## Using Docker Secrets (Local Development)
 

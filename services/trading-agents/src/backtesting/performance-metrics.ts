@@ -107,8 +107,8 @@ export class PerformanceMetricsCalculator {
     
     // Calculate annualized return
     const daysDiff = this.calculateDaysBetween(
-      equityCurve.points[0].timestamp,
-      equityCurve.points[equityCurve.points.length - 1].timestamp
+      equityCurve.points[0]!.timestamp,
+      equityCurve.points[equityCurve.points.length - 1]!.timestamp
     );
     const years = daysDiff / 365.25;
     const annualizedReturn = years > 0 ? Math.pow(1 + totalReturn, 1 / years) - 1 : 0;
@@ -238,7 +238,7 @@ export class PerformanceMetricsCalculator {
     const alpha = portfolioMean - (this.riskFreeRate + beta * (benchmarkMean - this.riskFreeRate));
     
     // Calculate tracking error
-    const excessReturns = alignedPortfolioReturns.map((r, i) => r - alignedBenchmarkReturns[i]);
+    const excessReturns = alignedPortfolioReturns.map((r, i) => r - alignedBenchmarkReturns[i]!);
     const trackingError = this.calculateStandardDeviation(excessReturns) * Math.sqrt(252);
     
     // Calculate information ratio
@@ -258,8 +258,8 @@ export class PerformanceMetricsCalculator {
   calculateDrawdownAnalysis(equityCurve: EquityCurve): DrawdownAnalysis {
     const points = equityCurve.points;
     const drawdownPeriods: DrawdownPeriod[] = [];
-    let currentPeak = points[0].portfolioValue;
-    let currentPeakDate = points[0].timestamp;
+    let currentPeak = points[0]!.portfolioValue;
+    let currentPeakDate = points[0]!.timestamp;
     let inDrawdown = false;
     let drawdownStart: Date | null = null;
     let maxDrawdown = 0;
@@ -380,8 +380,8 @@ export class PerformanceMetricsCalculator {
       const windowPoints = points.slice(i - windowDays, i + 1);
       const windowEquityCurve: EquityCurve = {
         points: windowPoints,
-        startValue: windowPoints[0].portfolioValue,
-        endValue: windowPoints[windowPoints.length - 1].portfolioValue,
+        startValue: windowPoints[0]!.portfolioValue,
+        endValue: windowPoints[windowPoints.length - 1]!.portfolioValue,
         peakValue: Math.max(...windowPoints.map(p => p.portfolioValue)),
         troughValue: Math.min(...windowPoints.map(p => p.portfolioValue))
       };
@@ -440,7 +440,7 @@ export class PerformanceMetricsCalculator {
     }));
 
     // Calculate drawdowns
-    let peak = points[0].portfolioValue;
+    let peak = points[0]!.portfolioValue;
     for (const point of points) {
       if (point.portfolioValue > peak) {
         peak = point.portfolioValue;
@@ -450,8 +450,8 @@ export class PerformanceMetricsCalculator {
 
     return {
       points,
-      startValue: points[0].portfolioValue,
-      endValue: points[points.length - 1].portfolioValue,
+      startValue: points[0]!.portfolioValue,
+      endValue: points[points.length - 1]!.portfolioValue,
       peakValue: Math.max(...points.map(p => p.portfolioValue)),
       troughValue: Math.min(...points.map(p => p.portfolioValue))
     };
@@ -464,8 +464,8 @@ export class PerformanceMetricsCalculator {
     const returns: number[] = [];
 
     for (let i = 1; i < points.length; i++) {
-      const prevValue = points[i - 1].portfolioValue;
-      const currentValue = points[i].portfolioValue;
+      const prevValue = points[i - 1]!.portfolioValue;
+      const currentValue = points[i]!.portfolioValue;
       const dailyReturn = (currentValue - prevValue) / prevValue;
       returns.push(dailyReturn);
     }
@@ -503,8 +503,8 @@ export class PerformanceMetricsCalculator {
     let benchmarkVariance = 0;
 
     for (let i = 0; i < portfolioReturns.length; i++) {
-      const portfolioDiff = portfolioReturns[i] - portfolioMean;
-      const benchmarkDiff = benchmarkReturns[i] - benchmarkMean;
+      const portfolioDiff = portfolioReturns[i]! - portfolioMean;
+      const benchmarkDiff = benchmarkReturns[i]! - benchmarkMean;
       
       covariance += portfolioDiff * benchmarkDiff;
       benchmarkVariance += benchmarkDiff * benchmarkDiff;
@@ -519,8 +519,8 @@ export class PerformanceMetricsCalculator {
   private calculateAnnualizedReturn(equityCurve: EquityCurve): number {
     const totalReturn = (equityCurve.endValue - equityCurve.startValue) / equityCurve.startValue;
     const daysDiff = this.calculateDaysBetween(
-      equityCurve.points[0].timestamp,
-      equityCurve.points[equityCurve.points.length - 1].timestamp
+      equityCurve.points[0]!.timestamp,
+      equityCurve.points[equityCurve.points.length - 1]!.timestamp
     );
     const years = daysDiff / 365.25;
     

@@ -20,7 +20,7 @@ export class SemanticSimilarityService {
 
       // If embeddings are provided, use them directly
       if (embeddings && embeddings.length >= 2) {
-        return this.cosineSimilarity(embeddings[0], embeddings[1]);
+        return this.cosineSimilarity(embeddings[0]!, embeddings[1]!);
       }
 
       // Otherwise, use simple text-based similarity
@@ -50,7 +50,7 @@ export class SemanticSimilarityService {
   /**
    * Find most similar items from a collection
    */
-  findMostSimilar(queryText: string, candidates: string[], embeddings?: number[][][]): Array<{
+  findMostSimilar(queryText: string, candidates: string[], embeddings?: number[][]): Array<{
     text: string;
     similarity: number;
     index: number;
@@ -59,7 +59,7 @@ export class SemanticSimilarityService {
       if (!queryText || !candidates.length) return [];
 
       const similarities = candidates.map((candidate, index) => {
-        const pairEmbeddings = embeddings ? [embeddings[0], embeddings[index + 1]] : undefined;
+        const pairEmbeddings = embeddings ? [embeddings[0]!, embeddings[index + 1]!] : undefined;
         const similarity = this.calculateSemanticSimilarity(queryText, candidate, pairEmbeddings);
         return {
           text: candidate,
@@ -114,9 +114,9 @@ export class SemanticSimilarityService {
       let norm2 = 0;
 
       for (let i = 0; i < vec1.length; i++) {
-        dotProduct += vec1[i] * vec2[i];
-        norm1 += vec1[i] * vec1[i];
-        norm2 += vec2[i] * vec2[i];
+        dotProduct += vec1[i]! * vec2[i]!;
+        norm1 += vec1[i]! * vec1[i]!;
+        norm2 += vec2[i]! * vec2[i]!;
       }
 
       if (norm1 === 0 || norm2 === 0) return 0.5;
@@ -182,32 +182,32 @@ export class SemanticSimilarityService {
    * Calculate Levenshtein distance between two strings
    */
   private levenshteinDistance(str1: string, str2: string): number {
-    const matrix = [];
+    const matrix: number[][] = [];
 
     // Initialize matrix
     for (let i = 0; i <= str2.length; i++) {
       matrix[i] = [i];
     }
     for (let j = 0; j <= str1.length; j++) {
-      matrix[0][j] = j;
+      matrix[0]![j] = j;
     }
 
     // Fill matrix
     for (let i = 1; i <= str2.length; i++) {
       for (let j = 1; j <= str1.length; j++) {
         if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
-          matrix[i][j] = matrix[i - 1][j - 1];
+          matrix[i]![j] = matrix[i - 1]![j - 1]!;
         } else {
-          matrix[i][j] = Math.min(
-            matrix[i - 1][j - 1] + 1, // substitution
-            matrix[i][j - 1] + 1,     // insertion
-            matrix[i - 1][j] + 1      // deletion
+          matrix[i]![j] = Math.min(
+            matrix[i - 1]![j - 1]! + 1, // substitution
+            matrix[i]![j - 1]! + 1,     // insertion
+            matrix[i - 1]![j]! + 1      // deletion
           );
         }
       }
     }
 
-    return matrix[str2.length][str1.length];
+    return matrix[str2.length]![str1.length]!;
   }
 
   /**

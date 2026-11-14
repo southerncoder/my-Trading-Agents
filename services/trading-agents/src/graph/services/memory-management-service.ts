@@ -29,7 +29,7 @@ export interface MemoryManagementConfig {
 export class MemoryManagementService {
   private logger: any;
   private enableAdvancedMemory: boolean;
-  private zepClientConfig?: ZepClientConfig;
+  private zepClientConfig?: ZepClientConfig | undefined;
   private advancedMemorySystem?: AdvancedMemoryLearningSystem;
 
   constructor(config: MemoryManagementConfig) {

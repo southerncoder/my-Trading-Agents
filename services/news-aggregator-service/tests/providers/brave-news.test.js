@@ -1,4 +1,4 @@
-import BraveNewsProvider from '../src/providers/brave-news.js';
+import BraveNewsProvider from '../../src/providers/brave-news.js';
 
 describe('BraveNewsProvider', () => {
   let provider;

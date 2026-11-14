@@ -1,76 +1,26 @@
-### Builder stage: install dependencies and Playwright browsers ###
-FROM node:18-bullseye AS builder
+### Builder stage: install production dependencies ###
+FROM node:24-bookworm-slim AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /app
 
-# Install system dependencies required for Playwright
-RUN apt-get update && apt-get install -y --no-install-recommends \
-	ca-certificates \
-	fonts-liberation \
-	libasound2 \
-	libatk-bridge2.0-0 \
-	libatk1.0-0 \
-	libc6 \
-	libcairo2 \
-	libdbus-1-3 \
-	libexpat1 \
-	libfontconfig1 \
-	libgbm1 \
-	libgcc1 \
-	libglib2.0-0 \
-	libnss3 \
-	libpango-1.0-0 \
-	libstdc++6 \
-	libx11-6 \
-	libxcomposite1 \
-	libxdamage1 \
-	libxext6 \
-	libxfixes3 \
-	libxrandr2 \
-	libxrender1 \
-	wget \
-	&& rm -rf /var/lib/apt/lists/*
 
 # Copy package files and install production dependencies
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm ci --omit=dev
 
 # Copy application source into builder (no browser install required - runtime uses Playwright official image)
 COPY . .
 
 
 ### Runtime stage: smaller image with only necessary files ###
-FROM mcr.microsoft.com/playwright:latest AS runtime
+FROM mcr.microsoft.com/playwright:v1.65.0-noble AS runtime
 WORKDIR /app
 
-# Install minimal runtime dependencies required by Playwright (shared libs)
+# The Playwright image already ships browsers and OS libraries; add only what the service needs
 RUN apt-get update && apt-get install -y --no-install-recommends \
-	ca-certificates \
-	fonts-liberation \
-	libasound2 \
-	libatk-bridge2.0-0 \
-	libatk1.0-0 \
-	libc6 \
-	libcairo2 \
-	libdbus-1-3 \
-	libexpat1 \
-	libfontconfig1 \
-	libgbm1 \
-	libgcc1 \
-	libglib2.0-0 \
-	libnss3 \
-	libpango-1.0-0 \
-	libstdc++6 \
-	libx11-6 \
-	libxcomposite1 \
-	libxdamage1 \
-	libxext6 \
-	libxfixes3 \
-	libxrandr2 \
-	libxrender1 \
-	wget \
-	&& rm -rf /var/lib/apt/lists/*
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy app code and node_modules from builder (production deps)
 COPY --from=builder /app/node_modules ./node_modules

@@ -43,7 +43,7 @@ export class ConfigurationService {
     workflowInitialized: boolean;
   } {
     return {
-      llmProvider: this.config.llmProvider,
+      llmProvider: this.config.llmProvider ?? 'unknown',
       selectedAnalysts: this.selectedAnalysts,
       langGraphEnabled: this.enableLangGraph,
       workflowInitialized: this.workflowInitialized

@@ -35,7 +35,7 @@ import {
 export class BacktestEngine {
   private readonly logger = createLogger('system', 'backtest-engine');
   private readonly performanceCalculator: PerformanceMetricsCalculator;
-  private dataProvider?: BacktestingDataProvider;
+  private dataProvider?: BacktestingDataProvider | undefined;
 
   constructor(dataProvider?: BacktestingDataProvider) {
     this.performanceCalculator = new PerformanceMetricsCalculator();
@@ -90,7 +90,7 @@ export class BacktestEngine {
 
         try {
           // Process any queued orders from previous days
-          const queuedTrades = await tradeSimulator.processQueuedOrders(dayData[0]);
+          const queuedTrades = await tradeSimulator.processQueuedOrders(dayData[0]!);
           for (const trade of queuedTrades) {
             portfolio = this.updatePortfolioWithTrade(portfolio, trade);
             allTrades.push(trade);
@@ -332,7 +332,7 @@ export class BacktestEngine {
         const date = new Date(time);
         const dateStr = date.toISOString().split('T')[0];
         
-        historicalData[dateStr] = symbols.map(symbol => ({
+        historicalData[dateStr!] = symbols.map(symbol => ({
           symbol,
           timestamp: date,
           open: 100 + Math.random() * 50,
@@ -546,10 +546,10 @@ export class BacktestEngine {
     
     for (const dataPoint of data) {
       const dateStr = dataPoint.timestamp.toISOString().split('T')[0];
-      if (!grouped[dateStr]) {
-        grouped[dateStr] = [];
+      if (!grouped[dateStr!]) {
+        grouped[dateStr!] = [];
       }
-      grouped[dateStr]!.push(dataPoint);
+      grouped[dateStr!]!.push(dataPoint);
     }
 
     return grouped;

@@ -181,7 +181,10 @@ export class ResilientNewsAggregator {
       query,
       timestamp: new Date().toISOString(),
       providers: Object.keys(this.providers),
+      providerCount: Object.keys(this.providers).length,
     };
+
+    const summary = { successful: 0, failed: 0, total: 0 };
 
     // Execute all provider searches concurrently, yielding as they complete
     const providerPromises = Object.entries(this.providers).map(
@@ -203,7 +206,14 @@ export class ResilientNewsAggregator {
     // Yield results as they complete
     for (const promise of providerPromises) {
       const result = await promise;
-      
+
+      if (result.status === 'success') {
+        summary.successful++;
+        summary.total += result.data?.articles?.length || 0;
+      } else {
+        summary.failed++;
+      }
+
       yield {
         type: 'provider-result',
         provider: result.providerName,
@@ -221,6 +231,7 @@ export class ResilientNewsAggregator {
     
     yield {
       type: 'complete',
+      summary,
       totalDuration: duration,
       timestamp: new Date().toISOString(),
     };

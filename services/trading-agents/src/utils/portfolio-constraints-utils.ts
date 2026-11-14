@@ -443,7 +443,7 @@ export class PortfolioConstraintsUtils {
         'general': 0.08
       };
 
-      let proposedSize: number = sectorBaseSizes[sector] ?? sectorBaseSizes.general;
+      let proposedSize: number = sectorBaseSizes[sector] ?? sectorBaseSizes.general!;
 
       // Adjust based on risk assessment
       if (riskAssessment.overallRisk === 'HIGH') {

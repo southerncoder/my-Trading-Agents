@@ -1,0 +1,36 @@
+{
+  "timestamp": "2025-10-17T17:45:33.345Z",
+  "suite": "Performance Component Tests",
+  "results": {
+    "caching": {
+      "hits": 1000,
+      "duration": 1
+    },
+    "memory": {
+      "memoryGrowth": 2524752,
+      "memoryLeaked": 2525032,
+      "duration": 6
+    },
+    "database": {
+      "queries": 100,
+      "records": 5000,
+      "duration": 10
+    },
+    "api": {
+      "endpoints": 4,
+      "avgDuration": 58.25,
+      "totalDuration": 233
+    },
+    "monitoring": {
+      "metrics": 10,
+      "avgCpu": 54.04379163415719,
+      "avgMemory": 384189003.20639217,
+      "avgResponseTime": 593.8725278404236
+    }
+  },
+  "summary": {
+    "totalTests": 5,
+    "allPassed": true,
+    "duration": 254
+  }
+}

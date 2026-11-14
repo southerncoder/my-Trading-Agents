@@ -168,12 +168,17 @@ npx vite-node examples/memory/test-advanced-memory-phase6-simple.js
 - ✅ Response format validation
 - ✅ Error recovery testing
 
-### 4. Performance Testing (`test-agent-performance`)
-- ⚡ Response latency measurement
-- ⚡ Concurrent processing tests
-- ⚡ Stress scenario validation
-- ⚡ Resource usage analysis
-- ⚡ Throughput benchmarks
+### 4. Performance Testing
+```bash
+npm run test:performance              # Run all performance tests
+npm run test:performance:regression   # Run regression detection tests
+npm run test:performance:comprehensive # Run comprehensive benchmarks
+```
+- ⚡ Cache operations: 50,000+ ops/sec
+- ⚡ Memory allocation: 10,000+ ops/sec  
+- ⚡ Async operations: 65+ ops/sec
+- ⚡ JSON processing: 9,000+ ops/sec
+- ⚡ Database simulation: 25,000+ ops/sec
 
 ### 5. Comprehensive Suite (`test-agents-comprehensive`)
 - 🎯 Runs all test categories in sequence

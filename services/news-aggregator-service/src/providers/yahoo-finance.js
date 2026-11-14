@@ -1,5 +1,7 @@
-import yahooFinance from 'yahoo-finance2';
+import YahooFinance from 'yahoo-finance2';
 import winston from 'winston';
+
+const yahooFinance = new YahooFinance();
 
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',

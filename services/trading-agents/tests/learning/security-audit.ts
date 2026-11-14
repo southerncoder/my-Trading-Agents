@@ -15,7 +15,7 @@ const mockIndicators = [
   'mock', 'fake', 'stub', 'dummy', 'placeholder.*impl', 'not.*implement'
 ];
 
-let mockCount = 0;
+const mockCount = 0;
 console.log('✅ Learning system uses real implementations:');
 console.log('   - SupervisedLearningEngine: Real LLM-powered training and prediction');
 console.log('   - UnsupervisedLearningEngine: Real clustering and anomaly detection');

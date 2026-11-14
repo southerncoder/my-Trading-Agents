@@ -35,7 +35,7 @@ export class RangeBreakoutStrategy extends BaseTradingStrategy {
   private rangeThreshold: number; // Minimum range width as percentage
   private breakoutThreshold: number; // Percentage beyond range for confirmation
   private volumeMultiplier: number; // Volume required for confirmation
-  private logger = createLogger('agent', 'range-breakout-strategy');
+  protected logger = createLogger('agent', 'range-breakout-strategy');
 
   constructor(config: StrategyConfig, tradingConfig: TradingAgentsConfig) {
     super(
@@ -392,7 +392,7 @@ export class VolatilityBreakoutStrategy extends BaseTradingStrategy {
   private lowVolatilityThreshold: number; // ATR percentile for low volatility
   private breakoutMultiplier: number; // ATR multiplier for breakout detection
   private lookbackPeriod: number;
-  private logger = createLogger('agent', 'volatility-breakout-strategy');
+  protected logger = createLogger('agent', 'volatility-breakout-strategy');
 
   constructor(config: StrategyConfig, tradingConfig: TradingAgentsConfig) {
     super(

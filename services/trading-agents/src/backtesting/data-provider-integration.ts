@@ -115,7 +115,7 @@ export class BacktestingDataProvider {
               sessionId: `backtesting-${Date.now()}`,
               userId: 'backtesting-system'
             },
-            this.tradingConfig.llm || {} as any
+            (this.tradingConfig as any).llm || {} as any
           );
           
           const connected = await this.graphProvider.testConnection();
@@ -169,10 +169,10 @@ export class BacktestingDataProvider {
             // Group data by date
             for (const dataPoint of symbolData) {
               const dateStr = dataPoint.timestamp.toISOString().split('T')[0];
-              if (!historicalData[dateStr]) {
-                historicalData[dateStr] = [];
+              if (!historicalData[dateStr!]) {
+                historicalData[dateStr!] = [];
               }
-              historicalData[dateStr]!.push(dataPoint);
+              historicalData[dateStr!]!.push(dataPoint);
             }
           } else {
             failedSymbols.push(symbol);
@@ -226,7 +226,7 @@ export class BacktestingDataProvider {
           endDate: endDateStr
         });
 
-        const yahooData = await this.yahooProvider.getData(symbol, startDateStr, endDateStr, true);
+        const yahooData = await this.yahooProvider.getData(symbol, startDateStr!, endDateStr!, true);
         const parsedData = this.parseYahooFinanceData(symbol, yahooData);
         
         if (parsedData && parsedData.length > 0) {
@@ -255,8 +255,8 @@ export class BacktestingDataProvider {
 
         const marketStackData = await this.marketStackProvider.getHistoricalData(
           symbol,
-          startDateStr,
-          endDateStr,
+          startDateStr!,
+          endDateStr!,
           { sort: 'ASC' }
         );
 
@@ -292,14 +292,14 @@ export class BacktestingDataProvider {
       // Skip header and metadata lines
       let startIndex = 0;
       for (let i = 0; i < lines.length; i++) {
-        if (lines[i].includes('Date,Open,High,Low,Close,Adj Close,Volume')) {
+        if (lines[i]!.includes('Date,Open,High,Low,Close,Adj Close,Volume')) {
           startIndex = i + 1;
           break;
         }
       }
 
       for (let i = startIndex; i < lines.length; i++) {
-        const line = lines[i].trim();
+        const line = lines[i]!.trim();
         if (!line) continue;
 
         const parts = line.split(',');
@@ -528,8 +528,8 @@ export class BacktestingDataProvider {
       }
 
       // Check for data gaps
-      const startDate = new Date(dates[0]);
-      const endDate = new Date(dates[dates.length - 1]);
+      const startDate = new Date(dates[0]!);
+      const endDate = new Date(dates[dates.length - 1]!);
       const expectedDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
       const actualDays = dates.length;
       

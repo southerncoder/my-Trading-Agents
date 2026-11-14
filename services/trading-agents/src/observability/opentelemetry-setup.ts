@@ -21,10 +21,8 @@ async function initOpenTelemetry() {
     const { OTLPTraceExporter } = await import('@opentelemetry/exporter-trace-otlp-proto');
     const { OTLPMetricExporter } = await import('@opentelemetry/exporter-metrics-otlp-proto');
   const { PeriodicExportingMetricReader } = await import('@opentelemetry/sdk-metrics');
-  const resourcesMod: any = await import('@opentelemetry/resources');
-  const semanticMod: any = await import('@opentelemetry/semantic-conventions');
-  const Resource = resourcesMod.Resource || resourcesMod.default || resourcesMod;
-  const SemanticResourceAttributes = semanticMod.SemanticResourceAttributes || semanticMod.default || semanticMod;
+  const { resourceFromAttributes } = await import('@opentelemetry/resources');
+  const { ATTR_SERVICE_NAME } = await import('@opentelemetry/semantic-conventions');
 
     let instrumentations: any[] = [];
     try {
@@ -36,8 +34,8 @@ async function initOpenTelemetry() {
       diag.warn('Auto-instrumentations could not be loaded; continuing without them', e as Error);
     }
 
-    const resource = new Resource({
-      [SemanticResourceAttributes.SERVICE_NAME]: serviceName,
+    const resource = resourceFromAttributes({
+      [ATTR_SERVICE_NAME]: serviceName,
     });
 
     const traceExporter = new OTLPTraceExporter({ url: `${collectorUrl}/traces` });
@@ -61,12 +59,13 @@ async function initOpenTelemetry() {
 
     sdk = new NodeSDK({
       traceExporter,
-      metricReader,
+      metricReaders: [metricReader],
       instrumentations,
       resource,
     });
 
-    sdk.start()
+    // sdk.start() is synchronous in newer sdk-node releases; Promise.resolve keeps both shapes working
+    Promise.resolve(sdk.start())
       .then(() => {
         _meterProviderInitialized = true;
         diag.info('OpenTelemetry SDK started');

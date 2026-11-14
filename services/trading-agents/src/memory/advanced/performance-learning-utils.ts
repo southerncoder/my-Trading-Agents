@@ -298,8 +298,29 @@ export async function storeReinforcementData(
       learning_insights: extractReinforcementInsights(action, outcome, qValueUpdate)
     };
 
-    if (zepClient?.storeReinforcementData) {
-      await zepClient.storeReinforcementData(reinforcementData);
+    if (zepClient?.memory?.add) {
+      // Store reinforcement data using Zep.js v2 API
+      const sessionId = `reinforcement_${agentId}_${Date.now()}`;
+      
+      try {
+        // Create session if it doesn't exist
+        await zepClient.memory.addSession?.({ sessionId });
+        
+        // Add reinforcement data as memory
+        await zepClient.memory.add(sessionId, {
+          messages: [{
+            role: 'system',
+            content: `Reinforcement learning data for agent ${agentId}`,
+            metadata: {
+              type: 'reinforcement_data',
+              agentId,
+              reinforcementData: JSON.stringify(reinforcementData)
+            }
+          }]
+        });
+      } catch (error) {
+        logger?.warn('Failed to store reinforcement data in Zep', { error });
+      }
     }
 
     logger?.info('Reinforcement data stored', {

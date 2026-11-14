@@ -1,5 +1,7 @@
-import yahooFinance from 'yahoo-finance2';
+import YahooFinance from 'yahoo-finance2';
 import winston from 'winston';
+
+const yahooFinance = new YahooFinance();
 import { CircuitBreaker } from '../resilience/circuit-breaker.js';
 import { RetryHandler } from '../resilience/retry-handler.js';
 

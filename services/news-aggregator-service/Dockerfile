@@ -1,40 +1,12 @@
-### Builder stage: install dependencies and Playwright browsers ###
-FROM node:18-bullseye AS builder
+### Builder stage: install production dependencies ###
+FROM node:24-bookworm-slim AS builder
 ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /app
 
-# Install system dependencies required for Playwright
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates \
-    fonts-liberation \
-    libasound2 \
-    libatk-bridge2.0-0 \
-    libatk1.0-0 \
-    libc6 \
-    libcairo2 \
-    libdbus-1-3 \
-    libexpat1 \
-    libfontconfig1 \
-    libgbm1 \
-    libgcc1 \
-    libglib2.0-0 \
-    libnss3 \
-    libpango-1.0-0 \
-    libstdc++6 \
-    libx11-6 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxext6 \
-    libxfixes3 \
-    libxrandr2 \
-    libxrender1 \
-    wget \
-    dumb-init \
-    && rm -rf /var/lib/apt/lists/*
 
 # Copy package files and install production dependencies
 COPY package*.json ./
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci --omit=dev && npm cache clean --force
 
 
 # Copy source code into builder
@@ -43,41 +15,18 @@ COPY healthcheck.cjs ./healthcheck.cjs
 
 
 ### Runtime stage: smaller image with only necessary files ###
-FROM mcr.microsoft.com/playwright:latest AS runtime
+FROM mcr.microsoft.com/playwright:v1.65.0-noble AS runtime
 WORKDIR /app
 
-# Install minimal runtime dependencies required by Playwright (shared libs) and dumb-init
+# The Playwright image already ships browsers and OS libraries; add only what the service needs
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
-    fonts-liberation \
-    libasound2 \
-    libatk-bridge2.0-0 \
-    libatk1.0-0 \
-    libc6 \
-    libcairo2 \
-    libdbus-1-3 \
-    libexpat1 \
-    libfontconfig1 \
-    libgbm1 \
-    libgcc1 \
-    libglib2.0-0 \
-    libnss3 \
-    libpango-1.0-0 \
-    libstdc++6 \
-    libx11-6 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxext6 \
-    libxfixes3 \
-    libxrandr2 \
-    libxrender1 \
-    wget \
     dumb-init \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user (Debian-compatible)
-RUN groupadd -g 1001 nodejs || true && \
-    useradd -u 1001 -r -g nodejs -M -s /usr/sbin/nologin newsaggregator || true
+RUN groupadd -g 10001 nodejs && \
+    useradd -u 10001 -r -g nodejs -M -s /usr/sbin/nologin newsaggregator
 
 # Copy runtime app and dependencies from builder
 COPY --from=builder /app/node_modules ./node_modules

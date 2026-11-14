@@ -1,0 +1,16 @@
+# SSL Certificates - Never commit certificates to version control
+*.pem
+*.crt
+*.key
+*.p12
+*.pfx
+
+# Certificate signing requests
+*.csr
+
+# Certificate authority files
+*.ca
+
+# Keep this directory but ignore all certificate files
+!.gitignore
+!README.md

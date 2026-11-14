@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import yahooFinance from 'yahoo-finance2';
+import YahooFinance from 'yahoo-finance2';
 import winston from 'winston';
 import dotenv from 'dotenv';
 
@@ -29,10 +29,9 @@ const logger = winston.createLogger({
 });
 
 // Configure yahoo-finance2
-yahooFinance.setGlobalConfig({
+const yahooFinance = new YahooFinance({
   queue: {
-    concurrency: 3,
-    timeout: 10000
+    concurrency: 3
   }
 });
 

@@ -7,22 +7,8 @@ import request from 'supertest';
 import express from 'express';
 import { jest } from '@jest/globals';
 
-// Mock providers to avoid real API calls
-jest.mock('../src/providers/newsapi.js');
-jest.mock('../src/providers/tavily.js');
-jest.mock('../src/providers/brave-news.js');
-jest.mock('../src/providers/serp-api.js');
-jest.mock('../src/providers/google-news.js');
-
-// Import mocked providers
-import NewsAPIProvider from '../src/providers/newsapi.js';
-import TavilyProvider from '../src/providers/tavily.js';
-import BraveNewsProvider from '../src/providers/brave-news.js';
-import SerpApiProvider from '../src/providers/serp-api.js';
-import GoogleNewsProvider from '../src/providers/google-news.js';
-
 // Import aggregator
-import { ResilientNewsAggregator } from '../src/aggregators/resilient-news-aggregator.js';
+import { ResilientNewsAggregator } from '../../src/aggregators/resilient-news-aggregator.js';
 
 // Test server setup
 let app;
@@ -45,90 +31,34 @@ const mockArticles = [
   },
 ];
 
+// Fake providers: native ESM cannot use jest.mock, and the aggregator only needs this small interface
+const createFakeProvider = (name, message) => ({
+  name,
+  isConfigured: jest.fn(() => true),
+  searchNews: jest.fn(async () => ({
+    status: 'ok',
+    totalResults: 2,
+    articles: mockArticles,
+    provider: name,
+  })),
+  healthCheck: jest.fn(async () => ({
+    healthy: true,
+    message,
+  })),
+});
+
+// Fresh providers and aggregator for every test so failures injected by one test do not leak into the next
+beforeEach(() => {
+  newsAggregator = new ResilientNewsAggregator({
+    'newsapi': createFakeProvider('newsapi', 'NewsAPI is responding'),
+    'tavily': createFakeProvider('tavily', 'Tavily API is responding'),
+    'brave-news': createFakeProvider('brave-news', 'Brave News API is responding'),
+    'serp-api': createFakeProvider('serp-api', 'SERP API is responding'),
+    'google-news': createFakeProvider('google-news', 'Google News is responding'),
+  });
+});
+
 beforeAll(() => {
-  // Setup mock providers
-  NewsAPIProvider.mockImplementation(() => ({
-    isConfigured: jest.fn(() => true),
-    searchNews: jest.fn(async () => ({
-      status: 'ok',
-      totalResults: 2,
-      articles: mockArticles,
-      provider: 'newsapi',
-    })),
-    healthCheck: jest.fn(async () => ({
-      healthy: true,
-      message: 'NewsAPI is responding',
-    })),
-  }));
-
-  TavilyProvider.mockImplementation(() => ({
-    isConfigured: jest.fn(() => true),
-    searchNews: jest.fn(async () => ({
-      status: 'ok',
-      totalResults: 2,
-      articles: mockArticles,
-      provider: 'tavily',
-    })),
-    healthCheck: jest.fn(async () => ({
-      healthy: true,
-      message: 'Tavily API is responding',
-    })),
-  }));
-
-  BraveNewsProvider.mockImplementation(() => ({
-    isConfigured: jest.fn(() => true),
-    searchNews: jest.fn(async () => ({
-      status: 'ok',
-      totalResults: 2,
-      articles: mockArticles,
-      provider: 'brave-news',
-    })),
-    healthCheck: jest.fn(async () => ({
-      healthy: true,
-      message: 'Brave News API is responding',
-    })),
-  }));
-
-  SerpApiProvider.mockImplementation(() => ({
-    isConfigured: jest.fn(() => true),
-    searchNews: jest.fn(async () => ({
-      status: 'ok',
-      totalResults: 2,
-      articles: mockArticles,
-      provider: 'serp-api',
-    })),
-    healthCheck: jest.fn(async () => ({
-      healthy: true,
-      message: 'SERP API is responding',
-    })),
-  }));
-
-  GoogleNewsProvider.mockImplementation(() => ({
-    isConfigured: jest.fn(() => true),
-    searchNews: jest.fn(async () => ({
-      status: 'ok',
-      totalResults: 2,
-      articles: mockArticles,
-      provider: 'google-news',
-    })),
-    healthCheck: jest.fn(async () => ({
-      healthy: true,
-      message: 'Google News is responding',
-    })),
-  }));
-
-  // Initialize providers
-  const providers = {
-    'newsapi': new NewsAPIProvider(),
-    'tavily': new TavilyProvider(),
-    'brave-news': new BraveNewsProvider(),
-    'serp-api': new SerpApiProvider(),
-    'google-news': new GoogleNewsProvider(),
-  };
-
-  // Create aggregator
-  newsAggregator = new ResilientNewsAggregator(providers);
-
   // Setup Express app with test routes
   app = express();
   app.use(express.json());
@@ -288,9 +218,8 @@ describe('News Aggregator Service - Integration Tests', () => {
     });
 
     it('should handle provider failures gracefully', async () => {
-      // Mock one provider to fail
-      const failingProvider = new NewsAPIProvider();
-      failingProvider.searchNews = jest.fn(() => {
+      // Make one provider fail
+      newsAggregator.providers['newsapi'].searchNews = jest.fn(async () => {
         throw new Error('Provider timeout');
       });
 
@@ -300,7 +229,8 @@ describe('News Aggregator Service - Integration Tests', () => {
         .expect(200);
 
       expect(response.body).toHaveProperty('errors');
-      expect(response.body.summary.failed).toBeGreaterThanOrEqual(0);
+      expect(response.body.summary.failed).toBe(1);
+      expect(response.body.summary.successful).toBe(4);
     });
 
     it('should return empty structure when all providers fail', async () => {

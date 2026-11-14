@@ -52,8 +52,8 @@ describe('ResilientNewsAggregator - Unit Tests', () => {
       const aggregator = new ResilientNewsAggregator(providers);
 
       expect(aggregator.providers).toBe(providers);
-      expect(aggregator.circuitBreakers).toBeDefined();
-      expect(aggregator.retryHandlers).toBeDefined();
+      expect(aggregator.circuitBreakers).toBeInstanceOf(Map);
+      expect(aggregator.retryHandler).toBeDefined();
     });
 
     it('should create circuit breakers for each provider', () => {
@@ -65,13 +65,13 @@ describe('ResilientNewsAggregator - Unit Tests', () => {
 
       const aggregator = new ResilientNewsAggregator(providers);
 
-      expect(Object.keys(aggregator.circuitBreakers).length).toBe(3);
-      expect(aggregator.circuitBreakers['provider1']).toBeDefined();
-      expect(aggregator.circuitBreakers['provider2']).toBeDefined();
-      expect(aggregator.circuitBreakers['provider3']).toBeDefined();
+      expect(aggregator.circuitBreakers.size).toBe(3);
+      expect(aggregator.circuitBreakers.get('provider1')).toBeDefined();
+      expect(aggregator.circuitBreakers.get('provider2')).toBeDefined();
+      expect(aggregator.circuitBreakers.get('provider3')).toBeDefined();
     });
 
-    it('should create retry handlers for each provider', () => {
+    it('should track statistics for each provider', () => {
       const providers = {
         'provider1': createMockProvider('provider1'),
         'provider2': createMockProvider('provider2'),
@@ -79,9 +79,10 @@ describe('ResilientNewsAggregator - Unit Tests', () => {
 
       const aggregator = new ResilientNewsAggregator(providers);
 
-      expect(Object.keys(aggregator.retryHandlers).length).toBe(2);
-      expect(aggregator.retryHandlers['provider1']).toBeDefined();
-      expect(aggregator.retryHandlers['provider2']).toBeDefined();
+      expect(aggregator.providerStats.size).toBe(2);
+      expect(aggregator.providerStats.get('provider1')).toEqual(
+        expect.objectContaining({ totalRequests: 0, successCount: 0, failureCount: 0 })
+      );
     });
 
   });
@@ -124,7 +125,7 @@ describe('ResilientNewsAggregator - Unit Tests', () => {
       expect(result.summary.successful).toBe(2);
       expect(result.summary.failed).toBe(1);
       expect(result.providers['provider1'].status).toBe('success');
-      expect(result.providers['provider2'].status).toBe('error');
+      expect(result.providers['provider2'].status).toBe('failed');
       expect(result.providers['provider3'].status).toBe('success');
       expect(result.errors.length).toBeGreaterThan(0);
     });
@@ -265,7 +266,7 @@ describe('ResilientNewsAggregator - Unit Tests', () => {
       }
 
       const errorResults = events.filter(e => 
-        e.type === 'provider-result' && e.status === 'error'
+        e.type === 'provider-result' && e.status === 'failed'
       );
       
       expect(errorResults.length).toBeGreaterThan(0);
@@ -365,7 +366,7 @@ describe('ResilientNewsAggregator - Unit Tests', () => {
       
       // Stats come from mock providers, but structure should be correct
       expect(stats.providers['provider1']).toHaveProperty('errorRate');
-      expect(typeof stats.providers['provider1'].errorRate).toBe('number');
+      expect(stats.providers['provider1'].errorRate).toBe('100.00%');
     });
 
   });

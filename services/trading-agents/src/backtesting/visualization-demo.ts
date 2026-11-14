@@ -300,7 +300,7 @@ export class VisualizationDemo {
         outputPath: `${baseOutputPath}/backtest-dashboard.html`,
         format: 'html',
         includeCharts: true,
-        template: 'dashboard'
+        template: 'detailed'
       },
       dashboardData
     );
@@ -313,7 +313,7 @@ export class VisualizationDemo {
         format: 'pdf',
         includeCharts: true,
         includeRawData: false,
-        template: 'executive'
+        template: 'summary'
       },
       dashboardData
     );
@@ -337,7 +337,7 @@ export class VisualizationDemo {
           outputPath: `${baseOutputPath}/multi-export.html`,
           format: 'html',
           includeCharts: true,
-          template: 'report'
+          template: 'detailed'
         }
       ],
       dashboardData

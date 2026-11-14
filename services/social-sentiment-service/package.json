@@ -1,0 +1,63 @@
+{
+  "name": "social-sentiment-service",
+  "version": "1.0.0",
+  "description": "Social media sentiment analysis service with Reddit, Twitter, and other social platform integrations",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "build": "echo 'No build step needed for this service'",
+    "test": "node --test",
+    "lint": "eslint .",
+    "docker:build": "docker build -t social-sentiment-service .",
+    "docker:run": "docker run -p 3007:3007 --env-file .env social-sentiment-service",
+    "lint:fix": "eslint . --fix"
+  },
+  "dependencies": {
+    "axios": "^1.12.2",
+    "compression": "^1.7.4",
+    "cors": "^2.8.5",
+    "dotenv": "^18.0.10",
+    "express": "^5.1.0",
+    "helmet": "^8.1.0",
+    "node-fetch": "^3.3.2",
+    "rate-limiter-flexible": "^11.4.1",
+    "winston": "^3.18.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.14.0",
+    "globals": "^17.14.0",
+    "nodemon": "^3.1.10"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "keywords": [
+    "social-media",
+    "sentiment",
+    "reddit",
+    "twitter",
+    "api",
+    "microservice",
+    "trading",
+    "social-sentiment"
+  ],
+  "author": "southernCoder",
+  "license": "MIT",
+  "overrides": {
+    "eslint": {
+      "minimatch": "^11.0.8"
+    },
+    "@eslint/config-array": {
+      "minimatch": "^11.0.8"
+    },
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^11.0.8"
+    },
+    "nodemon": {
+      "minimatch": "^11.0.8"
+    }
+  }
+}

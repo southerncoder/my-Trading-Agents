@@ -5,7 +5,7 @@ import { FREDSeries, FREDObservation, FREDCategory } from '../../../src/types/in
 // Mock axios
 vi.mock('axios', () => ({
   default: {
-    create: vi.fn(() => ({
+    create: vi.fn(() => Object.assign(vi.fn(), {
       interceptors: {
         request: { use: vi.fn() },
         response: { use: vi.fn() }
@@ -20,10 +20,12 @@ vi.mock('axios', () => ({
 
 // Mock limiter
 vi.mock('limiter', () => ({
-  RateLimiter: vi.fn(() => ({
+  RateLimiter: vi.fn(function () {
+    return {
     removeTokens: vi.fn().mockResolvedValue(1),
     getTokensRemaining: vi.fn().mockReturnValue(120)
-  }))
+    };
+  })
 }));
 
 describe('FREDClient', () => {
@@ -101,7 +103,7 @@ describe('FREDClient', () => {
         status: 200
       });
 
-      await expect(fredClient.getSeries('INVALID_SERIES')).rejects.toThrow('Series not found');
+      await expect(fredClient.getSeries('INVALID_SERIES')).rejects.toThrow('Series INVALID_SERIES not found');
     });
 
     it('should handle API errors', async () => {
@@ -120,7 +122,7 @@ describe('FREDClient', () => {
     });
   });
 
-  describe('getSeriesObservations', () => {
+  describe('getObservations', () => {
     const mockObservations: FREDObservation[] = [
       {
         realtime_start: '2023-01-01',
@@ -144,7 +146,7 @@ describe('FREDClient', () => {
         status: 200
       });
 
-      const result = await fredClient.getSeriesObservations('GDP');
+      const result = await fredClient.getObservations('GDP');
 
       expect(mockAxiosInstance).toHaveBeenCalledWith({
         method: 'GET',
@@ -165,7 +167,7 @@ describe('FREDClient', () => {
         status: 200
       });
 
-      await fredClient.getSeriesObservations('GDP', {
+      await fredClient.getObservations('GDP', {
         startDate: '2023-01-01',
         endDate: '2023-12-31'
       });
@@ -190,7 +192,7 @@ describe('FREDClient', () => {
         status: 200
       });
 
-      const result = await fredClient.getSeriesObservations('GDP', { limit: 1 });
+      const result = await fredClient.getObservations('GDP', { limit: 1 });
 
       expect(mockAxiosInstance).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -208,7 +210,7 @@ describe('FREDClient', () => {
         status: 200
       });
 
-      const result = await fredClient.getSeriesObservations('EMPTY_SERIES');
+      const result = await fredClient.getObservations('EMPTY_SERIES');
       expect(result).toEqual([]);
     });
   });
@@ -250,7 +252,8 @@ describe('FREDClient', () => {
         params: {
           search_text: 'GDP',
           api_key: testApiKey,
-          file_type: 'json'
+          file_type: 'json',
+          search_type: 'full_text'
         },
         timeout: 30000
       });
@@ -276,6 +279,7 @@ describe('FREDClient', () => {
           search_text: 'GDP',
           api_key: testApiKey,
           file_type: 'json',
+          search_type: 'full_text',
           limit: 10,
           order_by: 'popularity',
           sort_order: 'desc'
@@ -295,63 +299,63 @@ describe('FREDClient', () => {
     });
   });
 
-  describe('getCategories', () => {
-    const mockCategories: FREDCategory[] = [
-      {
-        id: 32991,
-        name: 'Money, Banking, & Finance',
-        parent_id: 0
-      },
-      {
-        id: 10,
-        name: 'Population, Employment, & Labor Markets',
-        parent_id: 0
-      }
-    ];
+  describe('getCategory', () => {
+    const mockCategory: FREDCategory = {
+      id: 32991,
+      name: 'Money, Banking, & Finance',
+      parent_id: 0
+    };
 
-    it('should fetch categories successfully', async () => {
+    it('should fetch a category by ID', async () => {
       mockAxiosInstance.mockResolvedValueOnce({
-        data: {
-          categories: mockCategories
-        },
+        data: { categories: [mockCategory] },
         status: 200
       });
 
-      const result = await fredClient.getCategories();
+      const result = await fredClient.getCategory(32991);
 
-      expect(mockAxiosInstance).toHaveBeenCalledWith({
-        method: 'GET',
-        url: '/categories',
-        params: {
-          api_key: testApiKey,
-          file_type: 'json'
-        },
-        timeout: 30000
-      });
-      expect(result).toEqual(mockCategories);
+      expect(mockAxiosInstance).toHaveBeenCalledWith(
+        expect.objectContaining({
+          method: 'GET',
+          url: '/category',
+          params: expect.objectContaining({ category_id: 32991, api_key: testApiKey })
+        })
+      );
+      expect(result).toEqual(mockCategory);
     });
 
-    it('should fetch category by ID', async () => {
+    it('should throw when the category is not found', async () => {
       mockAxiosInstance.mockResolvedValueOnce({
-        data: {
-          categories: [mockCategories[0]]
-        },
+        data: { categories: [] },
         status: 200
       });
 
-      const result = await fredClient.getCategories(32991);
+      await expect(fredClient.getCategory(999999)).rejects.toThrow('Category 999999 not found');
+    });
+  });
 
-      expect(mockAxiosInstance).toHaveBeenCalledWith({
-        method: 'GET',
-        url: '/categories',
-        params: {
-          category_id: 32991,
-          api_key: testApiKey,
-          file_type: 'json'
-        },
-        timeout: 30000
+  describe('getChildCategories', () => {
+    const mockCategories: FREDCategory[] = [
+      { id: 32991, name: 'Money, Banking, & Finance', parent_id: 0 },
+      { id: 10, name: 'Population, Employment, & Labor Markets', parent_id: 0 }
+    ];
+
+    it('should fetch child categories of a parent', async () => {
+      mockAxiosInstance.mockResolvedValueOnce({
+        data: { categories: mockCategories },
+        status: 200
       });
-      expect(result).toEqual([mockCategories[0]]);
+
+      const result = await fredClient.getChildCategories(0);
+
+      expect(mockAxiosInstance).toHaveBeenCalledWith(
+        expect.objectContaining({
+          method: 'GET',
+          url: '/category/children',
+          params: expect.objectContaining({ category_id: 0, api_key: testApiKey })
+        })
+      );
+      expect(result).toEqual(mockCategories);
     });
   });
 
@@ -434,19 +438,22 @@ describe('FREDClient', () => {
         'CPIAUCSL': [{ realtime_start: '2023-01-01', realtime_end: '2023-12-31', date: '2023-01-01', value: '307.026' }]
       };
 
-      // Mock multiple API calls for different indicators
-      mockAxiosInstance
-        .mockResolvedValueOnce({ data: { observations: mockIndicators['GDP'] }, status: 200 })
-        .mockResolvedValueOnce({ data: { observations: mockIndicators['UNRATE'] }, status: 200 })
-        .mockResolvedValueOnce({ data: { observations: mockIndicators['CPIAUCSL'] }, status: 200 });
+      // Answer each request by the series it asks for (requests run concurrently)
+      mockAxiosInstance.mockImplementation(async (config: any) => ({
+        data: { observations: (mockIndicators as Record<string, unknown[]>)[config.params.series_id] ?? [] },
+        status: 200
+      }));
 
       const result = await fredClient.getEconomicIndicators({
         startDate: '2023-01-01',
         endDate: '2023-12-31'
       });
 
-      expect(result).toEqual(mockIndicators);
-      expect(mockAxiosInstance).toHaveBeenCalledTimes(3);
+      // 12 indicator series are requested; the ones without mock data come back empty
+      expect(Object.keys(result)).toHaveLength(12);
+      expect(result).toMatchObject(mockIndicators);
+      expect(result['PAYEMS']).toEqual([]);
+      expect(mockAxiosInstance).toHaveBeenCalledTimes(12);
     });
   });
 

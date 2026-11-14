@@ -126,9 +126,7 @@ js/
 ├── tests/               # Test files
 └── examples/            # Usage examples
 
-py_zep/
-├── graphiti/            # Zep Graphiti Python service
-├── scripts/             # Python utility scripts
+
 └── tests/               # Python tests
 ```
 
@@ -382,9 +380,7 @@ npm run build; if ($?) { npm test }
 ### Development Setup
 ```powershell
 # Start containerized memory services
-Set-Location py_zep\
-.\start-zep-services.ps1 -Build  # First time or after changes
-.\start-zep-services.ps1         # Subsequent starts
+docker compose up -d
 
 # TypeScript development (Main Service)
 Set-Location services\trading-agents\
@@ -419,8 +415,7 @@ npx vite-node tests/integration/agent-memory.test.ts
 ### Testing & Validation
 ```powershell
 # Start services first (required for memory tests)
-Set-Location py_zep\
-.\start-zep-services.ps1
+docker compose up -d
 
 # Run comprehensive test suite (100% pass rate)
 Set-Location ..\services\trading-agents\
@@ -442,11 +437,11 @@ npm run lint                     # ESLint validation
 ### LLM Provider Configuration and Secrets Handling
 
 - All secret values (model IDs, API keys, LM Studio URLs, and provider endpoints) MUST be kept out of tracked source, tests, and documentation.
-- Use `py_zep/.env.local` (or project-level `.env.local`) to store all runtime secrets. Only commit `.env.local.example` with placeholder values.
+- Use project-level `.env.local` to store all runtime secrets. Only commit `.env.local.example` with placeholder values.
 
-Example (set these in `py_zep/.env.local`):
+Example (set these in `.env.local`):
 ```powershell
-# Example entries for py_zep/.env.local (DO NOT COMMIT)
+# Example entries for .env.local (DO NOT COMMIT)
 OPENAI_API_KEY=<your_openai_or_lmstudio_api_key>
 OPENAI_BASE_URL=<your_lm_studio_base_url>
 EMBEDDING_MODEL=<your_embedding_model_id>
@@ -553,7 +548,7 @@ The codebase and tests will read `.env.local` when present. Do not add concrete 
 - **Inquirer.js, Chalk, Ora**: Interactive CLI with colored output and progress tracking
 
 ### PowerShell Service Scripts (August 2025)
-- **`py_zep/start-zep-services.ps1`**: Complete service orchestration script
+- **`tools/start-services-no-cli.ps1`**: Complete service orchestration script
   - Builds Docker containers when needed
   - Starts services in dedicated terminal windows
   - Provides health check validation

@@ -1,5 +1,5 @@
 # Multi-stage build for Trading Agents CLI
-FROM node:22-alpine AS builder
+FROM node:24-alpine AS builder
 
 # Set working directory
 WORKDIR /app
@@ -19,7 +19,7 @@ COPY src/ ./src/
 RUN npm run build
 
 # Production stage
-FROM node:22-alpine AS production
+FROM node:24-alpine AS production
 
 # Install dumb-init for proper signal handling
 RUN apk add --no-cache dumb-init
@@ -35,7 +35,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install only production dependencies
-RUN npm ci --only=production --ignore-scripts && npm cache clean --force
+RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 
 # Copy built application from builder stage
 COPY --from=builder --chown=trading:nodejs /app/dist ./dist
@@ -43,7 +43,7 @@ COPY --from=builder --chown=trading:nodejs /app/package.json ./
 
 # Copy CLI entry point and secrets init script
 COPY --chown=trading:nodejs cli.js ./
-COPY --chown=trading:nodejs secrets/init.js ./secrets/
+COPY --chown=trading:nodejs secrets/init.cjs ./secrets/
 
 # Create data directories with proper permissions
 RUN mkdir -p /app/.tradingagents /app/data /app/logs /app/exports && \
@@ -59,7 +59,7 @@ USER trading
 EXPOSE 3000
 
 # Use secrets init script with dumb-init for proper signal handling and environment setup
-ENTRYPOINT ["dumb-init", "--", "node", "/app/secrets/init.js"]
+ENTRYPOINT ["dumb-init", "--", "node", "/app/secrets/init.cjs"]
 
 # Default command - run interactive menu (passed to init.js)
 CMD ["node", "cli.js", "menu"]

@@ -23,6 +23,48 @@ export const DEFAULT_CONFIG: TradingAgentsConfig = {
 
   // Tool settings
   onlineTools: process.env.ONLINE_TOOLS?.toLowerCase() === 'true' || true,
+
+  // Government data configuration
+  governmentData: {
+    baseUrl: process.env.GOVERNMENT_DATA_URL || 'http://localhost:3005',
+    timeout: parseInt(process.env.GOVERNMENT_DATA_TIMEOUT || '30000'),
+    enabled: process.env.GOVERNMENT_DATA_ENABLED?.toLowerCase() !== 'false',
+    fredApiKey: process.env.FRED_API_KEY,
+    blsApiKey: process.env.BLS_API_KEY,
+  },
+
+  // Database configuration
+  database: {
+    postgresql: {
+      host: process.env.POSTGRES_HOST || 'localhost',
+      port: parseInt(process.env.POSTGRES_PORT || '5432'),
+      database: process.env.POSTGRES_DB || 'trading_agents',
+      username: process.env.POSTGRES_USER || 'postgres',
+      password: process.env.POSTGRES_PASSWORD || '',
+      ssl: process.env.POSTGRES_SSL?.toLowerCase() === 'true',
+      poolSize: parseInt(process.env.POSTGRES_POOL_SIZE || '20'),
+      connectionTimeoutMillis: parseInt(process.env.POSTGRES_CONNECTION_TIMEOUT || '30000'),
+      idleTimeoutMillis: parseInt(process.env.POSTGRES_IDLE_TIMEOUT || '10000'),
+      maxUses: parseInt(process.env.POSTGRES_MAX_USES || '7500'),
+      allowExitOnIdle: process.env.POSTGRES_ALLOW_EXIT_ON_IDLE?.toLowerCase() === 'true',
+    },
+    storageStrategy: {
+      performanceMetrics: (process.env.STORAGE_PERFORMANCE_METRICS as 'postgresql' | 'both') || 'postgresql',
+      backtestResults: (process.env.STORAGE_BACKTEST_RESULTS as 'postgresql' | 'both') || 'postgresql',
+      timeSeriesData: 'postgresql',
+      graphRelationships: 'zep_graphiti',
+      agentMemory: (process.env.STORAGE_AGENT_MEMORY as 'zep_graphiti' | 'postgresql' | 'both') || 'postgresql',
+      episodicMemory: 'postgresql',
+      semanticMemory: 'postgresql',
+      workingMemory: 'postgresql',
+      proceduralMemory: 'postgresql',
+    },
+    pgvector: {
+      enabled: process.env.PGVECTOR_ENABLED?.toLowerCase() !== 'false',
+      embeddingDimensions: parseInt(process.env.PGVECTOR_EMBEDDING_DIMENSIONS || '1536'),
+      similarityThreshold: parseFloat(process.env.PGVECTOR_SIMILARITY_THRESHOLD || '0.8'),
+    },
+  },
 };
 
 /**

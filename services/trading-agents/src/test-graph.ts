@@ -19,7 +19,7 @@ async function testGraph() {
     });
 
     // Create the graph instance
-    const graph = createTradingAgentsGraph({
+    const graph = await createTradingAgentsGraph({
       selectedAnalysts: ['market'], // Start with just market analyst
       debug: true,
       config

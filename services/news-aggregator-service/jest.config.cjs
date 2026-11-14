@@ -1,5 +1,6 @@
 module.exports = {
   testEnvironment: 'node',
+  testPathIgnorePatterns: ['/node_modules/', '<rootDir>/tests/manual/'],
   testMatch: [
     '<rootDir>/tests/**/*.test.js',
     '<rootDir>/src/**/*.test.js'
@@ -22,15 +23,6 @@ module.exports = {
   clearMocks: true,
   resetMocks: true,
   restoreMocks: true,
-  // ES Module support
-  extensionsToTreatAsEsm: ['.js'],
-  globals: {
-    'ts-jest': {
-      useESM: true,
-    },
-  },
-  moduleNameMapping: {
-    '^(\\.{1,2}/.*)\\.js$': '$1',
-  },
+  // Native ESM: run with node --experimental-vm-modules (see npm scripts); no transform needed
   transform: {},
 };
