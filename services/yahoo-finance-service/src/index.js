@@ -208,7 +208,11 @@ app.get('/api/quote-summary/:symbol', async (req, res) => {
     const { symbol } = req.params;
     const { modules = ['price', 'summaryDetail', 'defaultKeyStatistics'] } = req.query;
 
-    const moduleArray = Array.isArray(modules) ? modules : [modules];
+    // Accept repeated params and comma-separated lists; yahoo-finance2 requires an array of module names.
+    const moduleArray = (Array.isArray(modules) ? modules : [modules])
+      .flatMap((m) => String(m).split(','))
+      .map((m) => m.trim())
+      .filter(Boolean);
 
     logger.info('Fetching quote summary', { symbol, modules: moduleArray });
 
