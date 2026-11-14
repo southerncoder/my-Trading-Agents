@@ -80,7 +80,7 @@ export class TradingAgentsClient {
   private readonly maxConcurrentRequests: number
   private activeRequests: Map<string, ChildProcess>
   private requestQueue: Array<{ id: string; request: AnalysisRequest; resolve: Function; reject: Function }>
-  private processingQueue: boolean
+  private inFlight: number
 
   constructor(options: {
     tradingAgentsPath?: string
@@ -93,7 +93,7 @@ export class TradingAgentsClient {
     this.maxConcurrentRequests = options.maxConcurrentRequests || 3
     this.activeRequests = new Map()
     this.requestQueue = []
-    this.processingQueue = false
+    this.inFlight = 0
   }
 
   /**
@@ -122,42 +122,25 @@ export class TradingAgentsClient {
   /**
    * Process the analysis request queue
    */
-  private async processQueue(): Promise<void> {
-    if (this.processingQueue || this.requestQueue.length === 0) {
-      return
-    }
-
-    if (this.activeRequests.size >= this.maxConcurrentRequests) {
-      return
-    }
-
-    this.processingQueue = true
-
-    try {
+  private processQueue(): void {
+    while (this.inFlight < this.maxConcurrentRequests && this.requestQueue.length > 0) {
       const queueItem = this.requestQueue.shift()
       if (!queueItem) {
-        this.processingQueue = false
         return
       }
 
       const { id, request, resolve, reject } = queueItem
-      
-      try {
-        const result = await this.executeAnalysis(id, request)
-        resolve(result)
-      } catch (error) {
-        reject(error)
-      }
+      this.inFlight++
 
-      // Continue processing queue
-      this.processingQueue = false
-      this.processQueue()
-    } catch (error) {
-      this.processingQueue = false
-      throw error
+      // Run without awaiting so up to maxConcurrentRequests analyses overlap
+      this.executeAnalysis(id, request)
+        .then((result) => resolve(result), (error) => reject(error))
+        .finally(() => {
+          this.inFlight--
+          this.processQueue()
+        })
     }
   }
-
   /**
    * Execute a single analysis request
    */
