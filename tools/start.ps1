@@ -11,7 +11,7 @@ if ($Help) {
     Write-Host @"
 Start Trading Agents Services
 
-Usage: .\start-services-no-cli.ps1 [-Fresh] [-Help]
+Usage: .\tools\start.ps1 [-Fresh] [-Help]
 
   -Fresh    Clean start (removes all data)
   -Help     Show this help

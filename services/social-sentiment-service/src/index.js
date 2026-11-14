@@ -7,6 +7,13 @@ import winston from 'winston';
 import dotenv from 'dotenv';
 import { RedditAPIClient } from './reddit-client.js';
 import { SentimentAnalyzer } from './sentiment-analyzer.js';
+import { loadSecrets } from './utils/secrets.js';
+
+// Load environment variables
+dotenv.config();
+
+// Load Docker secrets (overrides .env if running in container)
+loadSecrets();
 
 // Initialize Reddit client and sentiment analyzer
 const redditConfig = {
@@ -44,13 +51,6 @@ function cacheMiddleware(ttlSeconds) {
     next();
   };
 }
-
-// Load environment variables
-dotenv.config();
-
-// Load Docker secrets (overrides .env if running in container)
-import { loadSecrets } from './utils/secrets.js';
-loadSecrets();
 
 // Initialize logger
 const logger = winston.createLogger({

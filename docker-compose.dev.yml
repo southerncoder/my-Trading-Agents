@@ -62,9 +62,9 @@ services:
       - NODE_ENV=development
       - LOG_LEVEL=debug
       - TRADING_AGENTS_WEB_MODE=true
-      - DATABASE_URL=postgresql://postgres:password@postgresql:5432/trading_agents
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-trading_agent}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgresql:5432/${POSTGRES_DB:-trading_agents}
       - NEO4J_URI=bolt://neo4j:7687
       - NEO4J_USER=neo4j
-      - NEO4J_PASSWORD=password
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD:?set NEO4J_PASSWORD}
       - ZEP_GRAPHITI_URL=http://zep-graphiti:8000
       - REDIS_URL=redis://redis:6379
