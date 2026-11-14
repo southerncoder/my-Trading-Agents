@@ -213,7 +213,7 @@ NEUTRAL ANALYST PERSPECTIVE:
 ${risk_debate_state?.current_neutral_response || 'Not available'}
 
 Your responsibility:
-Make the final decision on whether to approve, reject, or modify the trading plan. Consider portfolio-level implications, risk management requirements, and overall investment objectives. Provide specific implementation guidance.
+Decide the final action for this position: BUY, HOLD or SELL. Approving, rejecting or modifying the trading plan is part of your reasoning, but your final action must still be exactly one of BUY, HOLD or SELL. Consider portfolio-level implications, risk management requirements, and overall investment objectives. Provide specific implementation guidance.
 
 Company: ${company_of_interest}
 Analysis Date: ${trade_date}

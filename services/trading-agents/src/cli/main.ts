@@ -425,7 +425,11 @@ export class TradingAgentsCLI {
         }
 
         // Save detailed state report
-        const detailedReport = this.generateDetailedReport(finalState, analysisResult);
+        const detailedReport = this.generateDetailedReport(finalState, {
+          ...analysisResult,
+          ticker: selections.ticker,
+          analysisDate: selections.analysisDate
+        });
         writeFileSync(join(reportDir, 'detailed_agent_report.md'), detailedReport);
 
         // Show final decision
