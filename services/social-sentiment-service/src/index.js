@@ -7,6 +7,7 @@ import winston from 'winston';
 import dotenv from 'dotenv';
 import { RedditAPIClient } from './reddit-client.js';
 import { SentimentAnalyzer } from './sentiment-analyzer.js';
+import { SentiSenseClient } from './sentisense-client.js';
 import { loadSecrets } from './utils/secrets.js';
 
 // Load environment variables
@@ -26,6 +27,7 @@ const redditConfig = {
 
 const redditClient = new RedditAPIClient(redditConfig);
 const sentimentAnalyzer = new SentimentAnalyzer();
+const sentiSense = new SentiSenseClient(process.env.SENTISENSE_API_KEY);
 
 // Simple in-memory cache
 const cache = new Map();
@@ -136,7 +138,8 @@ app.get('/health', (req, res) => {
     uptime: process.uptime(),
     platforms: {
       reddit: !!process.env.REDDIT_CLIENT_ID,
-      twitter: !!process.env.TWITTER_BEARER_TOKEN
+      twitter: !!process.env.TWITTER_BEARER_TOKEN,
+      sentisense: sentiSense.configured
     }
   });
 });
@@ -343,6 +346,16 @@ app.get('/api/post/:subreddit/:postId/comments', cacheMiddleware(600), async (re
 });
 
 // Get service statistics
+// SentiSense: scored news + social sentiment per ticker (30 min in-client cache)
+app.get('/api/sentisense/:symbol', async (req, res) => {
+  try {
+    res.json({ success: true, data: await sentiSense.getSymbol(req.params.symbol) });
+  } catch (error) {
+    logger.error('SentiSense request failed', { error: error.message });
+    res.status(503).json({ success: false, error: error.message });
+  }
+});
+
 app.get('/api/stats', (req, res) => {
   res.json({
     cacheSize: cache.size,

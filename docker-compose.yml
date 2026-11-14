@@ -216,6 +216,7 @@ services:
       - REDDIT_USER_AGENT_FILE=/run/secrets/reddit_user_agent
       - TWITTER_BEARER_TOKEN_FILE=/run/secrets/twitter_bearer_token
     secrets:
+      - sentisense_api_key
       - reddit_client_id
       - reddit_client_secret
       - reddit_username
@@ -425,6 +426,8 @@ secrets:
     file: ./docker/secrets/google_api_key.txt
   
   # Social Media API Secrets
+  sentisense_api_key:
+    file: ./docker/secrets/sentisense_api_key.txt
   reddit_client_id:
     file: ./docker/secrets/reddit_client_id.txt
   reddit_client_secret:

@@ -22,7 +22,8 @@ export function loadSecrets() {
     'reddit_username': 'REDDIT_USERNAME',
     'reddit_password': 'REDDIT_PASSWORD',
     'reddit_user_agent': 'REDDIT_USER_AGENT',
-    'twitter_bearer_token': 'TWITTER_BEARER_TOKEN'
+    'twitter_bearer_token': 'TWITTER_BEARER_TOKEN',
+    'sentisense_api_key': 'SENTISENSE_API_KEY'
   };
 
   for (const [secretFile, envVar] of Object.entries(secretMappings)) {

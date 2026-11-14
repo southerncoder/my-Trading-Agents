@@ -41,7 +41,7 @@ export async function fetchNewsDigest(symbol: string): Promise<string> {
   }
 }
 
-export async function fetchSocialDigest(symbol: string): Promise<string> {
+async function fetchRedditDigest(symbol: string): Promise<string> {
   const base = REDDIT_URL();
   if (!base) return 'SOCIAL DATA UNAVAILABLE: REDDIT_SERVICE_URL not configured';
   const retrieved = new Date().toISOString();
@@ -61,4 +61,48 @@ export async function fetchSocialDigest(symbol: string): Promise<string> {
   } catch (e: any) {
     return `SOCIAL DATA UNAVAILABLE: ${e?.message ?? e}`;
   }
+}
+
+async function fetchSentiSenseDigest(symbol: string): Promise<string> {
+  const base = REDDIT_URL();
+  if (!base) return 'SOCIAL DATA UNAVAILABLE: social service URL not configured';
+  const retrieved = new Date().toISOString();
+  try {
+    const body = await getJson(`${base}/api/sentisense/${encodeURIComponent(symbol)}`);
+    const d = body?.data;
+    const s = d?.score;
+    const docs: any[] = Array.isArray(d?.documents) ? d.documents : [];
+    if (!s && docs.length === 0) return 'SOCIAL DATA UNAVAILABLE: SentiSense returned no data';
+    const out: string[] = [
+      `SOCIAL DIGEST via SentiSense (retrieved ${retrieved}; end-of-day data, may lag intraday moves):`
+    ];
+    if (d?.isPreview) out.push('NOTE: SentiSense free-tier PREVIEW slice, not full coverage.');
+    if (s) {
+      out.push(
+        `SentiSense Score (-100 bearish .. +100 bullish): latest ${s.latest?.score} on ${s.latest?.date}; 7-day avg ${s.avg7d}` +
+          (s.avgPrev7d !== null && s.avgPrev7d !== undefined ? `; prior 7-day avg ${s.avgPrev7d}` : '') +
+          `; latest day mentions: bull ${s.latest?.bull ?? 'n/a'}, bear ${s.latest?.bear ?? 'n/a'} of ${s.latest?.directional ?? 'n/a'} directional`
+      );
+      if (s.latestIsPartialDay) out.push('NOTE: the latest day is a PARTIAL day (very few mentions so far); weight the 7-day average and prior full days, not the latest score.');
+      out.push('Recent daily scores: ' + (s.recent ?? []).map((r: any) => `${r.date} ${r.score}`).join(', '));
+    }
+    if (docs.length) {
+      out.push('Recent posts/articles driving sentiment (sentiment -1..+1, reliability 0..1):');
+      for (const x of docs.slice(0, 12)) {
+        out.push(`- [${x.source}] ${x.tickerSentiment ?? 'n/a'} (avg ${x.averageSentiment}, rel ${x.reliability}) ${x.published?.slice(0, 10) ?? ''} ${x.url}`);
+      }
+    }
+    return out.join('\n');
+  } catch (e: any) {
+    return `SOCIAL DATA UNAVAILABLE: ${e?.message ?? e}`;
+  }
+}
+
+// SentiSense is the primary social source; Reddit is kept as a fallback only.
+export async function fetchSocialDigest(symbol: string): Promise<string> {
+  const primary = await fetchSentiSenseDigest(symbol);
+  if (!primary.startsWith('SOCIAL DATA UNAVAILABLE')) return primary;
+  const fallback = await fetchRedditDigest(symbol);
+  if (!fallback.startsWith('SOCIAL DATA UNAVAILABLE')) return fallback;
+  return `${primary} | Reddit fallback: ${fallback.replace('SOCIAL DATA UNAVAILABLE: ', '')}`.replace('SOCIAL DATA UNAVAILABLE: ', 'SOCIAL DATA UNAVAILABLE: ');
 }
