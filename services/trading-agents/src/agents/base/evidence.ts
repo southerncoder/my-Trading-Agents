@@ -4,14 +4,16 @@ const UNAVAILABLE_PATTERNS = [
   /data acquisition failed/i,
   /data source connection failed/i,
   /not assessable/i,
-  /\bUNAVAILABLE\b/,
+  /\b(news|social|market|fundamentals?) data unavailable\b/i,
 ];
 
 export function isUnavailable(report?: string): boolean {
   const text = (report ?? '').trim();
   if (text.length < 40) return true;
   if (UNAVAILABLE_PATTERNS.some(re => re.test(text))) return true;
-  return (text.match(/not available/gi) ?? []).length >= 6;
+  // Many "not available" mentions only mean a failed report when the report is also short;
+  // a long report with some missing indicators (IV, MACD, ...) is still usable.
+  return text.length < 1500 && (text.match(/not available/gi) ?? []).length >= 6;
 }
 
 export interface DataQuality {

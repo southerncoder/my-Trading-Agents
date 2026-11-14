@@ -545,6 +545,7 @@ export class EnhancedTradingAgentsGraph {
     // Data-quality guard: never act on a decision built on missing core evidence.
     {
       const quality = assessDataQuality(execution.result ?? {});
+      console.log(`Data quality: market=${quality.market} news=${quality.news} fundamentals=${quality.fundamentals} social=${quality.social}`);
       if (quality.criticalMissing) {
         decision = 'HOLD';
         confidence = Math.min(confidence, 0.3);

@@ -29,6 +29,14 @@ import { mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { select, confirm, Separator } from '@inquirer/prompts';
 
+/** Exit only after stdout/stderr drain so piped output (final decision, report) is not truncated. */
+function exitAfterFlush(code: number): void {
+  let pending = 2;
+  const done = () => { if (--pending === 0) process.exit(code); };
+  process.stdout.write("", done);
+  process.stderr.write("", done);
+}
+
 export class TradingAgentsCLI {
   private display: DisplaySystem;
   private messageBuffer: MessageBuffer;
@@ -861,11 +869,11 @@ export async function createCLI(): Promise<Command> {
         await cli.runAnalysis(ticker, date);
       } catch (error) {
         console.error(error instanceof Error ? error.message : String(error));
-        process.exit(1);
+        exitAfterFlush(1);
       }
       // Non-interactive runs must terminate; provider health monitors keep the event loop alive.
       if (ticker) {
-        process.exit(0);
+        exitAfterFlush(0);
       }
     });
 
