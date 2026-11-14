@@ -505,26 +505,38 @@ app.get("/api/financial-news/:symbol", async (req, res) => {
     }
 
     // Try Yahoo Finance first for financial news, then fall back to news providers
+    // An empty result is not a success: keep falling through to the next provider
+    // (Brave's free tier rate-limits bursts and NewsAPI often returns nothing for large caps).
     const providers = [
       PROVIDERS.YAHOO_FINANCE,
       PROVIDERS.BRAVE_NEWS,
+      PROVIDERS.TAVILY,
       PROVIDERS.GOOGLE_NEWS,
-      PROVIDERS.NEWSAPI,
     ];
     let result = null;
     let usedProvider = null;
 
     for (const provider of providers) {
       try {
-        if (await checkProviderHealth(provider)) {
-          result = await fetchFromProvider(provider, "financial-news", {
-            symbol,
-            lookBackDays,
-            pageSize,
-          });
+        if (!(await checkProviderHealth(provider))) continue;
+        const params = { symbol, lookBackDays, pageSize };
+        let attempt;
+        try {
+          attempt = await fetchFromProvider(provider, "financial-news", params);
+        } catch (error) {
+          if (/rate limit/i.test(error.message)) {
+            await new Promise((r) => setTimeout(r, 1300));
+            attempt = await fetchFromProvider(provider, "financial-news", params);
+          } else {
+            throw error;
+          }
+        }
+        if (attempt?.articles?.length) {
+          result = attempt;
           usedProvider = provider;
           break;
         }
+        logger.warn(`Provider ${provider} returned no articles for financial news`, { symbol });
       } catch (error) {
         logger.warn(`Provider ${provider} failed for financial news`, {
           symbol,
@@ -534,7 +546,8 @@ app.get("/api/financial-news/:symbol", async (req, res) => {
     }
 
     if (!result) {
-      throw new Error("All financial news providers failed");
+      // Every provider failed or was empty: report empty, but do not cache it.
+      return res.json({ status: "success", provider: null, data: { articles: [] } });
     }
 
     const response = {
