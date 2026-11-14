@@ -3,6 +3,7 @@ import { StructuredTool } from '@langchain/core/tools';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AbstractAgent } from '../base/index';
 import { AgentState } from '../../types/agent-states';
+import { fetchNewsDigest } from '../../dataflows/service-digests';
 import { createLogger } from '../../utils/enhanced-logger';
 import { withLLMResilience, OPENAI_LLM_CONFIG, createResilientLLM } from '../../utils/resilient-llm';
 
@@ -44,7 +45,9 @@ export class NewsAnalyst extends AbstractAgent {
       const systemPrompt = this.getSystemPrompt();
       
       // Create human message with context
-      const humanMessage = this.createAnalysisRequest(state);
+      const digest = await fetchNewsDigest(state.company_of_interest);
+      const baseRequest = this.createAnalysisRequest(state);
+      const humanMessage = new HumanMessage(baseRequest.content.toString() + '\n\n' + digest);
       
       this.logger.debug('process', 'Prepared LLM messages for news analysis', {
         systemPromptLength: systemPrompt.length,
@@ -192,7 +195,7 @@ Keep your analysis objective, well-sourced, and focused on actionable news insig
     
     const prompt = `Perform a comprehensive news analysis for ${company_of_interest} as of ${trade_date}.
 
-Please use your available tools to gather the following news data:
+Using ONLY the fetched data supplied below (never invent figures; write "not available" when a figure is missing), cover the following news data:
 1. Recent company-specific news and announcements
 2. Industry and sector-related news developments
 3. Global news events that could impact the market

@@ -2,6 +2,7 @@ import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { StructuredTool } from '@langchain/core/tools';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AbstractAgent } from '../base';
+import { buildEvidenceBlock } from '../base/evidence';
 import { AgentState, AgentStateHelpers } from '../../types/agent-states';
 import { createLogger } from '../../utils/enhanced-logger';
 import { withLLMResilience, OPENAI_LLM_CONFIG, createResilientLLM } from '../../utils/resilient-llm';
@@ -230,6 +231,6 @@ Analysis Date: ${trade_date}
 
 Create a detailed trading strategy that can be executed immediately with specific price levels, position sizes, and risk parameters.`;
 
-    return new HumanMessage(prompt);
+    return new HumanMessage(prompt + buildEvidenceBlock(state));
   }
 }

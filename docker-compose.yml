@@ -273,6 +273,7 @@ services:
       - LLM_TIMEOUT_MS=${LLM_TIMEOUT_MS:-300000}
       # Data services (compose-internal ports)
       - GOVERNMENT_DATA_URL=http://government-data:3005
+      - NEWS_AGGREGATOR_URL=http://news-aggregator:3004
       - YAHOO_FINANCE_URL=http://yahoo-finance:3002
       - REDDIT_SERVICE_URL=http://social-sentiment:3007
       - ZEP_GRAPHITI_URL=http://zep-graphiti:8000

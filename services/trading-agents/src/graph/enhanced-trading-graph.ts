@@ -6,6 +6,7 @@
  * Now includes lazy loading for performance optimization.
  */
 
+import { assessDataQuality } from '../agents/base/evidence';
 import { TradingAgentsConfig } from '../types/config';
 import { ModelProvider } from '../models/index';
 import { AnalystType } from './langgraph-working';
@@ -538,6 +539,19 @@ export class EnhancedTradingAgentsGraph {
       }
       if (pmText) {
         reasoning.push(pmText);
+      }
+    }
+
+    // Data-quality guard: never act on a decision built on missing core evidence.
+    {
+      const quality = assessDataQuality(execution.result ?? {});
+      if (quality.criticalMissing) {
+        decision = 'HOLD';
+        confidence = Math.min(confidence, 0.3);
+        reasoning.push(`DATA QUALITY GUARD: core analyst data unavailable (${quality.missing.join(', ')}); forced HOLD with low confidence.`);
+      } else if (!quality.social) {
+        confidence = Math.min(confidence, 0.7);
+        reasoning.push('DATA QUALITY: social sentiment unavailable; confidence capped at 0.70.');
       }
     }
 

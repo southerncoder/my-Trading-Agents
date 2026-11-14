@@ -5,6 +5,7 @@ import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { StructuredTool } from '@langchain/core/tools';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AbstractAgent } from '../base';
+import { buildEvidenceBlock } from '../base/evidence';
 import { AgentState, AgentStateHelpers } from '../../types/agent-states';
 
 /**
@@ -210,6 +211,6 @@ Analysis Date: ${trade_date}
 
 Create a balanced risk management strategy that incorporates the best elements from both aggressive and conservative approaches.`;
 
-    return new HumanMessage(prompt);
+    return new HumanMessage(prompt + buildEvidenceBlock(state));
   }
 }

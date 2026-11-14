@@ -5,6 +5,7 @@ import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { StructuredTool } from '@langchain/core/tools';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AbstractAgent } from '../base';
+import { buildEvidenceBlock } from '../base/evidence';
 import { AgentState, AgentStateHelpers } from '../../types/agent-states';
 
 /**
@@ -225,6 +226,6 @@ FINAL DECISION: <exactly one word: BUY or HOLD or SELL>
 CONFIDENCE: <a decimal between 0.00 and 1.00 showing how strongly the evidence supports the decision>
 Replace the angle-bracket placeholders with your actual answer; do not repeat the placeholder text.`;
 
-    return new HumanMessage(prompt);
+    return new HumanMessage(prompt + buildEvidenceBlock(state));
   }
 }
