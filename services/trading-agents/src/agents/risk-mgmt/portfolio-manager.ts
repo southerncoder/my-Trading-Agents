@@ -218,7 +218,12 @@ Make the final decision on whether to approve, reject, or modify the trading pla
 Company: ${company_of_interest}
 Analysis Date: ${trade_date}
 
-Make a decisive portfolio management decision that optimizes risk-adjusted returns at the portfolio level.`;
+Make a decisive portfolio management decision that optimizes risk-adjusted returns at the portfolio level.
+
+End your response with exactly these two lines and nothing after them:
+FINAL DECISION: <exactly one word: BUY or HOLD or SELL>
+CONFIDENCE: <a decimal between 0.00 and 1.00 showing how strongly the evidence supports the decision>
+Replace the angle-bracket placeholders with your actual answer; do not repeat the placeholder text.`;
 
     return new HumanMessage(prompt);
   }

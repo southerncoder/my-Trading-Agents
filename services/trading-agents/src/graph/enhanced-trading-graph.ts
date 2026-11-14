@@ -518,25 +518,26 @@ export class EnhancedTradingAgentsGraph {
       }
     }
 
-    // Extract decision from messages if ensemble signal not available
+    // The decision comes from the Portfolio Manager's explicit final lines, never from
+    // keyword-scanning every message (which made the last mention of "buy"/"bearish" win).
     if (!ensembleSignal) {
-      for (const message of messages) {
-        if (message.content) {
-          reasoning.push(message.content);
-
-          // Simple decision extraction logic
-          const content = message.content.toLowerCase();
-          if (content.includes('buy') || content.includes('bullish')) {
-            decision = 'BUY';
-            confidence = Math.max(confidence, 0.7);
-          } else if (content.includes('sell') || content.includes('bearish')) {
-            decision = 'SELL';
-            confidence = Math.max(confidence, 0.7);
-          } else if (content.includes('hold')) {
-            decision = 'HOLD';
-            confidence = Math.max(confidence, 0.6);
-          }
-        }
+      const pmText = String(
+        execution.result?.risk_debate_state?.judge_decision ?? execution.result?.final_trade_decision ?? ''
+      );
+      // Line-anchored so an echoed template ("BUY, HOLD or SELL") is rejected rather than read as BUY.
+      const lastMatch = (re: RegExp): RegExpMatchArray | undefined => [...pmText.matchAll(re)].pop();
+      const decisionMatch = lastMatch(/^[\s*_`#>-]*FINAL DECISION:\s*[*_`\s]*(BUY|HOLD|SELL)[\s*_`.]*$/gim);
+      const confidenceMatch = lastMatch(/^[\s*_`#>-]*CONFIDENCE:\s*[*_`\s]*(0(?:\.\d+)?|1(?:\.0+)?)[\s*_`.]*$/gim);
+      if (decisionMatch && decisionMatch[1]) {
+        decision = decisionMatch[1].toUpperCase();
+        confidence = confidenceMatch && confidenceMatch[1] ? Number(confidenceMatch[1]) : 0.5;
+      } else {
+        decision = 'HOLD';
+        confidence = 0.3;
+        reasoning.push('No explicit FINAL DECISION from the Portfolio Manager; defaulting to HOLD with low confidence.');
+      }
+      if (pmText) {
+        reasoning.push(pmText);
       }
     }
 

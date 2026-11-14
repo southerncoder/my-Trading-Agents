@@ -396,6 +396,7 @@ export class TradingAgentsCLI {
 
         // Create enhanced final state with all detailed agent reports
         const finalState = {
+          ticker: selections.ticker,
           // Include decision summary
           final_trade_decision: `Decision: ${analysisResult.decision} (Confidence: ${analysisResult.confidence})`,
           reasoning: analysisResult.reasoning.join('\n'),

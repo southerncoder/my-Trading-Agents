@@ -70,7 +70,8 @@ export class YahooFinanceAPI {
           }
         });
 
-        if (response.data.status !== 'success') {
+        // The historical endpoint returns text/plain CSV; only JSON envelopes carry a status field.
+        if (typeof response.data !== 'string' && response.data.status !== 'success') {
           throw new Error(`Yahoo Finance service error: ${response.data.message || 'Unknown error'}`);
         }
 

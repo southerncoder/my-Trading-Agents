@@ -2,6 +2,7 @@ import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { StructuredTool } from '@langchain/core/tools';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AbstractAgent } from '../base/index';
+import { fetchToolData, pickKeys } from '../base/tool-data';
 import { AgentState } from '../../types/agent-states';
 import { createLogger } from '../../utils/enhanced-logger';
 import { withLLMResilience, OPENAI_LLM_CONFIG, createResilientLLM } from '../../utils/resilient-llm';
@@ -44,7 +45,28 @@ export class MarketAnalyst extends AbstractAgent {
       const systemPrompt = this.getSystemPrompt();
       
       // Create human message with context
-      const humanMessage = this.createAnalysisRequest(state);
+      // The price service treats endDate as exclusive, so ask for the day after to include the trade date's own bar.
+      const tradeDay = new Date(state.trade_date + 'T00:00:00Z');
+      const end = new Date(tradeDay);
+      end.setUTCDate(end.getUTCDate() + 1);
+      const start = new Date(tradeDay);
+      start.setUTCDate(start.getUTCDate() - 90);
+      const iso = (d: Date) => d.toISOString().slice(0, 10);
+      const yesterday = new Date();
+      yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+      const calls: any[] = [
+        { tool: 'get_historical_price_data', args: { symbol: state.company_of_interest, startDate: iso(start), endDate: iso(end) }, maxChars: 9000 }
+      ];
+      if (iso(tradeDay) >= iso(yesterday)) {
+        calls.push({
+          tool: 'get_current_quote',
+          args: { symbol: state.company_of_interest },
+          transform: pickKeys(['regularMarketPrice', 'regularMarketChangePercent', 'regularMarketVolume', 'averageDailyVolume3Month', 'fiftyTwoWeekHigh', 'fiftyTwoWeekLow', 'fiftyDayAverage', 'twoHundredDayAverage', 'marketCap', 'trailingPE', 'forwardPE', 'epsTrailingTwelveMonths', 'regularMarketTime'])
+        });
+      }
+      const dataBlock = await fetchToolData(this.tools, calls);
+      const baseRequest = this.createAnalysisRequest(state);
+      const humanMessage = new HumanMessage(baseRequest.content.toString() + '\n\n' + dataBlock);
       
       this.logger.debug('process', 'Prepared LLM messages for market analysis', {
         systemPromptLength: systemPrompt.length,
@@ -184,7 +206,7 @@ Keep your analysis fact-based, concise, and actionable. Use market data tools wh
     
     const prompt = `Perform a comprehensive market analysis for ${company_of_interest} as of ${trade_date}.
 
-Please use your available tools to gather the following market data:
+Using ONLY the fetched data supplied below (never invent figures; write "not available" when a figure is missing), cover:
 1. Recent price data and trading volume
 2. Technical indicators and momentum signals  
 3. Historical price patterns and trends

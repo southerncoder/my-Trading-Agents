@@ -2,6 +2,7 @@ import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { StructuredTool } from '@langchain/core/tools';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AbstractAgent } from '../base/index';
+import { fetchToolData, compactJson } from '../base/tool-data';
 import { AgentState } from '../../types/agent-states';
 import { createLogger } from '../../utils/enhanced-logger';
 import { withLLMResilience, OPENAI_LLM_CONFIG, createResilientLLM } from '../../utils/resilient-llm';
@@ -44,7 +45,11 @@ export class FundamentalsAnalyst extends AbstractAgent {
       const systemPrompt = this.getSystemPrompt();
       
       // Create human message with context
-      const humanMessage = this.createAnalysisRequest(state);
+      const dataBlock = await fetchToolData(this.tools, [
+        { tool: 'get_fundamentals', args: { symbol: state.company_of_interest, startDate: state.trade_date }, transform: compactJson, maxChars: 9000 }
+      ]);
+      const baseRequest = this.createAnalysisRequest(state);
+      const humanMessage = new HumanMessage(baseRequest.content.toString() + '\n\n' + dataBlock);
       
       this.logger.debug('process', 'Prepared LLM messages for fundamentals analysis', {
         systemPromptLength: systemPrompt.length,
@@ -200,7 +205,7 @@ Keep your analysis thorough, data-driven, and focused on long-term fundamental v
     
     const prompt = `Perform a comprehensive fundamental analysis for ${company_of_interest} as of ${trade_date}.
 
-Please use your available tools to gather the following fundamental data:
+Using ONLY the fetched data supplied below (never invent figures; write "not available" when a figure is missing), cover:
 1. Financial statements (income statement, balance sheet, cash flow)
 2. Key financial ratios and valuation metrics
 3. Company insider sentiment and transactions
