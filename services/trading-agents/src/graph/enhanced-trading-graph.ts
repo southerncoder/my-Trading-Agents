@@ -348,7 +348,11 @@ export class EnhancedTradingAgentsGraph {
   /**
    * Execute analysis and extract trading decision with enhanced components integration
    */
-  async analyzeAndDecide(companyOfInterest: string, tradeDate: string): Promise<{
+  async analyzeAndDecide(
+    companyOfInterest: string,
+    tradeDate: string,
+    precomputedExecution?: { success: boolean; result?: any; error?: string }
+  ): Promise<{
     decision: string;
     reasoning: string[];
     confidence: number;
@@ -422,7 +426,8 @@ export class EnhancedTradingAgentsGraph {
       }
     }
 
-    const execution = await this.execute(companyOfInterest, tradeDate);
+    // Reuse an execution the caller already ran; running the 12-agent pipeline twice doubles cost and time.
+    const execution = precomputedExecution ?? await this.execute(companyOfInterest, tradeDate);
 
     if (!execution.success) {
       return {

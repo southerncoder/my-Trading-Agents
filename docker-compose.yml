@@ -357,7 +357,7 @@ services:
     networks:
       - my-Trading-Agents
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost/health"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/health"]
       interval: 30s
       timeout: 10s
       retries: 3

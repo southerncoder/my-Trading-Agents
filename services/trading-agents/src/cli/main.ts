@@ -379,7 +379,7 @@ export class TradingAgentsCLI {
         const fullState = executionResult.result;
         
         // Also get the simplified analysis result for decision extraction
-        const analysisResult = await graph.analyzeAndDecide(selections.ticker, selections.analysisDate);
+        const analysisResult = await graph.analyzeAndDecide(selections.ticker, selections.analysisDate, executionResult);
         
         // Simulate streaming by processing the result
         this.handleAnalysisResult(analysisResult, selections, logFile, reportDir);
@@ -852,7 +852,16 @@ export async function createCLI(): Promise<Command> {
     .argument('[date]', 'Analysis date (YYYY-MM-DD format)')
     .action(async (ticker?: string, date?: string) => {
       const cli = new TradingAgentsCLI();
-      await cli.runAnalysis(ticker, date);
+      try {
+        await cli.runAnalysis(ticker, date);
+      } catch (error) {
+        console.error(error instanceof Error ? error.message : String(error));
+        process.exit(1);
+      }
+      // Non-interactive runs must terminate; provider health monitors keep the event loop alive.
+      if (ticker) {
+        process.exit(0);
+      }
     });
 
   program
