@@ -243,9 +243,9 @@ export function createLLMError(
 const defaultLLMConfig: Required<LLMConfig> = {
   maxRetries: 3,
   retryDelay: 2000,
-  timeout: 60000, // 60 seconds for LLM calls
+  timeout: Number(process.env.LLM_TIMEOUT_MS) || 60000, // default 60s; raise for local models via LLM_TIMEOUT_MS
   circuitBreakerConfig: {
-    timeout: 60000,
+    timeout: Number(process.env.LLM_TIMEOUT_MS) || 60000,
     errorThresholdPercentage: 60,
     resetTimeout: 120000, // 2 minutes
     rollingCountTimeout: 30000,

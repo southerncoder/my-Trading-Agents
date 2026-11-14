@@ -150,7 +150,9 @@ export class WorkflowManagementService {
       });
 
       const result = await this.workflow.invoke({
-        messages: [initialMessage]
+        messages: [initialMessage],
+        company_of_interest: companyOfInterest,
+        trade_date: tradeDate
       });
 
       this.logger.info('executeWorkflow', 'Trading analysis completed successfully', {

@@ -247,9 +247,10 @@ export class TradingAgentsCLI {
           analysisDate,
           analysts: [AnalystType.MARKET, AnalystType.SOCIAL, AnalystType.NEWS, AnalystType.FUNDAMENTALS], // Default analysts
           researchDepth: 1, // Default depth
-          llmProvider: 'remote_lmstudio', // Default provider - should be specified in config.json
-          shallowThinker: process.env.QUICK_THINK_LLM || 'microsoft/phi-4-reasoning-plus',
-          deepThinker: process.env.DEEP_THINK_LLM || 'microsoft/phi-4-reasoning-plus'
+          // Provider/models come from the environment (LLM_PROVIDER, QUICK_THINK_LLM, DEEP_THINK_LLM, DEFAULT_LLM_MODEL)
+          llmProvider: (process.env.LLM_PROVIDER as LLMProvider | undefined) || 'remote_lmstudio',
+          shallowThinker: process.env.QUICK_THINK_LLM || process.env.DEFAULT_LLM_MODEL || 'microsoft/phi-4-reasoning-plus',
+          deepThinker: process.env.DEEP_THINK_LLM || process.env.DEFAULT_LLM_MODEL || 'microsoft/phi-4-reasoning-plus'
         };
         console.log('🔍 DEBUG: Using selections:', selections);
       } else {

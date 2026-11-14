@@ -86,12 +86,31 @@ export class VercelAISDKLangChainWrapper extends BaseChatModel {
         model: this.config.model
       });
 
-      const vercelMessages = this.convertMessages(messages);
+      const converted = this.convertMessages(messages);
+      // AI SDK 7 rejects system messages inside `messages`; they go in the `system` option instead.
+      const system = converted
+        .filter((m) => m.role === 'system')
+        .map((m) => m.content)
+        .join('\n\n');
+      const vercelMessages = converted.filter((m) => m.role !== 'system') as Array<{ role: 'user' | 'assistant'; content: string }>;
 
       // Use Vercel AI SDK's generateText function
       const { text } = await generateText({
         model: this.vercelModel,
-        messages: vercelMessages
+        ...(system ? { system } : {}),
+        messages: vercelMessages,
+        // Reasoning models (qwen3.5, lfm3) otherwise spend the token budget thinking; opt in with OLLAMA_THINK=true
+        ...(this.config.provider === 'ollama'
+          ? {
+              providerOptions: {
+                ollama: {
+                  think: process.env.OLLAMA_THINK === 'true',
+                  // Without num_ctx Ollama may load the model's full context window (262k) and spill to CPU
+                  options: { num_ctx: Number(process.env.OLLAMA_NUM_CTX) || 16384 }
+                }
+              }
+            }
+          : {})
       });
 
       logger.debug('_generate', 'Generated response from Vercel AI SDK', {

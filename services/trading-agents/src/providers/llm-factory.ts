@@ -58,7 +58,7 @@ export class LLMProviderFactory {
       // Default to 2 retries for transient failures (network issues, rate limits)
       maxRetries: 2,
       // Default timeout of 60 seconds for API requests
-      timeout: config.timeout || 60000
+      timeout: config.timeout || Number(process.env.LLM_TIMEOUT_MS) || 60000
     };
 
     // Configure temperature (0.0 to 2.0, default 1.0)

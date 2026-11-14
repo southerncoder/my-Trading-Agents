@@ -6,7 +6,7 @@
  */
 
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
-import { ollama } from 'ollama-ai-provider-v2';
+import { createOllama } from 'ollama-ai-provider-v2';
 import { generateText } from 'ai';
 import { LanguageModel } from 'ai';
 import { LLMProvider } from '../types/config';
@@ -83,7 +83,10 @@ export class VercelAISDKProviderFactory {
       baseURL
     });
 
-    return ollama(config.model);
+    // The default `ollama` instance ignores baseURL (always localhost:11434), so build one explicitly.
+    // Ollama's native API lives under /api.
+    const apiBase = baseURL ? baseURL.replace(/\/+$/, '').replace(/\/v1$/, '') + '/api' : undefined;
+    return createOllama(apiBase ? { baseURL: apiBase } : {})(config.model);
   }
 
   /**

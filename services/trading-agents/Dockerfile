@@ -43,11 +43,12 @@ COPY --from=builder --chown=trading:nodejs /app/package.json ./
 
 # Copy CLI entry point and secrets init script
 COPY --chown=trading:nodejs cli.js ./
+COPY --chown=trading:nodejs config.json ./
 COPY --chown=trading:nodejs secrets/init.cjs ./secrets/
 
 # Create data directories with proper permissions
-RUN mkdir -p /app/.tradingagents /app/data /app/logs /app/exports && \
-    chown -R trading:nodejs /app/.tradingagents /app/data /app/logs /app/exports
+RUN mkdir -p /app/.tradingagents /app/data /app/logs /app/exports /app/results && \
+    chown -R trading:nodejs /app/.tradingagents /app/data /app/logs /app/exports /app/results
 
 # Create symlink for compatibility
 RUN ln -sf /app/exports /exports

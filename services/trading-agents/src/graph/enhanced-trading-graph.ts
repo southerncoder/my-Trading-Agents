@@ -290,7 +290,7 @@ export class EnhancedTradingAgentsGraph {
 
       // Initialize government data client
       if (this.enableGovernmentData) {
-        this.governmentDataClient = new GovernmentDataClient({ baseUrl: this.config.governmentData?.baseUrl ?? 'http://localhost:3005' });
+        this.governmentDataClient = new GovernmentDataClient({ baseUrl: this.config.governmentData?.baseUrl ?? process.env.GOVERNMENT_DATA_URL ?? 'http://localhost:3005' });
       }
 
       logger.info('initializeEnhancedComponents', 'Enhanced components initialized successfully', {

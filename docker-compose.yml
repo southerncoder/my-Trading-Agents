@@ -180,6 +180,22 @@ services:
     networks:
       - my-Trading-Agents
 
+  # Yahoo Finance Service (market data / quotes for trading-agents)
+  yahoo-finance:
+    build:
+      context: ./services/yahoo-finance-service
+      dockerfile: Dockerfile
+    image: yahoo-finance-service:latest
+    container_name: trading-yahoo-finance
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - PORT=3002
+    ports:
+      - "127.0.0.1:${YAHOO_FINANCE_PORT:-38402}:3002"
+    networks:
+      - my-Trading-Agents
+
   # Social Sentiment Service
   social-sentiment:
     build:
@@ -238,9 +254,27 @@ services:
       - DEFAULT_LLM_MODEL=${DEFAULT_LLM_MODEL:-qwen3.5:9b}
       - QUICK_THINK_LLM=${QUICK_THINK_LLM:-qwen3.5:9b}
       - DEEP_THINK_LLM=${DEEP_THINK_LLM:-qwen3.5:9b}
+      # Per-agent models (env wins over the LM Studio defaults in src/agents/configs/*.json)
+      - MARKET_ANALYST_LLM_MODEL=${MARKET_ANALYST_LLM_MODEL:-${DEFAULT_LLM_MODEL:-qwen3.5:9b}}
+      - SOCIAL_ANALYST_LLM_MODEL=${SOCIAL_ANALYST_LLM_MODEL:-${DEFAULT_LLM_MODEL:-qwen3.5:9b}}
+      - NEWS_ANALYST_LLM_MODEL=${NEWS_ANALYST_LLM_MODEL:-${DEFAULT_LLM_MODEL:-qwen3.5:9b}}
+      - FUNDAMENTALS_ANALYST_LLM_MODEL=${FUNDAMENTALS_ANALYST_LLM_MODEL:-${DEFAULT_LLM_MODEL:-qwen3.5:9b}}
+      - BULL_RESEARCHER_LLM_MODEL=${BULL_RESEARCHER_LLM_MODEL:-${DEFAULT_LLM_MODEL:-qwen3.5:9b}}
+      - BEAR_RESEARCHER_LLM_MODEL=${BEAR_RESEARCHER_LLM_MODEL:-${DEFAULT_LLM_MODEL:-qwen3.5:9b}}
+      - RESEARCH_MANAGER_LLM_MODEL=${RESEARCH_MANAGER_LLM_MODEL:-${DEFAULT_LLM_MODEL:-qwen3.5:9b}}
+      - RISKY_ANALYST_LLM_MODEL=${RISKY_ANALYST_LLM_MODEL:-${DEFAULT_LLM_MODEL:-qwen3.5:9b}}
+      - SAFE_ANALYST_LLM_MODEL=${SAFE_ANALYST_LLM_MODEL:-${DEFAULT_LLM_MODEL:-qwen3.5:9b}}
+      - NEUTRAL_ANALYST_LLM_MODEL=${NEUTRAL_ANALYST_LLM_MODEL:-${DEFAULT_LLM_MODEL:-qwen3.5:9b}}
+      - PORTFOLIO_MANAGER_LLM_MODEL=${PORTFOLIO_MANAGER_LLM_MODEL:-${DEFAULT_LLM_MODEL:-qwen3.5:9b}}
+      - TRADER_LLM_MODEL=${TRADER_LLM_MODEL:-${DEFAULT_LLM_MODEL:-qwen3.5:9b}}
       - EMBEDDING_MODEL=${EMBEDDING_MODEL:-qwen3-embedding:4b}
+      - OLLAMA_NUM_CTX=${OLLAMA_NUM_CTX:-16384}
+      - OLLAMA_THINK=${OLLAMA_THINK:-false}
+      - LLM_TIMEOUT_MS=${LLM_TIMEOUT_MS:-300000}
       # Data services (compose-internal ports)
       - GOVERNMENT_DATA_URL=http://government-data:3005
+      - YAHOO_FINANCE_URL=http://yahoo-finance:3002
+      - REDDIT_SERVICE_URL=http://social-sentiment:3007
       - ZEP_GRAPHITI_URL=http://zep-graphiti:8000
       - REDIS_URL=redis://redis:6379
     depends_on:
@@ -256,6 +290,7 @@ services:
       - ./.env.local:/app/.env.local:ro
       - ./logs:/app/logs
       - ./exports:/app/exports
+      - ./results:/app/results
     networks:
       - my-Trading-Agents
     healthcheck:

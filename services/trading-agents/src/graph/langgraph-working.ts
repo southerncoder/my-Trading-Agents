@@ -102,12 +102,27 @@ export class LangGraphSetup {
       const { StateGraph, messagesStateReducer } = await import('@langchain/langgraph');
       const { AIMessage } = await import('@langchain/core/messages');
       
-      const stateChannels = {
+      // Every AgentState field needs its own channel, otherwise LangGraph drops
+      // values returned by a node and downstream agents never see upstream reports.
+      // Last non-undefined write wins.
+      const lastValue = {
+        reducer: (prev: any, next: any) => (next === undefined ? prev : next),
+        default: () => undefined as any
+      };
+      const stateChannels: Record<string, any> = {
         messages: {
           reducer: messagesStateReducer,
           default: () => []
         }
       };
+      for (const key of [
+        'company_of_interest', 'trade_date', 'sender',
+        'market_report', 'sentiment_report', 'news_report', 'fundamentals_report',
+        'investment_debate_state', 'investment_plan', 'trader_investment_plan',
+        'risk_debate_state', 'final_trade_decision', 'metadata'
+      ]) {
+        stateChannels[key] = lastValue;
+      }
 
       const workflow = new StateGraph({ channels: stateChannels } as any);
 
@@ -119,23 +134,17 @@ export class LangGraphSetup {
               messagesCount: state.messages?.length || 0
             });
             
-            // Extract ticker and date from messages
-            const lastMessage = state.messages[state.messages.length - 1];
-            const content = lastMessage?.content || '';
-            const tickerMatch = content.match(/\b([A-Z]{1,5})\b/);
-            const dateMatch = content.match(/\d{4}-\d{2}-\d{2}/);
-            
-            const ticker = tickerMatch ? tickerMatch[1] : 'AAPL';
-            const tradeDate = dateMatch ? dateMatch[0] : new Date().toISOString().split('T')[0];
-            
+            // Company and date are seeded into graph state by executeWorkflow;
+            // never re-derive them from free-text agent output.
+            if (!state.company_of_interest || !state.trade_date) {
+              throw new Error('Graph state is missing company_of_interest/trade_date');
+            }
+
             // Process with real agent
             const agent = await agentPromise;
             const agentState: AgentState = {
-              messages: state.messages,
-              company_of_interest: ticker,
-              trade_date: tradeDate!,
               sender: 'system',
-              ...state // Include any additional state properties
+              ...state // company_of_interest, trade_date, reports, debate states, messages
             };
             
             const result = await agent.process(agentState);
