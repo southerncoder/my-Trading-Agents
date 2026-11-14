@@ -141,6 +141,7 @@ services:
       - news_api_key
       - brave_news_api_key
       - google_api_key
+      - tavily_api_key
     ports:
       - "127.0.0.1:${NEWS_PORT:-38404}:3004"
     networks:
@@ -418,6 +419,8 @@ secrets:
     file: ./docker/secrets/news_api_key.txt
   brave_news_api_key:
     file: ./docker/secrets/brave_news_api_key.txt
+  tavily_api_key:
+    file: ./docker/secrets/tavily_api_key.txt
   google_api_key:
     file: ./docker/secrets/google_api_key.txt
   
