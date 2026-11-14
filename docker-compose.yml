@@ -14,7 +14,7 @@ services:
     image: pgvector/pgvector:pg16
     container_name: trading-agents-postgresql
     ports:
-      - "5432:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-38420}:5432"
     environment:
       - POSTGRES_DB_FILE=/run/secrets/postgres_db
       - POSTGRES_USER_FILE=/run/secrets/postgres_user
@@ -40,7 +40,7 @@ services:
     image: redis:8.10-alpine
     container_name: trading-agents-redis
     ports:
-      - "6379:6379"
+      - "127.0.0.1:${REDIS_PORT:-38421}:6379"
     command: redis-server --appendonly yes --appendfsync everysec
     volumes:
       - redis_data:/data
@@ -59,8 +59,8 @@ services:
     image: neo4j:5.26.33
     container_name: trading-agents-neo4j
     ports:
-      - "7474:7474"
-      - "7687:7687"
+      - "127.0.0.1:${NEO4J_HTTP_PORT:-38422}:7474"
+      - "127.0.0.1:${NEO4J_BOLT_PORT:-38423}:7687"
     environment:
       - NEO4J_AUTH=${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD}
       - NEO4J_PLUGINS=["apoc"]
@@ -89,16 +89,22 @@ services:
   zep-graphiti:
     image: zepai/graphiti:0.31.2
     container_name: trading-agents-zep-graphiti
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
-      - "8000:8000"
+      - "127.0.0.1:${GRAPHITI_PORT:-38410}:8000"
     environment:
       - NEO4J_URI=bolt://trading-agents-neo4j:7687
       - neo4j_uri=bolt://trading-agents-neo4j:7687
       - neo4j_user=${NEO4J_USER:-neo4j}
       - neo4j_password=${NEO4J_PASSWORD}
-      - OPENAI_API_KEY=/run/secrets/openai_api_key
-      - openai_api_key=/run/secrets/news_api_key
-      - EMBEDDER_PROVIDER=openai
+      # Local Ollama through its OpenAI-compatible API. graphiti 0.31.2 only lets the server override the
+      # LLM model; its embedder uses the default model name `text-embedding-3-small`, so an Ollama alias of
+      # that name points at ${EMBEDDING_MODEL} (see tools/setup-ollama-models.ps1). Vectors are cut to 1024 dims.
+      - OPENAI_API_KEY=ollama
+      - OPENAI_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}/v1
+      - MODEL_NAME=${GRAPHITI_LLM_MODEL:-qwen3.5:9b}
+      - EMBEDDING_MODEL_NAME=text-embedding-3-small
     depends_on:
       neo4j:
         condition: service_healthy
@@ -136,7 +142,7 @@ services:
       - brave_news_api_key
       - google_api_key
     ports:
-      - "3004:3004"
+      - "127.0.0.1:${NEWS_PORT:-38404}:3004"
     networks:
       - my-Trading-Agents
 
@@ -153,7 +159,7 @@ services:
       - LOG_LEVEL=debug
       - PORT=3005
     ports:
-      - "3005:3005"
+      - "127.0.0.1:${GOVERNMENT_DATA_PORT:-38405}:3005"
     networks:
       - my-Trading-Agents
 
@@ -170,7 +176,7 @@ services:
       - LOG_LEVEL=debug
       - PORT=3006
     ports:
-      - "3006:3006"
+      - "127.0.0.1:${FINANCE_PORT:-38406}:3006"
     networks:
       - my-Trading-Agents
 
@@ -200,7 +206,7 @@ services:
       - reddit_user_agent
       - twitter_bearer_token
     ports:
-      - "3007:3007"
+      - "127.0.0.1:${SOCIAL_PORT:-38407}:3007"
     networks:
       - my-Trading-Agents
 
@@ -215,14 +221,26 @@ services:
       dockerfile: Dockerfile
     container_name: trading-agents-main
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       - NODE_ENV=development
       - LOG_LEVEL=debug
       - TRADING_AGENTS_WEB_MODE=true
-      - DATABASE_URL=postgresql://postgres:password@postgresql:5432/trading_agents
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-trading_agent}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgresql:5432/${POSTGRES_DB:-trading_agents}
       - NEO4J_URI=bolt://neo4j:7687
       - NEO4J_USER=neo4j
       - NEO4J_PASSWORD=${NEO4J_PASSWORD}
+      # LLM: local Ollama (default port) on the host
+      - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      - LLM_BACKEND_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}/v1
+      - DEFAULT_LLM_MODEL=${DEFAULT_LLM_MODEL:-qwen3.5:9b}
+      - QUICK_THINK_LLM=${QUICK_THINK_LLM:-qwen3.5:9b}
+      - DEEP_THINK_LLM=${DEEP_THINK_LLM:-qwen3.5:9b}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-qwen3-embedding:4b}
+      # Data services (compose-internal ports)
+      - GOVERNMENT_DATA_URL=http://government-data:3005
       - ZEP_GRAPHITI_URL=http://zep-graphiti:8000
       - REDIS_URL=redis://redis:6379
     depends_on:
@@ -262,8 +280,8 @@ services:
       - NODE_ENV=development
       - LOG_LEVEL=debug
       - PORT=3001
-      - CORS_ORIGIN=http://localhost:3000
-      - FRONTEND_URL=http://localhost:3000
+      - CORS_ORIGIN=http://localhost:${FRONTEND_PORT:-38400}
+      - FRONTEND_URL=http://localhost:${FRONTEND_PORT:-38400}
       - TRADING_AGENTS_SERVICE_PATH=/app/trading-agents
       - ANALYSIS_TIMEOUT=300000
       - MAX_CONCURRENT_ANALYSES=3
@@ -277,7 +295,7 @@ services:
       - ./services/trading-agents:/app/trading-agents:ro
       - ./logs:/app/logs
     ports:
-      - "3001:3001"
+      - "127.0.0.1:${WEB_API_PORT:-38401}:3001"
     networks:
       - my-Trading-Agents
     healthcheck:
@@ -296,10 +314,8 @@ services:
     restart: unless-stopped
     environment:
       - NODE_ENV=development
-      - VITE_API_URL=http://localhost:3001/api
-      - VITE_WS_URL=ws://localhost:3001
     ports:
-      - "3000:80"
+      - "127.0.0.1:${FRONTEND_PORT:-38400}:80"
     depends_on:
       web-api:
         condition: service_healthy

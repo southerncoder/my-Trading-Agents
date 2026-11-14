@@ -20,7 +20,7 @@ export const PROVIDER_OPTIONS: ProviderOption[] = [
   { display: "Google", url: "https://generativelanguage.googleapis.com/v1" },
   { display: "LM Studio", url: process.env.REMOTE_LM_STUDIO_BASE_URL || "http://your-lm-studio-server:1234/v1" },
   { display: "Openrouter", url: "https://openrouter.ai/api/v1" },
-  { display: "Ollama", url: "http://localhost:11434/v1" }
+  { display: "Ollama", url: (process.env.OLLAMA_BASE_URL || "http://localhost:11434") + "/v1" }
 ];
 
 export const SHALLOW_AGENT_OPTIONS: Record<string, LLMOption[]> = {

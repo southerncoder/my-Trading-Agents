@@ -23,6 +23,9 @@ export interface SecurityConfig {
 const isDevelopment = process.env.NODE_ENV === 'development'
 const isProduction = process.env.NODE_ENV === 'production'
 const httpsEnabled = process.env.HTTPS_ENABLED === 'true'
+// Host-published ports (custom, non-default); override via FRONTEND_PORT / WEB_API_PORT
+const FRONTEND_PORT = process.env.FRONTEND_PORT || '38400'
+const PUBLIC_API_PORT = process.env.WEB_API_PORT || '38401'
 
 export const securityConfig: SecurityConfig = {
   rateLimit: {
@@ -37,9 +40,10 @@ export const securityConfig: SecurityConfig = {
   
   cors: {
     allowedOrigins: [
-      'http://localhost:3000',
-      'https://localhost:3000',
-      ...(httpsEnabled ? ['https://localhost:3000', 'https://127.0.0.1:3000'] : []),
+      `http://localhost:${FRONTEND_PORT}`,
+      `http://127.0.0.1:${FRONTEND_PORT}`,
+      'https://localhost:' + FRONTEND_PORT,
+      ...(httpsEnabled ? ['https://localhost:' + FRONTEND_PORT, 'https://127.0.0.1:' + FRONTEND_PORT] : []),
       ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
       ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : [])
     ].filter(Boolean)
@@ -54,9 +58,9 @@ export const securityConfig: SecurityConfig = {
       imgSrc: ["'self'", "data:", "https:"],
       connectSrc: [
         "'self'", 
-        "ws://localhost:3001", 
-        "wss://localhost:3001",
-        ...(httpsEnabled ? ["wss://localhost:3001", "https://localhost:3001"] : []),
+        `ws://localhost:${PUBLIC_API_PORT}`, 
+        `wss://localhost:${PUBLIC_API_PORT}`,
+        ...(httpsEnabled ? [`wss://localhost:${PUBLIC_API_PORT}`, `https://localhost:${PUBLIC_API_PORT}`] : []),
         ...(isDevelopment ? ["ws://localhost:*", "http://localhost:*", "https://localhost:*"] : [])
       ],
       frameSrc: ["'none'"],
@@ -145,5 +149,5 @@ export const securityPatterns = {
 export const trustedDomains = {
   fonts: ['fonts.googleapis.com', 'fonts.gstatic.com'],
   apis: ['api.tradingagents.local'], // Add your trusted API domains here
-  websockets: ['ws://localhost:3001', 'wss://localhost:3001']
+  websockets: [`ws://localhost:${PUBLIC_API_PORT}`, `wss://localhost:${PUBLIC_API_PORT}`]
 }

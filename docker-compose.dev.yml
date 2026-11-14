@@ -21,8 +21,8 @@ services:
       - NODE_ENV=development
       - LOG_LEVEL=debug
       - PORT=3001
-      - CORS_ORIGIN=http://localhost:3000
-      - FRONTEND_URL=http://localhost:3000
+      - CORS_ORIGIN=http://localhost:${FRONTEND_DEV_PORT:-38440}
+      - FRONTEND_URL=http://localhost:${FRONTEND_DEV_PORT:-38440}
       - TRADING_AGENTS_SERVICE_PATH=/app/trading-agents
       - ANALYSIS_TIMEOUT=300000
       - MAX_CONCURRENT_ANALYSES=3
@@ -44,10 +44,10 @@ services:
       - ./services/web-frontend/tailwind.config.js:/app/tailwind.config.js:ro
     environment:
       - NODE_ENV=development
-      - VITE_API_URL=http://localhost:3001/api
-      - VITE_WS_URL=ws://localhost:3001
+      - WEB_API_PORT=${WEB_API_PORT:-38401}
+      - FRONTEND_DEV_PORT=${FRONTEND_DEV_PORT:-38440}
     ports:
-      - "3000:5173"  # Vite dev server port
+      - "127.0.0.1:${FRONTEND_DEV_PORT:-38440}:${FRONTEND_DEV_PORT:-38440}"  # Vite dev server port
     command: npm run dev
 
   trading-agents:

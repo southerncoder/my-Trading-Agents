@@ -8,7 +8,7 @@ import { resolve } from 'path'
 export default defineConfig({
   plugins: [tailwindcss(), react()],
   server: {
-    port: 3000,
+    port: Number(process.env.FRONTEND_DEV_PORT || 38440),
     host: true,
     https: process.env.HTTPS_ENABLED === 'true' ? (() => {
       const keyPath = resolve(import.meta.dirname, 'certs/frontend-key.pem')
@@ -27,12 +27,12 @@ export default defineConfig({
     })() : false,
     proxy: {
       '/api': {
-        target: process.env.HTTPS_ENABLED === 'true' ? 'https://localhost:3001' : 'http://localhost:3001',
+        target: process.env.HTTPS_ENABLED === 'true' ? `https://localhost:${process.env.WEB_API_PORT || '38401'}` : `http://localhost:${process.env.WEB_API_PORT || '38401'}`,
         changeOrigin: true,
         secure: false, // Allow self-signed certificates in development
       },
       '/ws': {
-        target: process.env.HTTPS_ENABLED === 'true' ? 'wss://localhost:3001' : 'ws://localhost:3001',
+        target: process.env.HTTPS_ENABLED === 'true' ? `wss://localhost:${process.env.WEB_API_PORT || '38401'}` : `ws://localhost:${process.env.WEB_API_PORT || '38401'}`,
         ws: true,
         secure: false, // Allow self-signed certificates in development
       },

@@ -106,8 +106,8 @@ Start-Sleep -Seconds 10
 Write-Host ""
 Write-Host "🏥 Checking service health endpoints..." -ForegroundColor Cyan
 
-$frontendHealthy = Test-ServiceHealth -ServiceName "Web Frontend" -Url "http://localhost:3000/health"
-$apiHealthy = Test-ServiceHealth -ServiceName "Web API" -Url "http://localhost:3001/api/health"
+$frontendHealthy = Test-ServiceHealth -ServiceName "Web Frontend" -Url "http://localhost:38400/health"
+$apiHealthy = Test-ServiceHealth -ServiceName "Web API" -Url "http://localhost:38401/api/health"
 
 if (-not $frontendHealthy -or -not $apiHealthy) {
     Write-Host "❌ Critical services are not healthy. Exiting." -ForegroundColor $Red
@@ -117,19 +117,19 @@ if (-not $frontendHealthy -or -not $apiHealthy) {
 # Check WebSocket connection
 Write-Host ""
 Write-Host "🔌 Checking WebSocket connectivity..." -ForegroundColor Cyan
-Test-WebSocketConnection -WsUrl "ws://localhost:3001/ws"
+Test-WebSocketConnection -WsUrl "ws://localhost:38401/ws"
 
 # Test API endpoints
 Write-Host ""
 Write-Host "🧪 Testing API endpoints..." -ForegroundColor Cyan
 
 $endpoints = @(
-    @{ Url = "http://localhost:3001/api/health"; Method = "GET" },
-    @{ Url = "http://localhost:3001/api/symbols/search?q=AAPL"; Method = "GET" },
-    @{ Url = "http://localhost:3001/api/analysis/validate"; Method = "POST"; Data = '{"symbol":"AAPL","type":"market"}' },
-    @{ Url = "http://localhost:3001/api/analysis/history"; Method = "GET" },
-    @{ Url = "http://localhost:3001/api/analysis/active"; Method = "GET" },
-    @{ Url = "http://localhost:3001/api/analysis/stats"; Method = "GET" }
+    @{ Url = "http://localhost:38401/api/health"; Method = "GET" },
+    @{ Url = "http://localhost:38401/api/symbols/search?q=AAPL"; Method = "GET" },
+    @{ Url = "http://localhost:38401/api/analysis/validate"; Method = "POST"; Data = '{"symbol":"AAPL","type":"market"}' },
+    @{ Url = "http://localhost:38401/api/analysis/history"; Method = "GET" },
+    @{ Url = "http://localhost:38401/api/analysis/active"; Method = "GET" },
+    @{ Url = "http://localhost:38401/api/analysis/stats"; Method = "GET" }
 )
 
 $allEndpointsHealthy = $true
@@ -146,14 +146,14 @@ if (-not $SkipAnalysis) {
     Write-Host "🚀 Testing analysis request..." -ForegroundColor Cyan
     
     $analysisData = '{"symbol":"AAPL","type":"market","parameters":{}}'
-    $analysisResponse = Test-ApiEndpoint -Endpoint "http://localhost:3001/api/analysis" -Method "POST" -Data $analysisData
+    $analysisResponse = Test-ApiEndpoint -Endpoint "http://localhost:38401/api/analysis" -Method "POST" -Data $analysisData
     
     if ($analysisResponse -and $analysisResponse.data.id) {
         $analysisId = $analysisResponse.data.id
         Write-Host "Analysis ID: $analysisId" -ForegroundColor Cyan
         
         # Check analysis status
-        $statusResponse = Test-ApiEndpoint -Endpoint "http://localhost:3001/api/analysis/$analysisId/status" -Method "GET"
+        $statusResponse = Test-ApiEndpoint -Endpoint "http://localhost:38401/api/analysis/$analysisId/status" -Method "GET"
         
         if ($statusResponse -and $statusResponse.data.status) {
             Write-Host "Analysis status: $($statusResponse.data.status)" -ForegroundColor Cyan
@@ -185,9 +185,9 @@ Write-Host ""
 Write-Host "✅ Web deployment validation completed!" -ForegroundColor $Green
 Write-Host ""
 Write-Host "🌐 Access points:" -ForegroundColor Cyan
-Write-Host "  - Frontend: http://localhost:3000"
-Write-Host "  - API: http://localhost:3001/api"
-Write-Host "  - WebSocket: ws://localhost:3001/ws"
+Write-Host "  - Frontend: http://localhost:38400"
+Write-Host "  - API: http://localhost:38401/api"
+Write-Host "  - WebSocket: ws://localhost:38401/ws"
 Write-Host ""
 Write-Host "📚 API Documentation:" -ForegroundColor Cyan
 Write-Host "  - Health: GET /api/health"

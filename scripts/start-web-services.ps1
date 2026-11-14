@@ -73,8 +73,8 @@ Write-Host "🎉 TradingAgents Web Services Started Successfully!" -ForegroundCo
 Write-Host "=================================================" -ForegroundColor Green
 Write-Host ""
 Write-Host "🌐 Web Frontend:  http://localhost" -ForegroundColor Cyan
-Write-Host "🔌 API Backend:   http://localhost:3001" -ForegroundColor Cyan
-Write-Host "📡 WebSocket:     ws://localhost:3001/ws" -ForegroundColor Cyan
+Write-Host "🔌 API Backend:   http://localhost:38401" -ForegroundColor Cyan
+Write-Host "📡 WebSocket:     ws://localhost:38401/ws" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "📊 Service Status:" -ForegroundColor Yellow
 docker-compose -f docker-compose.web.yml ps

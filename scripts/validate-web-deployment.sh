@@ -91,23 +91,23 @@ sleep 10
 # Check basic service health
 echo ""
 echo "🏥 Checking service health endpoints..."
-check_service "Web Frontend" "http://localhost:3000/health" || exit 1
-check_service "Web API" "http://localhost:3001/api/health" || exit 1
+check_service "Web Frontend" "http://localhost:38400/health" || exit 1
+check_service "Web API" "http://localhost:38401/api/health" || exit 1
 
 # Check WebSocket connection
 echo ""
 echo "🔌 Checking WebSocket connectivity..."
-check_websocket "ws://localhost:3001/ws"
+check_websocket "ws://localhost:38401/ws"
 
 # Test API endpoints
 echo ""
 echo "🧪 Testing API endpoints..."
-test_api_endpoint "http://localhost:3001/api/health"
-test_api_endpoint "http://localhost:3001/api/symbols/search?q=AAPL"
-test_api_endpoint "http://localhost:3001/api/analysis/validate" "POST" '{"symbol":"AAPL","type":"market"}'
-test_api_endpoint "http://localhost:3001/api/analysis/history"
-test_api_endpoint "http://localhost:3001/api/analysis/active"
-test_api_endpoint "http://localhost:3001/api/analysis/stats"
+test_api_endpoint "http://localhost:38401/api/health"
+test_api_endpoint "http://localhost:38401/api/symbols/search?q=AAPL"
+test_api_endpoint "http://localhost:38401/api/analysis/validate" "POST" '{"symbol":"AAPL","type":"market"}'
+test_api_endpoint "http://localhost:38401/api/analysis/history"
+test_api_endpoint "http://localhost:38401/api/analysis/active"
+test_api_endpoint "http://localhost:38401/api/analysis/stats"
 
 # Test analysis request (this will take longer)
 echo ""
@@ -116,7 +116,7 @@ echo -n "Submitting analysis request... "
 
 analysis_response=$(curl -s -X POST -H "Content-Type: application/json" \
     -d '{"symbol":"AAPL","type":"market","parameters":{}}' \
-    "http://localhost:3001/api/analysis")
+    "http://localhost:38401/api/analysis")
 
 if echo "$analysis_response" | grep -q '"success":true'; then
     echo -e "${GREEN}✓ OK${NC}"
@@ -129,7 +129,7 @@ if echo "$analysis_response" | grep -q '"success":true'; then
         
         # Check analysis status
         echo -n "Checking analysis status... "
-        status_response=$(curl -s "http://localhost:3001/api/analysis/$analysis_id/status")
+        status_response=$(curl -s "http://localhost:38401/api/analysis/$analysis_id/status")
         
         if echo "$status_response" | grep -q '"success":true'; then
             echo -e "${GREEN}✓ OK${NC}"
@@ -161,9 +161,9 @@ echo ""
 echo "✅ Web deployment validation completed!"
 echo ""
 echo "🌐 Access points:"
-echo "  - Frontend: http://localhost:3000"
-echo "  - API: http://localhost:3001/api"
-echo "  - WebSocket: ws://localhost:3001/ws"
+echo "  - Frontend: http://localhost:38400"
+echo "  - API: http://localhost:38401/api"
+echo "  - WebSocket: ws://localhost:38401/ws"
 echo ""
 echo "📚 API Documentation:"
 echo "  - Health: GET /api/health"

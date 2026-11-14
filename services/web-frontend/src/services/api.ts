@@ -12,10 +12,11 @@ import type {
 
 // API configuration
 const isHttpsEnabled = import.meta.env.VITE_HTTPS_ENABLED === 'true'
-const API_BASE_URL = import.meta.env.VITE_API_URL || 
-  (isHttpsEnabled ? 'https://localhost:3001/api' : 'http://localhost:3001/api')
-const WS_BASE_URL = import.meta.env.VITE_WS_URL || 
-  (isHttpsEnabled ? 'wss://localhost:3001' : 'ws://localhost:3001')
+// Default to same-origin: nginx (or the Vite dev proxy) forwards /api and /ws to the web-api,
+// so the bundle does not depend on any host port. Override with VITE_API_URL / VITE_WS_URL.
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
+const WS_BASE_URL = import.meta.env.VITE_WS_URL ||
+  `${window.location.protocol === 'https:' || isHttpsEnabled ? 'wss' : 'ws'}://${window.location.host}`
 
 // Request validation schemas
 const AnalysisRequestSchema = z.object({
