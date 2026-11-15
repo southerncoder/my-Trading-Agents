@@ -36,6 +36,8 @@ export interface CircuitBreakerConfig {
   resetTimeout?: number;
   rollingCountTimeout?: number;
   rollingCountBuckets?: number;
+  /** Minimum requests in the window before the breaker may open (default 5 so one failure cannot trip it). */
+  volumeThreshold?: number;
   name?: string;
 }
 
@@ -237,6 +239,8 @@ export async function withDataflowResilience<T>(
     resetTimeout: finalConfig.circuitBreakerConfig.resetTimeout,
     rollingCountTimeout: finalConfig.circuitBreakerConfig.rollingCountTimeout,
     rollingCountBuckets: finalConfig.circuitBreakerConfig.rollingCountBuckets,
+    // Without a minimum volume the breaker opens on the first failure and rejects every retry.
+    volumeThreshold: finalConfig.circuitBreakerConfig.volumeThreshold ?? 5,
     name: `${finalConfig.circuitBreakerConfig.name}-${operation}`
   };
 

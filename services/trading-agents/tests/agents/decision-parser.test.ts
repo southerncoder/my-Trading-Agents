@@ -77,3 +77,8 @@ assert.equal(q.criticalMissing, true);
 assert.deepEqual(q.missing, ['news', 'social']);
 
 console.log('decision-parser tests passed');
+
+import { fetchError } from '../../src/agents/base/tool-data';
+assert.strictEqual(fetchError('### get_historical_price_data\nERROR: fetch failed\n', 'get_historical_price_data'), 'fetch failed');
+assert.strictEqual(fetchError('### get_historical_price_data\ndate,close\n', 'get_historical_price_data'), undefined);
+console.log('fetchError tests passed');

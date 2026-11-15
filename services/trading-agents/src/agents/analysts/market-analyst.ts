@@ -2,7 +2,7 @@ import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { StructuredTool } from '@langchain/core/tools';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AbstractAgent } from '../base/index';
-import { fetchToolData, pickKeys } from '../base/tool-data';
+import { fetchToolData, fetchError, pickKeys } from '../base/tool-data';
 import { AgentState } from '../../types/agent-states';
 import { createLogger } from '../../utils/enhanced-logger';
 import { withLLMResilience, OPENAI_LLM_CONFIG, createResilientLLM } from '../../utils/resilient-llm';
@@ -65,6 +65,17 @@ export class MarketAnalyst extends AbstractAgent {
         });
       }
       const dataBlock = await fetchToolData(this.tools, calls);
+      // No price history means nothing to analyse. Say so explicitly instead of letting the model
+      // invent levels; the data-quality guard then forces HOLD.
+      const priceError = fetchError(dataBlock, 'get_historical_price_data');
+      if (priceError) {
+        this.logger.warn('process', 'Price history unavailable; skipping LLM analysis', { error: priceError, company: state.company_of_interest });
+        return {
+          messages: state.messages,
+          market_report: `MARKET DATA UNAVAILABLE: price history could not be fetched (${priceError.slice(0, 160)})`,
+          sender: this.name,
+        };
+      }
       const baseRequest = this.createAnalysisRequest(state);
       const humanMessage = new HumanMessage(baseRequest.content.toString() + '\n\n' + dataBlock);
       

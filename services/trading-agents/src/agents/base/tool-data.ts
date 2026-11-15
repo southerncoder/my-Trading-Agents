@@ -61,6 +61,12 @@ export function compactFundamentals(raw: string): string {
   }
 }
 
+/** Returns the error message when `fetchToolData` recorded a failure for this tool, else undefined. */
+export function fetchError(dataBlock: string, tool: string): string | undefined {
+  const m = new RegExp('### ' + tool + '\\nERROR: ([^\\n]*)').exec(dataBlock);
+  return m ? m[1] : undefined;
+}
+
 /** Keep only the named top-level keys of a JSON object. */
 export function pickKeys(keys: string[]): (raw: string) => string {
   return (raw) => {

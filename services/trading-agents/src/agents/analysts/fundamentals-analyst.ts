@@ -2,7 +2,7 @@ import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { StructuredTool } from '@langchain/core/tools';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AbstractAgent } from '../base/index';
-import { fetchToolData, compactFundamentals } from '../base/tool-data';
+import { fetchToolData, fetchError, compactFundamentals } from '../base/tool-data';
 import { AgentState } from '../../types/agent-states';
 import { createLogger } from '../../utils/enhanced-logger';
 import { withLLMResilience, OPENAI_LLM_CONFIG, createResilientLLM } from '../../utils/resilient-llm';
@@ -48,6 +48,15 @@ export class FundamentalsAnalyst extends AbstractAgent {
       const dataBlock = await fetchToolData(this.tools, [
         { tool: 'get_fundamentals', args: { symbol: state.company_of_interest, startDate: state.trade_date }, transform: compactFundamentals, maxChars: 9000 }
       ]);
+      const fundError = fetchError(dataBlock, 'get_fundamentals');
+      if (fundError) {
+        this.logger.warn('process', 'Fundamentals unavailable; skipping LLM analysis', { error: fundError, company: state.company_of_interest });
+        return {
+          messages: state.messages,
+          fundamentals_report: `FUNDAMENTALS DATA UNAVAILABLE: fundamentals could not be fetched (${fundError.slice(0, 160)})`,
+          sender: this.name,
+        };
+      }
       const baseRequest = this.createAnalysisRequest(state);
       const humanMessage = new HumanMessage(baseRequest.content.toString() + '\n\n' + dataBlock);
       
