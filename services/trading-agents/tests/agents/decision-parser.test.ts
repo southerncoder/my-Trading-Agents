@@ -1,6 +1,7 @@
 // Run: npx vite-node tests/agents/decision-parser.test.ts
 import assert from 'node:assert/strict';
-import { parseDecision } from '../../src/agents/base/decision-parser';
+import { parseDecision, normalizeActionNow, decisionLabel } from '../../src/agents/base/decision-parser';
+import { compactFundamentals } from '../../src/agents/base/tool-data';
 import { assessDataQuality, isUnavailable } from '../../src/agents/base/evidence';
 
 const json = (o: object) => '```json\n' + JSON.stringify(o) + '\n```';
@@ -16,9 +17,35 @@ r = parseDecision(json({ decision: 'BUY', confidence: 0.8, action_now: 'wait_for
 assert.equal(r.decision, 'HOLD');
 assert.ok(r.downgradeReason);
 
-// SELL but enter_now -> HOLD
-r = parseDecision(json({ decision: 'SELL', confidence: 0.7, action_now: 'enter_now' }));
+// BUY waiting on a trigger keeps its intent as a pending long entry
+r = parseDecision(json({ decision: 'BUY', confidence: 0.8, action_now: 'enter_on_trigger' }));
+assert.equal(r.actionNow, 'wait_for_trigger');
 assert.equal(r.decision, 'HOLD');
+assert.equal(r.pendingEntry, true);
+assert.equal(r.pendingSide, 'long');
+assert.equal(decisionLabel(r), 'Buy if price reaches trigger');
+
+// Off-enum values are normalised so the consistency check cannot be bypassed
+assert.equal(normalizeActionNow('enter_partial'), 'enter_now');
+assert.equal(normalizeActionNow('Wait for pullback'), 'wait_for_trigger');
+assert.equal(normalizeActionNow('trim'), 'reduce');
+assert.equal(normalizeActionNow('short'), 'enter_now');
+assert.equal(normalizeActionNow('gibberish'), undefined);
+
+// SELL + enter_now is a short entry and is NOT downgraded
+r = parseDecision(json({ decision: 'SELL', confidence: 0.7, action_now: 'enter_now' }));
+assert.equal(r.decision, 'SELL');
+assert.equal(decisionLabel(r), 'Short (bet price falls)');
+
+// SELL waiting on a trigger -> pending short
+r = parseDecision(json({ decision: 'SELL', confidence: 0.7, action_now: 'wait_for_trigger' }));
+assert.equal(r.decision, 'HOLD');
+assert.equal(r.pendingSide, 'short');
+assert.equal(decisionLabel(r), 'Short if price reaches trigger');
+
+// Fundamentals: Yahoo debtToEquity is a percent and must be labelled as such
+const f = JSON.parse(compactFundamentals(JSON.stringify({ financialData: { debtToEquity: { raw: 16.77, fmt: '16.77' } } })));
+assert.match(f.financialData.debtToEquity, /16\.8% of equity \(= 0\.17x/);
 
 // Confidence clamped
 r = parseDecision(json({ decision: 'HOLD', confidence: 7 }));

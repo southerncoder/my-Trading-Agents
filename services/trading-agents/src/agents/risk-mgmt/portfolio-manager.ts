@@ -235,7 +235,7 @@ End your response with a single fenced JSON block, then these two lines, and not
 \`\`\`
 FINAL DECISION: <exactly one word: BUY or HOLD or SELL>
 CONFIDENCE: <a decimal between 0.00 and 1.00>
-In the JSON, choose exactly one value for decision and for action_now (BUY means you would enter now; if you would wait for a trigger, the decision is HOLD). Replace all placeholders with real values; do not repeat the placeholder text.`;
+In the JSON, choose exactly one value for decision and for action_now (BUY means you would enter now; if you would wait for a trigger, the decision is HOLD with action_now=wait_for_trigger). SELL means reduce or exit an existing position, or open a short now (action_now=enter_now; a short is a bet the price falls). If you would short only after a trigger, the decision is HOLD with action_now=wait_for_trigger and the trigger stated in the rationale. Replace all placeholders with real values; do not repeat the placeholder text.`;
 
     return new HumanMessage(prompt + buildEvidenceBlock(state));
   }

@@ -30,6 +30,37 @@ export function compactJson(raw: string): string {
   }
 }
 
+/**
+ * Yahoo reports debtToEquity as a PERCENT (16.77 means 0.17x, i.e. 16.77%), which small
+ * models read as a 16.77x multiple. Rewrite it with explicit units after compaction.
+ */
+export function compactFundamentals(raw: string): string {
+  const compact = compactJson(raw);
+  try {
+    const walk = (v: any): any => {
+      if (Array.isArray(v)) return v.map(walk);
+      if (v && typeof v === 'object') {
+        const out: Record<string, any> = {};
+        for (const [k, val] of Object.entries(v)) {
+          if (k === 'debtToEquity') {
+            const n = typeof val === 'number' ? val : parseFloat(String(val).replace(/[,%]/g, ''));
+            out[k] = Number.isFinite(n)
+              ? `${n.toFixed(1)}% of equity (= ${(n / 100).toFixed(2)}x; under 1.0x means debt is below equity)`
+              : val;
+          } else {
+            out[k] = walk(val);
+          }
+        }
+        return out;
+      }
+      return v;
+    };
+    return JSON.stringify(walk(JSON.parse(compact)));
+  } catch {
+    return compact;
+  }
+}
+
 /** Keep only the named top-level keys of a JSON object. */
 export function pickKeys(keys: string[]): (raw: string) => string {
   return (raw) => {

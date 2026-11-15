@@ -2,7 +2,7 @@ import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { StructuredTool } from '@langchain/core/tools';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AbstractAgent } from '../base/index';
-import { fetchToolData, compactJson } from '../base/tool-data';
+import { fetchToolData, compactFundamentals } from '../base/tool-data';
 import { AgentState } from '../../types/agent-states';
 import { createLogger } from '../../utils/enhanced-logger';
 import { withLLMResilience, OPENAI_LLM_CONFIG, createResilientLLM } from '../../utils/resilient-llm';
@@ -46,7 +46,7 @@ export class FundamentalsAnalyst extends AbstractAgent {
       
       // Create human message with context
       const dataBlock = await fetchToolData(this.tools, [
-        { tool: 'get_fundamentals', args: { symbol: state.company_of_interest, startDate: state.trade_date }, transform: compactJson, maxChars: 9000 }
+        { tool: 'get_fundamentals', args: { symbol: state.company_of_interest, startDate: state.trade_date }, transform: compactFundamentals, maxChars: 9000 }
       ]);
       const baseRequest = this.createAnalysisRequest(state);
       const humanMessage = new HumanMessage(baseRequest.content.toString() + '\n\n' + dataBlock);
