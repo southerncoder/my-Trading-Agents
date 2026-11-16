@@ -19,10 +19,21 @@ const clip = (s: unknown, n: number) => String(s ?? '').replace(/\s+/g, ' ').tri
 export async function fetchNewsDigest(symbol: string): Promise<string> {
   const retrieved = new Date().toISOString();
   try {
-    const body = await getJson(
-      `${NEWS_URL()}/api/financial-news/${encodeURIComponent(symbol)}?pageSize=12&lookBackDays=7`
-    );
-    const articles: any[] = body?.data?.articles ?? body?.articles ?? body?.data ?? [];
+    const url = `${NEWS_URL()}/api/financial-news/${encodeURIComponent(symbol)}?pageSize=12&lookBackDays=7`;
+    // One retry: an empty answer is usually a transient provider rate limit (empty results are not cached),
+    // and a single miss would otherwise force the whole decision to HOLD at 0.3.
+    let body: any;
+    let articles: any[] = [];
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        body = await getJson(url);
+        articles = body?.data?.articles ?? body?.articles ?? body?.data ?? [];
+        if (Array.isArray(articles) && articles.length > 0) break;
+      } catch (e) {
+        if (attempt === 2) throw e;
+      }
+      if (attempt === 1) await new Promise(r => setTimeout(r, 2500));
+    }
     if (!Array.isArray(articles) || articles.length === 0) {
       return 'NEWS DATA UNAVAILABLE: no articles returned';
     }

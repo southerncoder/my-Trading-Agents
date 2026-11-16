@@ -42,9 +42,10 @@ foreach ($t in $Tickers) {
     $text = Get-Content $log -Raw
     $m = [regex]::Match($text, 'Final trading decision:\s*(BUY|HOLD|SELL)\s*\(Confidence:\s*([0-9.]+)\)')
     $q = [regex]::Match($text, 'Data quality:[^\r\n]*').Value
+    $am = [regex]::Matches($text, '\"action_now\"\s*:\s*\"([a-z_]+)\"'); $action = if ($am.Count) { $am[$am.Count - 1].Groups[1].Value } else { '' }
     $note = if ($text -match 'CONSISTENCY CHECK') { 'consistency-downgrade' } elseif ($text -match 'DATA QUALITY GUARD') { 'guard-hold' } else { '' }
     $rows += [pscustomobject]@{
-      Ticker = $t; Run = $i; Profile = $ModelProfile; DecisionModel = $modelLabel
+      Ticker = $t; Run = $i; Profile = $ModelProfile; DecisionModel = $modelLabel; Variant = $env:PM_PROMPT_VARIANT; Action = $action
       Decision = if ($m.Success) { $m.Groups[1].Value } else { 'NONE' }
       Confidence = if ($m.Success) { [double]$m.Groups[2].Value } else { $null }
       Seconds = [int]$sw.Elapsed.TotalSeconds
