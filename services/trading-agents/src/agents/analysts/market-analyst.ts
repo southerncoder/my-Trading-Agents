@@ -3,7 +3,8 @@ import { StructuredTool } from '@langchain/core/tools';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AbstractAgent } from '../base/index';
 import { fetchToolData, fetchError, pickKeys } from '../base/tool-data';
-import { ENTRY_STANCE_LINE } from '../base/evidence';
+import { ENTRY_STANCE_LINE, adjustmentOn, entryCheck } from '../base/evidence';
+import { indicatorBlock } from '../base/indicators';
 import { AgentState } from '../../types/agent-states';
 import { createLogger } from '../../utils/enhanced-logger';
 import { withLLMResilience, OPENAI_LLM_CONFIG, createResilientLLM } from '../../utils/resilient-llm';
@@ -78,7 +79,8 @@ export class MarketAnalyst extends AbstractAgent {
         };
       }
       const baseRequest = this.createAnalysisRequest(state);
-      const humanMessage = new HumanMessage(baseRequest.content.toString() + '\n\n' + dataBlock);
+      const indicators = adjustmentOn('indicators') ? indicatorBlock(dataBlock) : '';
+      const humanMessage = new HumanMessage(baseRequest.content.toString() + '\n\n' + dataBlock + (indicators ? '\n\n' + indicators : ''));
       
       this.logger.debug('process', 'Prepared LLM messages for market analysis', {
         systemPromptLength: systemPrompt.length,
@@ -229,6 +231,6 @@ Analysis Date: ${trade_date}
 
 Focus on providing actionable technical analysis that will inform trading decisions. Be thorough but concise in your analysis.`;
 
-    return new HumanMessage(prompt + ENTRY_STANCE_LINE);
+    return new HumanMessage(prompt + entryCheck() + ENTRY_STANCE_LINE);
   }
 }

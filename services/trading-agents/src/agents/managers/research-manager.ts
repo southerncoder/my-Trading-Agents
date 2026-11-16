@@ -6,7 +6,7 @@ import { StructuredTool } from '@langchain/core/tools';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AbstractAgent } from '../base/index';
 import { AgentState, AgentStateHelpers } from '../../types/agent-states';
-import { outputDiscipline, ENTRY_STANCE_LINE } from '../base/evidence';
+import { outputDiscipline, ENTRY_STANCE_LINE, positionContext } from '../base/evidence';
 
 /**
  * Research Manager Agent
@@ -234,6 +234,6 @@ Analysis Date: ${trade_date}
 
 Make a decisive but well-reasoned investment recommendation that will guide the trading strategy.`;
 
-    return new HumanMessage(prompt + outputDiscipline(450) + ENTRY_STANCE_LINE);
+    return new HumanMessage(prompt + positionContext() + outputDiscipline(450) + ENTRY_STANCE_LINE);
   }
 }

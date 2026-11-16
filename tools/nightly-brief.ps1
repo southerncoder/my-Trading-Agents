@@ -20,8 +20,10 @@ param(
   [string]$YahooUrl = 'http://localhost:38402',
   [string]$ModelProfile,   # name from tools/model-profiles.json (default there)
   [string]$FastModel,      # optional one-off override
-  [string]$DecisionModel   # optional one-off override
+  [string]$DecisionModel,  # optional one-off override
+  [string]$Adjustments = 'all'  # analysis adjustments: indicators,entrycheck,flat, all, or '' for none
 )
+$env:ANALYSIS_ADJUSTMENTS = $Adjustments
 $ErrorActionPreference = 'Continue'
 $root = Split-Path $PSScriptRoot -Parent
 Set-Location $root
@@ -129,7 +131,7 @@ $newKeys = @($rows | ForEach-Object { "$Date|$($_.ticker)|$($prof.Profile)" })
 $keep = @($keep | Where-Object { $e = $_ | ConvertFrom-Json; "$($e.date)|$($e.ticker)|$($e.profile)" -notin $newKeys })
 $lines = foreach ($r in $rows) {
   [ordered]@{
-    date = $Date; ticker = $r.ticker; profile = $prof.Profile; fast_model = $prof.Fast; decision_model = $prof.Decision
+    date = $Date; ticker = $r.ticker; profile = $prof.Profile; adjustments = $Adjustments; fast_model = $prof.Fast; decision_model = $prof.Decision
     decision = $r.decision; confidence = $r.confidence; action_now = $r.action_now; label = $r.label
     price = $r.price; ma50 = $r.ma50; ma200 = $r.ma200; target = $r.target; range_pos = $r.range_pos
     pm = if ($r.pm_raw) { $r.pm_raw | ConvertFrom-Json } else { $null }

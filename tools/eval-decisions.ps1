@@ -15,8 +15,10 @@ param(
   [string[]]$Tickers = @('NVDA', 'AAPL', 'MSFT'),
   [int]$Repeats = 3,
   [string]$Date = (Get-Date -Format yyyy-MM-dd),
-  [string]$ModelProfile   # if set: apply this profile from tools/model-profiles.json and recreate the container
+  [string]$ModelProfile,   # if set: apply this profile from tools/model-profiles.json and recreate the container
+  [string]$Adjustments = $env:ANALYSIS_ADJUSTMENTS   # comma list: indicators,entrycheck,flat or all (needs -ModelProfile to take effect)
 )
+$env:ANALYSIS_ADJUSTMENTS = $Adjustments
 
 $root = Split-Path $PSScriptRoot -Parent
 if ($ModelProfile) {
@@ -45,7 +47,7 @@ foreach ($t in $Tickers) {
     $am = [regex]::Matches($text, '\"action_now\"\s*:\s*\"([a-z_]+)\"'); $action = if ($am.Count) { $am[$am.Count - 1].Groups[1].Value } else { '' }
     $note = if ($text -match 'CONSISTENCY CHECK') { 'consistency-downgrade' } elseif ($text -match 'DATA QUALITY GUARD') { 'guard-hold' } else { '' }
     $rows += [pscustomobject]@{
-      Ticker = $t; Run = $i; Profile = $ModelProfile; DecisionModel = $modelLabel; Variant = $env:PM_PROMPT_VARIANT; Action = $action
+      Ticker = $t; Run = $i; Profile = $ModelProfile; DecisionModel = $modelLabel; Adjustments = $Adjustments; Action = $action
       Decision = if ($m.Success) { $m.Groups[1].Value } else { 'NONE' }
       Confidence = if ($m.Success) { [double]$m.Groups[2].Value } else { $null }
       Seconds = [int]$sw.Elapsed.TotalSeconds

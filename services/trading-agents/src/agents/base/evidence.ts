@@ -74,3 +74,36 @@ export function outputDiscipline(maxWords: number): string {
 export const ENTRY_STANCE_LINE =
   '\n\nEnd your response with exactly one line in this form: ENTRY STANCE: NOW or ENTRY STANCE: WAIT or ENTRY STANCE: NONE ' +
   '(NOW = act at today\'s price; WAIT = act only after a price or event trigger; NONE = no trade wanted).';
+
+/**
+ * Switchable analysis adjustments, so each one can be measured on its own with
+ * tools/trace-stance.py before it becomes the default. ANALYSIS_ADJUSTMENTS is a comma list:
+ *   indicators - give the Market Analyst RSI/MACD/ATR/Bollinger computed in code
+ *   entrycheck - make the Market Analyst and Trader judge today's price and the cost of waiting
+ *   flat       - tell the deciding stages that no position is held (until the portfolio supplies it)
+ *   all        - everything
+ */
+export function adjustmentOn(name: 'indicators' | 'entrycheck' | 'flat'): boolean {
+  const set = (process.env.ANALYSIS_ADJUSTMENTS || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+  return set.includes('all') || set.includes(name);
+}
+
+/** Entry check: asks for a verdict on today's price instead of only "better" levels. */
+export function entryCheck(): string {
+  if (!adjustmentOn('entrycheck')) return '';
+  return (
+    "\n\nENTRY CHECK: say plainly whether today's price is an acceptable entry for a buyer with a multi-month horizon " +
+    '(yes or no, one reason), separately from any better levels. Waiting has a cost: a pullback level may never be reached ' +
+    'while the price moves away. Recommend waiting only when the expected improvement in entry price clearly outweighs ' +
+    'the risk of missing the move, and say why it does.'
+  );
+}
+
+/** Position context: removes the "hold existing / wait on new buys" hedge. */
+export function positionContext(): string {
+  if (!adjustmentOn('flat')) return '';
+  return (
+    '\n\nPOSITION CONTEXT: no position in this stock is currently held. The question is only whether to open a new ' +
+    'position today, wait for a stated trigger, or pass. Do not give advice for existing holders.'
+  );
+}
