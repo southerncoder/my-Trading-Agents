@@ -119,7 +119,7 @@ class TavilyProvider {
         content: includeRawContent ? result.rawContent : result.content,
         url: result.url,
         urlToImage: result.image || null,
-        publishedAt: result.publishedDate || new Date().toISOString(),
+        publishedAt: result.publishedDate || null, // undated pages (quote pages, FAQs) must not pose as fresh news
         source: {
           id: null,
           name: this.extractDomain(result.url)

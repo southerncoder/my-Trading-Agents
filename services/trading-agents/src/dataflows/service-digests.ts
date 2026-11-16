@@ -32,8 +32,10 @@ export async function fetchNewsDigest(symbol: string): Promise<string> {
       const desc = clip(a?.description, 220);
       return `- [${src}] ${clip(a?.title, 200)} (${when})${desc ? ' — ' + desc : ''}`;
     });
+    const used: string[] = Array.isArray(body?.providers?.used) ? body.providers.used.map((p: any) => p?.name).filter(Boolean) : [];
+    const via = used.length ? `merged from ${used.join(', ')}; ` : '';
     return (
-      `NEWS DIGEST (retrieved ${retrieved}; latest available at fetch time, last 7 days, not point-in-time):\n` +
+      `NEWS DIGEST (retrieved ${retrieved}; ${via}latest available at fetch time, last 7 days, not point-in-time; undated items listed last):\n` +
       lines.join('\n')
     );
   } catch (e: any) {

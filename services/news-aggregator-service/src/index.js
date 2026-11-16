@@ -6,7 +6,6 @@ import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from 'url';
 import NodeCache from "node-cache";
-import YahooFinance from "yahoo-finance2";
 
 // Load environment variables first (look for repo root .env.local) using module path
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -19,6 +18,8 @@ console.log('[Env] dotenv loaded from', envPath);
 // Load Docker secrets (overrides .env if running in container)
 import { loadSecrets } from "./utils/secrets.js";
 loadSecrets();
+
+import { mergeArticles } from "./utils/merge-articles.js";
 
 // Dynamically import provider modules AFTER environment and secrets are loaded
 const { default: BraveNewsProvider } = await import("./providers/brave-news.js");
@@ -63,8 +64,6 @@ const PROVIDERS = {
   TAVILY: "tavily",
   BRAVE_NEWS: "brave-news",
   GOOGLE_NEWS: "google-news",
-  YAHOO_FINANCE: "yahoo-finance",
-  BING_NEWS: "bing-news",
   NEWSAPI: "newsapi",
   SERP_API: "serp-api",
 };
@@ -82,16 +81,6 @@ const providerStatus = {
     consecutiveFailures: 0,
   },
   [PROVIDERS.GOOGLE_NEWS]: {
-    healthy: false,
-    lastChecked: null,
-    consecutiveFailures: 0,
-  },
-  [PROVIDERS.YAHOO_FINANCE]: {
-    healthy: false,
-    lastChecked: null,
-    consecutiveFailures: 0,
-  },
-  [PROVIDERS.BING_NEWS]: {
     healthy: false,
     lastChecked: null,
     consecutiveFailures: 0,
@@ -430,7 +419,6 @@ app.get("/api/news", async (req, res) => {
       PROVIDERS.BRAVE_NEWS,
       PROVIDERS.GOOGLE_NEWS,
       PROVIDERS.NEWSAPI,
-      PROVIDERS.BING_NEWS,
     ];
     let result = null;
     let usedProvider = null;
@@ -464,14 +452,107 @@ app.get("/api/news", async (req, res) => {
     const response = {
       status: "success",
       provider: usedProvider,
+      providers: providerReport,
       data: result,
     };
 
     // Cache the result
     cache.set(cacheKey, response);
 
-    logger.info("News fetched successfully", {
-      query,
+    logger.info("Financial news fetched successfully", {
+      symbol,
+      provider: usedProvider,
+      articlesCount: result.articles?.length || 0,
+    });
+
+    res.json(response);
+  } catch (error) {
+    logger.error("Error fetching news", {
+      query: req.query.q,
+      error: error.message,
+      stack: error.stack,
+    });
+
+    res.status(500).json({
+      error: "Internal server error",
+      message: "Failed to fetch news articles from any provider",
+    });
+  }
+});
+
+// Get financial news (specialized endpoint)
+app.get("/api/financial-news/:symbol", async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    const { lookBackDays = 7, pageSize = 20 } = req.query;
+
+    const cacheKey = `financial-news-${symbol}-${lookBackDays}-${pageSize}`;
+    const cachedResult = cache.get(cacheKey);
+    if (cachedResult) {
+      logger.info("Serving cached financial news result", { symbol, cacheKey });
+      return res.json(cachedResult);
+    }
+
+    // Ask every configured provider at once and merge what comes back, so one provider's
+    // blind spots (Brave rate limits, NewsAPI returning nothing for large caps) do not hide stories.
+    // Which providers run is configurable; SerpAPI is metered, so it is off by default.
+    const wanted = (process.env.FINANCIAL_NEWS_PROVIDERS || "brave-news,google-news,newsapi,tavily")
+      .split(",")
+      .map((x) => x.trim())
+      .filter(Boolean);
+    const params = { symbol, lookBackDays, pageSize };
+    const outcomes = await Promise.all(
+      wanted.map(async (provider) => {
+        try {
+          if (!(await checkProviderHealth(provider))) return { provider, skipped: "unhealthy" };
+          let attempt;
+          try {
+            attempt = await fetchFromProvider(provider, "financial-news", params);
+          } catch (error) {
+            if (/rate limit/i.test(error.message)) {
+              await new Promise((r) => setTimeout(r, 1300));
+              attempt = await fetchFromProvider(provider, "financial-news", params);
+            } else {
+              throw error;
+            }
+          }
+          return { provider, articles: attempt?.articles ?? [] };
+        } catch (error) {
+          logger.warn(`Provider ${provider} failed for financial news`, { symbol, error: error.message });
+          return { provider, error: error.message };
+        }
+      })
+    );
+    const merged = mergeArticles(
+      outcomes.filter((o) => o.articles?.length),
+      Math.max(1, parseInt(pageSize) || 20)
+    );
+    const providerReport = {
+      used: outcomes.filter((o) => o.articles?.length).map((o) => ({ name: o.provider, articles: o.articles.length })),
+      empty: outcomes.filter((o) => o.articles && !o.articles.length).map((o) => o.provider),
+      skipped: outcomes.filter((o) => o.skipped).map((o) => o.provider),
+      failed: outcomes.filter((o) => o.error).map((o) => ({ name: o.provider, error: o.error })),
+    };
+    const result = merged.length ? { symbol: symbol.toUpperCase(), articles: merged } : null;
+    const usedProvider = providerReport.used.map((u) => u.name).join("+") || null;
+
+    if (!result) {
+      // Every provider failed or was empty: report empty, but do not cache it.
+      return res.json({ status: "success", provider: null, providers: providerReport, data: { articles: [] } });
+    }
+
+    const response = {
+      status: "success",
+      provider: usedProvider,
+      providers: providerReport,
+      data: result,
+    };
+
+    // Cache the result
+    cache.set(cacheKey, response);
+
+    logger.info("Financial news fetched successfully", {
+      symbol,
       provider: usedProvider,
       articlesCount: result.articles?.length || 0,
     });
@@ -553,6 +634,7 @@ app.get("/api/financial-news/:symbol", async (req, res) => {
     const response = {
       status: "success",
       provider: usedProvider,
+      providers: providerReport,
       data: result,
     };
 
@@ -580,69 +662,12 @@ app.get("/api/financial-news/:symbol", async (req, res) => {
   }
 });
 
-// Get stock quotes
-app.get("/api/quote/:symbol", async (req, res) => {
-  try {
-    const { symbol } = req.params;
-
-    const cacheKey = `quote-${symbol}`;
-    const cachedResult = cache.get(cacheKey);
-    if (cachedResult) {
-      logger.info("Serving cached quote result", { symbol, cacheKey });
-      return res.json(cachedResult);
-    }
-
-    // Try Yahoo Finance first, then fall back to other providers
-    const providers = [PROVIDERS.YAHOO_FINANCE];
-    let result = null;
-    let usedProvider = null;
-
-    for (const provider of providers) {
-      try {
-        if (await checkProviderHealth(provider)) {
-          result = await fetchFromProvider(provider, "quote", { symbol });
-          usedProvider = provider;
-          break;
-        }
-      } catch (error) {
-        logger.warn(`Provider ${provider} failed for quote`, {
-          symbol,
-          error: error.message,
-        });
-      }
-    }
-
-    if (!result) {
-      throw new Error("All quote providers failed");
-    }
-
-    const response = {
-      status: "success",
-      provider: usedProvider,
-      data: result,
-    };
-
-    // Cache the result (shorter TTL for quotes)
-    cache.set(cacheKey, response, 60); // 1 minute
-
-    logger.info("Quote fetched successfully", {
-      symbol,
-      provider: usedProvider,
-    });
-
-    res.json(response);
-  } catch (error) {
-    logger.error("Error fetching quote", {
-      symbol: req.params.symbol,
-      error: error.message,
-      stack: error.stack,
-    });
-
-    res.status(500).json({
-      error: "Internal server error",
-      message: "Failed to fetch stock quote",
-    });
-  }
+// Quotes are served by yahoo-finance-service, not this service.
+app.get("/api/quote/:symbol", (req, res) => {
+  res.status(410).json({
+    error: "Gone",
+    message: "Quotes are served by yahoo-finance-service (/api/quote/:symbol).",
+  });
 });
 
 // Provider-specific fetch function
@@ -656,23 +681,10 @@ async function fetchFromProvider(providerName, operation, params) {
     case "news":
       return await provider.searchNews(params);
 
-    case "financial-news":
-      if (providerName === "yahoo-finance") {
-        return await provider.searchFinancialNews(params.symbol, params);
-      } else {
-        // For other providers, search with financial terms
-        const financialQuery = `${params.symbol} stock OR ${params.symbol} shares OR ${params.symbol} market OR ${params.symbol} trading`;
-        return await provider.searchNews({ ...params, query: financialQuery });
-      }
-
-    case "quote":
-      if (providerName === "yahoo-finance") {
-        return await provider.getQuote(params.symbol);
-      } else {
-        throw new Error(
-          `Provider ${providerName} does not support quote operations`
-        );
-      }
+    case "financial-news": {
+      const financialQuery = `${params.symbol} stock OR ${params.symbol} shares OR ${params.symbol} market OR ${params.symbol} trading`;
+      return await provider.searchNews({ ...params, query: financialQuery });
+    }
 
     case "top-headlines":
       if (provider.getTopHeadlines) {
@@ -687,50 +699,6 @@ async function fetchFromProvider(providerName, operation, params) {
   }
 }
 
-const yahooFinance = new YahooFinance();
-
-// Yahoo Finance fetch function
-async function fetchFromYahooFinance(operation, params) {
-  switch (operation) {
-    case "quote":
-      const quote = await yahooFinance.quote(params.symbol);
-      return quote;
-
-    case "financial-news":
-      // For financial news, we'll use Yahoo Finance's news search
-      // This is a simplified implementation - in practice, you'd use Yahoo's news API
-      const query = `${params.symbol} stock news`;
-      const newsResponse = await yahooFinance.search(query, {
-        newsCount: parseInt(params.pageSize),
-      });
-
-      return {
-        symbol: params.symbol.toUpperCase(),
-        query: query,
-        articles:
-          newsResponse.news?.map((item) => ({
-            title: item.title,
-            source: item.publisher,
-            publishedAt: item.publishTime,
-            description: item.summary,
-            url: item.link,
-            urlToImage: item.thumbnail?.resolutions?.[0]?.url,
-          })) || [],
-      };
-
-    default:
-      throw new Error(`Unsupported operation: ${operation}`);
-  }
-}
-
-// Bing News fetch function (placeholder implementation)
-async function fetchFromBingNews(operation, params) {
-  // This would require Bing News API integration
-  // For now, return a placeholder error
-  throw new Error(
-    "Bing News API not yet implemented - requires API key configuration"
-  );
-}
 app.use((error, req, res, next) => {
   logger.error("Unhandled error", {
     error: error.message,

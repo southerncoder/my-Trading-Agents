@@ -84,11 +84,14 @@ app.use(express.json({ limit: '10mb' }));
 const rateLimiter = new RateLimiterMemory({
   keyGenerator: (req) => req.ip,
   points: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
-  duration: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 60000
+  // rate-limiter-flexible takes `duration` in SECONDS; the env var is in milliseconds.
+  // (Passing ms directly made the window ~16.7 hours and locked out the healthcheck.)
+  duration: Math.max(1, Math.round((parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 60000) / 1000))
 });
 
 // Rate limiting middleware
 const rateLimitMiddleware = async (req, res, next) => {
+  if (req.path === '/health') return next(); // never rate-limit the container healthcheck
   try {
     await rateLimiter.consume(req.ip);
     next();

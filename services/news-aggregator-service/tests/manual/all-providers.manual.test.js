@@ -1,6 +1,5 @@
 // Migrated from root: test-providers.js
 import NewsAPIProvider from '../../src/providers/newsapi.js';
-import YahooFinanceProvider from '../../src/providers/yahoo-finance.js';
 import GoogleNewsProvider from '../../src/providers/google-news.js';
 import dotenv from 'dotenv';
 
@@ -10,7 +9,6 @@ async function run() {
   console.log('🧪 Manual Test: All News Providers');
   const providers = {
     'NewsAPI': new NewsAPIProvider(),
-    'Yahoo Finance': new YahooFinanceProvider(),
     'Google News': new GoogleNewsProvider(),
   };
   for (const [name, provider] of Object.entries(providers)) {
@@ -24,13 +22,8 @@ async function run() {
     }
     if (provider.isConfigured()) {
       try {
-        if (name === 'Yahoo Finance') {
-          const quote = await provider.getQuote('AAPL');
-          console.log('Quote:', quote.symbol, quote.regularMarketPrice);
-        } else {
-          const res = await provider.searchNews({ query: 'Apple', pageSize: 2 });
-          console.log('Articles:', res.articles?.length || 0);
-        }
+        const res = await provider.searchNews({ query: 'Apple', pageSize: 2 });
+        console.log('Articles:', res.articles?.length || 0);
       } catch (e) {
         console.log('Search failed:', e.message);
       }

@@ -129,3 +129,7 @@ data/cache/
 *.backup
 
 docker/registry_data/
+# tokensave local code index
+.tokensave/
+# Added by code-review-graph
+.code-review-graph/
