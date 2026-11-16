@@ -1,0 +1,9 @@
+{
+  "_comment": "Model names live here only. Cloud pricing changes week to week: edit the model strings, never the scripts. 'fast' runs analysts, debate and risk; 'decision' runs Research Manager, Trader and Portfolio Manager.",
+  "default": "hybrid",
+  "profiles": {
+    "hybrid": { "fast": "lfm3:latest", "decision": "qwen3.5:9b" },
+    "local":  { "fast": "qwen3.5:9b", "decision": "qwen3.5:9b" },
+    "cloud":  { "fast": "glm-5.3-flash:cloud", "decision": "glm-5.3-flash:cloud" }
+  }
+}

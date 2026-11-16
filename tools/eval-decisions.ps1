@@ -9,15 +9,24 @@
 
 .EXAMPLE
   .\tools\eval-decisions.ps1 -Tickers NVDA,AAPL -Repeats 3
-  $env:DEFAULT_LLM_MODEL='inkling-2-small:cloud'; .\tools\compose.ps1 up -d trading-agents; .\tools\eval-decisions.ps1
+  .\tools\eval-decisions.ps1 -Tickers KO,PG -Repeats 3 -ModelProfile cloud
 #>
 param(
   [string[]]$Tickers = @('NVDA', 'AAPL', 'MSFT'),
   [int]$Repeats = 3,
-  [string]$Date = (Get-Date -Format yyyy-MM-dd)
+  [string]$Date = (Get-Date -Format yyyy-MM-dd),
+  [string]$ModelProfile   # if set: apply this profile from tools/model-profiles.json and recreate the container
 )
 
 $root = Split-Path $PSScriptRoot -Parent
+if ($ModelProfile) {
+  . (Join-Path $PSScriptRoot 'model-profile.ps1')
+  $prof = Use-ModelProfile -Name $ModelProfile
+  Write-Host ('Profile {0}: fast={1} decision={2}' -f $prof.Profile, $prof.Fast, $prof.Decision)
+  & (Join-Path $PSScriptRoot 'compose.ps1') up -d trading-agents | Out-Null
+  Start-Sleep 15
+}
+$modelLabel = if ($env:PORTFOLIO_MANAGER_LLM_MODEL) { $env:PORTFOLIO_MANAGER_LLM_MODEL } else { $env:DEFAULT_LLM_MODEL }
 $stamp = Get-Date -Format yyyyMMdd-HHmmss
 $outDir = Join-Path $root "logs/eval/$stamp"
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
@@ -35,7 +44,7 @@ foreach ($t in $Tickers) {
     $q = [regex]::Match($text, 'Data quality:[^\r\n]*').Value
     $note = if ($text -match 'CONSISTENCY CHECK') { 'consistency-downgrade' } elseif ($text -match 'DATA QUALITY GUARD') { 'guard-hold' } else { '' }
     $rows += [pscustomobject]@{
-      Ticker = $t; Run = $i
+      Ticker = $t; Run = $i; Profile = $ModelProfile; DecisionModel = $modelLabel
       Decision = if ($m.Success) { $m.Groups[1].Value } else { 'NONE' }
       Confidence = if ($m.Success) { [double]$m.Groups[2].Value } else { $null }
       Seconds = [int]$sw.Elapsed.TotalSeconds

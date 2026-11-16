@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Nightly brief data run: analyze the watchlist with the hybrid model setup, add market data, write brief-data.json.
+  Nightly brief data run: analyze the watchlist with the chosen model profile, add market data, write brief-data.json.
 
 .DESCRIPTION
   1. Starts the trading-agents container with per-role models (small local model for the high-volume
@@ -17,7 +17,10 @@
 param(
   [string[]]$Tickers = @('NVDA','MSFT','GOOGL','AMZN','META','AMD','INTC','TSLA','PLTR','COIN','GME','JPM','BAC','JNJ','PFE','UNH','KO','WMT','PG','XOM','CVX','CAT','BA','NEE','SNAP'),
   [string]$Date = (Get-Date -Format yyyy-MM-dd),
-  [string]$YahooUrl = 'http://localhost:38402'
+  [string]$YahooUrl = 'http://localhost:38402',
+  [string]$ModelProfile,   # name from tools/model-profiles.json (default there)
+  [string]$FastModel,      # optional one-off override
+  [string]$DecisionModel   # optional one-off override
 )
 $ErrorActionPreference = 'Continue'
 $root = Split-Path $PSScriptRoot -Parent
@@ -45,9 +48,10 @@ function CallLabel($d, $a) {
   if ($a -eq 'hold_existing') { return 'Keep' } else { return 'Wait' }
 }
 
-# 1. Models: lfm3 for analysts, debate and risk; qwen3.5:9b for the three decision roles.
-$env:DEFAULT_LLM_MODEL = 'lfm3:latest'; $env:QUICK_THINK_LLM = 'lfm3:latest'; $env:DEEP_THINK_LLM = 'qwen3.5:9b'
-$env:RESEARCH_MANAGER_LLM_MODEL = 'qwen3.5:9b'; $env:TRADER_LLM_MODEL = 'qwen3.5:9b'; $env:PORTFOLIO_MANAGER_LLM_MODEL = 'qwen3.5:9b'
+# 1. Models come from tools/model-profiles.json (never hardcoded here).
+. (Join-Path $PSScriptRoot 'model-profile.ps1')
+$prof = Use-ModelProfile -Name $ModelProfile -Fast $FastModel -Decision $DecisionModel
+Write-Host ('Profile {0}: fast={1} decision={2}' -f $prof.Profile, $prof.Fast, $prof.Decision)
 & (Join-Path $PSScriptRoot 'compose.ps1') up -d | Out-Null
 Start-Sleep 15
 Write-Host "Models: PM=$(docker exec trading-agents-main printenv PORTFOLIO_MANAGER_LLM_MODEL) analysts=$(docker exec trading-agents-main printenv MARKET_ANALYST_LLM_MODEL)"
