@@ -66,3 +66,11 @@ export function outputDiscipline(maxWords: number): string {
     '- Address the opposing arguments directly by naming the specific point you are answering.'
   );
 }
+
+/**
+ * Measurement hook: each stage states, in one fixed line, whether it would act at today's price.
+ * tools/trace-stance.py reads these lines to show where "wait for a trigger" enters the pipeline.
+ */
+export const ENTRY_STANCE_LINE =
+  '\n\nEnd your response with exactly one line in this form: ENTRY STANCE: NOW or ENTRY STANCE: WAIT or ENTRY STANCE: NONE ' +
+  '(NOW = act at today\'s price; WAIT = act only after a price or event trigger; NONE = no trade wanted).';

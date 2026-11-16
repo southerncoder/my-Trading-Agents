@@ -118,6 +118,13 @@ foreach ($t in $Tickers) {
 $ledgerDir = Join-Path $root 'data/ledger'; New-Item -ItemType Directory -Force -Path $ledgerDir | Out-Null
 $ledgerFile = Join-Path $ledgerDir 'decisions.jsonl'
 $keep = @(); if (Test-Path $ledgerFile) { $keep = @(Get-Content $ledgerFile | Where-Object { $_.Trim() }) }
+# Stage-by-stage entry stance (where "wait for a trigger" comes from); best effort, needs python.
+$trace = @{}
+try {
+  $traceFile = Join-Path $outDir 'stance.json'
+  & python (Join-Path $PSScriptRoot 'trace-stance.py') $evalDir.FullName --json $traceFile | Out-Null
+  if (Test-Path $traceFile) { foreach ($s in (Get-Content $traceFile -Raw | ConvertFrom-Json)) { $trace[$s.ticker] = $s } }
+} catch { Write-Warning "Stance trace failed: $($_.Exception.Message)" }
 $newKeys = @($rows | ForEach-Object { "$Date|$($_.ticker)|$($prof.Profile)" })
 $keep = @($keep | Where-Object { $e = $_ | ConvertFrom-Json; "$($e.date)|$($e.ticker)|$($e.profile)" -notin $newKeys })
 $lines = foreach ($r in $rows) {
@@ -126,6 +133,8 @@ $lines = foreach ($r in $rows) {
     decision = $r.decision; confidence = $r.confidence; action_now = $r.action_now; label = $r.label
     price = $r.price; ma50 = $r.ma50; ma200 = $r.ma200; target = $r.target; range_pos = $r.range_pos
     pm = if ($r.pm_raw) { $r.pm_raw | ConvertFrom-Json } else { $null }
+    stance = if ($trace[$r.ticker]) { [ordered]@{ market = $trace[$r.ticker].market; rm = $trace[$r.ticker].rm; trader = $trace[$r.ticker].trader; pm = $trace[$r.ticker].pm } } else { $null }
+    trigger_price = if ($trace[$r.ticker]) { $trace[$r.ticker].trigger_price } else { $null }
   } | ConvertTo-Json -Compress -Depth 6
 }
 Set-Content -Path $ledgerFile -Value (@($keep) + @($lines)) -Encoding utf8

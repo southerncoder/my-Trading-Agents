@@ -3,6 +3,7 @@ import { StructuredTool } from '@langchain/core/tools';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AbstractAgent } from '../base/index';
 import { fetchToolData, fetchError, pickKeys } from '../base/tool-data';
+import { ENTRY_STANCE_LINE } from '../base/evidence';
 import { AgentState } from '../../types/agent-states';
 import { createLogger } from '../../utils/enhanced-logger';
 import { withLLMResilience, OPENAI_LLM_CONFIG, createResilientLLM } from '../../utils/resilient-llm';
@@ -228,6 +229,6 @@ Analysis Date: ${trade_date}
 
 Focus on providing actionable technical analysis that will inform trading decisions. Be thorough but concise in your analysis.`;
 
-    return new HumanMessage(prompt);
+    return new HumanMessage(prompt + ENTRY_STANCE_LINE);
   }
 }
