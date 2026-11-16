@@ -15,7 +15,7 @@
   .\tools\nightly-brief.ps1 -Tickers NVDA,KO
 #>
 param(
-  [string[]]$Tickers = @('NVDA','MSFT','GOOGL','AMZN','META','AMD','INTC','TSLA','PLTR','COIN','GME','JPM','BAC','JNJ','PFE','UNH','KO','WMT','PG','XOM','CVX','CAT','BA','NEE','SNAP'),
+  [string[]]$Tickers = @('NVDA','MSFT','GOOGL','AMZN','TSLA','PLTR','JPM','UNH','KO','WMT','XOM','CAT'),  # 12 names across sectors; pass -Tickers to change
   [string]$Date = (Get-Date -Format yyyy-MM-dd),
   [string]$YahooUrl = 'http://localhost:38402',
   [string]$ModelProfile,   # name from tools/model-profiles.json (default there)
