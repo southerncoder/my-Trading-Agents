@@ -1,3 +1,4 @@
+import { braveDate } from '../utils/relative-age.js';
 import axios from 'axios';
 import winston from 'winston';
 
@@ -131,7 +132,7 @@ class BraveNewsProvider {
         content: article.description, // Brave doesn't provide full content
         url: article.url,
         urlToImage: article.thumbnail?.src,
-        publishedAt: article.page_fetched,
+        publishedAt: braveDate(article),
         source: {
           id: null,
           name: article.meta_url?.hostname || article.source || 'Brave News'

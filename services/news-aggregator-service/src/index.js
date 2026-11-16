@@ -20,6 +20,7 @@ import { loadSecrets } from "./utils/secrets.js";
 loadSecrets();
 
 import { mergeArticles } from "./utils/merge-articles.js";
+import { filterRelevant, lookupCompanyName } from "./utils/relevance.js";
 
 // Dynamically import provider modules AFTER environment and secrets are loaded
 const { default: BraveNewsProvider } = await import("./providers/brave-news.js");
@@ -523,15 +524,24 @@ app.get("/api/financial-news/:symbol", async (req, res) => {
         }
       })
     );
-    const merged = mergeArticles(
-      outcomes.filter((o) => o.articles?.length),
-      Math.max(1, parseInt(pageSize) || 20)
-    );
+    const wantCount = Math.max(1, parseInt(pageSize) || 20);
+    // Merge wide first, then drop off-topic and stale items, then trim: filtering after the trim would
+    // leave short pages whenever the newest items are junk.
+    const company = await lookupCompanyName(symbol, process.env.YAHOO_FINANCE_URL);
+    const widened = mergeArticles(outcomes.filter((o) => o.articles?.length), 200);
+    const { articles: merged0, stats: filterStats } = filterRelevant(widened, {
+      symbol,
+      company,
+      lookBackDays: parseInt(lookBackDays) || 7,
+      maxUndated: 2,
+    });
+    const merged = merged0.slice(0, wantCount);
     const providerReport = {
       used: outcomes.filter((o) => o.articles?.length).map((o) => ({ name: o.provider, articles: o.articles.length })),
       empty: outcomes.filter((o) => o.articles && !o.articles.length).map((o) => o.provider),
       skipped: outcomes.filter((o) => o.skipped).map((o) => o.provider),
       failed: outcomes.filter((o) => o.error).map((o) => ({ name: o.provider, error: o.error })),
+      filtered: filterStats,
     };
     const result = merged.length ? { symbol: symbol.toUpperCase(), articles: merged } : null;
     const usedProvider = providerReport.used.map((u) => u.name).join("+") || null;

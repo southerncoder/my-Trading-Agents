@@ -137,6 +137,7 @@ services:
       - NEWS_API_KEY_FILE=/run/secrets/news_api_key
       - BRAVE_NEWS_API_KEY_FILE=/run/secrets/brave_news_api_key
       - GOOGLE_API_KEY_FILE=/run/secrets/google_api_key
+      - YAHOO_FINANCE_URL=http://yahoo-finance:3002
     secrets:
       - news_api_key
       - brave_news_api_key

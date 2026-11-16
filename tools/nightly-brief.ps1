@@ -79,6 +79,7 @@ foreach ($t in $Tickers) {
   $o['why'] = Cut $json.rationale 140
   $o['top_risk'] = Cut (@($json.key_risks)[0]) 90
   $o['change_my_mind'] = Cut $json.what_would_change_my_mind 120
+  $o['pm_raw'] = if ($json) { ($json | ConvertTo-Json -Compress -Depth 4) } else { $null }
   try {
     $q = (Invoke-RestMethod "$YahooUrl/api/quote/$t" -TimeoutSec 40).data
     $s = (Invoke-RestMethod "$YahooUrl/api/quote-summary/${t}?modules=assetProfile,financialData" -TimeoutSec 40).data
@@ -112,6 +113,23 @@ foreach ($t in $Tickers) {
   $rows += [pscustomobject]$o
 }
 
+# Append-only decision ledger (data/ledger/decisions.jsonl): one line per ticker per night, kept in git so
+# calls can be scored against later prices. Re-running the same date/ticker/profile replaces that line.
+$ledgerDir = Join-Path $root 'data/ledger'; New-Item -ItemType Directory -Force -Path $ledgerDir | Out-Null
+$ledgerFile = Join-Path $ledgerDir 'decisions.jsonl'
+$keep = @(); if (Test-Path $ledgerFile) { $keep = @(Get-Content $ledgerFile | Where-Object { $_.Trim() }) }
+$newKeys = @($rows | ForEach-Object { "$Date|$($_.ticker)|$($prof.Profile)" })
+$keep = @($keep | Where-Object { $e = $_ | ConvertFrom-Json; "$($e.date)|$($e.ticker)|$($e.profile)" -notin $newKeys })
+$lines = foreach ($r in $rows) {
+  [ordered]@{
+    date = $Date; ticker = $r.ticker; profile = $prof.Profile; fast_model = $prof.Fast; decision_model = $prof.Decision
+    decision = $r.decision; confidence = $r.confidence; action_now = $r.action_now; label = $r.label
+    price = $r.price; ma50 = $r.ma50; ma200 = $r.ma200; target = $r.target; range_pos = $r.range_pos
+    pm = if ($r.pm_raw) { $r.pm_raw | ConvertFrom-Json } else { $null }
+  } | ConvertTo-Json -Compress -Depth 6
+}
+Set-Content -Path $ledgerFile -Value (@($keep) + @($lines)) -Encoding utf8
+Write-Host "Ledger: $ledgerFile ($($keep.Count + @($lines).Count) lines)"
 $file = Join-Path $outDir 'brief-data.json'
 ($rows | ConvertTo-Json -Depth 4) | Set-Content -Path $file -Encoding utf8
 Copy-Item $file (Join-Path $root 'logs/nightly/latest.json') -Force
