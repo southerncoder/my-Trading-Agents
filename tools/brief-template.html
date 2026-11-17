@@ -107,6 +107,7 @@ details.more[open] summary { margin-bottom: 8px; }
 footer { color: var(--muted); font-size: .85rem; display: grid; gap: 6px; border-top: 1px solid var(--line); padding-top: 16px; }
 .glossary { columns: 2 320px; column-gap: 28px; font-size: .9rem; }
 .glossary p { break-inside: avoid; margin-bottom: 8px; }
+  .noise { color: var(--accent); }
 </style>
 </head>
 <body>
@@ -216,10 +217,17 @@ footer { color: var(--muted); font-size: .85rem; display: grid; gap: 6px; border
     if (pts.length < 2 || !r.price) return '';
     var lo = Math.min.apply(null, pts.map(function (p) { return p.v; })), hi = Math.max.apply(null, pts.map(function (p) { return p.v; }));
     var pad = (hi - lo) * 0.22 || r.price * 0.01; lo -= pad; hi += pad;
+    // Keep at least two typical days of movement either side of today, so a gap smaller than a normal
+    // day's wiggle LOOKS small instead of filling the whole line.
+    if (r.atr) { lo = Math.min(lo, r.price - 2 * r.atr); hi = Math.max(hi, r.price + 2 * r.atr); }
     var W = 600, x = function (v) { return 24 + (v - lo) / (hi - lo) * (W - 48); };
     var anchor = function (px) { return px < 130 ? 'start' : px > W - 130 ? 'end' : 'middle'; };
     var s = '<svg class="track" viewBox="0 0 600 102" role="img" aria-label="Price scale for ' + esc(r.ticker) + '">';
     s += '<line x1="24" y1="48" x2="576" y2="48" stroke="var(--line)" stroke-width="6" stroke-linecap="round"/>';
+    if (r.atr) {
+      var b1 = x(r.price - r.atr), b2 = x(r.price + r.atr);
+      s += '<rect x="' + b1 + '" y="40" width="' + (b2 - b1) + '" height="16" rx="4" fill="var(--ink)" opacity="0.07"><title>One typical day of movement either way</title></rect>';
+    }
     var trig = pts.filter(function (p) { return p.t === 'trigger'; })[0], walk = pts.filter(function (p) { return p.t === 'walk'; })[0];
     if (trig) s += '<line x1="' + x(r.price) + '" y1="48" x2="' + x(trig.v) + '" y2="48" stroke="var(--accent)" stroke-width="6" stroke-dasharray="2 7" stroke-linecap="round"/>';
     if (walk) {
@@ -243,10 +251,11 @@ footer { color: var(--muted); font-size: .85rem; display: grid; gap: 6px; border
       var g = r.trigger_gap_pct, t = '<b>' + Math.abs(g).toFixed(1) + '% ' + (g >= 0 ? 'above' : 'below') + '</b> today’s price';
       if (r.trigger_days != null) t += ', about <b>' + (r.trigger_days < 1 ? 'less than one typical day' : r.trigger_days + ' typical day' + (r.trigger_days >= 1.05 || r.trigger_days < 0.95 ? 's' : '')) + '</b> of movement';
       t += '.';
+      if (r.trigger_days != null && r.trigger_days < 0.5) t += ' <span class="noise">That is inside an ordinary day’s wiggle (the shaded band), so in practice this is close to a buy now; the exact level matters less than it looks.</span>';
       if (r.trigger_trend && r.prev_date) t += ' ' + ({ closer: 'The price has moved closer to it', farther: 'The price has moved away from it', same: 'The price is about as far from it as it was' }[r.trigger_trend]) + ' since ' + esc(r.prev_date) + '.';
       return 'The trigger is ' + t;
     }
-    if (k === 'now' && r.walk_away && r.price) return 'The model would give up on this at <b>' + money(r.walk_away) + '</b>, ' + Math.abs((r.walk_away / r.price - 1) * 100).toFixed(1) + '% ' + (r.walk_away < r.price ? 'below' : 'above') + ' today’s price.';
+    if (k === 'now' && r.walk_away && r.price) return 'The model would give up on this at <b>' + money(r.walk_away) + '</b>, ' + Math.abs((r.walk_away / r.price - 1) * 100).toFixed(1) + '% ' + (r.walk_away < r.price ? 'below' : 'above') + ' today’s price.' + (r.atr && Math.abs(r.price - r.walk_away) < 0.75 * r.atr ? ' <span class="noise">That is less than a typical day’s move away, so ordinary noise could hit it.</span>' : '');
     return '';
   }
   function spark(r) {

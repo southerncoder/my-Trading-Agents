@@ -85,7 +85,13 @@ app.get('/api/historical/:symbol', async (req, res) => {
       interval: interval
     };
 
-    const result = await yahooFinance.historical(symbol, queryOptions);
+    // chart() instead of historical(): right after the close Yahoo returns a half-built bar for the
+    // day with null fields, and historical() rejects the whole answer ("SOME (but not all) null
+    // values"). chart() returns it as-is, so drop bars without a close and keep the rest.
+    const chart = await yahooFinance.chart(symbol, queryOptions);
+    const result = (chart?.quotes || [])
+      .filter((q) => q && q.date && Number.isFinite(q.close))
+      .map((q) => ({ ...q, adjClose: q.adjclose ?? q.adjClose ?? q.close }));
 
     if (!result || result.length === 0) {
       logger.warn('No historical data found', { symbol, startDate, endDate });

@@ -26,7 +26,8 @@ param(
   [string]$ModelProfile,   # name from tools/model-profiles.json (default there)
   [string]$FastModel,      # optional one-off override
   [string]$DecisionModel,  # optional one-off override
-  [string]$Adjustments = 'all'  # analysis adjustments: indicators,entrycheck,flat, all, or '' for none
+  [string]$Adjustments = 'all',  # analysis adjustments: indicators,entrycheck,flat, all, or '' for none
+  [string]$ReuseEvalDir     # rebuild data and page from an earlier run's logs (e.g. logs\eval\20261116-164247) without re-running the models
 )
 $env:ANALYSIS_ADJUSTMENTS = $Adjustments
 $groupOf = @{}; foreach ($x in $BrandTickers) { $groupOf[$x] = 'brands' }; foreach ($x in $Tickers) { $groupOf[$x] = 'core' }
@@ -76,6 +77,10 @@ function CallLabel($d, $a) {
 # 1. Models come from tools/model-profiles.json (never hardcoded here).
 . (Join-Path $PSScriptRoot 'model-profile.ps1')
 $prof = Use-ModelProfile -Name $ModelProfile -Fast $FastModel -Decision $DecisionModel
+if ($ReuseEvalDir) {
+  $evalDir = Get-Item (Resolve-Path $ReuseEvalDir)
+  Write-Host "Reusing analysis logs from $($evalDir.FullName) (no model calls)"
+} else {
 Write-Host ('Profile {0}: fast={1} decision={2}' -f $prof.Profile, $prof.Fast, $prof.Decision)
 & (Join-Path $PSScriptRoot 'compose.ps1') up -d | Out-Null
 Start-Sleep 15
@@ -85,6 +90,7 @@ Write-Host "Models: PM=$(docker exec trading-agents-main printenv PORTFOLIO_MANA
 $before = @(Get-ChildItem (Join-Path $root 'logs/eval') -Directory -ErrorAction SilentlyContinue | ForEach-Object { $_.Name })
 & (Join-Path $PSScriptRoot 'eval-decisions.ps1') -Tickers $Tickers -Repeats 1 -Date $Date | Out-Host
 $evalDir = Get-ChildItem (Join-Path $root 'logs/eval') -Directory | Where-Object { $before -notcontains $_.Name } | Sort-Object Name | Select-Object -Last 1
+}
 if (-not $evalDir) { Write-Error 'No eval output found'; exit 1 }
 
 # 3. Parse decisions and add market data.
@@ -124,7 +130,8 @@ foreach ($t in $Tickers) {
     $q = (Invoke-RestMethod "$YahooUrl/api/quote/$t" -TimeoutSec 40).data
     $s = (Invoke-RestMethod "$YahooUrl/api/quote-summary/${t}?modules=assetProfile,financialData" -TimeoutSec 40).data
     $start = (Get-Date $Date).AddDays(-45).ToString('yyyy-MM-dd'); $end = (Get-Date $Date).AddDays(2).ToString('yyyy-MM-dd')
-    $csv = Invoke-RestMethod "$YahooUrl/api/historical/${t}?startDate=$start&endDate=$end" -TimeoutSec 40
+    # Price history on its own: if it fails, the quote-based numbers (price, trigger gap) still go on the page.
+    $csv = try { Invoke-RestMethod "$YahooUrl/api/historical/${t}?startDate=$start&endDate=$end" -TimeoutSec 40 } catch { Write-Warning "Price history failed for ${t}: $($_.Exception.Message)"; '' }
     $closes = @(); $bars = @()
     foreach ($l in ($csv -split "`n")) { if ($l -match '^\d{4}-\d\d-\d\d,') { $c = $l -split ','; $closes += [double]$c[4]; $bars += , @([double]$c[2], [double]$c[3], [double]$c[4]) } }
     # ATR(14): the average daily range, used to say how many "typical days" away a trigger is.
@@ -204,5 +211,7 @@ $file = Join-Path $outDir 'brief-data.json'
 # Self-contained page (trigger cards, plain-language calls); best effort, needs python.
 try { & python (Join-Path $PSScriptRoot 'build-brief-page.py') $file (Join-Path $outDir 'brief.html') $Date | Out-Host } catch { Write-Warning "Page build failed: $($_.Exception.Message)" }
 Copy-Item $file (Join-Path $root 'logs/nightly/latest.json') -Force
+$page = Join-Path $outDir 'brief.html'
+if (Test-Path $page) { Copy-Item $page (Join-Path $root 'logs/nightly/latest.html') -Force; Write-Host "Page: $page (also logs\nightly\latest.html)" }
 Write-Host "`nWrote $file ($($rows.Count) rows)"
 $rows | Group-Object label | ForEach-Object { Write-Host ("  {0}: {1}" -f $_.Name, $_.Count) }
