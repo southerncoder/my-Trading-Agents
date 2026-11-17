@@ -9,11 +9,6 @@ export default [
     ignores: [
       '*.d.ts',
       'secrets/',
-      // Pre-existing files with syntax damage / undefined references; need rewriting
-      'tests/langgraph/test-enhanced-graph-production.js',
-      'tests/production/test-comprehensive-production.js',
-      'scripts/fix-compiled-imports.js',
-      'examples/memory/test-advanced-memory-complete-system.js',
     ],
   }),
 
