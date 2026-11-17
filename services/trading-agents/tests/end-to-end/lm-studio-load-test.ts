@@ -170,7 +170,7 @@ class LMStudioLoadTester {
 
   private analyzeResults(): void {
     console.log(`\n📊 LOAD TEST RESULTS ANALYSIS`);
-    console.log(`='.repeat(50));
+    console.log('='.repeat(50));
 
     const totalRequests = this.results.length;
     const successfulRequests = this.results.filter(r => r.success).length;

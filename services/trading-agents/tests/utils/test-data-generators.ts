@@ -130,8 +130,9 @@ export class MarketDataGenerator {
       default:
         return baseTrend + (Math.random() - 0.5) * baseVolatility;
     }
-  }  pr
-ivate static generateOHLV(close: number, config: MarketScenarioConfig) {
+  }
+
+  private static generateOHLV(close: number, config: MarketScenarioConfig) {
     const volatility = config.volatility || 0.02;
     const intraday = volatility * 0.5;
     
@@ -303,8 +304,9 @@ export class NewsDataGenerator {
     }
     
     return news.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-  }  priv
-ate static getSentimentType(bias: string): 'positive' | 'negative' | 'neutral' {
+  }
+
+  private static getSentimentType(bias: string): 'positive' | 'negative' | 'neutral' {
     if (bias === 'mixed') {
       const rand = Math.random();
       if (rand < 0.4) return 'positive';

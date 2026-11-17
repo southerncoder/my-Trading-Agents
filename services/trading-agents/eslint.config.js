@@ -1,6 +1,5 @@
 import js from '@eslint/js';
-import typescript from '@typescript-eslint/eslint-plugin';
-import typescriptParser from '@typescript-eslint/parser';
+import tseslint from 'typescript-eslint';
 import globals from 'globals';
 
 export default [
@@ -11,7 +10,7 @@ export default [
   {
     files: ['**/*.ts'],
     languageOptions: {
-      parser: typescriptParser,
+      parser: tseslint.parser,
       parserOptions: {
         ecmaVersion: 2022,
         sourceType: 'module',
@@ -23,7 +22,7 @@ export default [
       },
     },
     plugins: {
-      '@typescript-eslint': typescript,
+      '@typescript-eslint': tseslint.plugin,
     },
     rules: {
       // Disable base rule and enable TypeScript version
@@ -47,6 +46,9 @@ export default [
       'no-useless-escape': 'warn',
       'no-async-promise-executor': 'warn',
       'no-redeclare': 'off',
+      // New in ESLint 10 recommended; warn until the existing catch blocks are cleaned up
+      'preserve-caught-error': 'warn',
+      'no-useless-assignment': 'warn',
     },
   },
   
@@ -136,10 +138,8 @@ export default [
       'coverage/',
       'secrets/',
       // Pre-existing files with syntax damage / undefined references; need rewriting
-      'tests/end-to-end/lm-studio-load-test.js',
       'tests/langgraph/test-enhanced-graph-production.js',
       'tests/production/test-comprehensive-production.js',
-      'tests/utils/test-data-generators.ts',
       'scripts/fix-compiled-imports.js',
       'examples/memory/test-advanced-memory-complete-system.js',
     ],
@@ -160,6 +160,8 @@ export default [
       'no-console': 'off', // Allow console in scripts and tests
       'no-async-promise-executor': 'warn',
       'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],'no-useless-escape': 'warn',
+      'preserve-caught-error': 'warn',
+      'no-useless-assignment': 'warn',
     },
   },
 
