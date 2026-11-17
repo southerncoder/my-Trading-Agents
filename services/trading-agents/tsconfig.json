@@ -22,19 +22,17 @@
     "resolveJsonModule": true,
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": false,
-    "downlevelIteration": true,
     "noEmit": false,
     "verbatimModuleSyntax": false,
-    "baseUrl": "./src",
     "types": ["node", "jest"],
     "paths": {
-      "@/*": ["*"],
-      "@/agents/*": ["agents/*"],
-      "@/dataflows/*": ["dataflows/*"],
-      "@/graph/*": ["graph/*"],
-      "@/cli/*": ["cli/*"],
-      "@/types/*": ["types/*"],
-      "@/utils/*": ["utils/*"]
+      "@/*": ["./src/*"],
+      "@/agents/*": ["./src/agents/*"],
+      "@/dataflows/*": ["./src/dataflows/*"],
+      "@/graph/*": ["./src/graph/*"],
+      "@/cli/*": ["./src/cli/*"],
+      "@/types/*": ["./src/types/*"],
+      "@/utils/*": ["./src/utils/*"]
     }
   },
   "include": [
