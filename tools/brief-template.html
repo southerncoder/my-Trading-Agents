@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Nightly Brief __DATE__</title>
+<script>try { var t = localStorage.getItem('brief-theme'); if (t) document.documentElement.setAttribute('data-theme', t); } catch (e) {}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -20,6 +21,7 @@
   --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
   --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  --m-proof: #b86a00; --m-deal: #2a78d6; --m-up: #1a8f6e; --m-down: #e0602b;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -27,7 +29,7 @@
     --paper: #10151d; --card: #19212c; --ink: #e6ebf2; --muted: #97a3b5; --line: #2c3746;
     --accent: #f0a63a;
     --go: #5fd39a; --go-bg: #163526; --proof: #f0a63a; --proof-bg: #3a2a10;
-    --deal: #6cc3e0; --deal-bg: #12303b; --stop: #f08a80; --stop-bg: #3d1c19; --idle: #97a3b5; --idle-bg: #252f3c;
+    --deal: #6cc3e0; --deal-bg: #12303b; --stop: #f08a80; --stop-bg: #3d1c19; --idle: #97a3b5; --idle-bg: #252f3c; --m-proof: #c98318; --m-deal: #4a8ad8; --m-up: #22a789; --m-down: #e06a35;
   }
 }
 :root[data-theme="dark"] {
@@ -35,7 +37,7 @@
   --paper: #10151d; --card: #19212c; --ink: #e6ebf2; --muted: #97a3b5; --line: #2c3746;
   --accent: #f0a63a;
   --go: #5fd39a; --go-bg: #163526; --proof: #f0a63a; --proof-bg: #3a2a10;
-  --deal: #6cc3e0; --deal-bg: #12303b; --stop: #f08a80; --stop-bg: #3d1c19; --idle: #97a3b5; --idle-bg: #252f3c;
+  --deal: #6cc3e0; --deal-bg: #12303b; --stop: #f08a80; --stop-bg: #3d1c19; --idle: #97a3b5; --idle-bg: #252f3c; --m-proof: #c98318; --m-deal: #4a8ad8; --m-up: #22a789; --m-down: #e06a35;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; }
@@ -107,12 +109,32 @@ details.more[open] summary { margin-bottom: 8px; }
 footer { color: var(--muted); font-size: .85rem; display: grid; gap: 6px; border-top: 1px solid var(--line); padding-top: 16px; }
 .glossary { columns: 2 320px; column-gap: 28px; font-size: .9rem; }
 .glossary p { break-inside: avoid; margin-bottom: 8px; }
-  .noise { color: var(--accent); }
+header { position: relative; padding-right: 110px; }
+.themebtn { position: absolute; top: 0; right: 0; font: 600 .88rem var(--body); color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; cursor: pointer; }
+.themebtn:hover { border-color: var(--accent); }
+.glance { display: grid; gap: 14px; grid-template-columns: 1fr; }
+@media (min-width: 980px) { .glance { grid-template-columns: repeat(3, 1fr); } }
+.panel { margin: 0; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.panel figcaption { display: grid; gap: 3px; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: .82rem; color: var(--muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+svg.chart { width: 100%; height: auto; display: block; }
+svg.chart text { font-family: var(--mono); font-size: 11.5px; fill: var(--ink); }
+svg.chart .lbl-muted, svg.pchart .lbl-muted { fill: var(--muted); }
+svg.chart .tkl { font-weight: 500; }
+svg .hit { fill: var(--ink); fill-opacity: 0; }
+svg .hitrow:hover .hit { fill-opacity: .05; }
+.pwrap { display: grid; gap: 2px; }
+svg.pchart { width: 100%; height: auto; display: block; cursor: crosshair; }
+svg.pchart text { font-family: var(--mono); font-size: 14px; fill: var(--ink); }
+.tip { position: fixed; z-index: 10; pointer-events: none; background: var(--card); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; font-size: .84rem; line-height: 1.45; white-space: pre-line; box-shadow: 0 6px 20px rgba(0, 0, 0, .18); max-width: 300px; }
+.noise { color: var(--accent); }
 </style>
 </head>
 <body>
 <main>
   <header>
+    <button type="button" class="themebtn" id="theme"></button>
     <div class="date" id="date"></div>
     <h1>Nightly brief</h1>
     <p id="takeaway"></p>
@@ -265,6 +287,136 @@ footer { color: var(--muted); font-size: .85rem; display: grid; gap: 6px; border
     return '<svg viewBox="0 0 90 24" aria-hidden="true"><path d="' + d + '" fill="none" stroke="var(--muted)" stroke-width="1.6"/><circle cx="88" cy="' + (21 - (v[v.length - 1] - lo) / ((hi - lo) || 1) * 18).toFixed(1) + '" r="2.4" fill="var(--ink)"/></svg>';
   }
 
+  // ---- charts ----
+  // Colors: amber = wants proof (climb), blue = wants a discount (dip), teal = up, orange = down.
+  // All four pairs pass the dataviz validator for light and dark, including colorblind separation.
+  // Text always uses the ink colors; position (left/right of zero) carries direction as well.
+  var CW = 340, LBL = 52, PADR = 12, RH = 22;
+  var fmtDate = function (d) { var t = new Date(d + 'T12:00:00'); return isNaN(t) ? d : t.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); };
+  function tipAttr(lines) { return ' data-tip="' + esc(lines.filter(Boolean).join('\n')) + '"'; }
+  function panel(title, sub, body, foot) {
+    return '<figure class="panel"><figcaption><h3>' + title + '</h3><p class="small muted">' + sub + '</p></figcaption>' + body + (foot ? '<p class="small muted">' + foot + '</p>' : '') + '</figure>';
+  }
+  function row(i, top) { return top + i * RH + RH / 2; }
+  function hit(y, lines) { return '<g class="hitrow"' + tipAttr(lines) + '><rect class="hit" x="0" y="' + (y - RH / 2) + '" width="' + CW + '" height="' + RH + '" rx="4"/>'; }
+  // Horizontal bar from x0 to x1 with a rounded data end (square at the zero line).
+  function hbar(x0, x1, y, h, fill) {
+    var w = Math.abs(x1 - x0); if (w < 1) w = 1;
+    var r = Math.min(4, w / 2, h / 2), t = y - h / 2, b = y + h / 2;
+    if (x1 >= x0) return '<path d="M' + x0 + ' ' + t + ' H' + (x0 + w - r) + ' Q' + (x0 + w) + ' ' + t + ' ' + (x0 + w) + ' ' + (t + r) + ' V' + (b - r) + ' Q' + (x0 + w) + ' ' + b + ' ' + (x0 + w - r) + ' ' + b + ' H' + x0 + ' Z" fill="' + fill + '"/>';
+    return '<path d="M' + x0 + ' ' + t + ' H' + (x0 - w + r) + ' Q' + (x0 - w) + ' ' + t + ' ' + (x0 - w) + ' ' + (t + r) + ' V' + (b - r) + ' Q' + (x0 - w) + ' ' + b + ' ' + (x0 - w + r) + ' ' + b + ' H' + x0 + ' Z" fill="' + fill + '"/>';
+  }
+
+  function chartTrigger(rs) {
+    var it = rs.filter(function (r) { var k = kind(r); return (k === 'proof' || k === 'deal') && r.trigger_days != null && r.trigger_gap_pct != null; })
+      .map(function (r) { return { r: r, k: kind(r), v: (r.trigger_gap_pct >= 0 ? 1 : -1) * r.trigger_days }; })
+      .sort(function (a, b) { return b.v - a.v; });
+    if (!it.length) return '';
+    var buys = rs.filter(function (r) { return kind(r) === 'now'; }).map(function (r) { return r.ticker; });
+    var M = Math.max(2, Math.ceil(Math.max.apply(null, it.map(function (d) { return Math.abs(d.v); })))), top = 34, H = top + it.length * RH + 24;
+    var x = function (v) { return LBL + (v + M) / (2 * M) * (CW - LBL - PADR); };
+    var s = '<svg class="chart" viewBox="0 0 ' + CW + ' ' + H + '" role="img" aria-label="Distance from today’s price to each trigger, in typical days of movement">';
+    s += '<rect x="' + x(-1) + '" y="' + (top - 4) + '" width="' + (x(1) - x(-1)) + '" height="' + (it.length * RH + 8) + '" rx="4" fill="var(--ink)" opacity="0.07"/>';
+    s += '<text x="' + x(-M) + '" y="13" class="lbl-muted">← needs a dip</text><text x="' + x(M) + '" y="13" text-anchor="end" class="lbl-muted">needs a climb →</text>';
+    s += '<text x="' + x(0) + '" y="' + (top - 10) + '" text-anchor="middle" class="lbl-muted">today</text>';
+    s += '<line x1="' + x(0) + '" y1="' + (top - 4) + '" x2="' + x(0) + '" y2="' + (top + it.length * RH + 4) + '" stroke="var(--muted)" stroke-width="1"/>';
+    it.forEach(function (d, i) {
+      var y = row(i, top), c = d.k === 'proof' ? 'var(--m-proof)' : 'var(--m-deal)', r = d.r;
+      s += hit(y, [r.ticker + (d.k === 'proof' ? ': wants proof, buy if it climbs' : ': wants a discount, buy if it dips'),
+        'Trigger ' + money(r.trigger_price) + ', ' + pct(r.trigger_gap_pct, true) + ' from ' + money(r.price),
+        r.trigger_days + ' typical days away' + (r.trigger_days < 1 ? ' (inside one ordinary day)' : ''),
+        r.trigger_reason ? 'Why: ' + r.trigger_reason : '']);
+      s += '<text x="0" y="' + (y + 4) + '" class="tkl">' + esc(r.ticker) + '</text>';
+      s += '<line x1="' + x(0) + '" y1="' + y + '" x2="' + x(d.v) + '" y2="' + y + '" stroke="' + c + '" stroke-width="2"/>';
+      s += '<circle cx="' + x(d.v) + '" cy="' + y + '" r="5" fill="' + c + '" stroke="var(--card)" stroke-width="2"/></g>';
+    });
+    var by = top + it.length * RH + 18;
+    s += '<text x="' + x(-M) + '" y="' + by + '" class="lbl-muted">' + M + ' days</text><text x="' + x(M) + '" y="' + by + '" text-anchor="end" class="lbl-muted">' + M + ' days</text>';
+    s += '<text x="' + x(0) + '" y="' + by + '" text-anchor="middle" class="lbl-muted">shaded: 1 typical day</text></svg>';
+    var legend = '<div class="legend"><span><i style="background:var(--m-proof)"></i>wants proof (climb)</span><span><i style="background:var(--m-deal)"></i>wants a discount (dip)</span></div>';
+    return panel('How far to each trigger', 'Distance from today’s price, in typical days of movement. Dots in the shaded band are within one ordinary day.', legend + s, buys.length ? 'Buy now, so not shown: ' + buys.join(', ') + '.' : '');
+  }
+
+  function chartRange(rs) {
+    var it = rs.filter(function (r) { return r.range_pos != null; }).sort(function (a, b) { return b.range_pos - a.range_pos; });
+    if (!it.length) return '';
+    var top = 26, H = top + it.length * RH + 6, x = function (v) { return LBL + v / 100 * (CW - LBL - PADR); };
+    var s = '<svg class="chart" viewBox="0 0 ' + CW + ' ' + H + '" role="img" aria-label="Where each stock sits between its 52-week low and high">';
+    s += '<text x="' + x(0) + '" y="13" class="lbl-muted">52-week low</text><text x="' + x(100) + '" y="13" text-anchor="end" class="lbl-muted">high</text>';
+    s += '<line x1="' + x(50) + '" y1="' + (top - 4) + '" x2="' + x(50) + '" y2="' + (top + it.length * RH + 2) + '" stroke="var(--line)" stroke-width="1" stroke-dasharray="3 4"/>';
+    it.forEach(function (r, i) {
+      var y = row(i, top);
+      s += hit(y, [r.ticker + ': ' + r.range_pos + '% of the way from its low to its high', '52-week low ' + money(r.lo52) + ', high ' + money(r.hi52), 'Today ' + money(r.price)]);
+      s += '<text x="0" y="' + (y + 4) + '" class="tkl">' + esc(r.ticker) + '</text>';
+      s += '<line x1="' + x(0) + '" y1="' + y + '" x2="' + x(100) + '" y2="' + y + '" stroke="var(--line)" stroke-width="4" stroke-linecap="round"/>';
+      s += '<circle cx="' + x(r.range_pos) + '" cy="' + y + '" r="5" fill="var(--ink)" stroke="var(--card)" stroke-width="2"/></g>';
+    });
+    return panel('Where each sits in its year', 'Between its lowest and highest price of the past 52 weeks.', s + '</svg>', 'Near the high is not “expensive” and near the low is not “cheap”. This shows momentum, not value.');
+  }
+
+  function chartMove(rs) {
+    var it = rs.filter(function (r) { return r.day_pct != null; }).sort(function (a, b) { return b.day_pct - a.day_pct; });
+    if (!it.length) return '';
+    var M = Math.max(1, Math.ceil(Math.max.apply(null, it.map(function (r) { return Math.abs(r.day_pct); })))), top = 26, H = top + it.length * RH + 24;
+    var x = function (v) { return LBL + (v + M) / (2 * M) * (CW - LBL - PADR); }, z = x(0);
+    var s = '<svg class="chart" viewBox="0 0 ' + CW + ' ' + H + '" role="img" aria-label="How far each stock moved today, in percent">';
+    s += '<text x="' + x(-M) + '" y="13" class="lbl-muted">← down</text><text x="' + x(M) + '" y="13" text-anchor="end" class="lbl-muted">up →</text>';
+    it.forEach(function (r, i) {
+      var y = row(i, top), v = r.day_pct;
+      s += hit(y, [r.ticker + ' ' + pct(v, true) + ' today', 'Price ' + money(r.price), 'Past 30 days ' + pct(r.ret30_pct, true)]);
+      s += '<text x="0" y="' + (y + 4) + '" class="tkl">' + esc(r.ticker) + '</text>';
+      s += hbar(z, x(v), y, 12, v >= 0 ? 'var(--m-up)' : 'var(--m-down)') + '</g>';
+    });
+    s += '<line x1="' + z + '" y1="' + (top - 4) + '" x2="' + z + '" y2="' + (top + it.length * RH + 2) + '" stroke="var(--muted)" stroke-width="1"/>';
+    var by = top + it.length * RH + 18;
+    s += '<text x="' + x(-M) + '" y="' + by + '" class="lbl-muted">-' + M + '%</text><text x="' + z + '" y="' + by + '" text-anchor="middle" class="lbl-muted">0</text><text x="' + x(M) + '" y="' + by + '" text-anchor="end" class="lbl-muted">+' + M + '%</text>';
+    return panel('Today’s move', 'How far each stock moved during the day.', s + '</svg>', 'Several falling together usually means the whole market moved, not each company’s news.');
+  }
+
+  function glance(rs) { return '<div class="glance">' + chartTrigger(rs) + chartRange(rs) + chartMove(rs) + '</div>'; }
+
+  // Per card: the last 30 closes with the trigger, walk-away level and 50-day average drawn across.
+  var PT = {};
+  function pchart(r, k) {
+    var v = String(r.spark || '').split(',').map(Number).filter(function (n) { return isFinite(n) && n > 0; });
+    var dts = String(r.spark_dates || '').split(',');
+    if (v.length < 5) return '';
+    if (dts.length !== v.length) dts = [];
+    var lo = Math.min.apply(null, v), hi = Math.max.apply(null, v), span = (hi - lo) || hi * 0.02, lines = [];
+    if ((k === 'proof' || k === 'deal') && r.trigger_price) lines.push({ v: r.trigger_price, t: 'trigger ' + money(r.trigger_price), c: 'var(--accent)', d: '7 5' });
+    if (r.walk_away && k !== 'idle' && k !== 'stop') lines.push({ v: r.walk_away, t: 'walk away ' + money(r.walk_away), c: 'var(--stop)', d: '7 5' });
+    if (r.ma50 && r.ma50 > lo - span * 0.8 && r.ma50 < hi + span * 0.8) lines.push({ v: r.ma50, t: '50-day avg ' + money(r.ma50), c: 'var(--muted)', d: '2 4' });
+    lines.forEach(function (l) { lo = Math.min(lo, l.v); hi = Math.max(hi, l.v); });
+    var pad = (hi - lo) * 0.08 || 1; lo -= pad; hi += pad;
+    var W = 600, H = 176, L = 8, R = 205, T = 12, B = 26, n = v.length;
+    var x = function (i) { return L + i / (n - 1) * (W - L - R); }, y = function (p) { return T + (hi - p) / (hi - lo) * (H - T - B); };
+    var s = '<svg class="pchart" viewBox="0 0 ' + W + ' ' + H + '" data-t="' + esc(r.ticker) + '" role="img" aria-label="' + esc(r.ticker) + ' closing prices over the last ' + n + ' trading days">';
+    s += '<line x1="' + L + '" y1="' + (H - B) + '" x2="' + (W - R) + '" y2="' + (H - B) + '" stroke="var(--line)" stroke-width="1"/>';
+    // Reference lines, labelled on the right; labels pushed apart so they never overlap.
+    var labs = lines.map(function (l) { return { y: y(l.v), l: l }; }).sort(function (a, b) { return a.y - b.y; });
+    for (var i = 1; i < labs.length; i++) if (labs[i].y - labs[i - 1].y < 17) labs[i].y = labs[i - 1].y + 17;
+    // Stacked labels must stay inside the plot: if the lowest ran past the bottom, push the stack back up.
+    if (labs.length && labs[labs.length - 1].y > H - B - 4) { labs[labs.length - 1].y = H - B - 4; for (var j = labs.length - 2; j >= 0; j--) if (labs[j + 1].y - labs[j].y < 17) labs[j].y = labs[j + 1].y - 17; }
+    labs.forEach(function (o) { o.y = Math.max(T + 4, o.y); });
+    labs.forEach(function (o) {
+      var ly = y(o.l.v);
+      s += '<line x1="' + L + '" y1="' + ly + '" x2="' + (W - R + 6) + '" y2="' + ly + '" stroke="' + o.l.c + '" stroke-width="2" stroke-dasharray="' + o.l.d + '"/>';
+      s += '<line x1="' + (W - R + 12) + '" y1="' + (o.y) + '" x2="' + (W - R + 24) + '" y2="' + (o.y) + '" stroke="' + o.l.c + '" stroke-width="3"/>';
+      s += '<text x="' + (W - R + 30) + '" y="' + (o.y + 5) + '">' + o.l.t + '</text>';
+    });
+    var d = v.map(function (p, i) { return (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(p).toFixed(1); }).join(' ');
+    s += '<path d="' + d + '" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+    s += '<circle cx="' + x(n - 1) + '" cy="' + y(v[n - 1]) + '" r="4.5" fill="var(--ink)" stroke="var(--card)" stroke-width="2"/>';
+    if (dts.length) {
+      s += '<text x="' + L + '" y="' + (H - 6) + '" class="lbl-muted">' + fmtDate(dts[0]) + '</text>';
+      s += '<text x="' + (W - R) + '" y="' + (H - 6) + '" text-anchor="end" class="lbl-muted">' + fmtDate(dts[n - 1]) + '</text>';
+    }
+    s += '<line class="xh" x1="0" y1="' + T + '" x2="0" y2="' + (H - B) + '" stroke="var(--muted)" stroke-width="1" visibility="hidden"/>';
+    s += '<circle class="xd" cx="0" cy="0" r="5" fill="var(--ink)" stroke="var(--card)" stroke-width="2" visibility="hidden"/>';
+    PT[r.ticker] = { v: v, dts: dts, px: v.map(function (p, i) { return x(i); }), py: v.map(y), W: W };
+    return '<div class="pwrap"><span class="small muted">Last ' + n + ' trading days</span>' + s + '</svg></div>';
+  }
+
   function card(r) {
     var k = kind(r), used = {}, h = '<article class="card c-' + k + '" data-t="' + esc(r.ticker) + '">';
     h += '<div class="top"><div class="name"><a class="tk" href="https://finance.yahoo.com/quote/' + encodeURIComponent(r.ticker) + '">' + esc(r.ticker) + '</a><span class="co">' + esc(r.company || '') + (r.sector ? ' · ' + esc(r.sector) : '') + '</span></div>';
@@ -272,6 +424,7 @@ footer { color: var(--muted); font-size: .85rem; display: grid; gap: 6px; border
     h += '<div class="verdict"><span class="tag k-' + k + '">' + KIND[k].tag + '</span><span class="say">' + say(r, k) + '</span></div>';
     h += track(r, k);
     var pg = progress(r, k); if (pg) h += '<p class="progress">' + pg + '</p>';
+    h += pchart(r, k);
     h += '<div class="why">';
     if ((k === 'proof' || k === 'deal') && r.trigger_reason) h += '<p><span class="k">Why that price: </span>' + withTerms(r.trigger_reason, r, used) + '</p>';
     if (r.why_full || r.why) h += '<p><span class="k">The model’s reasoning: </span>' + withTerms(r.why_full || r.why, r, used) + '</p>';
@@ -282,7 +435,7 @@ footer { color: var(--muted); font-size: .85rem; display: grid; gap: 6px; border
     if (risks.length) h += '<div><span class="k">Biggest risks</span><ul>' + risks.map(function (x) { return '<li>' + withTerms(x, r, used) + '</li>'; }).join('') + '</ul></div>';
     if (r.change_my_mind) h += '<p><span class="k">It would change its mind if: </span>' + withTerms(r.change_my_mind, r, used) + '</p>';
     h += '</div></details>';
-    h += '<div class="facts">' + spark(r) + '<span>30 days <span class="num ' + (r.ret30_pct >= 0 ? 'up' : 'down') + '">' + pct(r.ret30_pct, true) + '</span></span>';
+    h += '<div class="facts"><span>30 days <span class="num ' + (r.ret30_pct >= 0 ? 'up' : 'down') + '">' + pct(r.ret30_pct, true) + '</span></span>';
     if (r.range_pos != null) h += '<span>' + r.range_pos + '% of the way from its 52-week low to high</span>';
     h += '<span>model confidence <span class="num">' + Math.round((r.confidence || 0) * 100) + '%</span></span></div>';
     return h + '</article>';
@@ -314,12 +467,56 @@ footer { color: var(--muted); font-size: .85rem; display: grid; gap: 6px; border
     if (!rs.length) return;
     rs.sort(function (a, b) { var d = order[kind(a)] - order[kind(b)]; return d || ((a.trigger_days == null ? 99 : a.trigger_days) - (b.trigger_days == null ? 99 : b.trigger_days)); });
     jump += '<button type="button" data-go="' + g.id + '">' + g.title + ' (' + rs.length + ')</button>';
-    html += '<section class="group" id="' + g.id + '"><h2>' + g.title + '</h2><p>' + g.note + ' Buys come first, then waiting calls from closest to farthest from their trigger.</p><div class="cards">' + rs.map(card).join('') + '</div></section>';
+    html += '<section class="group" id="' + g.id + '"><h2>' + g.title + '</h2><p>' + g.note + ' Buys come first, then waiting calls from closest to farthest from their trigger.</p>' + glance(rs) + '<div class="cards">' + rs.map(card).join('') + '</div></section>';
   });
   document.getElementById('groups').innerHTML = html;
   document.getElementById('groups').style.cssText = 'display:flex;flex-direction:column;gap:30px';
   document.getElementById('jump').innerHTML = jump;
   document.getElementById('glossary').innerHTML = G.map(function (g) { return '<p><b>' + g.name + '.</b> ' + esc(g.def(null)) + '</p>'; }).join('');
+
+  // ---- light / dark switch (remembered; starts from the system setting) ----
+  var themeBtn = document.getElementById('theme');
+  function theme() { var a = document.documentElement.getAttribute('data-theme'); return a || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); }
+  function themeLabel() { var d = theme() === 'dark'; themeBtn.textContent = d ? '☀ Light' : '☾ Dark'; themeBtn.setAttribute('aria-label', 'Switch to ' + (d ? 'light' : 'dark') + ' mode'); }
+  themeBtn.addEventListener('click', function () {
+    var next = theme() === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem('brief-theme', next); } catch (e) { /* storage blocked: the switch still works for this visit */ }
+    themeLabel();
+  });
+  themeLabel();
+
+  // ---- hover: tooltips on chart rows, crosshair on the 30-day charts ----
+  var tip = document.createElement('div'); tip.className = 'tip'; tip.hidden = true; document.body.appendChild(tip);
+  function showTip(text, e) {
+    tip.textContent = text; tip.hidden = false;
+    var w = tip.offsetWidth, h = tip.offsetHeight, x = e.clientX + 14, y = e.clientY + 14;
+    if (x + w > window.innerWidth - 8) x = e.clientX - w - 14;
+    if (y + h > window.innerHeight - 8) y = e.clientY - h - 14;
+    tip.style.left = Math.max(8, x) + 'px'; tip.style.top = Math.max(8, y) + 'px';
+  }
+  var activeChart = null;
+  function clearCross() { if (activeChart) { activeChart.querySelector('.xh').setAttribute('visibility', 'hidden'); activeChart.querySelector('.xd').setAttribute('visibility', 'hidden'); activeChart = null; } }
+  document.addEventListener('mousemove', function (e) {
+    var pc = e.target.closest && e.target.closest('svg.pchart');
+    if (pc) {
+      var d = PT[pc.getAttribute('data-t')]; if (!d) return;
+      var b = pc.getBoundingClientRect(), sx = (e.clientX - b.left) / b.width * d.W, best = 0;
+      for (var i = 1; i < d.px.length; i++) if (Math.abs(d.px[i] - sx) < Math.abs(d.px[best] - sx)) best = i;
+      if (activeChart && activeChart !== pc) clearCross();
+      activeChart = pc;
+      var xh = pc.querySelector('.xh'), xd = pc.querySelector('.xd');
+      xh.setAttribute('x1', d.px[best]); xh.setAttribute('x2', d.px[best]); xh.setAttribute('visibility', 'visible');
+      xd.setAttribute('cx', d.px[best]); xd.setAttribute('cy', d.py[best]); xd.setAttribute('visibility', 'visible');
+      var last = d.v[d.v.length - 1], chg = (last / d.v[best] - 1) * 100;
+      showTip((d.dts.length ? fmtDate(d.dts[best]) + ': ' : '') + 'closed at ' + money(d.v[best]) + (best < d.v.length - 1 ? '\nToday is ' + pct(chg, true) + ' from here' : ''), e);
+      return;
+    }
+    clearCross();
+    var t = e.target.closest && e.target.closest('[data-tip]');
+    if (t) showTip(t.getAttribute('data-tip'), e); else tip.hidden = true;
+  });
+  document.addEventListener('scroll', function () { tip.hidden = true; clearCross(); }, { passive: true });
 
   document.addEventListener('click', function (e) {
     var go = e.target.closest('[data-go]');

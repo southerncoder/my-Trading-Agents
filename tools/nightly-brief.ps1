@@ -132,8 +132,8 @@ foreach ($t in $Tickers) {
     $start = (Get-Date $Date).AddDays(-45).ToString('yyyy-MM-dd'); $end = (Get-Date $Date).AddDays(2).ToString('yyyy-MM-dd')
     # Price history on its own: if it fails, the quote-based numbers (price, trigger gap) still go on the page.
     $csv = try { Invoke-RestMethod "$YahooUrl/api/historical/${t}?startDate=$start&endDate=$end" -TimeoutSec 40 } catch { Write-Warning "Price history failed for ${t}: $($_.Exception.Message)"; '' }
-    $closes = @(); $bars = @()
-    foreach ($l in ($csv -split "`n")) { if ($l -match '^\d{4}-\d\d-\d\d,') { $c = $l -split ','; $closes += [double]$c[4]; $bars += , @([double]$c[2], [double]$c[3], [double]$c[4]) } }
+    $closes = @(); $bars = @(); $dates = @()
+    foreach ($l in ($csv -split "`n")) { if ($l -match '^\d{4}-\d\d-\d\d,') { $c = $l -split ','; $closes += [double]$c[4]; $dates += $c[0]; $bars += , @([double]$c[2], [double]$c[3], [double]$c[4]) } }
     # ATR(14): the average daily range, used to say how many "typical days" away a trigger is.
     $trs = @(); for ($i = 1; $i -lt $bars.Count; $i++) { $trs += [math]::Max($bars[$i][0] - $bars[$i][1], [math]::Max([math]::Abs($bars[$i][0] - $bars[$i - 1][2]), [math]::Abs($bars[$i][1] - $bars[$i - 1][2]))) }
     $atr = if ($trs.Count -ge 14) { ($trs | Select-Object -Last 14 | Measure-Object -Average).Average } else { $null }
@@ -145,6 +145,7 @@ foreach ($t in $Tickers) {
     $o['ret30_pct'] = if ($closes.Count -gt 1) { [math]::Round(($closes[-1] / $closes[0] - 1) * 100, 1) } else { 0 }
     $o['range_pos'] = if ($hi -gt $lo) { [math]::Round((($price - $lo) / ($hi - $lo)) * 100, 0) } else { 50 }
     $o['spark'] = ($closes | ForEach-Object { [math]::Round($_, 2) }) -join ','
+    $o['spark_dates'] = (@($dates | Select-Object -Last 30)) -join ','
     $o['market_cap_b'] = [math]::Round([double]$q.marketCap / 1e9, 0)
     $o['sector'] = [string]$s.assetProfile.sectorDisp; $o['industry'] = [string]$s.assetProfile.industryDisp
     $biz = [string]$s.assetProfile.longBusinessSummary; $first = ($biz -split '(?<=\.)\s')[0]

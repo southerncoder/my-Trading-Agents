@@ -10,7 +10,7 @@ import json
 import pathlib
 import sys
 
-DROP = {'pm_raw', 'business', 'industry', 'market_cap_b', 'hi52', 'lo52', 'target', 'analyst'}
+DROP = {'pm_raw', 'business', 'industry', 'market_cap_b', 'target', 'analyst'}
 
 
 def main():
