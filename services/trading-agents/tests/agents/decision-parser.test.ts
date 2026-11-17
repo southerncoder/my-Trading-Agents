@@ -82,3 +82,10 @@ import { fetchError } from '../../src/agents/base/tool-data';
 assert.strictEqual(fetchError('### get_historical_price_data\nERROR: fetch failed\n', 'get_historical_price_data'), 'fetch failed');
 assert.strictEqual(fetchError('### get_historical_price_data\ndate,close\n', 'get_historical_price_data'), undefined);
 console.log('fetchError tests passed');
+
+// Invalid backslash escapes inside the JSON block (LaTeX-style) must not lose the decision
+r = parseDecision('x\n```json\n{"decision": "BUY", "confidence": 0.62, "action_now": "enter_now", "rationale": "EPS growth $46\\%$ justifies entry"}\n```\nFINAL DECISION: HOLD');
+assert.equal(r.source, 'json');
+assert.equal(r.decision, 'BUY');
+assert.equal(r.actionNow, 'enter_now');
+console.log('escape tolerance test passed');

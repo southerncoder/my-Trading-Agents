@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nightly Brief __DATE__</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: a summary strip, then one card per stock built around a price track
+   (walk-away level, today's price, trigger) so "how far to go" is visible before any text. */
+:root {
+  --paper: #f3f5f8; --card: #ffffff; --ink: #17202e; --muted: #5b6678; --line: #d6dce6;
+  --accent: #b86a00;          /* the trigger */
+  --go: #17794a; --go-bg: #e2f3ea;
+  --proof: #b86a00; --proof-bg: #fbeed8;
+  --deal: #1f6f8f; --deal-bg: #dff0f6;
+  --stop: #b3372f; --stop-bg: #f9e3e1;
+  --idle: #5b6678; --idle-bg: #e8ecf2;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper: #10151d; --card: #19212c; --ink: #e6ebf2; --muted: #97a3b5; --line: #2c3746;
+    --accent: #f0a63a;
+    --go: #5fd39a; --go-bg: #163526; --proof: #f0a63a; --proof-bg: #3a2a10;
+    --deal: #6cc3e0; --deal-bg: #12303b; --stop: #f08a80; --stop-bg: #3d1c19; --idle: #97a3b5; --idle-bg: #252f3c;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #10151d; --card: #19212c; --ink: #e6ebf2; --muted: #97a3b5; --line: #2c3746;
+  --accent: #f0a63a;
+  --go: #5fd39a; --go-bg: #163526; --proof: #f0a63a; --proof-bg: #3a2a10;
+  --deal: #6cc3e0; --deal-bg: #12303b; --stop: #f08a80; --stop-bg: #3d1c19; --idle: #97a3b5; --idle-bg: #252f3c;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--paper); color: var(--ink); font: 16px/1.5 var(--body); }
+main { max-width: 1060px; margin: 0 auto; padding: 28px 18px 60px; display: flex; flex-direction: column; gap: 26px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; line-height: 1.15; }
+h1 { font-size: 2rem; font-weight: 700; }
+h2 { font-size: 1.35rem; font-weight: 700; }
+h3 { font-size: 1.05rem; font-weight: 700; }
+p { margin: 0; max-width: 68ch; }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.small { font-size: .86rem; }
+header .date { font-family: var(--mono); color: var(--muted); font-size: .9rem; }
+header p { margin-top: 8px; font-size: 1.08rem; }
+
+.counts { display: flex; flex-wrap: wrap; gap: 10px; }
+.count { display: flex; align-items: baseline; gap: 8px; padding: 8px 14px; border-radius: 999px; font-weight: 600; font-size: .95rem; }
+.count b { font-family: var(--mono); font-size: 1.15rem; }
+.k-now { background: var(--go-bg); color: var(--go); }
+.k-proof { background: var(--proof-bg); color: var(--proof); }
+.k-deal { background: var(--deal-bg); color: var(--deal); }
+.k-idle { background: var(--idle-bg); color: var(--idle); }
+.k-stop { background: var(--stop-bg); color: var(--stop); }
+
+.guide { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; display: grid; gap: 14px; grid-template-columns: 1fr; }
+@media (min-width: 820px) { .guide { grid-template-columns: 1fr 1fr; } }
+.guide ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; max-width: 62ch; }
+.guide li b { font-weight: 600; }
+
+nav.jump { display: flex; gap: 8px; flex-wrap: wrap; }
+nav.jump button { font: 600 .92rem var(--body); color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; cursor: pointer; }
+nav.jump button:hover { border-color: var(--accent); }
+button:focus-visible, a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+section.group { display: flex; flex-direction: column; gap: 14px; }
+section.group > p { color: var(--muted); }
+.cards { display: grid; gap: 14px; grid-template-columns: 1fr; }
+@media (min-width: 900px) { .cards { grid-template-columns: 1fr 1fr; } }
+.card { background: var(--card); border: 1px solid var(--line); border-left: 5px solid var(--idle); border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.card.c-now { border-left-color: var(--go); } .card.c-proof { border-left-color: var(--proof); }
+.card.c-deal { border-left-color: var(--deal); } .card.c-stop { border-left-color: var(--stop); }
+.top { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+.name a { color: inherit; text-decoration: none; border-bottom: 1px dotted var(--muted); }
+.name .tk { font-family: var(--mono); font-weight: 500; font-size: 1.1rem; }
+.name .co { display: block; color: var(--muted); font-size: .88rem; }
+.px { text-align: right; }
+.px .p { font-family: var(--mono); font-size: 1.15rem; }
+.up { color: var(--go); } .down { color: var(--stop); }
+.verdict { display: flex; flex-direction: column; gap: 2px; }
+.verdict .tag { align-self: flex-start; font-size: .78rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; padding: 2px 9px; border-radius: 999px; }
+.verdict .say { font-family: var(--display); font-size: 1.18rem; font-weight: 700; line-height: 1.25; }
+svg.track { width: 100%; height: auto; display: block; }
+svg.track text { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
+svg.track .lbl-muted { fill: var(--muted); }
+.progress { font-size: .95rem; }
+.progress b { font-weight: 600; }
+.why { display: grid; gap: 8px; font-size: .95rem; }
+.why .k { font-weight: 600; }
+.why ul { margin: 2px 0 0; padding-left: 18px; }
+.lesson { background: var(--idle-bg); border-radius: 8px; padding: 9px 12px; font-size: .92rem; }
+.term { font: inherit; color: inherit; background: none; border: 0; padding: 0; border-bottom: 1.5px dashed var(--accent); cursor: help; }
+.defbox { background: var(--proof-bg); border-radius: 8px; padding: 9px 12px; font-size: .9rem; }
+.defbox b { font-weight: 600; }
+.facts { display: flex; flex-wrap: wrap; gap: 4px 16px; color: var(--muted); font-size: .84rem; align-items: center; }
+.facts svg { width: 90px; height: 24px; }
+details.more summary { cursor: pointer; color: var(--muted); font-size: .88rem; }
+details.more[open] summary { margin-bottom: 8px; }
+footer { color: var(--muted); font-size: .85rem; display: grid; gap: 6px; border-top: 1px solid var(--line); padding-top: 16px; }
+.glossary { columns: 2 320px; column-gap: 28px; font-size: .9rem; }
+.glossary p { break-inside: avoid; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="date" id="date"></div>
+    <h1>Nightly brief</h1>
+    <p id="takeaway"></p>
+  </header>
+  <div class="counts" id="counts"></div>
+  <div class="guide">
+    <div>
+      <h3>How to read a card</h3>
+      <ul>
+        <li><b>The line is a price scale.</b> The dot is today's price. The flag is the <b>trigger</b>: the price at which the model would buy.</li>
+        <li><b>Wants proof</b> means the trigger is <i>above</i> today's price. The model wants to see the stock climb first, and accepts paying a little more for that evidence.</li>
+        <li><b>Wants a discount</b> means the trigger is <i>below</i> today's price. The model likes the company but thinks the price will dip.</li>
+        <li><b>Walk away</b> is the price that says the idea was wrong.</li>
+        <li><b>Typical days</b> turns the distance into time: how many average days of movement the stock needs to get there. Dashed-underlined words explain themselves when tapped.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Tonight's lesson</h3>
+      <p id="lesson"></p>
+    </div>
+  </div>
+  <nav class="jump" id="jump" aria-label="Sections"></nav>
+  <div id="groups"></div>
+  <footer>
+    <h3>Words used on this page</h3>
+    <div class="glossary" id="glossary"></div>
+    <p>Paper analysis for learning. These are a language model's calls on fetched market data, not financial advice, and nothing here has been shown to beat the market. The confidence number is the model's own and has not been checked against results yet. Prices are from the time of the run, not live.</p>
+  </footer>
+</main>
+<script id="data" type="application/json">__DATA__</script>
+<script>
+(function () {
+  var D = JSON.parse(document.getElementById('data').textContent);
+  var rows = D.rows || [];
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  var money = function (n) { return n == null || isNaN(n) ? 'n/a' : '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+  var pct = function (n, sign) { return n == null || isNaN(n) ? 'n/a' : (sign && n > 0 ? '+' : '') + Number(n).toFixed(Math.abs(n) < 10 ? 1 : 0) + '%'; };
+
+  // ---- classify each call in plain words ----
+  function kind(r) {
+    var a = r.action_now, d = r.decision;
+    if (a === 'wait_for_trigger') {
+      if (r.trigger_price && r.trigger_type === 'pullback') return 'deal';
+      if (r.trigger_price) return 'proof';
+      return 'idle';
+    }
+    if (d === 'BUY' && a !== 'hold_existing') return 'now';
+    if (d === 'SELL') return 'stop';
+    return 'idle';
+  }
+  var KIND = {
+    now: { tag: 'Buy now', count: 'buy now' },
+    proof: { tag: 'Wants proof', count: 'want proof first' },
+    deal: { tag: 'Wants a discount', count: 'want a discount' },
+    idle: { tag: 'No trade', count: 'no trade for now' },
+    stop: { tag: 'Sell or short', count: 'sell or short' }
+  };
+  function say(r, k) {
+    if (k === 'now') return 'Buy at about today’s price';
+    if (k === 'proof') return 'Buy only if it climbs to ' + money(r.trigger_price);
+    if (k === 'deal') return 'Buy only if it dips to ' + money(r.trigger_price);
+    if (k === 'stop') return r.action_now === 'enter_now' ? 'Short it: a bet the price falls' : (r.action_now === 'reduce' ? 'Trim the position' : 'Exit the position');
+    if (r.action_now === 'wait_for_trigger') return r.trigger_type === 'event' ? 'Waiting on an event, not a price' : 'Waiting, but the model named no price';
+    return 'Leave it alone for now';
+  }
+
+  // ---- glossary: tap a term for an explanation that uses this stock's numbers ----
+  var G = [
+    { re: /\bRSI(?:\(14\))?\b|\boverbought\b|\boversold\b/i, name: 'RSI', def: function () { return 'A 0 to 100 gauge of recent buying versus selling. Above 70 means it was bought hard lately (overbought); below 30 means it was sold hard (oversold). Neither is a buy or sell signal by itself.'; } },
+    { re: /\bMACD\b/i, name: 'MACD', def: function () { return 'Compares a fast and a slow average of the price. When the fast one is above the slow one, momentum is up; a crossover is the moment they swap.'; } },
+    { re: /\b50[- ]day(?: moving)?(?: average| MA| SMA)?\b|\b50[- ]?DMA\b/i, name: '50-day average', def: function (r) { return 'The average closing price over the last 50 trading days, a common line for the medium-term trend.' + (r && r.ma50 ? ' For ' + r.ticker + ' it is ' + money(r.ma50) + '; today’s price is ' + (r.price >= r.ma50 ? 'above' : 'below') + ' it.' : ''); } },
+    { re: /\b200[- ]day(?: moving)?(?: average| MA| SMA)?\b|\b200[- ]?DMA\b/i, name: '200-day average', def: function (r) { return 'The average closing price over about ten months, a common line for the long-term trend.' + (r && r.ma200 ? ' For ' + r.ticker + ' it is ' + money(r.ma200) + '; today’s price is ' + (r.price >= r.ma200 ? 'above' : 'below') + ' it.' : ''); } },
+    { re: /\bbreak(?:s|ing)?[- ]?out\b|\bbreak above\b/i, name: 'Breakout', def: function () { return 'The price pushing above a level where it stalled before. A buyer waiting for one wants proof of strength before paying.'; } },
+    { re: /\bpull[- ]?back\b|\bdip\b/i, name: 'Pullback', def: function () { return 'A drop inside a rising trend. A buyer waiting for one wants a lower price, and risks never getting it.'; } },
+    { re: /\bresistance\b/i, name: 'Resistance', def: function () { return 'A price where the stock has repeatedly stopped rising, because sellers show up there.'; } },
+    { re: /\bsupport\b/i, name: 'Support', def: function () { return 'A price where the stock has repeatedly stopped falling, because buyers show up there.'; } },
+    { re: /\bstop[- ]loss\b|\bstop\b/i, name: 'Stop', def: function () { return 'A price chosen in advance at which you sell to cap the loss. On this page it is the walk-away level.'; } },
+    { re: /\bP\/E\b|\bforward P\/E\b/i, name: 'P/E', def: function (r) { return 'Price divided by yearly profit per share: how many years of profit you pay for.' + (r && r.pe ? ' ' + r.ticker + ' trades at ' + r.pe + ' times last year’s profit' + (r.fwd_pe ? ' and ' + r.fwd_pe + ' times next year’s expected profit.' : '.') : ''); } },
+    { re: /\bEPS\b/, name: 'EPS', def: function () { return 'Earnings per share: the company’s profit divided by its number of shares. A “beat” or “miss” compares it with what analysts expected.'; } },
+    { re: /\bvolume\b/i, name: 'Volume', def: function () { return 'How many shares changed hands. A price move on heavy volume has more conviction behind it than the same move on light volume.'; } },
+    { re: /\bATR\b/, name: 'Typical day', def: function (r) { return 'ATR is the average distance a stock travels in a day.' + (r && r.atr ? ' ' + r.ticker + ' moves about ' + money(r.atr) + ' on a typical day.' : ''); } },
+    { re: /\bdividend\b/i, name: 'Dividend', def: function (r) { return 'Cash a company pays shareholders, usually every quarter.' + (r && r.div_yield ? ' ' + r.ticker + ' pays about ' + r.div_yield + '% of its price per year.' : ''); } },
+    { re: /\bsizing\b|\bposition size\b/i, name: 'Position size', def: function () { return 'How much of your money goes into one stock. Smaller sizes mean one wrong call hurts less.'; } }
+  ];
+  function withTerms(text, r, used) {
+    var out = esc(text);
+    G.forEach(function (g, i) {
+      if (used[i]) return;
+      var m = g.re.exec(out);
+      if (!m || /<[^>]*$/.test(out.slice(0, m.index))) return;
+      used[i] = true;
+      out = out.slice(0, m.index) + '<button type="button" class="term" data-g="' + i + '">' + m[0] + '</button>' + out.slice(m.index + m[0].length);
+    });
+    return out;
+  }
+
+  // ---- the price track ----
+  function track(r, k) {
+    var pts = [{ v: r.price, t: 'today' }];
+    if ((k === 'proof' || k === 'deal') && r.trigger_price) pts.push({ v: r.trigger_price, t: 'trigger' });
+    if (r.walk_away && k !== 'idle' && k !== 'stop') pts.push({ v: r.walk_away, t: 'walk' });
+    if (pts.length < 2 || !r.price) return '';
+    var lo = Math.min.apply(null, pts.map(function (p) { return p.v; })), hi = Math.max.apply(null, pts.map(function (p) { return p.v; }));
+    var pad = (hi - lo) * 0.22 || r.price * 0.01; lo -= pad; hi += pad;
+    var W = 600, x = function (v) { return 24 + (v - lo) / (hi - lo) * (W - 48); };
+    var anchor = function (px) { return px < 130 ? 'start' : px > W - 130 ? 'end' : 'middle'; };
+    var s = '<svg class="track" viewBox="0 0 600 102" role="img" aria-label="Price scale for ' + esc(r.ticker) + '">';
+    s += '<line x1="24" y1="48" x2="576" y2="48" stroke="var(--line)" stroke-width="6" stroke-linecap="round"/>';
+    var trig = pts.filter(function (p) { return p.t === 'trigger'; })[0], walk = pts.filter(function (p) { return p.t === 'walk'; })[0];
+    if (trig) s += '<line x1="' + x(r.price) + '" y1="48" x2="' + x(trig.v) + '" y2="48" stroke="var(--accent)" stroke-width="6" stroke-dasharray="2 7" stroke-linecap="round"/>';
+    if (walk) {
+      var wx = x(walk.v);
+      s += '<line x1="' + wx + '" y1="38" x2="' + wx + '" y2="58" stroke="var(--stop)" stroke-width="3"/>';
+      s += '<text x="' + wx + '" y="97" text-anchor="' + anchor(wx) + '" class="lbl-muted">walk away ' + money(walk.v) + '</text>';
+    }
+    if (trig) {
+      var tx = x(trig.v);
+      s += '<line x1="' + tx + '" y1="30" x2="' + tx + '" y2="58" stroke="var(--accent)" stroke-width="3"/>';
+      s += '<path d="M' + tx + ' 30 l14 5 l-14 5 z" fill="var(--accent)"/>';
+      s += '<text x="' + tx + '" y="78" text-anchor="' + anchor(tx) + '" style="fill:var(--accent)">trigger ' + money(trig.v) + '</text>';
+    }
+    var px = x(r.price);
+    s += '<circle cx="' + px + '" cy="48" r="8" fill="var(--ink)"/><circle cx="' + px + '" cy="48" r="3.5" fill="var(--card)"/>';
+    s += '<text x="' + px + '" y="20" text-anchor="' + anchor(px) + '">today ' + money(r.price) + '</text>';
+    return s + '</svg>';
+  }
+  function progress(r, k) {
+    if (k === 'proof' || k === 'deal') {
+      var g = r.trigger_gap_pct, t = '<b>' + Math.abs(g).toFixed(1) + '% ' + (g >= 0 ? 'above' : 'below') + '</b> today’s price';
+      if (r.trigger_days != null) t += ', about <b>' + (r.trigger_days < 1 ? 'less than one typical day' : r.trigger_days + ' typical day' + (r.trigger_days >= 1.05 || r.trigger_days < 0.95 ? 's' : '')) + '</b> of movement';
+      t += '.';
+      if (r.trigger_trend && r.prev_date) t += ' ' + ({ closer: 'The price has moved closer to it', farther: 'The price has moved away from it', same: 'The price is about as far from it as it was' }[r.trigger_trend]) + ' since ' + esc(r.prev_date) + '.';
+      return 'The trigger is ' + t;
+    }
+    if (k === 'now' && r.walk_away && r.price) return 'The model would give up on this at <b>' + money(r.walk_away) + '</b>, ' + Math.abs((r.walk_away / r.price - 1) * 100).toFixed(1) + '% ' + (r.walk_away < r.price ? 'below' : 'above') + ' today’s price.';
+    return '';
+  }
+  function spark(r) {
+    var v = String(r.spark || '').split(',').map(Number).filter(function (n) { return isFinite(n); });
+    if (v.length < 5) return '';
+    var lo = Math.min.apply(null, v), hi = Math.max.apply(null, v), d = v.map(function (y, i) { return (i ? 'L' : 'M') + (2 + i * 86 / (v.length - 1)).toFixed(1) + ' ' + (21 - (y - lo) / ((hi - lo) || 1) * 18).toFixed(1); }).join(' ');
+    return '<svg viewBox="0 0 90 24" aria-hidden="true"><path d="' + d + '" fill="none" stroke="var(--muted)" stroke-width="1.6"/><circle cx="88" cy="' + (21 - (v[v.length - 1] - lo) / ((hi - lo) || 1) * 18).toFixed(1) + '" r="2.4" fill="var(--ink)"/></svg>';
+  }
+
+  function card(r) {
+    var k = kind(r), used = {}, h = '<article class="card c-' + k + '" data-t="' + esc(r.ticker) + '">';
+    h += '<div class="top"><div class="name"><a class="tk" href="https://finance.yahoo.com/quote/' + encodeURIComponent(r.ticker) + '">' + esc(r.ticker) + '</a><span class="co">' + esc(r.company || '') + (r.sector ? ' · ' + esc(r.sector) : '') + '</span></div>';
+    h += '<div class="px"><div class="p">' + money(r.price) + '</div><div class="small num ' + (r.day_pct >= 0 ? 'up' : 'down') + '">' + pct(r.day_pct, true) + ' today</div></div></div>';
+    h += '<div class="verdict"><span class="tag k-' + k + '">' + KIND[k].tag + '</span><span class="say">' + say(r, k) + '</span></div>';
+    h += track(r, k);
+    var pg = progress(r, k); if (pg) h += '<p class="progress">' + pg + '</p>';
+    h += '<div class="why">';
+    if ((k === 'proof' || k === 'deal') && r.trigger_reason) h += '<p><span class="k">Why that price: </span>' + withTerms(r.trigger_reason, r, used) + '</p>';
+    if (r.why_full || r.why) h += '<p><span class="k">The model’s reasoning: </span>' + withTerms(r.why_full || r.why, r, used) + '</p>';
+    if (r.lesson) h += '<p class="lesson"><span class="k">What this one teaches: </span>' + esc(r.lesson) + '</p>';
+    h += '</div><div class="defbox" hidden></div>';
+    h += '<details class="more"><summary>Risks and what would change its mind</summary><div class="why">';
+    var risks = [].concat(r.risks || (r.top_risk ? [r.top_risk] : [])).filter(Boolean);
+    if (risks.length) h += '<div><span class="k">Biggest risks</span><ul>' + risks.map(function (x) { return '<li>' + withTerms(x, r, used) + '</li>'; }).join('') + '</ul></div>';
+    if (r.change_my_mind) h += '<p><span class="k">It would change its mind if: </span>' + withTerms(r.change_my_mind, r, used) + '</p>';
+    h += '</div></details>';
+    h += '<div class="facts">' + spark(r) + '<span>30 days <span class="num ' + (r.ret30_pct >= 0 ? 'up' : 'down') + '">' + pct(r.ret30_pct, true) + '</span></span>';
+    if (r.range_pos != null) h += '<span>' + r.range_pos + '% of the way from its 52-week low to high</span>';
+    h += '<span>model confidence <span class="num">' + Math.round((r.confidence || 0) * 100) + '%</span></span></div>';
+    return h + '</article>';
+  }
+
+  // ---- page ----
+  document.getElementById('date').textContent = 'Run of ' + (D.date || '') + (D.profile ? ' · ' + D.profile : '');
+  var kinds = rows.map(kind), n = function (k) { return kinds.filter(function (x) { return x === k; }).length; };
+  var parts = ['now', 'proof', 'deal', 'stop', 'idle'].filter(function (k) { return n(k); });
+  document.getElementById('counts').innerHTML = parts.map(function (k) { return '<span class="count k-' + k + '"><b>' + n(k) + '</b>' + KIND[k].count + '</span>'; }).join('');
+  var pending = n('proof') + n('deal');
+  document.getElementById('takeaway').textContent = rows.length + ' stocks tonight. ' +
+    (n('now') ? n('now') + (n('now') === 1 ? ' is a buy' : ' are buys') + ' at today’s price. ' : 'Nothing is a buy at today’s price. ') +
+    (pending ? pending + (pending === 1 ? ' is' : ' are') + ' waiting on a price: ' + n('proof') + ' for proof (a climb), ' + n('deal') + ' for a discount (a dip).' : '');
+  var gaps = rows.filter(function (r, i) { return kinds[i] === 'proof'; }).map(function (r) { return Math.abs(r.trigger_gap_pct); }).sort(function (a, b) { return a - b; });
+  var med = gaps.length ? gaps[Math.floor(gaps.length / 2)] : null;
+  document.getElementById('lesson').textContent = n('proof') >= n('deal') && n('proof') ?
+    'Most of tonight’s waiting calls want proof, not a bargain. The model would rather pay a little more after a stock shows strength than buy while it is still falling or stalling. The price of that caution is real: the typical trigger tonight sits ' + (med != null ? med.toFixed(1) + '% ' : '') + 'above today’s price, so if the stock gets there you paid that much extra, and if it never does you never own it. Watch over the coming days which of these triggers get hit.' :
+    n('deal') ? 'Most of tonight’s waiting calls want a discount. The model likes these companies but expects the price to dip first. The risk of waiting for a dip is that a strong stock may never give you one.' :
+    'Tonight the model is mostly decisive. Compare its reasoning on the buys with the stocks it leaves alone: the difference is usually whether the trend and the company’s numbers agree.';
+
+  var GROUPS = [
+    { id: 'watchlist', key: 'core', title: 'Your watchlist', note: 'The core list, large companies across sectors.' },
+    { id: 'brands', key: 'brands', title: 'Brands you know, under $50', note: 'Household names picked because each one teaches something. A low share price does not mean a stock is cheap: price per share says nothing by itself about value.' }
+  ];
+  var order = { now: 0, proof: 1, deal: 1, stop: 2, idle: 3 }, html = '', jump = '';
+  GROUPS.forEach(function (g) {
+    var rs = rows.filter(function (r) { return (r.group || 'core') === g.key; });
+    if (!rs.length) return;
+    rs.sort(function (a, b) { var d = order[kind(a)] - order[kind(b)]; return d || ((a.trigger_days == null ? 99 : a.trigger_days) - (b.trigger_days == null ? 99 : b.trigger_days)); });
+    jump += '<button type="button" data-go="' + g.id + '">' + g.title + ' (' + rs.length + ')</button>';
+    html += '<section class="group" id="' + g.id + '"><h2>' + g.title + '</h2><p>' + g.note + ' Buys come first, then waiting calls from closest to farthest from their trigger.</p><div class="cards">' + rs.map(card).join('') + '</div></section>';
+  });
+  document.getElementById('groups').innerHTML = html;
+  document.getElementById('groups').style.cssText = 'display:flex;flex-direction:column;gap:30px';
+  document.getElementById('jump').innerHTML = jump;
+  document.getElementById('glossary').innerHTML = G.map(function (g) { return '<p><b>' + g.name + '.</b> ' + esc(g.def(null)) + '</p>'; }).join('');
+
+  document.addEventListener('click', function (e) {
+    var go = e.target.closest('[data-go]');
+    if (go) { var el = document.getElementById(go.getAttribute('data-go')); if (el) el.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); return; }
+    var t = e.target.closest('.term');
+    if (!t) return;
+    var c = t.closest('.card'), box = c.querySelector('.defbox'), g = G[+t.getAttribute('data-g')];
+    var r = rows.filter(function (x) { return x.ticker === c.getAttribute('data-t'); })[0];
+    var same = !box.hidden && box.getAttribute('data-g') === t.getAttribute('data-g');
+    box.hidden = same; box.setAttribute('data-g', t.getAttribute('data-g'));
+    if (!same) { box.innerHTML = '<b>' + g.name + '.</b> ' + esc(g.def(r)); if (!c.querySelector('.why').contains(t)) c.querySelector('details.more').after(box); else c.querySelector('.why').after(box); }
+  });
+})();
+</script>
+</body>
+</html>

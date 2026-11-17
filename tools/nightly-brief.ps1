@@ -9,13 +9,18 @@
   3. Adds company name, price, trend, valuation and analyst data from the local yahoo-finance service.
   4. Writes logs/nightly/<date>/brief-data.json (and logs/nightly/latest.json).
 
-  Paper analysis only. Takes about 2.5 minutes per ticker.
+  Two rounds: the core watchlist and a second list of household brands under $50 (-BrandTickers).
+  5. Builds logs/nightly/<date>/brief.html, a self-contained page with trigger cards.
+
+  Paper analysis only. Takes about 2.5 minutes per ticker on the local models.
 
 .EXAMPLE
   .\tools\nightly-brief.ps1 -Tickers NVDA,KO
 #>
 param(
   [string[]]$Tickers = @('NVDA','MSFT','GOOGL','AMZN','TSLA','PLTR','JPM','UNH','KO','WMT','XOM','CAT'),  # 12 names across sectors; pass -Tickers to change
+  # Second round: household brands under $50 a share, each picked because it teaches something. Pass @() to skip.
+  [string[]]$BrandTickers = @('F','T','PFE','NKE','SNAP','CCL','AAL','SOFI','RIVN','KHC','GME','M'),
   [string]$Date = (Get-Date -Format yyyy-MM-dd),
   [string]$YahooUrl = 'http://localhost:38402',
   [string]$ModelProfile,   # name from tools/model-profiles.json (default there)
@@ -24,6 +29,24 @@ param(
   [string]$Adjustments = 'all'  # analysis adjustments: indicators,entrycheck,flat, all, or '' for none
 )
 $env:ANALYSIS_ADJUSTMENTS = $Adjustments
+$groupOf = @{}; foreach ($x in $BrandTickers) { $groupOf[$x] = 'brands' }; foreach ($x in $Tickers) { $groupOf[$x] = 'core' }
+$Tickers = @(@($Tickers) + @($BrandTickers) | Where-Object { $_ } | Select-Object -Unique)
+# What each brand is on the list to teach (shown on the page).
+$lessons = @{
+  F = 'Cyclical business: profits swing with the economy, and the dividend depends on them.'
+  T = 'Dividend versus debt: a big payout is only as safe as the cash left after interest.'
+  PFE = 'Patent cliff: what happens to a drug maker when its best sellers lose protection.'
+  NKE = 'Fallen giant: a great brand is not the same thing as a great stock.'
+  SNAP = 'Ad-dependent and volatile: one revenue source, big swings on every earnings report.'
+  CCL = 'Heavy debt after a crisis: recovery in sales does not mean recovery for shareholders.'
+  AAL = 'Airlines: thin margins, fuel costs and the economy decide the year.'
+  SOFI = 'Growth fintech: sensitive to interest rates and to promises about future profit.'
+  RIVN = 'Cash burn: a company spending more than it makes lives on its remaining cash.'
+  KHC = 'Value or value trap: a low price and a high dividend can both be warnings.'
+  GME = 'Sentiment stock: the crowd, not the business, often moves the price.'
+  M = 'Retail in decline: cheap can stay cheap when the business keeps shrinking.'
+}
+function Num($v) { if ($null -eq $v) { return $null }; $s = ([string]$v) -replace '[^0-9.\-]', ''; $n = 0.0; if ($s -and [double]::TryParse($s, [ref]$n)) { return $n }; return $null }
 $ErrorActionPreference = 'Continue'
 $root = Split-Path $PSScriptRoot -Parent
 Set-Location $root
@@ -65,6 +88,13 @@ $evalDir = Get-ChildItem (Join-Path $root 'logs/eval') -Directory | Where-Object
 if (-not $evalDir) { Write-Error 'No eval output found'; exit 1 }
 
 # 3. Parse decisions and add market data.
+# The most recent earlier call per ticker, to show whether the price moved toward or away from the trigger.
+$prevCall = @{}
+$ledgerPath = Join-Path $root 'data/ledger/decisions.jsonl'
+if (Test-Path $ledgerPath) {
+  Get-Content $ledgerPath | Where-Object { $_.Trim() } | ForEach-Object { try { $_ | ConvertFrom-Json } catch { } } |
+    Where-Object { $_.date -lt $Date } | Sort-Object date | ForEach-Object { $prevCall[$_.ticker] = $_ }
+}
 $rows = @()
 foreach ($t in $Tickers) {
   $o = [ordered]@{ ticker = $t }
@@ -72,7 +102,8 @@ foreach ($t in $Tickers) {
   $text = if (Test-Path $logPath) { Get-Content $logPath -Raw } else { '' }
   $json = $null
   $ms = [regex]::Matches($text, '\{[^{}]*"decision"[^{}]*\}')
-  if ($ms.Count) { try { $json = $ms[$ms.Count - 1].Value | ConvertFrom-Json } catch { $json = $null } }
+  # Models sometimes write LaTeX-style escapes (\%) inside the JSON; strip them or the whole block is lost.
+  if ($ms.Count) { try { $json = ($ms[$ms.Count - 1].Value -replace '\\(?!["\\/bfnrtu])', '') | ConvertFrom-Json } catch { $json = $null } }
   $fin = [regex]::Match($text, 'Final trading decision:\s*(BUY|HOLD|SELL)\s*\(Confidence:\s*([0-9.]+)\)')
   $d = if ($json) { ([string]$json.decision).ToUpper() } elseif ($fin.Success) { $fin.Groups[1].Value } else { 'HOLD' }
   $c = if ($json -and $json.confidence) { [double]$json.confidence } elseif ($fin.Success) { [double]$fin.Groups[2].Value } else { 0.3 }
@@ -82,12 +113,23 @@ foreach ($t in $Tickers) {
   $o['top_risk'] = Cut (@($json.key_risks)[0]) 90
   $o['change_my_mind'] = Cut $json.what_would_change_my_mind 120
   $o['pm_raw'] = if ($json) { ($json | ConvertTo-Json -Compress -Depth 4) } else { $null }
+  $o['group'] = $groupOf[$t]; if ($lessons[$t] -and $groupOf[$t] -eq 'brands') { $o['lesson'] = $lessons[$t] }
+  $o['why_full'] = Cut $json.rationale 420
+  $o['risks'] = @(@($json.key_risks) | Where-Object { $_ } | Select-Object -First 3 | ForEach-Object { Cut $_ 110 })
+  $o['trigger_price'] = if ($a -eq 'wait_for_trigger') { Num $json.trigger_price } else { $null }
+  $o['trigger_type'] = if ($json.trigger_type) { ([string]$json.trigger_type).ToLower() } else { $null }
+  $o['trigger_reason'] = Cut $json.trigger_reason 140
+  $o['walk_away'] = Num $json.walk_away_price
   try {
     $q = (Invoke-RestMethod "$YahooUrl/api/quote/$t" -TimeoutSec 40).data
     $s = (Invoke-RestMethod "$YahooUrl/api/quote-summary/${t}?modules=assetProfile,financialData" -TimeoutSec 40).data
     $start = (Get-Date $Date).AddDays(-45).ToString('yyyy-MM-dd'); $end = (Get-Date $Date).AddDays(2).ToString('yyyy-MM-dd')
     $csv = Invoke-RestMethod "$YahooUrl/api/historical/${t}?startDate=$start&endDate=$end" -TimeoutSec 40
-    $closes = @(); foreach ($l in ($csv -split "`n")) { if ($l -match '^\d{4}-\d\d-\d\d,') { $closes += [double](($l -split ',')[4]) } }
+    $closes = @(); $bars = @()
+    foreach ($l in ($csv -split "`n")) { if ($l -match '^\d{4}-\d\d-\d\d,') { $c = $l -split ','; $closes += [double]$c[4]; $bars += , @([double]$c[2], [double]$c[3], [double]$c[4]) } }
+    # ATR(14): the average daily range, used to say how many "typical days" away a trigger is.
+    $trs = @(); for ($i = 1; $i -lt $bars.Count; $i++) { $trs += [math]::Max($bars[$i][0] - $bars[$i][1], [math]::Max([math]::Abs($bars[$i][0] - $bars[$i - 1][2]), [math]::Abs($bars[$i][1] - $bars[$i - 1][2]))) }
+    $atr = if ($trs.Count -ge 14) { ($trs | Select-Object -Last 14 | Measure-Object -Average).Average } else { $null }
     $closes = @($closes | Select-Object -Last 30)
     $price = [double]$q.regularMarketPrice; $lo = [double]$q.fiftyTwoWeekLow; $hi = [double]$q.fiftyTwoWeekHigh
     $o['company'] = if ($q.displayName) { [string]$q.displayName } else { [string]$q.shortName }
@@ -108,6 +150,22 @@ foreach ($t in $Tickers) {
     $o['target'] = if ($tp) { [math]::Round([double]$tp, 2) } else { $null }
     $o['div_yield'] = if ($q.dividendYield) { [math]::Round([double]$q.dividendYield, 2) } else { 0 }
     $o['hi52'] = $hi; $o['lo52'] = $lo
+    $o['atr'] = if ($atr) { [math]::Round($atr, 2) } else { $null }
+    # Trigger card numbers. A trigger far from the price is treated as a parsing mistake and dropped.
+    $tp = $o['trigger_price']
+    if ($tp -and $price -and ($tp -lt 0.5 * $price -or $tp -gt 1.5 * $price)) { $tp = $null; $o['trigger_price'] = $null }
+    if ($o['walk_away'] -and $price -and ($o['walk_away'] -lt 0.4 * $price -or $o['walk_away'] -gt 1.6 * $price)) { $o['walk_away'] = $null }
+    if ($tp -and $price) {
+      if ($o['trigger_type'] -ne 'event') { $o['trigger_type'] = if ($tp -ge $price) { 'breakout' } else { 'pullback' } }
+      $o['trigger_gap_pct'] = [math]::Round(($tp / $price - 1) * 100, 2)
+      if ($atr) { $o['trigger_days'] = [math]::Round([math]::Abs($tp - $price) / $atr, 1) }
+      $pv = $prevCall[$t]
+      if ($pv -and $pv.price) {
+        $o['prev_date'] = $pv.date; $o['prev_price'] = $pv.price; $o['prev_trigger'] = $pv.trigger_price
+        $was = [math]::Abs($tp - [double]$pv.price); $now = [math]::Abs($tp - $price)
+        $o['trigger_trend'] = if ($now -lt $was * 0.98) { 'closer' } elseif ($now -gt $was * 1.02) { 'farther' } else { 'same' }
+      }
+    } elseif ($a -ne 'wait_for_trigger') { $o['trigger_type'] = $null; $o['trigger_reason'] = '' }
   } catch {
     Write-Warning "Market data failed for ${t}: $($_.Exception.Message)"
     if (-not $o.Contains('company')) { $o['company'] = $t }
@@ -131,18 +189,20 @@ $newKeys = @($rows | ForEach-Object { "$Date|$($_.ticker)|$($prof.Profile)" })
 $keep = @($keep | Where-Object { $e = $_ | ConvertFrom-Json; "$($e.date)|$($e.ticker)|$($e.profile)" -notin $newKeys })
 $lines = foreach ($r in $rows) {
   [ordered]@{
-    date = $Date; ticker = $r.ticker; profile = $prof.Profile; adjustments = $Adjustments; fast_model = $prof.Fast; decision_model = $prof.Decision
+    date = $Date; ticker = $r.ticker; group = $r.group; profile = $prof.Profile; adjustments = $Adjustments; fast_model = $prof.Fast; decision_model = $prof.Decision
     decision = $r.decision; confidence = $r.confidence; action_now = $r.action_now; label = $r.label
     price = $r.price; ma50 = $r.ma50; ma200 = $r.ma200; target = $r.target; range_pos = $r.range_pos
     pm = if ($r.pm_raw) { $r.pm_raw | ConvertFrom-Json } else { $null }
     stance = if ($trace[$r.ticker]) { [ordered]@{ market = $trace[$r.ticker].market; rm = $trace[$r.ticker].rm; trader = $trace[$r.ticker].trader; pm = $trace[$r.ticker].pm } } else { $null }
-    trigger_price = if ($trace[$r.ticker]) { $trace[$r.ticker].trigger_price } else { $null }
+    trigger_price = $r.trigger_price; trigger_type = $r.trigger_type; trigger_reason = $r.trigger_reason; walk_away = $r.walk_away; atr = $r.atr
   } | ConvertTo-Json -Compress -Depth 6
 }
 Set-Content -Path $ledgerFile -Value (@($keep) + @($lines)) -Encoding utf8
 Write-Host "Ledger: $ledgerFile ($($keep.Count + @($lines).Count) lines)"
 $file = Join-Path $outDir 'brief-data.json'
 ($rows | ConvertTo-Json -Depth 4) | Set-Content -Path $file -Encoding utf8
+# Self-contained page (trigger cards, plain-language calls); best effort, needs python.
+try { & python (Join-Path $PSScriptRoot 'build-brief-page.py') $file (Join-Path $outDir 'brief.html') $Date | Out-Host } catch { Write-Warning "Page build failed: $($_.Exception.Message)" }
 Copy-Item $file (Join-Path $root 'logs/nightly/latest.json') -Force
 Write-Host "`nWrote $file ($($rows.Count) rows)"
 $rows | Group-Object label | ForEach-Object { Write-Host ("  {0}: {1}" -f $_.Name, $_.Count) }

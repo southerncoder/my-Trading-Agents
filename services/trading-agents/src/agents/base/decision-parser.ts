@@ -33,7 +33,8 @@ function lastJsonBlock(text: string): any | undefined {
   for (const c of candidates.reverse()) {
     if (!c) continue;
     try {
-      return JSON.parse(c);
+      // Models sometimes write LaTeX-style escapes (\%, \$) inside strings, which are not valid JSON.
+      return JSON.parse(c.replace(/\\(?!["\\/bfnrtu])/g, ''));
     } catch {
       /* try next */
     }

@@ -83,7 +83,7 @@ def extract(path):
         pass
     if m:
         try:
-            out['pm_json'] = json.loads(m.group(0))
+            out['pm_json'] = json.loads(re.sub(r'\\(?!["\\/bfnrtu])', '', m.group(0)))
         except Exception:
             pass
     return out
