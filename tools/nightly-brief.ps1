@@ -209,10 +209,11 @@ Set-Content -Path $ledgerFile -Value (@($keep) + @($lines)) -Encoding utf8
 Write-Host "Ledger: $ledgerFile ($($keep.Count + @($lines).Count) lines)"
 $file = Join-Path $outDir 'brief-data.json'
 ($rows | ConvertTo-Json -Depth 4) | Set-Content -Path $file -Encoding utf8
-# Self-contained page (trigger cards, plain-language calls); best effort, needs python.
-try { & python (Join-Path $PSScriptRoot 'build-brief-page.py') $file (Join-Path $outDir 'brief.html') $Date | Out-Host } catch { Write-Warning "Page build failed: $($_.Exception.Message)" }
+# Full transcript per stock (every analyst, the debate, the plan, the risk voices, the final memo) for the page.
+try { & python (Join-Path $PSScriptRoot 'extract-pipeline.py') $evalDir.FullName (Join-Path $outDir 'pipeline.json') | Out-Null } catch { Write-Warning "Transcript extract failed: $($_.Exception.Message)" }
+# Data for the viewer page (logs/nightly/latest.html, written once); best effort, needs python.
+try { & python (Join-Path $PSScriptRoot 'build-brief-page.py') $file $Date | Out-Host } catch { Write-Warning "Page data build failed: $($_.Exception.Message)" }
 Copy-Item $file (Join-Path $root 'logs/nightly/latest.json') -Force
-$page = Join-Path $outDir 'brief.html'
-if (Test-Path $page) { Copy-Item $page (Join-Path $root 'logs/nightly/latest.html') -Force; Write-Host "Page: $page (also logs\nightly\latest.html)" }
+Write-Host "Page: $(Join-Path $root 'logs\nightly\latest.html') (opens the newest night; older nights from its picker)"
 Write-Host "`nWrote $file ($($rows.Count) rows)"
 $rows | Group-Object label | ForEach-Object { Write-Host ("  {0}: {1}" -f $_.Name, $_.Count) }

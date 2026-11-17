@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Nightly Brief __DATE__</title>
+<title>Nightly Brief</title>
 <script>try { var t = localStorage.getItem('brief-theme'); if (t) document.documentElement.setAttribute('data-theme', t); } catch (e) {}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -128,6 +128,39 @@ svg .hitrow:hover .hit { fill-opacity: .05; }
 svg.pchart { width: 100%; height: auto; display: block; cursor: crosshair; }
 svg.pchart text { font-family: var(--mono); font-size: 14px; fill: var(--ink); }
 .tip { position: fixed; z-index: 10; pointer-events: none; background: var(--card); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; font-size: .84rem; line-height: 1.45; white-space: pre-line; box-shadow: 0 6px 20px rgba(0, 0, 0, .18); max-width: 300px; }
+details.deep { border-top: 1px solid var(--line); padding-top: 10px; }
+details.deep > summary { cursor: pointer; font-weight: 600; font-size: .92rem; }
+details.deep[open] > summary { margin-bottom: 10px; }
+.deepbody { display: flex; flex-direction: column; gap: 16px; }
+.flow { background: var(--paper); border-radius: 10px; padding: 10px 12px; display: grid; gap: 8px; }
+.flow ol { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 4px; align-items: center; }
+.flow li { display: flex; align-items: center; gap: 6px; font-size: .86rem; }
+.flow li + li::before { content: "→"; color: var(--muted); margin-right: 2px; }
+.flow .tag { font-size: .76rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+.act { display: grid; gap: 8px; }
+.act h4 { margin: 0; font-family: var(--display); font-size: 1rem; }
+details.stage { border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+details.stage > summary { cursor: pointer; display: flex; gap: 10px; padding: 9px 11px; list-style: none; }
+details.stage > summary::-webkit-details-marker { display: none; }
+details.stage .badge { flex: none; width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; font: 600 .74rem var(--mono); background: var(--idle-bg); color: var(--ink); }
+details.stage .badge.bull { background: var(--go-bg); color: var(--go); }
+details.stage .badge.bear { background: var(--stop-bg); color: var(--stop); }
+details.stage .who { display: grid; gap: 2px; min-width: 0; }
+details.stage .teaser { font-size: .9rem; color: var(--ink); }
+details.stage[open] .teaser { display: none; }
+.mdbody { padding: 4px 14px 14px 51px; font-size: .9rem; overflow-wrap: anywhere; }
+.mdbody h3, .mdbody h4, .mdbody h5, .mdbody h6 { font-family: var(--display); margin: 14px 0 4px; font-size: .98rem; }
+.mdbody p, .mdbody ul, .mdbody ol { margin: 6px 0; max-width: none; }
+.mdbody ul, .mdbody ol { padding-left: 20px; }
+.mdbody hr { border: 0; border-top: 1px solid var(--line); margin: 12px 0; }
+.mdbody code { font-family: var(--mono); font-size: .85em; }
+.mdbody pre { background: var(--paper); padding: 8px 10px; border-radius: 6px; overflow-x: auto; white-space: pre-wrap; }
+.mdbody .tw { overflow-x: auto; margin: 8px 0; }
+.mdbody table { border-collapse: collapse; font-size: .85rem; }
+.mdbody th, .mdbody td { border: 1px solid var(--line); padding: 4px 8px; text-align: left; vertical-align: top; }
+.mdbody th { background: var(--paper); }
+@media (max-width: 600px) { .mdbody { padding-left: 14px; } }
+.nightpick select { font: inherit; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 1px 4px; }
 .noise { color: var(--accent); }
 </style>
 </head>
@@ -135,7 +168,7 @@ svg.pchart text { font-family: var(--mono); font-size: 14px; fill: var(--ink); }
 <main>
   <header>
     <button type="button" class="themebtn" id="theme"></button>
-    <div class="date" id="date"></div>
+    <div class="date"><span id="date"></span> <label class="nightpick" id="nightpick" hidden>Â· other nights <select id="nights"></select></label></div>
     <h1>Nightly brief</h1>
     <p id="takeaway"></p>
   </header>
@@ -164,10 +197,26 @@ svg.pchart text { font-family: var(--mono); font-size: 14px; fill: var(--ink); }
     <p>Paper analysis for learning. These are a language model's calls on fetched market data, not financial advice, and nothing here has been shown to beat the market. The confidence number is the model's own and has not been checked against results yet. Prices are from the time of the run, not live.</p>
   </footer>
 </main>
-<script id="data" type="application/json">__DATA__</script>
+<script src="nights.js"></script>
 <script>
+// The viewer is written once; each night only adds <date>/brief-data.js. Pick the night from the
+// address (#2026-11-16) or show the newest, then load its data and draw the page.
 (function () {
-  var D = JSON.parse(document.getElementById('data').textContent);
+  var nights = window.NIGHTS || [];
+  var want = decodeURIComponent(location.hash.slice(1)) || nights[0];
+  if (!want) { document.getElementById('takeaway').textContent = 'No nightly data yet: run tools/nightly-brief.ps1.'; return; }
+  var sel = document.getElementById('nights');
+  sel.innerHTML = nights.map(function (n) { return '<option' + (n === want ? ' selected' : '') + '>' + n + '</option>'; }).join('');
+  if (nights.length > 1) document.getElementById('nightpick').hidden = false;
+  sel.addEventListener('change', function () { location.hash = sel.value; location.reload(); });
+  var s = document.createElement('script');
+  s.src = want + '/brief-data.js';
+  s.onload = function () { start(window.BRIEF || {}); };
+  s.onerror = function () { document.getElementById('takeaway').textContent = 'No data file for ' + want + ' (expected ' + want + '/brief-data.js next to this page).'; };
+  document.head.appendChild(s);
+})();
+function start(D) {
+  document.title = 'Nightly Brief ' + (D.date || '');
   var rows = D.rows || [];
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
   var money = function (n) { return n == null || isNaN(n) ? 'n/a' : '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
@@ -417,6 +466,136 @@ svg.pchart text { font-family: var(--mono); font-size: 14px; fill: var(--ink); }
     return '<div class="pwrap"><span class="small muted">Last ' + n + ' trading days</span>' + s + '</svg></div>';
   }
 
+  // ---- the full analysis behind each call (rendered only when opened) ----
+  function mdEsc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function mdInline(s) {
+    s = mdEsc(s);
+    s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+    s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    s = s.replace(/(^|[\s(])\*([^*\s][^*]*?)\*(?=[\s).,;:]|$)/g, '$1<em>$2</em>');
+    s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1');
+    return s;
+  }
+  function md(src) {
+    var lines = String(src || '').replace(/\r/g, '').split('\n'), out = [], i = 0, stack = [];
+    function closeLists(to) { while (stack.length && stack[stack.length - 1].indent > to) { var t = stack.pop(); out.push('</li></' + t.tag + '>'); } }
+    function endLists() { closeLists(-1); }
+    while (i < lines.length) {
+      var ln = lines[i];
+      if (/^\s*```/.test(ln)) { endLists(); var code = []; i++; while (i < lines.length && !/^\s*```/.test(lines[i])) { code.push(lines[i]); i++; } i++; out.push('<pre><code>' + mdEsc(code.join('\n')) + '</code></pre>'); continue; }
+      if (!ln.trim()) { endLists(); i++; continue; }
+      var h = /^(#{1,6})\s+(.*)$/.exec(ln);
+      if (h) { endLists(); var n = Math.min(h[1].length + 2, 6); out.push('<h' + n + '>' + mdInline(h[2].replace(/\s*#+\s*$/, '')) + '</h' + n + '>'); i++; continue; }
+      if (/^\s*([-*_])\s*\1\s*\1[\s\-*_]*$/.test(ln)) { endLists(); out.push('<hr>'); i++; continue; }
+      if (/^\s*\|/.test(ln) && i + 1 < lines.length && /^\s*\|?[\s:\-|]+\|[\s:\-|]*$/.test(lines[i + 1])) {
+        endLists(); var rws = []; while (i < lines.length && /^\s*\|/.test(lines[i])) { rws.push(lines[i]); i++; }
+        var cells = function (r) { return r.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(function (c) { return c.trim(); }); };
+        var hd = cells(rws[0]), body = rws.slice(2);
+        var tb = '<div class="tw"><table><thead><tr>' + hd.map(function (c) { return '<th>' + mdInline(c) + '</th>'; }).join('') + '</tr></thead><tbody>';
+        body.forEach(function (r) { tb += '<tr>' + cells(r).map(function (c) { return '<td>' + mdInline(c) + '</td>'; }).join('') + '</tr>'; });
+        out.push(tb + '</tbody></table></div>'); continue;
+      }
+      var li = /^(\s*)([-*\u2022]|\d+[.)])\s+(.*)$/.exec(ln);
+      if (li) {
+        var ind = li[1].replace(/\t/g, '    ').length, tag = /\d/.test(li[2]) ? 'ol' : 'ul';
+        if (!stack.length || ind > stack[stack.length - 1].indent) { stack.push({ indent: ind, tag: tag }); out.push('<' + tag + '><li>' + mdInline(li[3])); }
+        else {
+          closeLists(ind);
+          if (stack.length && stack[stack.length - 1].indent === ind) out.push('</li><li>' + mdInline(li[3]));
+          else { stack.push({ indent: ind, tag: tag }); out.push('<' + tag + '><li>' + mdInline(li[3])); }
+        }
+        i++; continue;
+      }
+      endLists();
+      var para = [ln]; i++;
+      while (i < lines.length && lines[i].trim() && !/^(#{1,6}\s|\s*```|\s*\|)/.test(lines[i]) && !/^(\s*)([-*\u2022]|\d+[.)])\s+/.test(lines[i]) && !/^\s*([-*_])\s*\1\s*\1[\s\-*_]*$/.test(lines[i])) { para.push(lines[i]); i++; }
+      out.push('<p>' + para.map(function (p) { return mdInline(p.replace(/\s+$/, '')); }).join(' ') + '</p>');
+    }
+    endLists();
+    return out.join('\n');
+  }
+  function plainLine(s) { return s.replace(/[*`#>_]/g, '').replace(/^\s*([-\u2022]|\d+[.)])\s+/, '').replace(/\s+/g, ' ').trim(); }
+  // The first useful sentence or two, preferring a conclusion or summary section.
+  function teaser(text) {
+    var lines = String(text || '').split('\n'), cands = [], head = '', want = /conclusion|summary|outlook|bottom line|verdict|recommendation|takeaway|decision|overview|synthesis/i;
+    for (var i = 0; i < lines.length; i++) {
+      var l = lines[i].trim();
+      if (!l || /^```/.test(l) || /^\|/.test(l) || /^([-*_])\s*\1\s*\1/.test(l) || /^ENTRY STANCE/i.test(l)) continue;
+      var hh = /^#{1,6}\s+(.*)/.exec(l);
+      if (hh) { head = hh[1]; continue; }
+      var p = plainLine(l);
+      if (p.length < 70 || /^\{/.test(p)) continue;
+      cands.push({ head: head, text: p });
+    }
+    var pick = null;
+    for (var j = 0; j < cands.length; j++) if (want.test(cands[j].head)) { pick = cands[j]; break; }
+    if (!pick) pick = cands[0];
+    if (!pick) return 'No summary available.';
+    var t = pick.text;
+    if (t.length > 300) { var cut = t.slice(0, 300), k = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('; ')); t = k > 120 ? cut.slice(0, k + 1) : cut.replace(/\s+\S*$/, '') + '\u2026'; }
+    return t;
+  }
+  function readMins(text) { return Math.max(1, Math.round(String(text || '').split(/\s+/).length / 200)); }
+  var CAST = {
+    market: { n: 'The Chartist', r: 'Market Analyst', m: 'MA', d: 'reads the price chart and the indicators' },
+    social: { n: 'The Rumor Mill', r: 'Social / sentiment analyst', m: 'SO', d: 'what the crowd is saying (SentiSense scores and posts)' },
+    news: { n: 'The Headline Hunter', r: 'News Analyst', m: 'NW', d: 'the past week of headlines' },
+    fundamentals: { n: 'The Accountant', r: 'Fundamentals Analyst', m: 'FA', d: 'revenue, profit, debt and valuation' },
+    bull: { n: 'The Optimist', r: 'Bull Researcher', m: 'BU', d: 'argues for buying', k: 'bull' },
+    bear: { n: 'The Skeptic', r: 'Bear Researcher', m: 'BE', d: 'argues against', k: 'bear' },
+    research_manager: { n: 'The Referee', r: 'Research Manager', m: 'RM', d: 'weighs both sides and rules' },
+    trader: { n: 'The Planner', r: 'Trader', m: 'TR', d: 'turns the ruling into entries, stops and sizes' },
+    aggressive: { n: 'Full Send', r: 'Aggressive risk voice', m: 'AG', d: 'pushes for more size' },
+    conservative: { n: 'Seatbelt', r: 'Cautious risk voice', m: 'CO', d: 'protects the capital first' },
+    neutral: { n: 'The Fence', r: 'Neutral risk voice', m: 'NE', d: 'looks for the middle path' },
+    pm: { n: 'The Boss', r: 'Portfolio Manager', m: 'PM', d: 'makes the final call' }
+  };
+  var ACTS = [
+    { t: '1. The evidence', s: 'Four analysts each look at one kind of data. Nobody decides anything yet.', k: ['market', 'social', 'news', 'fundamentals'] },
+    { t: '2. The debate', s: 'One argues for buying, one against, and a referee rules.', k: ['bull', 'bear', 'research_manager'] },
+    { t: '3. The plan', s: 'The ruling becomes concrete prices, stops and position sizes.', k: ['trader'] },
+    { t: '4. The risk check', s: 'Three voices argue about how much risk the plan takes.', k: ['aggressive', 'conservative', 'neutral'] },
+    { t: '5. The decision', s: 'The final call that this card shows.', k: ['pm'] }
+  ];
+  var STANCE = { now: ['act now', 'k-now'], wait: ['wait for a trigger', 'k-proof'], none: ['pass', 'k-idle'] };
+  function flow(r) {
+    var st = r.stance || {};
+    var steps = [['market', 'The Chartist'], ['rm', 'The Referee'], ['trader', 'The Planner'], ['pm', 'The Boss']];
+    if (!steps.some(function (s) { return st[s[0]]; })) return '';
+    var h = '<div class="flow"><span class="small muted">Where each deciding stage landed on “buy now or wait”:</span><ol>';
+    steps.forEach(function (s) { var v = STANCE[st[s[0]]] || ['not stated', 'k-idle']; h += '<li><span class="who">' + s[1] + '</span><span class="tag ' + v[1] + '">' + v[0] + '</span></li>'; });
+    h += '</ol>';
+    var first = steps.filter(function (s) { return st[s[0]] === 'wait'; })[0];
+    if (first) h += '<p class="small muted">“Wait” first appears with <b>' + first[1] + '</b>' + (first[0] === 'market' ? ', the chart reader, before any debate happens.' : '.') + '</p>';
+    return h + '</div>';
+  }
+  function stage(key, text) {
+    var c = CAST[key];
+    return '<details class="stage"><summary><span class="badge' + (c.k ? ' ' + c.k : '') + '">' + c.m + '</span><span class="who"><b>' + c.n + '</b> <span class="muted small">' + c.r + ' · ' + c.d + ' · ' + readMins(text) + ' min</span><span class="teaser">' + esc(teaser(text)) + '</span></span></summary><div class="mdbody">' + md(text) + '</div></details>';
+  }
+  function deepBody(r) {
+    var p = r.pipeline || {}, h = flow(r);
+    ACTS.forEach(function (a) {
+      var ks = a.k.filter(function (k) { return p[k]; });
+      if (!ks.length) return;
+      h += '<section class="act"><h4>' + a.t + '</h4><p class="small muted">' + a.s + '</p>' + ks.map(function (k) { return stage(k, p[k]); }).join('') + '</section>';
+    });
+    return h || '<p class="muted">The full transcript was not saved for this stock.</p>';
+  }
+  function deep(r) {
+    var p = r.pipeline || {}, words = Object.keys(p).reduce(function (s, k) { return s + String(p[k] || '').split(/\s+/).length; }, 0);
+    if (!words && !r.stance) return '';
+    return '<details class="deep" data-t="' + esc(r.ticker) + '"><summary>How this call was made: every analyst, the debate and the final memo' + (words ? ' <span class="muted">(' + Math.round(words / 200) + ' min read in full)</span>' : '') + '</summary><div class="deepbody"></div></details>';
+  }
+  document.addEventListener('toggle', function (e) {
+    var d = e.target;
+    if (!d.classList || !d.classList.contains('deep') || !d.open) return;
+    var body = d.querySelector('.deepbody');
+    if (body.getAttribute('data-done')) return;
+    var r = rows.filter(function (x) { return x.ticker === d.getAttribute('data-t'); })[0];
+    body.innerHTML = deepBody(r); body.setAttribute('data-done', '1');
+  }, true);
+
   function card(r) {
     var k = kind(r), used = {}, h = '<article class="card c-' + k + '" data-t="' + esc(r.ticker) + '">';
     h += '<div class="top"><div class="name"><a class="tk" href="https://finance.yahoo.com/quote/' + encodeURIComponent(r.ticker) + '">' + esc(r.ticker) + '</a><span class="co">' + esc(r.company || '') + (r.sector ? ' · ' + esc(r.sector) : '') + '</span></div>';
@@ -435,6 +614,7 @@ svg.pchart text { font-family: var(--mono); font-size: 14px; fill: var(--ink); }
     if (risks.length) h += '<div><span class="k">Biggest risks</span><ul>' + risks.map(function (x) { return '<li>' + withTerms(x, r, used) + '</li>'; }).join('') + '</ul></div>';
     if (r.change_my_mind) h += '<p><span class="k">It would change its mind if: </span>' + withTerms(r.change_my_mind, r, used) + '</p>';
     h += '</div></details>';
+    h += deep(r);
     h += '<div class="facts"><span>30 days <span class="num ' + (r.ret30_pct >= 0 ? 'up' : 'down') + '">' + pct(r.ret30_pct, true) + '</span></span>';
     if (r.range_pos != null) h += '<span>' + r.range_pos + '% of the way from its 52-week low to high</span>';
     h += '<span>model confidence <span class="num">' + Math.round((r.confidence || 0) * 100) + '%</span></span></div>';
@@ -529,7 +709,7 @@ svg.pchart text { font-family: var(--mono); font-size: 14px; fill: var(--ink); }
     box.hidden = same; box.setAttribute('data-g', t.getAttribute('data-g'));
     if (!same) { box.innerHTML = '<b>' + g.name + '.</b> ' + esc(g.def(r)); if (!c.querySelector('.why').contains(t)) c.querySelector('details.more').after(box); else c.querySelector('.why').after(box); }
   });
-})();
+}
 </script>
 </body>
 </html>
