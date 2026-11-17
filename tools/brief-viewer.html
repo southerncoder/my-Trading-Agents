@@ -42,7 +42,7 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; }
 body { background: var(--paper); color: var(--ink); font: 16px/1.5 var(--body); }
-main { max-width: 1060px; margin: 0 auto; padding: 28px 18px 60px; display: flex; flex-direction: column; gap: 26px; }
+main { width: 100%; margin: 0 auto; padding: 28px max(18px, 2vw) 60px; display: flex; flex-direction: column; gap: 26px; }
 h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; line-height: 1.15; }
 h1 { font-size: 2rem; font-weight: 700; }
 h2 { font-size: 1.35rem; font-weight: 700; }
@@ -91,7 +91,7 @@ section.group > p { color: var(--muted); }
 .verdict .tag { align-self: flex-start; font-size: .78rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; padding: 2px 9px; border-radius: 999px; }
 .verdict .say { font-family: var(--display); font-size: 1.18rem; font-weight: 700; line-height: 1.25; }
 svg.track { width: 100%; height: auto; display: block; }
-svg.track text { font-family: var(--mono); font-size: 15px; fill: var(--ink); }
+svg.track text { font-family: var(--mono); font-size: 13px; fill: var(--ink); }
 svg.track .lbl-muted { fill: var(--muted); }
 .progress { font-size: .95rem; }
 .progress b { font-weight: 600; }
@@ -113,7 +113,7 @@ header { position: relative; padding-right: 110px; }
 .themebtn { position: absolute; top: 0; right: 0; font: 600 .88rem var(--body); color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; cursor: pointer; }
 .themebtn:hover { border-color: var(--accent); }
 .glance { display: grid; gap: 14px; grid-template-columns: 1fr; }
-@media (min-width: 980px) { .glance { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 900px) { .glance { grid-template-columns: 1fr 1fr; } }
 .panel { margin: 0; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .panel figcaption { display: grid; gap: 3px; }
 .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: .82rem; color: var(--muted); }
@@ -126,7 +126,7 @@ svg .hit { fill: var(--ink); fill-opacity: 0; }
 svg .hitrow:hover .hit { fill-opacity: .05; }
 .pwrap { display: grid; gap: 2px; }
 svg.pchart { width: 100%; height: auto; display: block; cursor: crosshair; }
-svg.pchart text { font-family: var(--mono); font-size: 14px; fill: var(--ink); }
+svg.pchart text { font-family: var(--mono); font-size: 12.5px; fill: var(--ink); }
 .tip { position: fixed; z-index: 10; pointer-events: none; background: var(--card); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; font-size: .84rem; line-height: 1.45; white-space: pre-line; box-shadow: 0 6px 20px rgba(0, 0, 0, .18); max-width: 300px; }
 details.deep { border-top: 1px solid var(--line); padding-top: 10px; }
 details.deep > summary { cursor: pointer; font-weight: 600; font-size: .92rem; }
@@ -161,6 +161,7 @@ details.stage[open] .teaser { display: none; }
 .mdbody th { background: var(--paper); }
 @media (max-width: 600px) { .mdbody { padding-left: 14px; } }
 .nightpick select { font: inherit; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 1px 4px; }
+.card p, .panel p { max-width: none; }
 .noise { color: var(--accent); }
 </style>
 </head>
@@ -218,6 +219,10 @@ details.stage[open] .teaser { display: none; }
 function start(D) {
   document.title = 'Nightly Brief ' + (D.date || '');
   var rows = D.rows || [];
+  // Widths the charts will actually get (page content width, one or two columns), in pixels.
+  var pageW = document.getElementById('groups').clientWidth || 900, twoCols = window.innerWidth >= 900;
+  var colW = twoCols ? (pageW - 14) / 2 : pageW;
+  var CARDW = Math.max(300, Math.round(colW - 42)), GLANCEW = Math.max(300, Math.round(colW - 34));
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
   var money = function (n) { return n == null || isNaN(n) ? 'n/a' : '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
   var pct = function (n, sign) { return n == null || isNaN(n) ? 'n/a' : (sign && n > 0 ? '+' : '') + Number(n).toFixed(Math.abs(n) < 10 ? 1 : 0) + '%'; };
@@ -291,10 +296,10 @@ function start(D) {
     // Keep at least two typical days of movement either side of today, so a gap smaller than a normal
     // day's wiggle LOOKS small instead of filling the whole line.
     if (r.atr) { lo = Math.min(lo, r.price - 2 * r.atr); hi = Math.max(hi, r.price + 2 * r.atr); }
-    var W = 600, x = function (v) { return 24 + (v - lo) / (hi - lo) * (W - 48); };
+    var W = CARDW, x = function (v) { return 24 + (v - lo) / (hi - lo) * (W - 48); };
     var anchor = function (px) { return px < 130 ? 'start' : px > W - 130 ? 'end' : 'middle'; };
-    var s = '<svg class="track" viewBox="0 0 600 102" role="img" aria-label="Price scale for ' + esc(r.ticker) + '">';
-    s += '<line x1="24" y1="48" x2="576" y2="48" stroke="var(--line)" stroke-width="6" stroke-linecap="round"/>';
+    var s = '<svg class="track" viewBox="0 0 ' + W + ' 102" role="img" aria-label="Price scale for ' + esc(r.ticker) + '">';
+    s += '<line x1="24" y1="48" x2="' + (W - 24) + '" y2="48" stroke="var(--line)" stroke-width="6" stroke-linecap="round"/>';
     if (r.atr) {
       var b1 = x(r.price - r.atr), b2 = x(r.price + r.atr);
       s += '<rect x="' + b1 + '" y="40" width="' + (b2 - b1) + '" height="16" rx="4" fill="var(--ink)" opacity="0.07"><title>One typical day of movement either way</title></rect>';
@@ -340,7 +345,7 @@ function start(D) {
   // Colors: amber = wants proof (climb), blue = wants a discount (dip), teal = up, orange = down.
   // All four pairs pass the dataviz validator for light and dark, including colorblind separation.
   // Text always uses the ink colors; position (left/right of zero) carries direction as well.
-  var CW = 340, LBL = 52, PADR = 12, RH = 22;
+  var CW = GLANCEW, LBL = 52, PADR = 12, RH = 22;
   var fmtDate = function (d) { var t = new Date(d + 'T12:00:00'); return isNaN(t) ? d : t.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); };
   function tipAttr(lines) { return ' data-tip="' + esc(lines.filter(Boolean).join('\n')) + '"'; }
   function panel(title, sub, body, foot) {
@@ -403,26 +408,27 @@ function start(D) {
     return panel('Where each sits in its year', 'Between its lowest and highest price of the past 52 weeks.', s + '</svg>', 'Near the high is not “expensive” and near the low is not “cheap”. This shows momentum, not value.');
   }
 
-  function chartMove(rs) {
-    var it = rs.filter(function (r) { return r.day_pct != null; }).sort(function (a, b) { return b.day_pct - a.day_pct; });
+  function chartMove(rs, o) {
+    o = o || { f: 'day_pct', title: 'Today’s move', sub: 'How far each stock moved during the day.', foot: 'Several falling together usually means the whole market moved, not each company’s news.', when: 'today' };
+    var it = rs.filter(function (r) { return r[o.f] != null; }).sort(function (a, b) { return b[o.f] - a[o.f]; });
     if (!it.length) return '';
-    var M = Math.max(1, Math.ceil(Math.max.apply(null, it.map(function (r) { return Math.abs(r.day_pct); })))), top = 26, H = top + it.length * RH + 24;
+    var M = Math.max(1, Math.ceil(Math.max.apply(null, it.map(function (r) { return Math.abs(r[o.f]); })))), top = 26, H = top + it.length * RH + 24;
     var x = function (v) { return LBL + (v + M) / (2 * M) * (CW - LBL - PADR); }, z = x(0);
     var s = '<svg class="chart" viewBox="0 0 ' + CW + ' ' + H + '" role="img" aria-label="How far each stock moved today, in percent">';
     s += '<text x="' + x(-M) + '" y="13" class="lbl-muted">← down</text><text x="' + x(M) + '" y="13" text-anchor="end" class="lbl-muted">up →</text>';
     it.forEach(function (r, i) {
-      var y = row(i, top), v = r.day_pct;
-      s += hit(y, [r.ticker + ' ' + pct(v, true) + ' today', 'Price ' + money(r.price), 'Past 30 days ' + pct(r.ret30_pct, true)]);
+      var y = row(i, top), v = r[o.f];
+      s += hit(y, [r.ticker + ' ' + pct(v, true) + ' ' + o.when, 'Price ' + money(r.price), o.f === 'day_pct' ? 'Past 30 days ' + pct(r.ret30_pct, true) : 'Today ' + pct(r.day_pct, true)]);
       s += '<text x="0" y="' + (y + 4) + '" class="tkl">' + esc(r.ticker) + '</text>';
       s += hbar(z, x(v), y, 12, v >= 0 ? 'var(--m-up)' : 'var(--m-down)') + '</g>';
     });
     s += '<line x1="' + z + '" y1="' + (top - 4) + '" x2="' + z + '" y2="' + (top + it.length * RH + 2) + '" stroke="var(--muted)" stroke-width="1"/>';
     var by = top + it.length * RH + 18;
     s += '<text x="' + x(-M) + '" y="' + by + '" class="lbl-muted">-' + M + '%</text><text x="' + z + '" y="' + by + '" text-anchor="middle" class="lbl-muted">0</text><text x="' + x(M) + '" y="' + by + '" text-anchor="end" class="lbl-muted">+' + M + '%</text>';
-    return panel('Today’s move', 'How far each stock moved during the day.', s + '</svg>', 'Several falling together usually means the whole market moved, not each company’s news.');
+    return panel(o.title, o.sub, s + '</svg>', o.foot);
   }
 
-  function glance(rs) { return '<div class="glance">' + chartTrigger(rs) + chartRange(rs) + chartMove(rs) + '</div>'; }
+  function glance(rs) { return '<div class="glance">' + chartTrigger(rs) + chartRange(rs) + chartMove(rs) + chartMove(rs, { f: 'ret30_pct', title: 'Past 30 days', sub: 'How far each stock moved over the last 30 trading days.', foot: 'One day is mostly noise; the 30-day move is the trend the analysts are reading.', when: 'over 30 days' }) + '</div>'; }
 
   // Per card: the last 30 closes with the trigger, walk-away level and 50-day average drawn across.
   var PT = {};
@@ -437,7 +443,7 @@ function start(D) {
     if (r.ma50 && r.ma50 > lo - span * 0.8 && r.ma50 < hi + span * 0.8) lines.push({ v: r.ma50, t: '50-day avg ' + money(r.ma50), c: 'var(--muted)', d: '2 4' });
     lines.forEach(function (l) { lo = Math.min(lo, l.v); hi = Math.max(hi, l.v); });
     var pad = (hi - lo) * 0.08 || 1; lo -= pad; hi += pad;
-    var W = 600, H = 176, L = 8, R = 205, T = 12, B = 26, n = v.length;
+    var W = CARDW, H = 190, L = 8, R = 190, T = 12, B = 26, n = v.length;
     var x = function (i) { return L + i / (n - 1) * (W - L - R); }, y = function (p) { return T + (hi - p) / (hi - lo) * (H - T - B); };
     var s = '<svg class="pchart" viewBox="0 0 ' + W + ' ' + H + '" data-t="' + esc(r.ticker) + '" role="img" aria-label="' + esc(r.ticker) + ' closing prices over the last ' + n + ' trading days">';
     s += '<line x1="' + L + '" y1="' + (H - B) + '" x2="' + (W - R) + '" y2="' + (H - B) + '" stroke="var(--line)" stroke-width="1"/>';
@@ -663,8 +669,18 @@ function start(D) {
     document.documentElement.setAttribute('data-theme', next);
     try { localStorage.setItem('brief-theme', next); } catch (e) { /* storage blocked: the switch still works for this visit */ }
     themeLabel();
+  var lastW = window.innerWidth, rt = null;
+  window.addEventListener('resize', function () {
+    clearTimeout(rt);
+    rt = setTimeout(function () { if (Math.abs(window.innerWidth - lastW) > 80) { var y = window.scrollY; location.hash = D.date || ''; location.reload(); window.scrollTo(0, y); } }, 400);
+  });
   });
   themeLabel();
+  var lastW = window.innerWidth, rt = null;
+  window.addEventListener('resize', function () {
+    clearTimeout(rt);
+    rt = setTimeout(function () { if (Math.abs(window.innerWidth - lastW) > 80) { var y = window.scrollY; location.hash = D.date || ''; location.reload(); window.scrollTo(0, y); } }, 400);
+  });
 
   // ---- hover: tooltips on chart rows, crosshair on the 30-day charts ----
   var tip = document.createElement('div'); tip.className = 'tip'; tip.hidden = true; document.body.appendChild(tip);
