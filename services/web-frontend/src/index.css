@@ -11,7 +11,99 @@
 @import './themes/material.css';
 
 @import "tailwindcss";
-@config "../tailwind.config.js";
+
+/* Theme tokens (moved from tailwind.config.js). Each --color-*, --font-*, --shadow-* and --animate-* name becomes a utility. */
+@theme {
+  --font-press-start: "Press Start 2P", monospace;
+  --font-fira-code: "Fira Code", monospace;
+  --font-inter: Inter, sans-serif;
+
+  /* Futuristic color palette inspired by southerncoding.dev */
+  --color-electric-blue: #7dd3fc;
+  --color-neon-green: #00ff88;
+  --color-neon-pink: #ff0080;
+  --color-cyber-purple: #8b5cf6;
+  --color-matrix-green: #00ff41;
+
+  /* Dark theme base colors */
+  --color-dark-50: #1e293b;
+  --color-dark-100: #0f172a;
+  --color-dark-200: #020617;
+  --color-dark-300: #000000;
+
+  /* Trading-specific colors */
+  --color-bull-50: #ecfdf5;
+  --color-bull-400: #4ade80;
+  --color-bull-500: #00ff88; /* Neon green */
+  --color-bull-600: #00e676;
+  --color-bull-700: #00c853;
+  --color-bull-800: #00a047;
+  --color-bull-900: #007c3a;
+  --color-bear-50: #fef2f2;
+  --color-bear-400: #f87171;
+  --color-bear-500: #ff0080; /* Neon pink */
+  --color-bear-600: #e91e63;
+  --color-bear-700: #c2185b;
+  --color-bear-800: #ad1457;
+  --color-bear-900: #880e4f;
+
+  /* Neutral grays for dark theme (same values as Tailwind's slate 50-900) */
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a;
+
+  --shadow-neon: 0 0 5px currentColor, 0 0 10px currentColor, 0 0 15px currentColor;
+  --shadow-neon-lg: 0 0 10px currentColor, 0 0 20px currentColor, 0 0 30px currentColor;
+  --shadow-cyber: 0 4px 14px 0 rgba(125, 211, 252, 0.15);
+  --shadow-cyber-lg: 0 8px 25px 0 rgba(125, 211, 252, 0.25);
+
+  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-bounce-slow: bounce 2s infinite;
+  --animate-blink: blink 1.5s step-end infinite;
+  --animate-glow: glow 2s ease-in-out infinite alternate;
+  --animate-matrix: matrix 20s linear infinite;
+  --animate-slide-up: slideUp 0.5s ease-out;
+  --animate-fade-in: fadeIn 0.3s ease-out;
+
+  @keyframes blink {
+    from, to { opacity: 0; }
+    50% { opacity: 1; }
+  }
+  @keyframes glow {
+    from { box-shadow: 0 0 5px #7dd3fc, 0 0 10px #7dd3fc, 0 0 15px #7dd3fc; }
+    to { box-shadow: 0 0 10px #7dd3fc, 0 0 20px #7dd3fc, 0 0 30px #7dd3fc; }
+  }
+  @keyframes matrix {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(100vh); }
+  }
+  @keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+}
+
+/* Background images have no theme namespace in Tailwind 4, so they are utilities */
+@utility bg-gradient-cyber {
+  background-image: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+}
+@utility bg-gradient-neon {
+  background-image: linear-gradient(135deg, #7dd3fc 0%, #8b5cf6 50%, #ec4899 100%);
+}
+@utility bg-gradient-matrix {
+  background-image: linear-gradient(180deg, transparent 0%, #00ff41 50%, transparent 100%);
+}
 
 /* CSS Custom Properties for theme system */
 :root {
