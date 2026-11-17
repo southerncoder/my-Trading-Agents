@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
-    "build": "tsc",
+    "build": "node node_modules/typescript/bin/tsc",
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
     "test": "vitest --run",
@@ -17,7 +17,8 @@
     "test:coverage": "vitest --run --coverage",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "type-check": "tsc --noEmit"
+    "type-check": "node node_modules/native-typescript/bin/tsc --noEmit",
+    "type-check:6": "node node_modules/typescript/bin/tsc --noEmit"
   },
   "dependencies": {
     "axios": "^1.7.7",
@@ -31,6 +32,7 @@
     "@vitest/coverage-v8": "^5.1.0",
     "dotenv": "^18.0.10",
     "eslint": "^10.14.0",
+    "native-typescript": "npm:typescript@^7.0.2",
     "tsx": "^4.19.2",
     "typescript": "^6.0.3",
     "vitest": "^5.1.0"

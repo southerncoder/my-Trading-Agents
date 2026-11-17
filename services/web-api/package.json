@@ -7,13 +7,14 @@
   "scripts": {
     "dev": "nodemon --exec \"node --loader ts-node/esm src/server.ts\"",
     "dev:https": "cross-env HTTPS_ENABLED=true nodemon --exec \"node --loader ts-node/esm src/server.ts\"",
-    "build": "tsc",
+    "build": "node node_modules/typescript/bin/tsc",
     "start": "node dist/server.js",
     "start:https": "cross-env HTTPS_ENABLED=true node dist/server.js",
     "generate-certs": "bash scripts/generate-local-certs.sh",
     "generate-certs:windows": "powershell -ExecutionPolicy Bypass -File scripts/generate-local-certs.ps1",
     "lint": "eslint .",
-    "type-check": "tsc --noEmit",
+    "type-check": "node node_modules/native-typescript/bin/tsc --noEmit",
+    "type-check:6": "node node_modules/typescript/bin/tsc --noEmit",
     "docker:build": "docker build -t trading-agents-web-api .",
     "docker:run": "docker run -p 3001:3001 trading-agents-web-api",
     "lint:fix": "eslint . --fix"
@@ -33,6 +34,7 @@
     "@types/ws": "^8.5.12",
     "cross-env": "^10.1.0",
     "eslint": "^10.14.0",
+    "native-typescript": "npm:typescript@^7.0.2",
     "nodemon": "^3.1.7",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3"

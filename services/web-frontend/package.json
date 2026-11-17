@@ -6,14 +6,15 @@
   "scripts": {
     "dev": "vite",
     "dev:https": "cross-env HTTPS_ENABLED=true vite",
-    "build": "tsc && vite build",
+    "build": "node node_modules/typescript/bin/tsc && vite build",
     "preview": "vite preview",
     "preview:https": "cross-env HTTPS_ENABLED=true vite preview",
     "generate-certs": "bash scripts/generate-local-certs.sh",
     "generate-certs:windows": "powershell -ExecutionPolicy Bypass -File scripts/generate-local-certs.ps1",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "type-check": "tsc --noEmit",
+    "type-check": "node node_modules/native-typescript/bin/tsc --noEmit",
+    "type-check:6": "node node_modules/typescript/bin/tsc --noEmit",
     "docker:build": "docker build -t trading-agents-web-frontend .",
     "docker:run": "docker run -p 3000:80 trading-agents-web-frontend"
   },
@@ -34,6 +35,7 @@
     "@vitejs/plugin-react": "^6.3.0",
     "cross-env": "^10.1.0",
     "eslint": "^10.14.0",
+    "native-typescript": "npm:typescript@^7.0.2",
     "typescript": "^6.0.3",
     "vite": "^8.3.8"
   },
