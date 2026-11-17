@@ -5,7 +5,7 @@ import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { StructuredTool } from '@langchain/core/tools';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AbstractAgent } from '../base';
-import { buildEvidenceBlock, positionContext } from '../base/evidence';
+import { buildEvidenceBlock, positionContext, noiseRule } from '../base/evidence';
 import { AgentState, AgentStateHelpers } from '../../types/agent-states';
 
 /**
@@ -237,6 +237,6 @@ FINAL DECISION: <exactly one word: BUY or HOLD or SELL>
 CONFIDENCE: <a decimal between 0.00 and 1.00>
 In the JSON, choose exactly one value for decision and for action_now (BUY means you would enter now; if you would wait for a trigger, the decision is HOLD with action_now=wait_for_trigger). SELL means reduce or exit an existing position, or open a short now (action_now=enter_now; a short is a bet the price falls). If you would short only after a trigger, the decision is HOLD with action_now=wait_for_trigger and the trigger stated in the rationale. trigger_price is a single number: the price at which you would act when action_now is wait_for_trigger (the nearest trigger if there are several); otherwise null. trigger_type is "breakout" (act only after the price RISES to trigger_price), "pullback" (act only after it FALLS to trigger_price) or "event" (a non-price trigger); null when not waiting. trigger_reason says in 15 words or fewer why that exact level matters (for example: the recent high, the 50-day average, last month's low); null when not waiting. walk_away_price is the single price at which the idea is abandoned (the stop level) for any buy, short or pending entry; otherwise null. Write plain numbers and plain text in the JSON: no backslashes, no dollar signs around numbers. Replace all placeholders with real values; do not repeat the placeholder text.`;
 
-    return new HumanMessage(prompt + positionContext() + buildEvidenceBlock(state));
+    return new HumanMessage(prompt + positionContext() + noiseRule() + buildEvidenceBlock(state));
   }
 }

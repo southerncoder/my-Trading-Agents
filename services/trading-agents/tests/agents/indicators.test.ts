@@ -1,7 +1,7 @@
 // Run: npx vite-node tests/agents/indicators.test.ts
 import assert from 'node:assert/strict';
-import { parseBars, rsi, macd, atr, indicatorBlock } from '../../src/agents/base/indicators';
-import { adjustmentOn } from '../../src/agents/base/evidence';
+import { parseBars, rsi, macd, atr, indicatorBlock, typicalMoveLine } from '../../src/agents/base/indicators';
+import { adjustmentOn, noiseRule } from '../../src/agents/base/evidence';
 
 const near = (a: number | undefined, b: number, tol = 0.01) => assert.ok(a !== undefined && Math.abs(a - b) <= tol, `${a} not within ${tol} of ${b}`);
 
@@ -50,5 +50,21 @@ process.env.ANALYSIS_ADJUSTMENTS = 'all';
 assert.equal(adjustmentOn('entrycheck'), true);
 delete process.env.ANALYSIS_ADJUSTMENTS;
 assert.equal(adjustmentOn('indicators'), false);
+
+// Typical daily move line: ATR 2.00 on the +1/bar series, last close 159
+const move = typicalMoveLine(rows);
+assert.match(move, /^TYPICAL DAILY MOVE/);
+assert.match(move, /last close 159\.00; ATR\(14\) 2\.00/);
+assert.match(move, /within 1\.00 of the price/);
+assert.equal(typicalMoveLine(csv), '');
+
+// Noise rule follows its switch
+delete process.env.ANALYSIS_ADJUSTMENTS;
+assert.equal(noiseRule(), '');
+process.env.ANALYSIS_ADJUSTMENTS = 'noise';
+assert.match(noiseRule(), /NOISE RULE/);
+process.env.ANALYSIS_ADJUSTMENTS = 'all';
+assert.match(noiseRule(), /NOISE RULE/);
+delete process.env.ANALYSIS_ADJUSTMENTS;
 
 console.log('indicators tests passed');

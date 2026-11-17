@@ -81,9 +81,10 @@ export const ENTRY_STANCE_LINE =
  *   indicators - give the Market Analyst RSI/MACD/ATR/Bollinger computed in code
  *   entrycheck - make the Market Analyst and Trader judge today's price and the cost of waiting
  *   flat       - tell the deciding stages that no position is held (until the portfolio supplies it)
+ *   noise      - triggers at least half a typical day from the price, stops at least one day from entry
  *   all        - everything
  */
-export function adjustmentOn(name: 'indicators' | 'entrycheck' | 'flat'): boolean {
+export function adjustmentOn(name: 'indicators' | 'entrycheck' | 'flat' | 'noise'): boolean {
   const set = (process.env.ANALYSIS_ADJUSTMENTS || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
   return set.includes('all') || set.includes(name);
 }
@@ -105,5 +106,16 @@ export function positionContext(): string {
   return (
     '\n\nPOSITION CONTEXT: no position in this stock is currently held. The question is only whether to open a new ' +
     'position today, wait for a stated trigger, or pass. Do not give advice for existing holders.'
+  );
+}
+
+/** Noise rule: a level inside one ordinary day's move is not a real condition. */
+export function noiseRule(): string {
+  if (!adjustmentOn('noise')) return '';
+  return (
+    '\n\nNOISE RULE: the market report starts with a TYPICAL DAILY MOVE line (ATR, one typical day of movement). ' +
+    "A price trigger closer to today's price than half of that move is inside ordinary daily noise and is not a real condition: " +
+    'either act now, or pass, or name a level at least half a typical day away and say why that level matters. ' +
+    "Put the walk-away (stop) price at least one typical day's move from the entry, unless you explain why a tighter level is meaningful."
   );
 }

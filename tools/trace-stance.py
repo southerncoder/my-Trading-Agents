@@ -77,6 +77,9 @@ def stance(full_text, *sections):
     return first_clear(*sections)
 
 
+TYPICAL = re.compile(r'TYPICAL DAILY MOVE[^\n]*?last close ([\d.]+); ATR\(14\) ([\d.]+)')
+
+
 def first_clear(*texts):
     """Stance of the first section that gives a clear answer (the headline section wins over its details)."""
     for t in texts:
@@ -113,7 +116,19 @@ def trace(path):
     pm = {'enter_now': 'now', 'wait_for_trigger': 'wait', 'hold_existing': 'none', 'reduce': 'now', 'exit': 'now'}.get(action, '?')
     trader = d.get('trader', '')
     price = current_price(d.get('market', ''))
+    # Runs with the computed TYPICAL DAILY MOVE line give an exact close and ATR: measure the
+    # Portfolio Manager's trigger and walk-away level in typical days of movement.
+    tm = TYPICAL.search(d.get('market', '') or '')
+    atr_v = float(tm.group(2)) if tm else None
+    if tm:
+        price = float(tm.group(1))
+    num = lambda v: float(v) if isinstance(v, (int, float)) and v > 0 else None  # noqa: E731
+    trig, walk = num(pm_json.get('trigger_price')), num(pm_json.get('walk_away_price'))
+    in_days = lambda lvl: round(abs(lvl - price) / atr_v, 2) if (lvl and price and atr_v) else None  # noqa: E731
     return {
+        'atr': atr_v,
+        'trigger_atr': in_days(trig) if pm == 'wait' else None,
+        'walk_atr': in_days(walk),
         'ticker': pathlib.Path(path).name.rsplit('-', 1)[0],
         'run': pathlib.Path(path).stem.rsplit('-', 1)[-1],
         'market': stance(d.get('market', ''), section(d.get('market', ''), r'Conclusion'), section(d.get('market', ''), r'Market Timing')),
@@ -172,6 +187,14 @@ def main():
         below = [g for g in gaps if g < 0]
         print(f"=== Trader's nearest entry level vs current price (n={len(gaps)}) ===")
         print(f"  median gap {statistics.median(gaps):+.2f}%   below price: {len(below)}/{len(gaps)}   median |gap| {statistics.median([abs(g) for g in gaps]):.2f}%")
+    trig = [r['trigger_atr'] for r in rows if r.get('trigger_atr') is not None]
+    walk = [r['walk_atr'] for r in rows if r.get('walk_atr') is not None]
+    if trig or walk:
+        print('=== Levels in typical days of movement (ATR), from the computed line ===')
+    if trig:
+        print(f"  triggers: n={len(trig)}  inside half a day: {sum(t < 0.5 for t in trig)}/{len(trig)}  median {statistics.median(trig):.2f} days")
+    if walk:
+        print(f"  walk-away levels: n={len(walk)}  inside one day: {sum(w < 1 for w in walk)}/{len(walk)}  median {statistics.median(walk):.2f} days")
     stated = sum(r['stated'] for r in rows)
     print(f'Stance lines stated by the stages themselves: {stated}/{3 * n} (the rest are text heuristics, less reliable)')
     if out_json:
@@ -179,7 +202,7 @@ def main():
         pathlib.Path(out_json).write_text(json.dumps(rows), encoding='utf-8')
     if out_csv:
         with open(out_csv, 'w', newline='', encoding='utf-8') as fh:
-            w = csv.DictWriter(fh, fieldnames=['run_dir', 'ticker', 'run'] + stages + ['pm_decision', 'entry_gap_pct', 'trigger_price', 'price', 'stated'])
+            w = csv.DictWriter(fh, fieldnames=['run_dir', 'ticker', 'run'] + stages + ['pm_decision', 'entry_gap_pct', 'trigger_price', 'price', 'stated', 'atr', 'trigger_atr', 'walk_atr'])
             w.writeheader()
             w.writerows(rows)
         print(f'Wrote {out_csv}')

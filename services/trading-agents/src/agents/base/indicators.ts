@@ -128,3 +128,19 @@ export function indicatorBlock(priceText: string): string {
     lines.join('\n')
   );
 }
+
+/**
+ * One line every later stage can rely on: last close and ATR (one typical day's move).
+ * Prepended to the market report so the Trader and Portfolio Manager see it even when the
+ * report is shortened for their prompts.
+ */
+export function typicalMoveLine(priceText: string): string {
+  const bars = parseBars(priceText);
+  const a = atr(bars);
+  if (a === undefined || !bars.length) return '';
+  const last = (bars[bars.length - 1] as Bar).close;
+  return (
+    `TYPICAL DAILY MOVE (computed in code): last close ${f2(last)}; ATR(14) ${f2(a)} (${((a / last) * 100).toFixed(1)}% of price) = one typical day's move. ` +
+    `A trigger or stop within ${f2(a / 2)} of the price is inside ordinary daily noise.`
+  );
+}

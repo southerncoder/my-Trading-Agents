@@ -4,7 +4,7 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AbstractAgent } from '../base/index';
 import { fetchToolData, fetchError, pickKeys } from '../base/tool-data';
 import { ENTRY_STANCE_LINE, adjustmentOn, entryCheck } from '../base/evidence';
-import { indicatorBlock } from '../base/indicators';
+import { indicatorBlock, typicalMoveLine } from '../base/indicators';
 import { AgentState } from '../../types/agent-states';
 import { createLogger } from '../../utils/enhanced-logger';
 import { withLLMResilience, OPENAI_LLM_CONFIG, createResilientLLM } from '../../utils/resilient-llm';
@@ -80,6 +80,7 @@ export class MarketAnalyst extends AbstractAgent {
       }
       const baseRequest = this.createAnalysisRequest(state);
       const indicators = adjustmentOn('indicators') ? indicatorBlock(dataBlock) : '';
+      const moveLine = adjustmentOn('indicators') ? typicalMoveLine(dataBlock) : '';
       const humanMessage = new HumanMessage(baseRequest.content.toString() + '\n\n' + dataBlock + (indicators ? '\n\n' + indicators : ''));
       
       this.logger.debug('process', 'Prepared LLM messages for market analysis', {
@@ -133,7 +134,7 @@ export class MarketAnalyst extends AbstractAgent {
 
       return {
         messages: updatedMessages,
-        market_report: marketReport,
+        market_report: (moveLine ? moveLine + '\n\n' : '') + marketReport,
         sender: this.name,
       };
     } catch (error) {

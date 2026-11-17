@@ -2,7 +2,7 @@ import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { StructuredTool } from '@langchain/core/tools';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AbstractAgent } from '../base';
-import { buildEvidenceBlock, outputDiscipline, ENTRY_STANCE_LINE, entryCheck, positionContext } from '../base/evidence';
+import { buildEvidenceBlock, outputDiscipline, ENTRY_STANCE_LINE, entryCheck, positionContext, noiseRule } from '../base/evidence';
 import { AgentState, AgentStateHelpers } from '../../types/agent-states';
 import { createLogger } from '../../utils/enhanced-logger';
 import { withLLMResilience, OPENAI_LLM_CONFIG, createResilientLLM } from '../../utils/resilient-llm';
@@ -231,6 +231,6 @@ Analysis Date: ${trade_date}
 
 Create a detailed trading strategy that can be executed immediately with specific price levels, position sizes, and risk parameters.`;
 
-    return new HumanMessage(prompt + positionContext() + entryCheck() + buildEvidenceBlock(state) + outputDiscipline(400) + ENTRY_STANCE_LINE);
+    return new HumanMessage(prompt + positionContext() + entryCheck() + noiseRule() + buildEvidenceBlock(state) + outputDiscipline(400) + ENTRY_STANCE_LINE);
   }
 }
