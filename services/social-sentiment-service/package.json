@@ -26,9 +26,7 @@
     "winston": "^3.18.3"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
     "eslint": "^10.14.0",
-    "globals": "^17.14.0",
     "nodemon": "^3.1.10"
   },
   "engines": {

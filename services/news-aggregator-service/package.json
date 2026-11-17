@@ -45,10 +45,8 @@
     "yahoo-finance2": "^4.0.6"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
     "@jest/globals": "^30.5.2",
     "eslint": "^10.14.0",
-    "globals": "^17.14.0",
     "jest": "^30.5.2",
     "nodemon": "^3.0.1",
     "supertest": "^7.3.2"

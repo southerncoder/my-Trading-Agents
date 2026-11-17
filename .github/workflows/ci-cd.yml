@@ -33,6 +33,10 @@ jobs:
       working-directory: ./services/trading-agents
       run: npm ci
       
+    - name: Install shared ESLint config
+      working-directory: ./services/eslint-config
+      run: npm ci
+
     - name: Run linting
       working-directory: ./services/trading-agents
       run: npm run lint || true  # Don't fail if linting not configured yet
