@@ -46,9 +46,9 @@ export function deriveRows(rows: LedgerRow[], previous?: LedgerRow[]): NightlyRo
     const hasTrigger = finite(r.trigger_price) && finite(r.price) && r.price !== 0
     const distance_to_trigger_pct = hasTrigger ? ((r.trigger_price as number) - r.price) / r.price * 100 : null
 
-    const atrPct = finite(r.atr) && finite(r.price) && r.price !== 0 ? (r.atr / r.price) * 100 : null
+    // Same rule as tools/nightly-run.ps1 (trigger_days): round(|trigger - price| / ATR, 1) < 0.5
     const inside_half_day =
-      distance_to_trigger_pct !== null && atrPct !== null && Math.abs(distance_to_trigger_pct) <= 0.5 * atrPct
+      hasTrigger && finite(r.atr) && r.atr > 0 && Math.round((Math.abs((r.trigger_price as number) - r.price) / r.atr) * 10) / 10 < 0.5
 
     return { ...r, change_pct, distance_to_trigger_pct, inside_half_day }
   })

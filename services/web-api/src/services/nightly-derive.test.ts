@@ -41,8 +41,10 @@ describe('deriveRows', () => {
     expect(r.inside_half_day).toBe(false)
   })
 
-  it('inside_half_day true when |distance| <= half of atr percent', () => {
-    expect(deriveRows([row({ trigger_price: 101.9 })])[0].inside_half_day).toBe(true)
+  it('inside_half_day matches the nightly launcher: round(|trigger-price|/atr, 1) < 0.5', () => {
+    // price 100, atr 4: 101.5 -> 0.375 -> 0.4 (inside); 101.9 -> 0.475 -> 0.5 (not inside); 102.1 -> 0.525 (not inside)
+    expect(deriveRows([row({ trigger_price: 101.5 })])[0].inside_half_day).toBe(true)
+    expect(deriveRows([row({ trigger_price: 101.9 })])[0].inside_half_day).toBe(false)
     expect(deriveRows([row({ trigger_price: 102.1 })])[0].inside_half_day).toBe(false)
   })
 

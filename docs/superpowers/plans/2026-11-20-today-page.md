@@ -15,7 +15,7 @@
 - Ledger path from env `NIGHTLY_LEDGER_PATH`, default `/app/data/ledger/decisions.jsonl`; mounted `./data:/app/data:ro`. The API never writes.
 - Date param must match `^\d{4}-\d{2}-\d{2}$`; anything else is 400.
 - Endpoints: `GET /api/nightly/dates`, `/api/nightly/latest`, `/api/nightly/:date` (register `dates` and `latest` before `:date`). Response envelope matches `health.ts`: `{ success: true, data }` or `{ success: false, error }`.
-- Row derived fields: `change_pct` vs the previous ledger date (null if none), `distance_to_trigger_pct = (trigger_price - price) / price * 100` (null without a trigger), `inside_half_day = abs(distance) <= 0.5 * atr / price * 100`.
+- Row derived fields: `change_pct` vs the previous ledger date (null if none), `distance_to_trigger_pct = (trigger_price - price) / price * 100` (null without a trigger), `inside_half_day = round(abs(trigger_price - price) / atr, 1) < 0.5` (same rule as tools/nightly-run.ps1 trigger_days).
 - Old Dashboard moves to `/dashboard`; nothing deleted. Today is nav item one.
 - Port/host conventions unchanged (web-api 38401, frontend 38400). Paper trading only.
 - New `.ts`/`.tsx` files must pass `npm run lint` and `npm run type-check` in their service. Commit trailers per session attribution.
@@ -48,7 +48,7 @@
   - `expectedNightDate(now: Date): string` (YYYY-MM-DD in America/Chicago: most recent weekday on or before today if local time is 18:00 or later, otherwise the most recent weekday strictly before today)
 
 - [ ] **Step 1: Add vitest** - `npm install -D vitest` in `services/web-api` (run on Windows), add the `test` script, confirm `npm test` reports no tests.
-- [ ] **Step 2: Write failing tests** in `nightly-derive.test.ts`: `change_pct is null when ticker absent from previous night`; `change_pct is (price/prev.price-1)*100`; `buy-now row without trigger_price has null distance and inside_half_day false`; `inside_half_day true when |distance| <= half of atr percent` (price 100, atr 4, trigger 101.9 true, 102.1 false); `summarize picks biggest absolute mover` (NVDA -14.01 beats +3); `summarize counts by label`; `expectedNightDate Saturday 10:00 -> Friday`, `Monday 10:00 -> previous Friday`, `Tuesday 19:00 -> Tuesday`.
+- [ ] **Step 2: Write failing tests** in `nightly-derive.test.ts`: `change_pct is null when ticker absent from previous night`; `change_pct is (price/prev.price-1)*100`; `buy-now row without trigger_price has null distance and inside_half_day false`; `inside_half_day matches the launcher rule` (price 100, atr 4, trigger 101.9 true, 102.1 false); `summarize picks biggest absolute mover` (NVDA -14.01 beats +3); `summarize counts by label`; `expectedNightDate Saturday 10:00 -> Friday`, `Monday 10:00 -> previous Friday`, `Tuesday 19:00 -> Tuesday`.
 - [ ] **Step 3: Run** `npm test` in web-api; expect FAIL (module missing).
 - [ ] **Step 4: Implement** the signatures above in `nightly-derive.ts`; pure functions, no I/O. Use `Intl.DateTimeFormat` with `timeZone: 'America/Chicago'` for the local date/hour.
 - [ ] **Step 5: Run** `npm test`, `npm run lint`, `npm run type-check`; expect all pass.
