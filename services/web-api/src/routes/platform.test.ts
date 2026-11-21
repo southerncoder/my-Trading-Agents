@@ -131,3 +131,28 @@ describe('GET /api/nightly/status', () => {
     expect(status).toBe(200)
   })
 })
+
+describe('GET /api/nightly/scorecard', () => {
+  const logsWith = (content?: string) => {
+    const root = mkdtempSync(join(tmpdir(), 'plat-sc-'))
+    if (content !== undefined) writeFileSync(join(root, 'scorecard.json'), content)
+    return root
+  }
+
+  it('serves the scorecard file', async () => {
+    const { status, body } = await get('/nightly/scorecard', { NIGHTLY_LOGS_PATH: logsWith('{"benchmark":"SPY","calls":3}') })
+    expect(status).toBe(200)
+    expect(body.data.scorecard).toEqual({ benchmark: 'SPY', calls: 3 })
+  })
+
+  it('missing file -> scorecard null', async () => {
+    const { status, body } = await get('/nightly/scorecard', { NIGHTLY_LOGS_PATH: logsWith() })
+    expect(status).toBe(200)
+    expect(body.data).toEqual({ scorecard: null })
+  })
+
+  it('unparsable or non-object file -> scorecard null', async () => {
+    expect((await get('/nightly/scorecard', { NIGHTLY_LOGS_PATH: logsWith('{nope') })).body.data.scorecard).toBeNull()
+    expect((await get('/nightly/scorecard', { NIGHTLY_LOGS_PATH: logsWith('[1,2]') })).body.data.scorecard).toBeNull()
+  })
+})

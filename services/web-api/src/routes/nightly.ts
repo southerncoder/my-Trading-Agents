@@ -1,4 +1,6 @@
 import { Router, type Response } from 'express'
+import { readFile } from 'fs/promises'
+import { join } from 'path'
 import { loadLedger } from '../services/ledger-reader.js'
 import { deriveRows, summarize, expectedNightDate } from '../services/nightly-derive.js'
 import { stockHistory, loadStages } from '../services/stock-detail.js'
@@ -84,6 +86,18 @@ router.get('/status', async (_req, res) => {
     return res.json({ success: true, data: { status, models } })
   } catch {
     return fail(res, 500, 'Failed to read run status')
+  }
+})
+
+router.get('/scorecard', async (_req, res) => {
+  try {
+    const text = await readFile(join(logsPath(), 'scorecard.json'), 'utf8')
+    const parsed: unknown = JSON.parse(text.replace(/^\uFEFF/, ''))
+    const ok = typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
+    return res.json({ success: true, data: { scorecard: ok ? parsed : null } })
+  } catch {
+    // missing or unreadable file means "no scorecard yet", not a server error
+    return res.json({ success: true, data: { scorecard: null } })
   }
 })
 

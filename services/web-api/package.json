@@ -12,6 +12,7 @@
     "start:https": "cross-env HTTPS_ENABLED=true node dist/server.js",
     "generate-certs": "bash scripts/generate-local-certs.sh",
     "generate-certs:windows": "powershell -ExecutionPolicy Bypass -File scripts/generate-local-certs.ps1",
+    "score": "npm run build && node dist/scripts/score.js",
     "lint": "eslint .",
     "type-check": "node node_modules/native-typescript/bin/tsc --noEmit",
     "type-check:6": "node node_modules/typescript/bin/tsc --noEmit",
