@@ -2,9 +2,12 @@
 # tools\watchlist.json holds the stocks; cadence decides which ones run on a given night.
 $script:WatchlistPath = Join-Path $PSScriptRoot 'watchlist.json'
 
+# Windows PowerShell 5.1 reads BOM-less UTF-8 as ANSI with Get-Content; always read through this.
+function Read-Utf8([string]$Path) { [IO.File]::ReadAllText($Path, (New-Object Text.UTF8Encoding($false))) }
+
 function Get-Watchlist([string]$Date = (Get-Date -Format yyyy-MM-dd)) {
   if (-not (Test-Path $script:WatchlistPath)) { return $null }
-  try { $wl = Get-Content $script:WatchlistPath -Raw | ConvertFrom-Json } catch { Write-Warning "watchlist.json is not valid JSON: $($_.Exception.Message)"; return $null }
+  try { $wl = Read-Utf8 $script:WatchlistPath | ConvertFrom-Json } catch { Write-Warning "watchlist.json is not valid JSON: $($_.Exception.Message)"; return $null }
   $day = ([datetime]$Date).DayOfWeek
   $core = @(); $brands = @(); $once = @(); $lessons = @{}; $skipped = @()
   foreach ($s in @($wl.stocks)) {
@@ -23,7 +26,7 @@ function Get-Watchlist([string]$Date = (Get-Date -Format yyyy-MM-dd)) {
 # After a good run: drop the 'once' stocks that ran.
 function Remove-OnceStocks([string[]]$Tickers) {
   if (-not $Tickers -or -not (Test-Path $script:WatchlistPath)) { return }
-  $wl = Get-Content $script:WatchlistPath -Raw | ConvertFrom-Json
+  $wl = Read-Utf8 $script:WatchlistPath | ConvertFrom-Json
   $wl.stocks = @($wl.stocks | Where-Object { -not (($_.cadence -eq 'once') -and ($_.ticker.ToUpper() -in $Tickers)) })
   [IO.File]::WriteAllText($script:WatchlistPath, (($wl | ConvertTo-Json -Depth 5) + "`n"), (New-Object Text.UTF8Encoding($false)))
 }
@@ -31,31 +34,36 @@ function Remove-OnceStocks([string[]]$Tickers) {
 # The web API only appends validated requests to data\requests\watchlist.jsonl. This function is the single
 # writer of watchlist.json: it applies the requests, records each result in watchlist.done.jsonl and returns
 # summary lines for status.txt. Rules are the same as Get-Watchlist, but stricter: list must be core or brands.
+# Batches are the files <queue>.processing and <queue>.moving.<time>.<id>. A batch file is deleted only after its
+# results are logged and only if it has not grown since it was read, so a crash or a late append loses nothing.
 function Apply-WatchlistRequests(
   [string]$WatchlistPath = $script:WatchlistPath,
   [string]$QueuePath = (Join-Path (Split-Path $PSScriptRoot -Parent) 'data\requests\watchlist.jsonl'),
   [string]$DonePath = (Join-Path (Split-Path $PSScriptRoot -Parent) 'data\requests\watchlist.done.jsonl')
 ) {
   $enc = New-Object Text.UTF8Encoding($false)
-  $processing = "$QueuePath.processing"
   $summary = New-Object System.Collections.Generic.List[string]
 
-  # Move the queue aside first: a request the API appends while we work starts a fresh queue, so it is not lost.
-  # Work left in .processing by a crashed run is kept and handled first.
+  # Move the queue aside first: a request the API appends while we work starts a fresh queue.
   if (Test-Path $QueuePath) {
     try {
-      $moved = "$QueuePath.moving.$([guid]::NewGuid().ToString('N'))"
-      Move-Item $QueuePath $moved -Force -ErrorAction Stop
-      $text = [IO.File]::ReadAllText($moved)
-      if ((Test-Path $processing) -and -not ([IO.File]::ReadAllText($processing)).EndsWith("`n")) { $text = "`n" + $text }
-      [IO.File]::AppendAllText($processing, $text, $enc)
-      Remove-Item $moved -Force
+      $stamp = (Get-Date).ToString('yyyyMMddHHmmssfff')
+      Move-Item $QueuePath ("$QueuePath.moving.$stamp.$([guid]::NewGuid().ToString('N'))") -Force -ErrorAction Stop
     } catch { return @("Watchlist requests are waiting: could not read the request queue ($($_.Exception.Message))") }
   }
-  if (-not (Test-Path $processing)) { return @() }
+  $leaf = Split-Path $QueuePath -Leaf
+  $batches = @(Get-ChildItem -LiteralPath (Split-Path $QueuePath) -Filter "$leaf.*" -File -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name -match '\.(processing|moving\.[^.]+\.[^.]+)$' } |
+    Sort-Object @{ Expression = { if ($_.Name -like '*.processing') { 0 } else { 1 } } }, Name)
+  if ($batches.Count -eq 0) { return @() }
+
+  $texts = @{}
+  try { foreach ($b in $batches) { $texts[$b.FullName] = Read-Utf8 $b.FullName } }
+  catch { return @("Watchlist requests are waiting: could not read the request queue ($($_.Exception.Message))") }
+  if ($global:AfterBatchRead) { & $global:AfterBatchRead }   # test hook: simulates an append after the read
 
   $wl = $null
-  try { $wl = Get-Content $WatchlistPath -Raw -ErrorAction Stop | ConvertFrom-Json } catch { }
+  try { $wl = Read-Utf8 $WatchlistPath | ConvertFrom-Json } catch { }
   if (-not $wl -or -not ($wl.PSObject.Properties.Name -contains 'stocks')) {
     return @('Watchlist requests are waiting: watchlist.json could not be read, nothing was changed')
   }
@@ -68,7 +76,8 @@ function Apply-WatchlistRequests(
   $applied = New-Object System.Collections.Generic.List[string]
   $rejected = New-Object System.Collections.Generic.List[string]
 
-  foreach ($line in (([IO.File]::ReadAllText($processing) -replace '^\uFEFF', '') -split "`r?`n")) {
+  $allText = (($batches | ForEach-Object { $texts[$_.FullName].TrimStart([char]0xFEFF) }) -join "`n")
+  foreach ($line in ($allText -split "`r?`n")) {
     if (-not $line.Trim()) { continue }
     $req = $null; $reason = $null; $label = '?'
     try { $req = $line | ConvertFrom-Json } catch { $reason = 'unreadable line' }
@@ -79,7 +88,7 @@ function Apply-WatchlistRequests(
       if ($t -notmatch '^[A-Z][A-Z0-9.\-]{0,9}$') { $reason = 'bad ticker'; $label = '?' }
       elseif ([string]$req.action -eq 'add') {
         $list = [string]$req.list
-        if ($list -notin 'core', 'brands') { $reason = 'list must be core or brands' }
+        if ($list -cnotin 'core', 'brands') { $reason = 'list must be core or brands' }
         elseif ($cad -notin $okCadence) { $reason = 'unknown schedule' }
         elseif (@(& $find $t).Count -gt 0) { $reason = 'already on the watchlist' }
         else {
@@ -109,12 +118,21 @@ function Apply-WatchlistRequests(
   if ($applied.Count -gt 0) {
     $wl.stocks = @($stocks.ToArray())
     $tmp = "$WatchlistPath.tmp"
-    [IO.File]::WriteAllText($tmp, (($wl | ConvertTo-Json -Depth 5) + "`n"), $enc)
-    Move-Item $tmp $WatchlistPath -Force
+    try {
+      [IO.File]::WriteAllText($tmp, (($wl | ConvertTo-Json -Depth 5) + "`n"), $enc)
+      Move-Item $tmp $WatchlistPath -Force -ErrorAction Stop
+    } catch {
+      Remove-Item $tmp -Force -ErrorAction SilentlyContinue
+      return @("Watchlist requests are waiting: watchlist.json could not be updated ($($_.Exception.Message)); will retry next run")
+    }
   }
-  New-Item -ItemType Directory -Force -Path (Split-Path $DonePath) | Out-Null
-  [IO.File]::AppendAllText($DonePath, (($results -join "`n") + "`n"), $enc)
-  Remove-Item $processing -Force
+  if ($results.Count -gt 0) {
+    New-Item -ItemType Directory -Force -Path (Split-Path $DonePath) | Out-Null
+    [IO.File]::AppendAllText($DonePath, (($results -join "`n") + "`n"), $enc)
+  }
+  foreach ($b in $batches) {
+    try { if ((Read-Utf8 $b.FullName) -eq $texts[$b.FullName]) { Remove-Item $b.FullName -Force } } catch { }
+  }
   if ($applied.Count -gt 0) { $summary.Add('Watchlist changes applied: ' + ($applied -join '; ')) }
   if ($rejected.Count -gt 0) { $summary.Add('Watchlist changes rejected: ' + ($rejected -join '; ')) }
   return $summary.ToArray()

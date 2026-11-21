@@ -116,15 +116,15 @@ Describe 'Apply-WatchlistRequests' {
     (Get-Watchlist -Date '2026-11-23').Core -contains 'NVDA' | Should Be $true
   }
 
-  It 'leaves the queue as .processing and changes nothing when watchlist.json is missing or unparsable' {
+  It 'keeps the batch file and changes nothing when watchlist.json is missing or unparsable' {
     $e = New-TestEnv $null @(@{ id = '1'; action = 'add'; ticker = 'KO'; list = 'brands'; cadence = 'nightly' })
     $out = Apply $e
-    Test-Path ($e.Q + '.processing') | Should Be $true
+    @(Get-ChildItem (Split-Path $e.Q) -Filter 'watchlist.jsonl.*').Count | Should Be 1
     Test-Path $e.Wl | Should Be $false
     (($out -join ' ') -match 'could not') | Should Be $true
     [IO.File]::WriteAllText($e.Wl, '{broken', $utf8)
     Apply $e | Out-Null
-    Test-Path ($e.Q + '.processing') | Should Be $true
+    @(Get-ChildItem (Split-Path $e.Q) -Filter 'watchlist.jsonl.*').Count | Should Be 1
     [IO.File]::ReadAllText($e.Wl) | Should Be '{broken'
   }
 
@@ -137,5 +137,62 @@ Describe 'Apply-WatchlistRequests' {
     ($tickers -contains 'PEP') | Should Be $true
     (DoneEntries $e)[0].request.ticker | Should Be 'KO'
     Test-Path ($e.Q + '.processing') | Should Be $false
+  }
+}
+
+Describe 'Apply-WatchlistRequests review fixes' {
+  It 'keeps non-ASCII text intact across rewrites (UTF-8 in, UTF-8 out)' {
+    $e = New-TestEnv @($nvda) $null
+    [IO.File]::WriteAllText($e.Wl, ('{"_comment":"caf' + [char]0xE9 + '","stocks":[{"ticker":"NVDA","list":"core","cadence":"nightly","lesson":"na' + [char]0xEF + 've"}]}'), $utf8)
+    [IO.File]::WriteAllText($e.Q, ('{"action":"add","ticker":"KO","list":"core","cadence":"nightly","lesson":"caf' + [char]0xE9 + '"}' + "`n"), $utf8)
+    Apply $e | Out-Null
+    [IO.File]::WriteAllText($e.Q, ('{"action":"set_cadence","ticker":"NVDA","cadence":"weekly"}' + "`n"), $utf8)
+    Apply $e | Out-Null
+    $wl = [IO.File]::ReadAllText($e.Wl, $utf8) | ConvertFrom-Json
+    $wl._comment | Should Be ('caf' + [char]0xE9)
+    (@($wl.stocks | Where-Object ticker -eq 'NVDA')[0].lesson) | Should Be ('na' + [char]0xEF + 've')
+    (@($wl.stocks | Where-Object ticker -eq 'KO')[0].lesson) | Should Be ('caf' + [char]0xE9)
+  }
+
+  It 'when watchlist.json cannot be replaced: reports waiting, keeps the batch, logs nothing as applied, then applies later' {
+    $e = New-TestEnv @($nvda) @(@{ action = 'set_cadence'; ticker = 'NVDA'; cadence = 'paused' })
+    $lock = [IO.File]::Open($e.Wl, 'Open', 'Read', 'Read')
+    try { $out = Apply $e } finally { $lock.Dispose() }
+    (($out -join ' ') -match 'waiting') | Should Be $true
+    (($out -join ' ') -match 'applied') | Should Be $false
+    (ReadWl $e).stocks[0].cadence | Should Be 'nightly'
+    @(DoneEntries $e).Count | Should Be 0
+    Test-Path "$($e.Wl).tmp" | Should Be $false
+    $out2 = Apply $e
+    (($out2 -join ' ') -match 'NVDA now paused') | Should Be $true
+    (ReadWl $e).stocks[0].cadence | Should Be 'paused'
+    @(DoneEntries $e).Count | Should Be 1
+  }
+
+  It 'processes a batch stranded in a .moving file by a crashed run' {
+    $e = New-TestEnv @($nvda) $null
+    $line = (@{ action = 'add'; ticker = 'KO'; list = 'core'; cadence = 'nightly' } | ConvertTo-Json -Compress)
+    [IO.File]::WriteAllText("$($e.Q).moving.20260101000000000.abc", $line + "`n", $utf8)
+    $out = Apply $e
+    (($out -join ' ') -match 'added KO') | Should Be $true
+    @(Get-ChildItem (Split-Path $e.Q) -Filter 'watchlist.jsonl.*').Count | Should Be 0
+  }
+
+  It 'does not delete a batch file that grew after it was read' {
+    $e = New-TestEnv @($nvda) $null
+    $proc = "$($e.Q).processing"
+    [IO.File]::WriteAllText($proc, ((@{ action = 'add'; ticker = 'KO'; list = 'core'; cadence = 'nightly' } | ConvertTo-Json -Compress) + "`n"), $utf8)
+    # Simulated late append: the file gains a line between our read and delete. Done via the test hook.
+    $global:AfterBatchRead = { [IO.File]::AppendAllText($proc, ((@{ action = 'add'; ticker = 'PEP'; list = 'core'; cadence = 'nightly' } | ConvertTo-Json -Compress) + "`n"), $utf8) }
+    try { Apply $e | Out-Null } finally { $global:AfterBatchRead = $null }
+    Test-Path $proc | Should Be $true
+    $out = Apply $e
+    (@((ReadWl $e).stocks | Where-Object ticker -eq 'PEP')).Count | Should Be 1
+  }
+
+  It 'rejects a list written in capitals' {
+    $e = New-TestEnv @($nvda) @(@{ action = 'add'; ticker = 'KO'; list = 'CORE'; cadence = 'nightly' })
+    $out = Apply $e
+    (($out -join ' ') -match 'list must be') | Should Be $true
   }
 }
