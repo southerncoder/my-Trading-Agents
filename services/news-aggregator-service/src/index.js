@@ -453,7 +453,6 @@ app.get("/api/news", async (req, res) => {
     const response = {
       status: "success",
       provider: usedProvider,
-      providers: providerReport,
       data: result,
     };
 
@@ -461,7 +460,7 @@ app.get("/api/news", async (req, res) => {
     cache.set(cacheKey, response);
 
     logger.info("Financial news fetched successfully", {
-      symbol,
+      query,
       provider: usedProvider,
       articlesCount: result.articles?.length || 0,
     });
@@ -578,96 +577,6 @@ app.get("/api/financial-news/:symbol", async (req, res) => {
     res.status(500).json({
       error: "Internal server error",
       message: "Failed to fetch news articles from any provider",
-    });
-  }
-});
-
-// Get financial news (specialized endpoint)
-app.get("/api/financial-news/:symbol", async (req, res) => {
-  try {
-    const { symbol } = req.params;
-    const { lookBackDays = 7, pageSize = 20 } = req.query;
-
-    const cacheKey = `financial-news-${symbol}-${lookBackDays}-${pageSize}`;
-    const cachedResult = cache.get(cacheKey);
-    if (cachedResult) {
-      logger.info("Serving cached financial news result", { symbol, cacheKey });
-      return res.json(cachedResult);
-    }
-
-    // Try Yahoo Finance first for financial news, then fall back to news providers
-    // An empty result is not a success: keep falling through to the next provider
-    // (Brave's free tier rate-limits bursts and NewsAPI often returns nothing for large caps).
-    const providers = [
-      PROVIDERS.YAHOO_FINANCE,
-      PROVIDERS.BRAVE_NEWS,
-      PROVIDERS.TAVILY,
-      PROVIDERS.GOOGLE_NEWS,
-    ];
-    let result = null;
-    let usedProvider = null;
-
-    for (const provider of providers) {
-      try {
-        if (!(await checkProviderHealth(provider))) continue;
-        const params = { symbol, lookBackDays, pageSize };
-        let attempt;
-        try {
-          attempt = await fetchFromProvider(provider, "financial-news", params);
-        } catch (error) {
-          if (/rate limit/i.test(error.message)) {
-            await new Promise((r) => setTimeout(r, 1300));
-            attempt = await fetchFromProvider(provider, "financial-news", params);
-          } else {
-            throw error;
-          }
-        }
-        if (attempt?.articles?.length) {
-          result = attempt;
-          usedProvider = provider;
-          break;
-        }
-        logger.warn(`Provider ${provider} returned no articles for financial news`, { symbol });
-      } catch (error) {
-        logger.warn(`Provider ${provider} failed for financial news`, {
-          symbol,
-          error: error.message,
-        });
-      }
-    }
-
-    if (!result) {
-      // Every provider failed or was empty: report empty, but do not cache it.
-      return res.json({ status: "success", provider: null, data: { articles: [] } });
-    }
-
-    const response = {
-      status: "success",
-      provider: usedProvider,
-      providers: providerReport,
-      data: result,
-    };
-
-    // Cache the result
-    cache.set(cacheKey, response);
-
-    logger.info("Financial news fetched successfully", {
-      symbol,
-      provider: usedProvider,
-      articlesCount: result.articles?.length || 0,
-    });
-
-    res.json(response);
-  } catch (error) {
-    logger.error("Error fetching financial news", {
-      symbol: req.params.symbol,
-      error: error.message,
-      stack: error.stack,
-    });
-
-    res.status(500).json({
-      error: "Internal server error",
-      message: "Failed to fetch financial news",
     });
   }
 });
