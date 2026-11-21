@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { fetchLatestNight, fetchNightDates, fetchStock, fetchWatchlist, fetchRunStatus, fetchScorecard, nightlyDaySchema } from './nightly'
+import { fetchLatestNight, fetchNightDates, fetchStock, fetchWatchlist, fetchRunStatus, fetchScorecard, nightlyDaySchema, postWatchlistRequest } from './nightly'
 
 const row = {
   date: '2026-11-20',
@@ -163,5 +163,36 @@ describe('scorecard client', () => {
   it('rejects a scorecard missing groups', async () => {
     stubFetch(200, { success: true, data: { scorecard: { ...sc, groups: undefined } } })
     await expect(fetchScorecard()).rejects.toThrow()
+  })
+})
+describe('watchlist requests', () => {
+  const req = { action: 'add' as const, ticker: 'KO', list: 'core' as const, cadence: 'nightly' as const }
+
+  it('posts JSON and returns the id', async () => {
+    stubFetch(202, { success: true, data: { id: 'abc' } })
+    expect(await postWatchlistRequest(req)).toEqual({ id: 'abc' })
+    const [url, init] = (fetch as unknown as { mock: { calls: [string, RequestInit][] } }).mock.calls[0]
+    expect(String(url)).toContain('/watchlist/requests')
+    expect(init.method).toBe('POST')
+    expect((init.headers as Record<string, string>)['Content-Type']).toBe('application/json')
+    expect(JSON.parse(init.body as string)).toEqual(req)
+  })
+
+  it('surfaces the API message on a refusal', async () => {
+    stubFetch(409, { success: false, error: 'KO is already on the watchlist or waiting to be added' })
+    await expect(postWatchlistRequest(req)).rejects.toThrow('already on the watchlist')
+  })
+
+  it('gives a plain message when the reply is not JSON', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 502, json: async () => { throw new Error('bad json') } }))
+    await expect(postWatchlistRequest(req)).rejects.toThrow(/could not|failed/i)
+  })
+
+  it('a watchlist without pending parses with an empty list, and with entries keeps them', async () => {
+    const base = { available: true, skipped: 0, counts: { nightly: 0, weekly: 0, once: 0, paused: 0 }, stocks: [] }
+    stubFetch(200, { success: true, data: base })
+    expect((await fetchWatchlist()).pending).toEqual([])
+    stubFetch(200, { success: true, data: { ...base, pending: [{ id: '1', at: 'x', action: 'add', ticker: 'KO', list: 'core', cadence: 'weekly' }] } })
+    expect((await fetchWatchlist()).pending).toHaveLength(1)
   })
 })

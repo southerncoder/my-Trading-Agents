@@ -104,6 +104,18 @@ export const watchlistSchema = z.object({
   available: z.boolean(),
   skipped: z.number(),
   counts: z.object({ nightly: z.number(), weekly: z.number(), once: z.number(), paused: z.number() }),
+  pending: z
+    .array(
+      z.object({
+        id: z.string(),
+        at: z.string(),
+        action: z.enum(['add', 'set_cadence']),
+        ticker: z.string(),
+        list: z.enum(['core', 'brands']).nullish(),
+        cadence: cadenceSchema,
+      }),
+    )
+    .default([]),
   stocks: z.array(
     z.object({
       ticker: z.string(),
@@ -136,6 +148,33 @@ export const runStatusSchema = z.object({
     })
     .nullable(),
 })
+
+export interface WatchlistRequestInput {
+  action: 'add' | 'set_cadence'
+  ticker: string
+  cadence: 'nightly' | 'weekly' | 'once' | 'paused'
+  list?: 'core' | 'brands'
+  lesson?: string
+}
+
+/** Queues a change for the next nightly run. The API never edits the watchlist itself. */
+export async function postWatchlistRequest(req: WatchlistRequestInput): Promise<{ id: string }> {
+  const res = await fetch(`${API_BASE_URL}/watchlist/requests`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req),
+  })
+  type Reply = { success?: boolean; data?: { id?: string }; error?: string }
+  const body: Reply | null = await res.json().then(
+    (j: unknown) => j as Reply,
+    () => null,
+  )
+  const id = body?.data?.id
+  if (!res.ok || !body || body.success === false || typeof id !== 'string') {
+    throw new Error(body?.error || `Could not save the change (error ${res.status})`)
+  }
+  return { id }
+}
 
 export type Watchlist = z.infer<typeof watchlistSchema>
 export type WatchStock = Watchlist['stocks'][number]

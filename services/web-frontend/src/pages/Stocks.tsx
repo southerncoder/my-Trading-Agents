@@ -1,15 +1,18 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { fetchWatchlist, type Watchlist } from '../services/nightly'
+import { fetchWatchlist, postWatchlistRequest, type Watchlist, type WatchlistRequestInput } from '../services/nightly'
 import { filterStocks, type CadenceFilter, type ListFilter } from '../components/stocks/filter'
+import { buildAddRequest, CADENCE_HELP, describePending, pendingFor } from '../components/stocks/request-form'
 import { card, fmtPrice, muted } from '../components/today/format'
 
-const CADENCE_HELP: Record<string, string> = {
-  nightly: 'analysed every night',
-  weekly: 'analysed once a week',
-  once: 'analysed one time',
-  paused: 'skipped for now',
-}
+const CADENCES: { value: WatchlistRequestInput['cadence']; label: string }[] = [
+  { value: 'nightly', label: 'Every night' },
+  { value: 'weekly', label: 'Weekly (Mondays)' },
+  { value: 'once', label: 'One time' },
+  { value: 'paused', label: 'Paused' },
+]
+
+type Notice = { kind: 'ok' | 'error'; text: string }
 
 export function Stocks() {
   const [data, setData] = useState<Watchlist | null>(null)
@@ -17,17 +20,43 @@ export function Stocks() {
   const [list, setList] = useState<ListFilter>('all')
   const [cadence, setCadence] = useState<CadenceFilter>('all')
 
-  useEffect(() => {
-    let cancelled = false
-    fetchWatchlist()
-      .then((d) => !cancelled && setData(d))
-      .catch((e: unknown) => !cancelled && setError(e instanceof Error ? e.message : 'Could not load the watchlist'))
-    return () => {
-      cancelled = true
+  const [ticker, setTicker] = useState('')
+  const [newList, setNewList] = useState<'core' | 'brands'>('core')
+  const [newCadence, setNewCadence] = useState<WatchlistRequestInput['cadence']>('nightly')
+  const [note, setNote] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [notice, setNotice] = useState<Notice | null>(null)
+
+  const load = useCallback(async () => {
+    try {
+      setData(await fetchWatchlist())
+      setError(null)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Could not load the watchlist')
     }
   }, [])
 
-  if (error) {
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  async function send(request: WatchlistRequestInput, okText: string) {
+    setBusy(true)
+    setNotice(null)
+    try {
+      await postWatchlistRequest(request)
+      setNotice({ kind: 'ok', text: okText })
+      await load()
+      return true
+    } catch (e: unknown) {
+      setNotice({ kind: 'error', text: e instanceof Error ? e.message : 'Could not save the change.' })
+      return false
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (error && !data) {
     return (
       <div role="alert" className="p-6">
         <h1 className="text-xl font-semibold">Stocks</h1>
@@ -42,12 +71,30 @@ export function Stocks() {
       <div className="p-6">
         <h1 className="text-xl font-semibold">Stocks</h1>
         <p className="pt-2">The watchlist file could not be read.</p>
-        <p className="text-sm" style={muted}>It lives in tools/watchlist.json and is mounted read-only into the API.</p>
+        <p className="text-sm" style={muted}>It lives in tools/watchlist.json. This page can only read it.</p>
       </div>
     )
   }
 
   const shown = filterStocks(data.stocks, list, cadence)
+  const known = [...data.stocks.map((s) => s.ticker), ...data.pending.filter((p) => p.action === 'add').map((p) => p.ticker)]
+
+  async function onAdd(e: React.FormEvent) {
+    e.preventDefault()
+    const built = buildAddRequest({ ticker, list: newList, cadence: newCadence, lesson: note }, known)
+    if (!built.ok) {
+      setNotice({ kind: 'error', text: built.error })
+      return
+    }
+    const done = await send(
+      built.request,
+      `Saved. ${built.request.ticker} is not on the list yet. It will be added when the next nightly run starts.`,
+    )
+    if (done) {
+      setTicker('')
+      setNote('')
+    }
+  }
 
   return (
     <div className="space-y-4 p-4 md:p-6">
@@ -55,12 +102,77 @@ export function Stocks() {
         <h1 className="text-2xl font-semibold">Stocks</h1>
         <p className="text-sm" style={muted}>
           {data.stocks.length} on the watchlist &middot; {data.counts.nightly} nightly, {data.counts.weekly} weekly,{' '}
-          {data.counts.once} one-time, {data.counts.paused} paused. Read-only for now.
+          {data.counts.once} one-time, {data.counts.paused} paused. Changes you make here take effect when the next
+          nightly run starts, not right away.
         </p>
       </header>
 
       {data.skipped > 0 && (
         <p className="text-xs" style={muted}>{data.skipped} watchlist entr{data.skipped === 1 ? 'y was' : 'ies were'} skipped as invalid.</p>
+      )}
+
+      <form onSubmit={onAdd} className="space-y-3 rounded-lg p-4" style={card} aria-labelledby="add-heading">
+        <h2 id="add-heading" className="text-lg font-semibold">Add a stock</h2>
+        <div className="flex flex-wrap items-end gap-3 text-sm">
+          <label className="flex flex-col gap-1">
+            Ticker
+            <input
+              value={ticker}
+              onChange={(e) => setTicker(e.target.value)}
+              maxLength={12}
+              autoComplete="off"
+              spellCheck={false}
+              placeholder="KO"
+              className="w-28 rounded border px-2 py-1 uppercase"
+              style={card}
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            List
+            <select value={newList} onChange={(e) => setNewList(e.target.value as 'core' | 'brands')} className="rounded border px-2 py-1" style={card}>
+              <option value="core">Core</option>
+              <option value="brands">Brands</option>
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            Schedule
+            <select value={newCadence} onChange={(e) => setNewCadence(e.target.value as WatchlistRequestInput['cadence'])} className="rounded border px-2 py-1" style={card}>
+              {CADENCES.map((c) => (
+                <option key={c.value} value={c.value}>{c.label}</option>
+              ))}
+            </select>
+          </label>
+          <label className="flex min-w-48 flex-1 flex-col gap-1">
+            Note (optional, up to 200 characters)
+            <input value={note} onChange={(e) => setNote(e.target.value)} className="rounded border px-2 py-1" style={card} />
+          </label>
+          <button type="submit" disabled={busy} className="rounded border px-3 py-1 font-medium disabled:opacity-50" style={card}>
+            {busy ? 'Saving...' : 'Add stock'}
+          </button>
+        </div>
+        <p className="text-xs" style={muted}>
+          The nightly run adds it to the list at the start of its next run (weekday evenings). There is no remove here:
+          pause a stock instead.
+        </p>
+      </form>
+
+      <div aria-live="polite">
+        {notice && (
+          <p role={notice.kind === 'error' ? 'alert' : 'status'} className="text-sm" style={notice.kind === 'error' ? { color: '#b91c1c' } : undefined}>
+            {notice.text}
+          </p>
+        )}
+      </div>
+
+      {data.pending.length > 0 && (
+        <section className="rounded-lg p-4" style={card} aria-labelledby="pending-heading">
+          <h2 id="pending-heading" className="text-lg font-semibold">Waiting for the next nightly run</h2>
+          <ul className="list-disc pl-5 pt-1 text-sm">
+            {data.pending.map((p) => (
+              <li key={p.id}>{describePending(p)}</li>
+            ))}
+          </ul>
+        </section>
       )}
 
       <div className="flex flex-wrap gap-4 text-sm">
@@ -100,29 +212,56 @@ export function Stocks() {
               </tr>
             </thead>
             <tbody>
-              {shown.map((s, i) => (
-                <tr key={`${s.ticker}-${i}`} style={{ borderTop: '1px solid var(--color-border, #e2e8f0)' }}>
-                  <th scope="row" className="p-3 font-semibold">
-                    {s.latest ? (
-                      <Link to={`/stock/${s.ticker}`} className="underline">{s.ticker}</Link>
-                    ) : (
-                      s.ticker
-                    )}
-                  </th>
-                  <td className="p-3">{s.list}</td>
-                  <td className="p-3" title={CADENCE_HELP[s.cadence]}>{s.cadence}</td>
-                  <td className="p-3">
-                    {s.latest ? (
-                      <>
-                        {s.latest.label} <span style={muted}>({s.latest.date})</span>
-                      </>
-                    ) : (
-                      <span style={muted}>Not analysed yet</span>
-                    )}
-                  </td>
-                  <td className="p-3 text-right">{s.latest ? fmtPrice(s.latest.price) : <span style={muted}>-</span>}</td>
-                </tr>
-              ))}
+              {shown.map((s, i) => {
+                const waiting = pendingFor(data.pending, s.ticker)
+                return (
+                  <tr key={`${s.ticker}-${i}`} style={{ borderTop: '1px solid var(--color-border, #e2e8f0)' }}>
+                    <th scope="row" className="p-3 font-semibold">
+                      {s.latest ? (
+                        <Link to={`/stock/${s.ticker}`} className="underline">{s.ticker}</Link>
+                      ) : (
+                        s.ticker
+                      )}
+                    </th>
+                    <td className="p-3">{s.list}</td>
+                    <td className="p-3">
+                      <select
+                        aria-label={`Schedule for ${s.ticker}`}
+                        value={s.cadence}
+                        disabled={busy}
+                        onChange={(e) => {
+                          const next = e.target.value as WatchlistRequestInput['cadence']
+                          if (next === s.cadence) return
+                          void send(
+                            { action: 'set_cadence', ticker: s.ticker, cadence: next },
+                            `Saved. ${s.ticker} stays ${s.cadence} until the next nightly run starts, then changes to ${next}.`,
+                          )
+                        }}
+                        className="rounded border px-2 py-1"
+                        style={card}
+                      >
+                        {CADENCES.map((c) => (
+                          <option key={c.value} value={c.value}>{c.label}</option>
+                        ))}
+                      </select>
+                      <span className="block text-xs" style={muted}>
+                        {CADENCE_HELP[s.cadence]}
+                        {waiting ? ` (change to ${waiting.cadence} waiting for the next nightly run)` : ''}
+                      </span>
+                    </td>
+                    <td className="p-3">
+                      {s.latest ? (
+                        <>
+                          {s.latest.label} <span style={muted}>({s.latest.date})</span>
+                        </>
+                      ) : (
+                        <span style={muted}>Not analysed yet</span>
+                      )}
+                    </td>
+                    <td className="p-3 text-right">{s.latest ? fmtPrice(s.latest.price) : <span style={muted}>-</span>}</td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
