@@ -17,7 +17,6 @@ export interface Watchlist {
 }
 
 const TICKER_RE = /^[A-Z][A-Z0-9.\-]{0,9}$/
-const LISTS: readonly string[] = ['core', 'brands']
 const CADENCES: readonly string[] = ['nightly', 'weekly', 'once', 'paused']
 
 const UNAVAILABLE: Watchlist = { stocks: [], skipped: 0, available: false }
@@ -43,14 +42,17 @@ export async function loadWatchlist(path: string): Promise<Watchlist> {
   let skipped = 0
   for (const raw of list) {
     const r = typeof raw === 'object' && raw !== null ? (raw as Record<string, unknown>) : null
-    if (!r || typeof r.ticker !== 'string' || !TICKER_RE.test(r.ticker) || typeof r.list !== 'string' || !LISTS.includes(r.list)) {
+    const ticker = typeof r?.ticker === 'string' ? r.ticker.trim().toUpperCase() : ''
+    if (!r || !TICKER_RE.test(ticker)) {
       skipped++
       continue
     }
-    const cadence = typeof r.cadence === 'string' && CADENCES.includes(r.cadence) ? (r.cadence as Cadence) : 'paused'
-    const entry: WatchEntry = { ticker: r.ticker, list: r.list as WatchList, cadence }
-    if (typeof r.lesson === 'string') entry.lesson = r.lesson
+    // watchlist.ps1: any list other than core is brands; a missing cadence is nightly; cadence is case-insensitive.
+    const list = r.list === 'core' ? 'core' : 'brands'
+    const rawCadence = typeof r.cadence === 'string' && r.cadence ? r.cadence.toLowerCase() : 'nightly'
+    const cadence = CADENCES.includes(rawCadence) ? (rawCadence as Cadence) : 'paused'
+    const entry: WatchEntry = { ticker, list, cadence }
+    if (typeof r.lesson === 'string' && r.lesson) entry.lesson = r.lesson
     stocks.push(entry)
-  }
-  return { stocks, skipped, available: true }
+  }  return { stocks, skipped, available: true }
 }

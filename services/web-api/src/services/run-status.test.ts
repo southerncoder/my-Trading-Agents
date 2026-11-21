@@ -26,6 +26,12 @@ describe('loadRunStatus', () => {
     expect((await loadRunStatus(root))?.lines).toEqual(['Calls: 3', 'Took 2 minutes'])
   })
 
+  it('strips Windows paths from problem lines', async () => {
+    const root = logs()
+    night(root, '2026-11-20', 'PROBLEMS: nightly-brief.ps1 threw: cannot open D:\\\\Code\\\\x\\\\y.json today')
+    expect((await loadRunStatus(root))?.lines).toEqual(['PROBLEMS: nightly-brief.ps1 threw: cannot open [path] today'])
+  })
+
   it('skips date dirs without status.txt', async () => {
     const root = logs()
     night(root, '2026-11-19', 'older')

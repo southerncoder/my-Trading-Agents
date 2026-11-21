@@ -100,8 +100,8 @@ export function Stocks() {
               </tr>
             </thead>
             <tbody>
-              {shown.map((s) => (
-                <tr key={s.ticker} style={{ borderTop: '1px solid var(--color-border, #e2e8f0)' }}>
+              {shown.map((s, i) => (
+                <tr key={`${s.ticker}-${i}`} style={{ borderTop: '1px solid var(--color-border, #e2e8f0)' }}>
                   <th scope="row" className="p-3 font-semibold">
                     {s.latest ? (
                       <Link to={`/stock/${s.ticker}`} className="underline">{s.ticker}</Link>

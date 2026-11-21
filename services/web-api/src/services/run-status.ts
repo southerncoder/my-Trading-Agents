@@ -21,7 +21,7 @@ export async function loadRunStatus(logsDir: string): Promise<RunStatus | null> 
       const text = (await readFile(join(logsDir, date, 'status.txt'), 'utf8')).replace(/^\uFEFF/, '')
       const lines = text
         .split(/\r?\n/)
-        .map((l) => l.trim())
+        .map((l) => l.trim().replace(/[A-Za-z]:\\\S+/g, '[path]'))
         .filter((l) => l && !/^page:/i.test(l)) // "Page:" is a local file path, meaningless in a browser
       return { date, lines }
     } catch {
