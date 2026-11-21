@@ -94,7 +94,12 @@ function Apply-WatchlistRequests(
         else {
           $o = [ordered]@{ ticker = $t; list = $list; cadence = $cad }
           $lesson = (([string]$req.lesson) -replace '[\x00-\x1f\x7f]', ' ').Trim()
-          if ($lesson.Length -gt 200) { $lesson = $lesson.Substring(0, 200).Trim() }
+          if ($lesson.Length -gt 200) {
+            $cut = $lesson.Substring(0, 200)
+            # Never end on half of a surrogate pair (emoji and other characters outside the BMP).
+            if ([char]::IsHighSurrogate($cut[$cut.Length - 1])) { $cut = $cut.Substring(0, $cut.Length - 1) }
+            $lesson = $cut.Trim()
+          }
           if ($lesson) { $o.lesson = $lesson }
           [void]$stocks.Add([pscustomobject]$o)
           $applied.Add("added $t ($list, $cad)")

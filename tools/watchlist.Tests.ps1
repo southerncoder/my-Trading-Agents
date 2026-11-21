@@ -195,4 +195,15 @@ Describe 'Apply-WatchlistRequests review fixes' {
     $out = Apply $e
     (($out -join ' ') -match 'list must be') | Should Be $true
   }
+
+  It 'does not cut an emoji in half when capping the lesson at 200 characters' {
+    $emoji = [char]::ConvertFromUtf32(0x1F600)
+    $e = New-TestEnv @($nvda) @(@{ id = '1'; action = 'add'; ticker = 'KO'; list = 'core'; cadence = 'nightly'; lesson = (('x' * 199) + $emoji + 'tail') })
+    Apply $e | Out-Null
+    $bytes = [IO.File]::ReadAllBytes($e.Wl)
+    $text = (New-Object Text.UTF8Encoding($false, $true)).GetString($bytes)
+    $ko = @(($text | ConvertFrom-Json).stocks | Where-Object { $_.ticker -eq 'KO' })[0]
+    ($ko.lesson -match [string][char]0xFFFD) | Should Be $false
+    $ko.lesson.Length | Should Be 199
+  }
 }
