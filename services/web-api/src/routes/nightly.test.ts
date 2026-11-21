@@ -134,7 +134,7 @@ describe('nightly routes', () => {
 })
 
 describe('stock detail route', () => {
-  const LOGS = join(here, '__fixtures__', 'logs')
+  const LOGS = join(here, '__fixtures__', 'nightly-logs')
   const stock = async (path: string) => {
     process.env.NIGHTLY_LOGS_PATH = LOGS
     return get(`/stock${path}`)
