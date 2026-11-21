@@ -225,3 +225,8 @@ The ledger path comes from `NIGHTLY_LEDGER_PATH` (default `/app/data/ledger/deci
 ### Stock detail
 
 `GET /api/nightly/stock/:ticker?date=YYYY-MM-DD` returns the ticker's history across ledger nights and that night's 12 stage write-ups (from `<NIGHTLY_LOGS_PATH>/<date>/pipeline.json`, default `/app/logs/nightly`). `stages` is `null` when that night's write-ups are missing. Tickers must match `^[A-Z][A-Z0-9.\-]{0,9}$`.
+
+### Watchlist and run status (read-only)
+
+- `GET /api/watchlist` - the stocks in `tools/watchlist.json` (mounted read-only at `/app/tools`, override with `WATCHLIST_PATH`), each joined to its latest ledger call (`latest` is `null` if never analysed), plus counts by schedule. An unreadable file returns `available: false`, not an error.
+- `GET /api/nightly/status` - the newest night's `status.txt` lines (the local `Page:` line is dropped) and the models recorded for the newest ledger night. Either part is `null` when missing.

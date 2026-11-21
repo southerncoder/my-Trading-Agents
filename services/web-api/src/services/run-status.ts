@@ -22,7 +22,7 @@ export async function loadRunStatus(logsDir: string): Promise<RunStatus | null> 
       const lines = text
         .split(/\r?\n/)
         .map((l) => l.trim())
-        .filter(Boolean)
+        .filter((l) => l && !/^page:/i.test(l)) // "Page:" is a local file path, meaningless in a browser
       return { date, lines }
     } catch {
       // no status.txt for this night, try the previous one

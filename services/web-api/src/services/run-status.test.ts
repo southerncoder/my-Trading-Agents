@@ -20,6 +20,12 @@ describe('loadRunStatus', () => {
     expect(await loadRunStatus(root)).toEqual({ date: '2026-11-20', lines: ['Calls: 20', 'Took 21 minutes'] })
   })
 
+  it('drops the Page: line so no local filesystem path reaches the browser', async () => {
+    const root = logs()
+    night(root, '2026-11-20', 'Calls: 3\nPage: D:\\Code\\x\\latest.html\nTook 2 minutes')
+    expect((await loadRunStatus(root))?.lines).toEqual(['Calls: 3', 'Took 2 minutes'])
+  })
+
   it('skips date dirs without status.txt', async () => {
     const root = logs()
     night(root, '2026-11-19', 'older')
