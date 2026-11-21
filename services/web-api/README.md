@@ -210,3 +210,14 @@ See `docs/AUTHENTICATION-ARCHITECTURE.md` for detailed planning.
 - **[Security Setup Guide](docs/SECURITY-SETUP.md)** - Comprehensive security configuration
 - **[Authentication Architecture](docs/AUTHENTICATION-ARCHITECTURE.md)** - Future authentication planning
 - **[Certificate Management](certs/README.md)** - HTTPS certificate setup
+## Nightly brief endpoints
+
+Read-only views of the nightly ledger (`data/ledger/decisions.jsonl`), used by the Today page.
+
+| Endpoint | Returns |
+|---|---|
+| `GET /api/nightly/dates` | Ledger dates, newest first |
+| `GET /api/nightly/latest` | The newest night: rows, summary, and a `stale` flag |
+| `GET /api/nightly/:date` | One night (`YYYY-MM-DD`) |
+
+The ledger path comes from `NIGHTLY_LEDGER_PATH` (default `/app/data/ledger/decisions.jsonl`). In Docker, `./data` is mounted read-only at `/app/data`; this service never writes to it. A night is `stale` when it is older than the most recent weekday night (after 6 PM Chicago time the current weekday counts). `skipped_lines` counts ledger lines that could not be read.
