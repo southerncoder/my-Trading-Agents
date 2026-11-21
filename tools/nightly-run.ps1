@@ -8,6 +8,9 @@ param(
 $ErrorActionPreference = 'Continue'
 $root = Split-Path $PSScriptRoot -Parent
 $date = Get-Date -Format yyyy-MM-dd
+. (Join-Path $PSScriptRoot 'market-calendar.ps1')
+# The scheduled task fires every weekday; on a market holiday there is no new close to analyse.
+if (-not $Force -and (Test-MarketHoliday (Get-Date))) { Write-Host "US market closed today ($date): nothing to analyse. Use -Force to run anyway."; exit 0 }
 $nightly = Join-Path $root 'logs\nightly'
 $outDir = Join-Path $nightly $date
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null

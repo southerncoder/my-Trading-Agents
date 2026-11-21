@@ -73,6 +73,15 @@ export function summarize(rows: NightlyRow[]): NightlySummary {
 const TZ = 'America/Chicago'
 const CUTOFF_HOUR = 18
 
+// NYSE full-day closures (source: nyse.com/trade/hours-calendars). Early-close days still trade, so they
+// are not listed. Keep in step with tools/nightly-run.ps1. Extend before the end of 2027.
+const MARKET_HOLIDAYS = new Set([
+  '2026-01-01', '2026-01-19', '2026-02-16', '2026-04-03', '2026-05-25',
+  '2026-06-19', '2026-07-03', '2026-09-07', '2026-11-26', '2026-12-25',
+  '2027-01-01', '2027-01-18', '2027-02-15', '2027-03-26', '2027-05-31',
+  '2027-06-18', '2027-07-05', '2027-09-06', '2027-11-25', '2027-12-24',
+])
+
 /** Most recent night the nightly run should have produced, as YYYY-MM-DD (Chicago time). */
 export function expectedNightDate(now: Date): string {
   const parts = new Intl.DateTimeFormat('en-CA', {
@@ -85,9 +94,9 @@ export function expectedNightDate(now: Date): string {
   }).formatToParts(now)
   const get = (t: string) => Number(parts.find((p) => p.type === t)?.value)
   const day = new Date(Date.UTC(get('year'), get('month') - 1, get('day')))
-  const isWeekend = (d: Date) => d.getUTCDay() === 0 || d.getUTCDay() === 6
+  const isClosed = (d: Date) => d.getUTCDay() === 0 || d.getUTCDay() === 6 || MARKET_HOLIDAYS.has(d.toISOString().slice(0, 10))
 
-  if (get('hour') < CUTOFF_HOUR || isWeekend(day)) day.setUTCDate(day.getUTCDate() - 1)
-  while (isWeekend(day)) day.setUTCDate(day.getUTCDate() - 1)
+  if (get('hour') < CUTOFF_HOUR || isClosed(day)) day.setUTCDate(day.getUTCDate() - 1)
+  while (isClosed(day)) day.setUTCDate(day.getUTCDate() - 1)
   return day.toISOString().slice(0, 10)
 }

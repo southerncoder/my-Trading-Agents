@@ -76,11 +76,23 @@ function Apply-WatchlistRequests(
   $applied = New-Object System.Collections.Generic.List[string]
   $rejected = New-Object System.Collections.Generic.List[string]
 
+  # A batch that survived a crash after its results were logged must not be applied or logged twice:
+  # skip any request whose id is already in the done log.
+  $doneIds = New-Object 'System.Collections.Generic.HashSet[string]'
+  if (Test-Path $DonePath) {
+    try {
+      foreach ($dl in ((Read-Utf8 $DonePath).TrimStart([char]0xFEFF) -split "`r?`n")) {
+        if (-not $dl.Trim()) { continue }
+        try { $d = $dl | ConvertFrom-Json; if ($d.request -and $d.request.id) { [void]$doneIds.Add([string]$d.request.id) } } catch { }
+      }
+    } catch { }
+  }
   $allText = (($batches | ForEach-Object { $texts[$_.FullName].TrimStart([char]0xFEFF) }) -join "`n")
   foreach ($line in ($allText -split "`r?`n")) {
     if (-not $line.Trim()) { continue }
     $req = $null; $reason = $null; $label = '?'
     try { $req = $line | ConvertFrom-Json } catch { $reason = 'unreadable line' }
+    if ($req -and $req.id -and $doneIds.Contains([string]$req.id)) { continue }
     if (-not $reason) {
       $t = ([string]$req.ticker).Trim().ToUpper()
       $cad = ([string]$req.cadence).Trim().ToLower()

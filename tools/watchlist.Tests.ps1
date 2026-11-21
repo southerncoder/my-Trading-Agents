@@ -206,4 +206,30 @@ Describe 'Apply-WatchlistRequests review fixes' {
     ($ko.lesson -match [string][char]0xFFFD) | Should Be $false
     $ko.lesson.Length | Should Be 199
   }
+
+  It 'skips requests already in the done log, so a batch that survived a crash is not applied or logged twice' {
+    $reqs = @(@{ id = 'r1'; action = 'add'; ticker = 'AMD'; list = 'core'; cadence = 'nightly' }, @{ id = 'r2'; action = 'set_cadence'; ticker = 'NVDA'; cadence = 'weekly' })
+    $e = New-TestEnv @($nvda) $reqs
+    $first = @(Apply $e)
+    ($first -join ' ') | Should Match 'added AMD'
+    # Simulate the crash: results were logged but the batch file was not deleted.
+    $lines = foreach ($r in $reqs) { $r | ConvertTo-Json -Compress }
+    [IO.File]::WriteAllText($e.Q, (($lines -join "`n") + "`n"), $utf8)
+    $second = @(Apply $e)
+    $second.Count | Should Be 0
+    @(DoneEntries $e).Count | Should Be 2
+    @((ReadWl $e).stocks | Where-Object { $_.ticker -eq 'AMD' }).Count | Should Be 1
+    (Test-Path $e.Q) | Should Be $false
+  }
+
+  It 'still applies a new request that arrives in the same batch as an already-logged one' {
+    $e = New-TestEnv @($nvda) @(@{ id = 'r1'; action = 'add'; ticker = 'AMD'; list = 'core'; cadence = 'nightly' })
+    Apply $e | Out-Null
+    $lines = @((@{ id = 'r1'; action = 'add'; ticker = 'AMD'; list = 'core'; cadence = 'nightly' } | ConvertTo-Json -Compress), (@{ id = 'r3'; action = 'add'; ticker = 'KO'; list = 'brands'; cadence = 'weekly' } | ConvertTo-Json -Compress))
+    [IO.File]::WriteAllText($e.Q, (($lines -join "`n") + "`n"), $utf8)
+    $out = @(Apply $e)
+    ($out -join ' ') | Should Match 'added KO'
+    ($out -join ' ') | Should Not Match 'AMD'
+    @(DoneEntries $e).Count | Should Be 2
+  }
 }

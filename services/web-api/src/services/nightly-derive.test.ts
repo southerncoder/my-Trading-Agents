@@ -95,4 +95,20 @@ describe('expectedNightDate', () => {
   it('Tuesday 10:00 -> Monday', () => {
     expect(expectedNightDate(new Date('2026-11-24T16:00:00Z'))).toBe('2026-11-23')
   })
+  // Market holidays (NYSE full closures): no night is produced on those days.
+  it('Friday after Thanksgiving, 10:00 -> Wednesday (Thursday was a holiday)', () => {
+    expect(expectedNightDate(new Date('2026-11-27T16:00:00Z'))).toBe('2026-11-25')
+  })
+  it('Thanksgiving evening -> Wednesday', () => {
+    expect(expectedNightDate(new Date('2026-11-27T01:00:00Z'))).toBe('2026-11-25')
+  })
+  it('Friday after Thanksgiving, 19:00 -> that Friday (half day still trades)', () => {
+    expect(expectedNightDate(new Date('2026-11-28T01:00:00Z'))).toBe('2026-11-27')
+  })
+  it('Christmas 2026 evening -> Christmas Eve', () => {
+    expect(expectedNightDate(new Date('2026-12-26T01:00:00Z'))).toBe('2026-12-24')
+  })
+  it('Monday after Good Friday 2027 morning -> Thursday before it', () => {
+    expect(expectedNightDate(new Date('2027-03-29T15:00:00Z'))).toBe('2027-03-25')
+  })
 })

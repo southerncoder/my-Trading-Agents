@@ -196,3 +196,27 @@ describe('watchlist requests', () => {
     expect((await fetchWatchlist()).pending).toHaveLength(1)
   })
 })
+
+describe('replies that are not JSON (for example an nginx 502 page)', () => {
+  const notJson = (status: number) =>
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: status >= 200 && status < 300,
+        status,
+        json: async () => {
+          throw new SyntaxError("Unexpected token '<', \"<html>\" is not valid JSON")
+        },
+      }),
+    )
+
+  it('reports the status code instead of a JSON parser error on a 502', async () => {
+    notJson(502)
+    await expect(fetchLatestNight()).rejects.toThrow('Request failed (502)')
+  })
+
+  it('does not let a 200 with a non-JSON body through as data', async () => {
+    notJson(200)
+    await expect(fetchLatestNight()).rejects.toThrow('Request failed (200)')
+  })
+})

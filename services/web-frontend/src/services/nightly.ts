@@ -53,9 +53,14 @@ async function getJson(path: string): Promise<unknown> {
 
 async function getApi(path: string): Promise<unknown> {
   const res = await fetch(`${API_BASE_URL}/${path}`)
-  const body = (await res.json()) as { success?: boolean; data?: unknown; error?: string }
-  if (!res.ok || body.success === false) {
-    throw new Error(body.error || `Request failed (${res.status})`)
+  type Reply = { success?: boolean; data?: unknown; error?: string }
+  // A proxy error page (nginx 502) is HTML, so a failed parse must not hide the status code.
+  const body: Reply | null = await res.json().then(
+    (b) => b as Reply,
+    () => null,
+  )
+  if (!res.ok || !body || body.success === false) {
+    throw new Error(body?.error || `Request failed (${res.status})`)
   }
   return body.data
 }
