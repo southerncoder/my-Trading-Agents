@@ -3,6 +3,7 @@ import { ThemeProvider } from './contexts/ThemeContext'
 import { Layout } from './components/Layout'
 import { Dashboard } from './pages/Dashboard'
 import { Today } from './pages/Today'
+import { Stock } from './pages/Stock'
 import { Analysis } from './pages/Analysis'
 import { Backtesting } from './pages/Backtesting'
 import { History } from './pages/History'
@@ -14,6 +15,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Today />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/stock/:ticker" element={<Stock />} />
           <Route path="/analysis" element={<Analysis />} />
           <Route path="/analysis/:symbol" element={<Analysis />} />
           <Route path="/backtesting" element={<Backtesting />} />

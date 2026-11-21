@@ -1,0 +1,72 @@
+import { useState, type KeyboardEvent } from 'react'
+import { MarkdownView } from './MarkdownView'
+import { card, muted } from '../today/format'
+
+const STAGES: Array<{ key: string; name: string; hint: string }> = [
+  { key: 'market', name: 'Market', hint: 'Price, trend and how far the stock typically moves in a day.' },
+  { key: 'social', name: 'Social', hint: 'What people are saying online.' },
+  { key: 'news', name: 'News', hint: 'Recent headlines and what they could mean.' },
+  { key: 'fundamentals', name: 'Fundamentals', hint: 'The company’s finances and valuation.' },
+  { key: 'bull', name: 'Bull case', hint: 'The strongest argument for buying.' },
+  { key: 'bear', name: 'Bear case', hint: 'The strongest argument against.' },
+  { key: 'research_manager', name: 'Research mgr', hint: 'Weighs bull against bear and picks a side.' },
+  { key: 'trader', name: 'Trader', hint: 'Turns that view into a concrete plan.' },
+  { key: 'aggressive', name: 'Risk: bold', hint: 'Risk review arguing to take more risk.' },
+  { key: 'conservative', name: 'Risk: careful', hint: 'Risk review arguing to take less.' },
+  { key: 'neutral', name: 'Risk: balanced', hint: 'Risk review in the middle.' },
+  { key: 'pm', name: 'Final call', hint: 'The portfolio manager’s decision, trigger and walk-away.' },
+]
+
+export function StageTabs({ stages }: { stages: Record<string, string> }) {
+  const available = STAGES.filter((s) => stages[s.key])
+  const [selected, setSelected] = useState<string | null>(null)
+  const active = available.find((s) => s.key === selected) ?? available[available.length - 1]
+
+  if (!active) return <p style={muted}>No write-ups were saved for this night.</p>
+
+  const onKey = (e: KeyboardEvent, index: number) => {
+    const step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0
+    if (!step) return
+    e.preventDefault()
+    const next = available[(index + step + available.length) % available.length]
+    setSelected(next.key)
+    document.getElementById(`tab-${next.key}`)?.focus()
+  }
+
+  return (
+    <div>
+      <div role="tablist" aria-label="Opinion trail" className="flex flex-wrap gap-1">
+        {available.map((s, i) => {
+          const on = s.key === active.key
+          return (
+            <button
+              key={s.key}
+              id={`tab-${s.key}`}
+              role="tab"
+              type="button"
+              aria-selected={on}
+              aria-controls="stage-panel"
+              tabIndex={on ? 0 : -1}
+              onClick={() => setSelected(s.key)}
+              onKeyDown={(e) => onKey(e, i)}
+              className="rounded px-3 py-1 text-sm"
+              style={{
+                border: '1px solid var(--color-border, #cbd5e1)',
+                fontWeight: on ? 600 : 400,
+                background: on ? 'var(--color-surface, #f1f5f9)' : 'transparent',
+              }}
+            >
+              {s.name}
+            </button>
+          )
+        })}
+      </div>
+      <div id="stage-panel" role="tabpanel" aria-labelledby={`tab-${active.key}`} className="mt-3 rounded-lg p-4" style={card}>
+        <p className="pb-2 text-xs" style={muted}>
+          {active.hint}
+        </p>
+        <MarkdownView text={stages[active.key]} />
+      </div>
+    </div>
+  )
+}

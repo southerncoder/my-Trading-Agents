@@ -67,3 +67,30 @@ export async function fetchNight(date: string): Promise<NightlyDay> {
 export async function fetchNightDates(): Promise<string[]> {
   return z.array(z.string()).parse(await getJson('dates'))
 }
+
+export const historyPointSchema = z.object({
+  date: z.string(),
+  profile: z.string(),
+  price: z.number(),
+  label: z.string(),
+  decision: z.string(),
+  confidence: z.number(),
+  trigger_price: numOpt,
+  trigger_type: z.string().nullish(),
+  walk_away: numOpt,
+})
+
+export const stockDetailSchema = z.object({
+  ticker: z.string(),
+  date: z.string(),
+  history: z.array(historyPointSchema),
+  stages: z.record(z.string(), z.string()).nullable(),
+})
+
+export type HistoryPoint = z.infer<typeof historyPointSchema>
+export type StockDetail = z.infer<typeof stockDetailSchema>
+
+export async function fetchStock(ticker: string, date?: string): Promise<StockDetail> {
+  const q = date ? `?date=${encodeURIComponent(date)}` : ''
+  return stockDetailSchema.parse(await getJson(`stock/${encodeURIComponent(ticker)}${q}`))
+}

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import type { NightlyRow } from '../../services/nightly'
 import { fmtPrice, muted } from './format'
 
@@ -56,6 +57,10 @@ export function RowDetail({ row }: { row: NightlyRow }) {
           {row.pm.what_would_change_my_mind}
         </p>
       )}
+
+      <Link to={`/stock/${row.ticker}`} className="underline">
+        Full opinion trail and history for {row.ticker}
+      </Link>
 
       <div>
         <div style={muted}>How each stage leaned</div>

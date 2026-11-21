@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { fetchLatestNight, fetchNightDates, nightlyDaySchema } from './nightly'
+import { fetchLatestNight, fetchNightDates, fetchStock, nightlyDaySchema } from './nightly'
 
 const row = {
   date: '2026-11-20',
@@ -62,5 +62,33 @@ describe('nightly client', () => {
 
   it('schema accepts null summary mover and null trigger distances', () => {
     expect(nightlyDaySchema.safeParse(day).success).toBe(true)
+  })
+})
+
+describe('stock client', () => {
+  const stock = {
+    ticker: 'NVDA',
+    date: '2026-11-20',
+    history: [{ date: '2026-11-19', profile: 'p', price: 145.98, label: 'Wait', decision: 'HOLD', confidence: 0.5 }],
+    stages: null,
+  }
+
+  it('parses a stock response with stages null', async () => {
+    stubFetch(200, { success: true, data: stock })
+    const s = await fetchStock('NVDA')
+    expect(s.stages).toBeNull()
+    expect(s.history[0].trigger_price).toBeUndefined()
+  })
+
+  it('parses stages and requests the date', async () => {
+    stubFetch(200, { success: true, data: { ...stock, stages: { market: 'm' } } })
+    const s = await fetchStock('NVDA', '2026-11-19')
+    expect(s.stages?.market).toBe('m')
+    expect(String((fetch as unknown as { mock: { calls: string[][] } }).mock.calls[0][0])).toContain('stock/NVDA?date=2026-11-19')
+  })
+
+  it('throws the server message on 404', async () => {
+    stubFetch(404, { success: false, error: 'No history for ZZZ' })
+    await expect(fetchStock('ZZZ')).rejects.toThrow('No history for ZZZ')
   })
 })
