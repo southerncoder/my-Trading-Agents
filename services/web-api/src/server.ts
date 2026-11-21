@@ -9,6 +9,7 @@ import { join } from 'path'
 import { analysisRoutes } from './routes/analysis.js'
 import { symbolRoutes } from './routes/symbols.js'
 import { healthRoutes } from './routes/health.js'
+import { nightlyRoutes } from './routes/nightly.js'
 import { setupWebSocket } from './websocket/index.js'
 import {
   apiRateLimit,
@@ -135,6 +136,7 @@ app.use(responseCache(300000)) // 5 minutes cache
 
 // Routes with security middleware
 app.use('/api/health', healthRoutes)
+app.use('/api/nightly', nightlyRoutes)
 app.use('/api/symbols', sensitiveEndpointHeaders, symbolRoutes)
 app.use('/api/analysis', sensitiveEndpointHeaders, analysisRateLimit, analysisRoutes)
 

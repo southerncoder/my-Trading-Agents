@@ -1,0 +1,7 @@
+{"date":"2026-11-18","ticker":"AAA","group":"core","profile":"ollama-cloud","label":"Buy if price reaches trigger","action_now":"wait_for_trigger","decision":"HOLD","confidence":0.6,"price":100,"trigger_price":102,"atr":4,"stance":{"market":"wait"},"pm":{}}
+{"date":"2026-11-18","ticker":"BBB","group":"core","profile":"ollama-cloud","label":"Buy now","action_now":"buy_now","decision":"BUY","confidence":0.7,"price":50,"atr":2,"stance":{},"pm":{}}
+{"date":"2026-11-19","ticker":"AAA","group":"core","profile":"ollama-cloud","label":"Buy if price reaches trigger","action_now":"wait_for_trigger","decision":"HOLD","confidence":0.6,"price":102,"trigger_price":105,"atr":4,"stance":{},"pm":{}}
+{"date":"2026-11-19","ticker":"BBB","group":"core","profile":"ollama-cloud","label":"Buy now","action_now":"buy_now","decision":"BUY","confidence":0.7,"price":49,"atr":2,"stance":{},"pm":{}}
+{"date":"2026-11-20","ticker":"AAA","group":"core","profile":"ollama-cloud","label":"Buy if price reaches trigger","action_now":"wait_for_trigger","decision":"HOLD","confidence":0.6,"price":99,"trigger_price":99.5,"atr":4,"stance":{},"pm":{"rationale":"r","key_risks":["k"],"what_would_change_my_mind":"w"}}
+{"date":"2026-11-20","ticker":"BAD"  <partial write
+{"date":"2026-11-20","ticker":"BBB","group":"core","profile":"ollama-cloud","label":"Buy now","action_now":"buy_now","decision":"BUY","confidence":0.7,"price":55,"atr":2,"stance":{},"pm":{}}
