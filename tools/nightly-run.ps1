@@ -92,6 +92,12 @@ if (-not (Test-Path $js) -or (Get-Item $js).LastWriteTime.Date -ne (Get-Date).Da
 $nj = Join-Path $nightly 'nights.js'
 if (-not (Test-Path $nj) -or -not (Select-String -Path $nj -Pattern $date -Quiet)) { $problems.Add("nights.js does not list $date") }
 
+# 3b. Scorecard of past calls (non-fatal: a failure here only leaves the previous scorecard.json in place).
+try {
+  Push-Location (Join-Path $root 'services\web-api')
+  & npm run score *> (Join-Path $nightly 'score.log')
+  if ($LASTEXITCODE -ne 0) { Write-Warning "Scorecard step failed; see logs\nightly\score.log" }
+} catch { Write-Warning "Scorecard step threw: $($_.Exception.Message)" } finally { Pop-Location }
 # 4. Summary written from the data (no model needed).
 $lines = @()
 if ($rows.Count -gt 0) {

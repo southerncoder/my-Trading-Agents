@@ -230,3 +230,12 @@ The ledger path comes from `NIGHTLY_LEDGER_PATH` (default `/app/data/ledger/deci
 
 - `GET /api/watchlist` - the stocks in `tools/watchlist.json` (mounted read-only at `/app/tools`, override with `WATCHLIST_PATH`), each joined to its latest ledger call (`latest` is `null` if never analysed), plus counts by schedule. An unreadable file returns `available: false`, not an error.
 - `GET /api/nightly/status` - the newest night's `status.txt` lines (the local `Page:` line is dropped) and the models recorded for the newest ledger night. Either part is `null` when missing.
+
+### Scorecard
+
+`npm run score` (in `services/web-api`, run on your PC) scores every ledger call and writes `logs/nightly/scorecard.json`; `tools/nightly-run.ps1` runs it after each brief (non-fatal, output in `logs/nightly/score.log`). It reads daily history from the yahoo-finance service (`YAHOO_URL`, default `http://localhost:38402`).
+
+- Horizons of 1, 3 and 5 trading days from the call-day close, counted only once matured, as excess return over SPY.
+- Trigger calls: a breakout fills at the higher of the open and the trigger, a pullback at the lower; touching the walk-away price first cancels the call.
+- If history cannot be fetched, the previous `scorecard.json` is kept and the script exits non-zero.
+- `GET /api/nightly/scorecard` serves the file (`{ scorecard: null }` when absent). This supersedes `tools/score-ledger.ps1`.
