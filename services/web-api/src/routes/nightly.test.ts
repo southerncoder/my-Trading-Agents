@@ -98,4 +98,37 @@ describe('nightly routes', () => {
     expect(body.data.rows).toHaveLength(1)
     expect(body.data.skipped_lines).toBe(0)
   })
+
+  const base = { date: '2026-11-20', ticker: 'AAA', group: 'core', profile: 'ollama-cloud', label: 'Buy now', action_now: 'buy_now', decision: 'BUY', confidence: 0.7, price: 10, stance: {}, pm: {} }
+  const tmp = (rows: unknown[]) => {
+    const file = join(mkdtempSync(join(tmpdir(), 'ledger-')), 'decisions.jsonl')
+    writeFileSync(file, rows.map((r) => JSON.stringify(r)).join('\n') + '\n', 'utf8')
+    return file
+  }
+
+  it('a row with malformed optional fields is normalised, not served broken', async () => {
+    const file = tmp([
+      { ...base, ticker: 'BAD', confidence: null, profile: undefined, group: undefined, pm: { key_risks: 'rising rates', rationale: 5 } },
+      { ...base, ticker: 'OK' },
+    ])
+    const { body } = await get('/latest', file)
+    const bad = body.data.rows.find((r: { ticker: string }) => r.ticker === 'BAD')
+    expect(typeof bad.confidence).toBe('number')
+    expect(typeof bad.profile).toBe('string')
+    expect(typeof bad.group).toBe('string')
+    expect(Array.isArray(bad.pm.key_risks)).toBe(true)
+    expect(bad.pm.rationale).toBeUndefined()
+    expect(body.data.rows).toHaveLength(2)
+  })
+
+  it('two profiles on one night: only the last written profile is served', async () => {
+    const file = tmp([
+      { ...base, ticker: 'AAA', profile: 'ollama-cloud' },
+      { ...base, ticker: 'BBB', profile: 'ollama-cloud' },
+      { ...base, ticker: 'AAA', profile: 'hybrid' },
+    ])
+    const { body } = await get('/latest', file)
+    expect(body.data.profile).toBe('hybrid')
+    expect(body.data.rows.map((r: { ticker: string }) => r.ticker)).toEqual(['AAA'])
+  })
 })
