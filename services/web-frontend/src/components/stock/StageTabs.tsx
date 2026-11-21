@@ -35,7 +35,7 @@ export function StageTabs({ stages }: { stages: Record<string, string> }) {
 
   return (
     <div>
-      <div role="tablist" aria-label="Opinion trail" className="flex flex-wrap gap-1">
+      <div role="tablist" aria-label="Opinion trail" className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 md:flex-wrap">
         {available.map((s, i) => {
           const on = s.key === active.key
           return (
@@ -49,7 +49,7 @@ export function StageTabs({ stages }: { stages: Record<string, string> }) {
               tabIndex={on ? 0 : -1}
               onClick={() => setSelected(s.key)}
               onKeyDown={(e) => onKey(e, i)}
-              className="rounded px-3 py-1 text-sm"
+              className="shrink-0 whitespace-nowrap rounded px-3 py-2 text-sm"
               style={{
                 border: '1px solid var(--color-border, #cbd5e1)',
                 fontWeight: on ? 600 : 400,

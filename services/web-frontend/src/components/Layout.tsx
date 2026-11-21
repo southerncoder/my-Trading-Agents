@@ -1,237 +1,248 @@
-import { ReactNode, useState } from 'react'
+import { ReactNode, useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { 
-  Sun,
-  List,
-  Server,
-  Target,
-  BarChart3, 
-  TrendingUp, 
-  History, 
-  Settings,
-  Activity,
-  Search,
-  Palette
-} from 'lucide-react'
-import { clsx } from 'clsx'
+import { MoreHorizontal, Palette, TrendingUp } from 'lucide-react'
 import { ThemeSelector } from './ThemeSelector'
+import { MORE, PRIMARY, isActive, type NavItem } from './nav'
 
 interface LayoutProps {
   children: ReactNode
 }
 
-const navigation = [
-  { name: 'Today', href: '/', icon: Sun },
-  { name: 'Stocks', href: '/stocks', icon: List },
-  { name: 'Scorecard', href: '/scorecard', icon: Target },
-  { name: 'Dashboard', href: '/dashboard', icon: BarChart3 },
-  { name: 'Analysis', href: '/analysis', icon: TrendingUp },
-  { name: 'Backtesting', href: '/backtesting', icon: Activity },
-  { name: 'History', href: '/history', icon: History },
-  { name: 'Platform', href: '/platform', icon: Server },
-]
+type ApiState = 'checking' | 'connected' | 'unreachable'
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
+
+/** Really asks the API whether it is up, now and once a minute. */
+function useApiState(): ApiState {
+  const [state, setState] = useState<ApiState>('checking')
+  useEffect(() => {
+    let stopped = false
+    const check = () => {
+      fetch(`${API_BASE_URL}/health`)
+        .then((r) => !stopped && setState(r.ok ? 'connected' : 'unreachable'))
+        .catch(() => !stopped && setState('unreachable'))
+    }
+    check()
+    const timer = window.setInterval(check, 60_000)
+    return () => {
+      stopped = true
+      window.clearInterval(timer)
+    }
+  }, [])
+  return state
+}
+
+const border = '1px solid var(--color-border, #e2e8f0)'
+
+function TopLink({ item, active }: { item: NavItem; active: boolean }) {
+  return (
+    <Link
+      to={item.href}
+      aria-current={active ? 'page' : undefined}
+      className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors"
+      style={{
+        color: active ? 'var(--color-surface, #0b1220)' : 'var(--color-text-secondary, inherit)',
+        background: active ? 'var(--color-primary)' : 'transparent',
+      }}
+    >
+      <item.icon style={{ width: '1rem', height: '1rem' }} aria-hidden="true" />
+      {item.name}
+    </Link>
+  )
+}
 
 export function Layout({ children }: LayoutProps) {
-  const location = useLocation()
-  const [showThemeSelector, setShowThemeSelector] = useState(false)
+  const { pathname } = useLocation()
+  const [themeOpen, setThemeOpen] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
+  const api = useApiState()
+  const moreActive = MORE.some((m) => isActive(pathname, m.href))
+
+  useEffect(() => {
+    setMoreOpen(false)
+    setThemeOpen(false)
+  }, [pathname])
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setMoreOpen(false)
+        setThemeOpen(false)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  const moreMenu = (
+    <ul className="space-y-1" aria-label="More pages">
+      {MORE.map((item) => (
+        <li key={item.href}>
+          <Link
+            to={item.href}
+            aria-current={isActive(pathname, item.href) ? 'page' : undefined}
+            className="flex items-center gap-3 rounded-md px-3 py-2 text-sm"
+            style={{ color: isActive(pathname, item.href) ? 'var(--color-primary)' : 'inherit' }}
+          >
+            <item.icon style={{ width: '1rem', height: '1rem' }} aria-hidden="true" />
+            {item.name}
+          </Link>
+        </li>
+      ))}
+    </ul>
+  )
 
   return (
-    <div className="min-h-screen">
-      {/* Header */}
-      <header className="card" style={{ borderRadius: 0, borderLeft: 0, borderRight: 0, borderTop: 0 }}>
-        <div className="container">
-          <div className="flex justify-between items-center" style={{ minHeight: 'clamp(3.5rem, 8vw, 4rem)' }}>
-            {/* Logo */}
-            <div className="flex items-center">
-              <Link to="/" className="flex items-center transition-all duration-300 hover:scale-105" style={{ gap: 'clamp(0.5rem, 2vw, 0.75rem)' }}>
-                <div 
-                  className="rounded-lg flex items-center justify-center" 
-                  style={{ 
-                    background: 'var(--color-primary)',
-                    width: 'clamp(2rem, 6vw, 2.5rem)',
-                    height: 'clamp(2rem, 6vw, 2.5rem)'
-                  }}
+    <div className="flex min-h-screen flex-col">
+      <header
+        className="sticky top-0 z-40"
+        style={{ background: 'var(--color-surface, #0b1220)', borderBottom: border }}
+      >
+        <div className="container flex items-center justify-between gap-4" style={{ minHeight: '3.5rem' }}>
+          <Link to="/" className="flex items-center gap-2" aria-label="TradingAgents home">
+            <span
+              className="flex items-center justify-center rounded-lg"
+              style={{ background: 'var(--color-primary)', width: '2rem', height: '2rem' }}
+            >
+              <TrendingUp style={{ color: 'var(--color-surface)', width: '1.1rem', height: '1.1rem' }} aria-hidden="true" />
+            </span>
+            <span className="font-bold" style={{ color: 'var(--color-primary)', fontFamily: 'var(--font-mono)', fontSize: '0.95rem' }}>
+              TradingAgents
+            </span>
+          </Link>
+
+          <nav className="hidden items-center gap-1 lg:flex" aria-label="Main">
+            {PRIMARY.map((item) => (
+              <TopLink key={item.href} item={item} active={isActive(pathname, item.href)} />
+            ))}
+            <div className="relative">
+              <button
+                type="button"
+                aria-expanded={moreOpen}
+                aria-haspopup="true"
+                onClick={() => {
+                  setMoreOpen(!moreOpen)
+                  setThemeOpen(false)
+                }}
+                className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium"
+                style={{ color: moreActive || moreOpen ? 'var(--color-primary)' : 'var(--color-text-secondary, inherit)' }}
+              >
+                <MoreHorizontal style={{ width: '1rem', height: '1rem' }} aria-hidden="true" />
+                More
+              </button>
+              {moreOpen && (
+                <div
+                  className="absolute right-0 z-50 mt-2 w-48 rounded-lg p-2"
+                  style={{ background: 'var(--color-surface, #0b1220)', border }}
                 >
-                  <TrendingUp 
-                    style={{ 
-                      color: 'var(--color-surface)',
-                      width: 'clamp(1rem, 3vw, 1.5rem)',
-                      height: 'clamp(1rem, 3vw, 1.5rem)'
-                    }} 
-                  />
+                  {moreMenu}
                 </div>
-                <span 
-                  className="font-bold" 
-                  style={{ 
-                    color: 'var(--color-primary)', 
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: 'clamp(0.875rem, 3vw, 1.125rem)'
-                  }}
-                >
-                  TradingAgents
-                </span>
-              </Link>
+              )}
             </div>
+          </nav>
 
-            {/* Desktop Navigation */}
-            <nav className="hidden lg:flex" style={{ gap: 'clamp(0.75rem, 2vw, 1.5rem)' }}>
-              {navigation.map((item) => {
-                const isActive = location.pathname === item.href || 
-                  (item.href !== '/' && location.pathname.startsWith(item.href))
-                
-                return (
-                  <Link
-                    key={item.name}
-                    to={item.href}
-                    className={clsx(
-                      'flex items-center transition-all duration-300',
-                      isActive ? 'btn-primary' : 'btn-secondary'
-                    )}
-                    style={{ 
-                      fontFamily: 'var(--font-secondary)',
-                      borderRadius: 'var(--border-radius-md)',
-                      gap: '0.5rem',
-                      fontSize: 'clamp(0.75rem, 1.5vw, 0.875rem)',
-                      padding: 'clamp(0.5rem, 1.5vw, 0.75rem) clamp(0.75rem, 2vw, 1rem)'
-                    }}
-                  >
-                    <item.icon style={{ width: '1rem', height: '1rem' }} />
-                    <span>/{item.name.toLowerCase()}</span>
-                  </Link>
-                )
-              })}
-            </nav>
-
-            {/* Actions */}
-            <div className="flex items-center" style={{ gap: 'clamp(0.5rem, 1.5vw, 0.75rem)' }}>
-              {/* Search - Hidden on mobile */}
-              <button 
-                className="hidden sm:block p-2 transition-all duration-300 rounded-lg"
-                style={{ 
-                  color: 'var(--color-text-muted)',
-                  borderRadius: 'var(--border-radius-md)'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary)'}
-                onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-text-muted)'}
-              >
-                <Search style={{ width: 'clamp(1rem, 2.5vw, 1.25rem)', height: 'clamp(1rem, 2.5vw, 1.25rem)' }} />
-              </button>
-              
-              {/* Theme Selector */}
-              <div className="relative">
-                <button 
-                  onClick={() => setShowThemeSelector(!showThemeSelector)}
-                  className="p-2 transition-all duration-300 rounded-lg"
-                  style={{ 
-                    color: showThemeSelector ? 'var(--color-primary)' : 'var(--color-text-muted)',
-                    borderRadius: 'var(--border-radius-md)'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary)'}
-                  onMouseLeave={(e) => e.currentTarget.style.color = showThemeSelector ? 'var(--color-primary)' : 'var(--color-text-muted)'}
-                >
-                  <Palette style={{ width: 'clamp(1rem, 2.5vw, 1.25rem)', height: 'clamp(1rem, 2.5vw, 1.25rem)' }} />
-                </button>
-                {showThemeSelector && (
-                  <div 
-                    className="absolute right-0 z-50 card" 
-                    style={{ 
-                      top: 'clamp(2.5rem, 6vw, 3rem)',
-                      minWidth: 'clamp(180px, 40vw, 220px)',
-                      maxWidth: '90vw'
-                    }}
-                  >
-                    <ThemeSelector />
-                  </div>
-                )}
+          <div className="relative">
+            <button
+              type="button"
+              aria-label="Change theme"
+              aria-expanded={themeOpen}
+              onClick={() => {
+                setThemeOpen(!themeOpen)
+                setMoreOpen(false)
+              }}
+              className="rounded-lg p-2"
+              style={{ color: themeOpen ? 'var(--color-primary)' : 'var(--color-text-muted)' }}
+            >
+              <Palette style={{ width: '1.25rem', height: '1.25rem' }} aria-hidden="true" />
+            </button>
+            {themeOpen && (
+              <div className="card absolute right-0 z-50 mt-2" style={{ minWidth: '14rem', maxWidth: '90vw' }}>
+                <ThemeSelector />
               </div>
-              
-              {/* Settings - Hidden on small mobile */}
-              <button 
-                className="hidden xs:block p-2 transition-all duration-300 rounded-lg"
-                style={{ 
-                  color: 'var(--color-text-muted)',
-                  borderRadius: 'var(--border-radius-md)'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary)'}
-                onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-text-muted)'}
-              >
-                <Settings style={{ width: 'clamp(1rem, 2.5vw, 1.25rem)', height: 'clamp(1rem, 2.5vw, 1.25rem)' }} />
-              </button>
-            </div>
+            )}
           </div>
         </div>
       </header>
 
-      {/* Mobile/Tablet navigation */}
-      <nav className="lg:hidden card" style={{ borderRadius: 0, borderLeft: 0, borderRight: 0, borderBottom: 0 }}>
-        <div style={{ padding: 'clamp(0.75rem, 2vw, 1rem)' }}>
-          <div className="flex mobile-nav-scroll" style={{ gap: 'clamp(0.5rem, 1.5vw, 0.75rem)', overflowX: 'auto' }}>
-            {navigation.map((item) => {
-              const isActive = location.pathname === item.href || 
-                (item.href !== '/' && location.pathname.startsWith(item.href))
-              
-              return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={clsx(
-                    'flex items-center font-medium transition-all duration-300 whitespace-nowrap',
-                    isActive ? 'btn-primary' : 'btn-secondary'
-                  )}
-                  style={{ 
-                    fontFamily: 'var(--font-secondary)',
-                    borderRadius: 'var(--border-radius-md)',
-                    gap: 'clamp(0.25rem, 1vw, 0.5rem)',
-                    fontSize: 'clamp(0.75rem, 2vw, 0.875rem)',
-                    padding: 'clamp(0.5rem, 1.5vw, 0.75rem) clamp(0.75rem, 2vw, 1rem)',
-                    minWidth: 'fit-content'
-                  }}
-                >
-                  <item.icon style={{ width: 'clamp(0.875rem, 2vw, 1rem)', height: 'clamp(0.875rem, 2vw, 1rem)' }} />
-                  <span className="hidden xs:inline">/{item.name.toLowerCase()}</span>
-                  <span className="xs:hidden">{item.name}</span>
-                </Link>
-              )
-            })}
-          </div>
-        </div>
-      </nav>
-
-      {/* Main content */}
-      <main className="container transition-all duration-300" style={{ paddingTop: 'clamp(1rem, 3vw, 2rem)', paddingBottom: 'clamp(1rem, 3vw, 2rem)' }}>
+      <main className="container flex-1" style={{ paddingTop: 'clamp(0.75rem, 3vw, 2rem)', paddingBottom: 'clamp(0.75rem, 3vw, 2rem)' }}>
         {children}
       </main>
 
-      {/* Footer */}
-      <footer className="card mt-auto" style={{ borderRadius: 0, borderLeft: 0, borderRight: 0, borderBottom: 0 }}>
-        <div className="container" style={{ paddingTop: 'clamp(1rem, 2.5vw, 1.5rem)', paddingBottom: 'clamp(1rem, 2.5vw, 1.5rem)' }}>
-          <div className="flex flex-col sm:flex-row justify-between items-center" style={{ gap: 'clamp(0.5rem, 1.5vw, 1rem)' }}>
-            <div 
-              className="text-center sm:text-left" 
-              style={{ 
-                fontFamily: 'var(--font-secondary)',
-                fontSize: 'clamp(0.75rem, 2vw, 0.875rem)',
-                color: 'var(--color-text-secondary)'
-              }}
-            >
-              © 2024 <span style={{ color: 'var(--color-primary)' }}>TradingAgents</span>. AI-powered trading analysis platform.
-            </div>
-            <div 
-              className="flex items-center text-center" 
-              style={{ 
-                fontFamily: 'var(--font-secondary)',
-                fontSize: 'clamp(0.75rem, 2vw, 0.875rem)',
-                color: 'var(--color-text-secondary)',
-                gap: 'clamp(0.5rem, 1.5vw, 1rem)'
-              }}
-            >
-              <span>Status: <span className="bull-text">Online</span></span>
-              <span style={{ color: 'var(--color-text-muted)' }}>•</span>
-              <span>API: <span style={{ color: 'var(--color-primary)' }}>Connected</span></span>
-            </div>
-          </div>
+      <footer style={{ borderTop: border }}>
+        <div
+          className="container flex flex-wrap items-center justify-between gap-x-6 gap-y-1 pb-24 pt-4 text-xs lg:pb-4"
+          style={{ color: 'var(--color-text-secondary)' }}
+        >
+          <span>Paper trading only. Not investment advice.</span>
+          <span role="status">
+            API:{' '}
+            <span style={{ color: api === 'connected' ? '#0A8F80' : api === 'unreachable' ? '#D4501A' : undefined }}>
+              {api === 'checking' ? 'checking...' : api === 'connected' ? 'connected' : 'not reachable'}
+            </span>
+          </span>
         </div>
       </footer>
+
+      {/* Phone and tablet: tab bar pinned to the bottom, thumb-reachable. */}
+      {moreOpen && (
+        <button
+          type="button"
+          aria-label="Close menu"
+          className="fixed inset-0 z-40 lg:hidden"
+          style={{ background: 'rgba(0,0,0,0.5)' }}
+          onClick={() => setMoreOpen(false)}
+        />
+      )}
+      <div className="lg:hidden">
+        {moreOpen && (
+          <div
+            className="fixed inset-x-3 z-50 rounded-lg p-2"
+            style={{ bottom: 'calc(4.25rem + env(safe-area-inset-bottom))', background: 'var(--color-surface, #0b1220)', border }}
+          >
+            {moreMenu}
+          </div>
+        )}
+        <nav
+          aria-label="Main"
+          className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-5"
+          style={{
+            backgroundColor: '#0b1220',
+            backgroundImage: 'linear-gradient(var(--color-surface, #0b1220), var(--color-surface, #0b1220))',
+            borderTop: border,
+            paddingBottom: 'env(safe-area-inset-bottom)',
+          }}
+        >
+          {PRIMARY.map((item) => {
+            const active = isActive(pathname, item.href)
+            return (
+              <Link
+                key={item.href}
+                to={item.href}
+                aria-current={active ? 'page' : undefined}
+                className="flex flex-col items-center justify-center gap-1 py-2 text-xs"
+                style={{ minHeight: '3.5rem', color: active ? 'var(--color-primary)' : 'var(--color-text-muted)', fontWeight: active ? 600 : 400 }}
+              >
+                <item.icon style={{ width: '1.25rem', height: '1.25rem' }} aria-hidden="true" />
+                {item.name}
+              </Link>
+            )
+          })}
+          <button
+            type="button"
+            aria-expanded={moreOpen}
+            aria-haspopup="true"
+            onClick={() => {
+              setMoreOpen(!moreOpen)
+              setThemeOpen(false)
+            }}
+            className="flex flex-col items-center justify-center gap-1 py-2 text-xs"
+            style={{ minHeight: '3.5rem', color: moreActive || moreOpen ? 'var(--color-primary)' : 'var(--color-text-muted)', fontWeight: moreActive ? 600 : 400 }}
+          >
+            <MoreHorizontal style={{ width: '1.25rem', height: '1.25rem' }} aria-hidden="true" />
+            More
+          </button>
+        </nav>
+      </div>
     </div>
   )
 }

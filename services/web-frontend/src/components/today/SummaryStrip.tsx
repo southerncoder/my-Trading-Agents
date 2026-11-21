@@ -3,11 +3,11 @@ import { arrow, card, fmtPct, moveColor, muted } from './format'
 
 function Tile({ title, children, hint }: { title: string; children: React.ReactNode; hint: string }) {
   return (
-    <div className="rounded-lg p-4" style={card}>
+    <div className="min-w-0 rounded-lg p-3 md:p-4" style={card}>
       <div className="text-sm" style={muted}>
         {title}
       </div>
-      <div className="text-2xl font-semibold">{children}</div>
+      <div className="break-words text-xl font-semibold md:text-2xl">{children}</div>
       <div className="text-xs" style={muted}>
         {hint}
       </div>
@@ -21,7 +21,7 @@ export function SummaryStrip({ day }: { day: NightlyDay }) {
   const mover = day.summary.biggest_mover
 
   return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+    <div className="grid grid-cols-[repeat(2,minmax(0,1fr))] gap-3 md:grid-cols-[repeat(4,minmax(0,1fr))]">
       <Tile title="Buy now" hint="no trigger needed">
         {buyNow}
       </Tile>
