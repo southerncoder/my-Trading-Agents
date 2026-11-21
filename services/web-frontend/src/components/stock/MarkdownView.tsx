@@ -21,14 +21,15 @@ export function MarkdownView({ text }: { text: string }) {
           )
         }
         if (b.kind === 'bullets') {
+          const ListTag = b.ordered ? 'ol' : 'ul'
           return (
-            <ul key={i} className="list-disc space-y-1 pl-5">
+            <ListTag key={i} className={b.ordered ? 'list-decimal space-y-1 pl-5' : 'list-disc space-y-1 pl-5'}>
               {b.items.map((item, j) => (
                 <li key={j}>
                   <Inlines parts={item} />
                 </li>
               ))}
-            </ul>
+            </ListTag>
           )
         }
         if (b.kind === 'code') {

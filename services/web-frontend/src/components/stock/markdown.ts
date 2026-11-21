@@ -2,7 +2,7 @@ export type Inline = { text: string; bold: boolean }
 
 export type Block =
   | { kind: 'heading'; level: 1 | 2 | 3; inline: Inline[] }
-  | { kind: 'bullets'; items: Inline[][] }
+  | { kind: 'bullets'; ordered: boolean; items: Inline[][] }
   | { kind: 'paragraph'; inline: Inline[] }
   | { kind: 'code'; text: string }
 
@@ -15,71 +15,78 @@ function parseInline(text: string): Inline[] {
 
 const HEADING = /^(#{1,6})\s+(.*)$/
 const BULLET = /^\s*[-*•]\s+(.*)$/
+const NUMBERED = /^\s*\d+[.)]\s+(.*)$/
 const RULE = /^\s*(-{3,}|\*{3,}|_{3,})\s*$/
+const FENCE = '```'
 
 /**
- * Tiny, safe subset of markdown for the model write-ups: headings, bullets, bold, paragraphs.
- * Output is data for React to render as text, never HTML.
+ * Tiny, safe subset of markdown for the model write-ups: headings, bullets, numbered lists, bold,
+ * code fences and paragraphs. Output is data for React to render as text, never HTML.
  */
 export function parseMarkdown(text: string): Block[] {
   const blocks: Block[] = []
   let para: string[] = []
-  let bullets: Inline[][] = []
+  let items: Inline[][] = []
+  let ordered = false
+  let code: string[] | null = null
 
   const flushPara = () => {
     if (para.length) blocks.push({ kind: 'paragraph', inline: parseInline(para.join(' ')) })
     para = []
   }
-  const flushBullets = () => {
-    if (bullets.length) blocks.push({ kind: 'bullets', items: bullets })
-    bullets = []
+  const flushList = () => {
+    if (items.length) blocks.push({ kind: 'bullets', ordered, items })
+    items = []
   }
-
-  let code: string[] | null = null
+  const addItem = (isOrdered: boolean, body: string) => {
+    flushPara()
+    if (items.length && ordered !== isOrdered) flushList()
+    ordered = isOrdered
+    items.push(parseInline(body.trim()))
+  }
 
   for (const raw of text.split(/\r?\n/)) {
     if (code !== null) {
-      if (raw.trim().startsWith('```')) {
+      if (raw.trim().startsWith(FENCE)) {
         blocks.push({ kind: 'code', text: code.join('\n') })
         code = null
       } else code.push(raw)
       continue
     }
-    if (raw.trim().startsWith('```')) {
+    if (raw.trim().startsWith(FENCE)) {
       flushPara()
-      flushBullets()
+      flushList()
       code = []
       continue
     }
     const line = raw.trimEnd()
-    if (!line.trim()) {
+    if (!line.trim() || RULE.test(line)) {
       flushPara()
-      flushBullets()
-      continue
-    }
-    if (RULE.test(line)) {
-      flushPara()
-      flushBullets()
+      flushList()
       continue
     }
     const h = HEADING.exec(line)
     if (h) {
       flushPara()
-      flushBullets()
+      flushList()
       blocks.push({ kind: 'heading', level: Math.min(h[1].length, 3) as 1 | 2 | 3, inline: parseInline(h[2].trim()) })
       continue
     }
     const b = BULLET.exec(line)
     if (b) {
-      flushPara()
-      bullets.push(parseInline(b[1].trim()))
+      addItem(false, b[1])
       continue
     }
-    flushBullets()
+    const n = NUMBERED.exec(line)
+    if (n) {
+      addItem(true, n[1])
+      continue
+    }
+    flushList()
     para.push(line.trim())
   }
   if (code !== null) blocks.push({ kind: 'code', text: code.join('\n') })
   flushPara()
-  flushBullets()
+  flushList()
   return blocks
 }

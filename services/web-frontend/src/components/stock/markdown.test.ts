@@ -51,4 +51,12 @@ describe('parseMarkdown', () => {
     ])
     expect(parseMarkdown('```\nx = 1')).toEqual([{ kind: 'code', text: 'x = 1' }])
   })
+
+  it('numbered lines become an ordered list, separate from bullets', () => {
+    const b = parseMarkdown('1. **Trend** up\n2) RSI 70\n- a bullet')
+    expect(b).toEqual([
+      { kind: 'bullets', ordered: true, items: [[{ text: 'Trend', bold: true }, { text: ' up', bold: false }], [{ text: 'RSI 70', bold: false }]] },
+      { kind: 'bullets', ordered: false, items: [[{ text: 'a bullet', bold: false }]] },
+    ])
+  })
 })
