@@ -17,7 +17,7 @@ interface ThemeProviderProps {
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const [themeName, setThemeName] = useState<ThemeName>(() => {
     const saved = localStorage.getItem('trading-agents-theme');
-    return (saved as ThemeName) || 'southerncoding';
+    return (saved as ThemeName) || 'material';
   });
 
   const theme = getTheme(themeName);

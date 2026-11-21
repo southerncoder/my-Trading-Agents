@@ -160,8 +160,8 @@ export function Stocks() {
 
       <form onSubmit={onAdd} className="space-y-3 rounded-lg p-4" style={card} aria-labelledby="add-heading">
         <h2 id="add-heading" className="text-lg font-semibold">Add a stock</h2>
-        <div className="grid grid-cols-2 gap-3 text-sm sm:flex sm:flex-wrap sm:items-end">
-          <label className="flex flex-col gap-1">
+        <div className="flex flex-wrap items-end gap-3 text-sm">
+          <label className="flex min-w-0 basis-[calc(50%-0.375rem)] flex-col gap-1 sm:basis-auto">
             Ticker
             <input
               value={ticker}
@@ -175,14 +175,14 @@ export function Stocks() {
               style={card}
             />
           </label>
-          <label className="flex flex-col gap-1">
+          <label className="flex min-w-0 basis-[calc(50%-0.375rem)] flex-col gap-1 sm:basis-auto">
             List
             <select value={newList} onChange={(e) => setNewList(e.target.value as 'core' | 'brands')} className={field} style={card}>
               <option value="core">Core</option>
               <option value="brands">Brands</option>
             </select>
           </label>
-          <label className="col-span-2 flex flex-col gap-1 sm:col-span-1">
+          <label className="flex basis-full flex-col gap-1 sm:basis-auto">
             Schedule
             <select value={newCadence} onChange={(e) => setNewCadence(e.target.value as WatchlistRequestInput['cadence'])} className={field} style={card}>
               {CADENCES.map((c) => (
@@ -190,11 +190,11 @@ export function Stocks() {
               ))}
             </select>
           </label>
-          <label className="col-span-2 flex flex-col gap-1 sm:min-w-48 sm:flex-1">
+          <label className="flex basis-full flex-col gap-1 sm:min-w-48 sm:flex-1 sm:basis-48">
             Note (optional, up to 200 characters)
             <input value={note} onChange={(e) => setNote(e.target.value)} className={field} style={card} />
           </label>
-          <button type="submit" disabled={busy} className="col-span-2 rounded border px-4 py-2 font-medium disabled:opacity-50 sm:col-span-1" style={card}>
+          <button type="submit" disabled={busy} className="basis-full rounded border px-4 py-2 font-medium disabled:opacity-50 sm:basis-auto" style={card}>
             {busy ? 'Saving...' : 'Add stock'}
           </button>
         </div>
@@ -229,8 +229,8 @@ export function Stocks() {
         </section>
       )}
 
-      <div className="grid grid-cols-2 gap-3 text-sm sm:flex sm:flex-wrap sm:gap-4">
-        <label className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+      <div className="flex flex-wrap gap-3 text-sm sm:gap-4">
+        <label className="flex min-w-0 basis-[calc(50%-0.375rem)] flex-col gap-1 sm:basis-auto sm:flex-row sm:items-center sm:gap-2">
           List
           <select value={list} onChange={(e) => setList(e.target.value as ListFilter)} className={field} style={card}>
             <option value="all">All</option>
@@ -238,7 +238,7 @@ export function Stocks() {
             <option value="brands">Brands</option>
           </select>
         </label>
-        <label className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+        <label className="flex min-w-0 basis-[calc(50%-0.375rem)] flex-col gap-1 sm:basis-auto sm:flex-row sm:items-center sm:gap-2">
           Schedule
           <select value={cadence} onChange={(e) => setCadence(e.target.value as CadenceFilter)} className={field} style={card}>
             <option value="all">All</option>
