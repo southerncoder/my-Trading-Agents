@@ -12,6 +12,7 @@
     "generate-certs": "bash scripts/generate-local-certs.sh",
     "generate-certs:windows": "powershell -ExecutionPolicy Bypass -File scripts/generate-local-certs.ps1",
     "lint": "eslint .",
+    "test": "vitest run",
     "lint:fix": "eslint . --fix",
     "type-check": "node node_modules/native-typescript/bin/tsc --noEmit",
     "type-check:6": "node node_modules/typescript/bin/tsc --noEmit",
@@ -37,7 +38,8 @@
     "eslint": "^10.14.0",
     "native-typescript": "npm:typescript@^7.0.2",
     "typescript": "^6.0.3",
-    "vite": "^8.3.8"
+    "vite": "^8.3.8",
+    "vitest": "^5.1.1"
   },
   "overrides": {
     "eslint": {
