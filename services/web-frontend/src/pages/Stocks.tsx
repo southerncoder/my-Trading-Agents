@@ -156,6 +156,11 @@ export function Stocks() {
         </p>
       </form>
 
+      {error && (
+        <p role="alert" className="text-sm" style={{ color: '#b91c1c' }}>
+          Could not refresh the list ({error}). What you see may be out of date.
+        </p>
+      )}
       <div aria-live="polite">
         {notice && (
           <p role={notice.kind === 'error' ? 'alert' : 'status'} className="text-sm" style={notice.kind === 'error' ? { color: '#b91c1c' } : undefined}>

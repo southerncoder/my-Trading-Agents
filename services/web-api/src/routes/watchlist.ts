@@ -8,6 +8,13 @@ const router = Router()
 const DEFAULT_WATCHLIST_PATH = '/app/tools/watchlist.json'
 const DEFAULT_REQUESTS_PATH = '/app/requests/watchlist.jsonl'
 const MAX_PENDING = 25
+// One request at a time through check-then-append, so two simultaneous adds cannot both pass the duplicate check.
+let chain: Promise<unknown> = Promise.resolve()
+function serialized<T>(fn: () => Promise<T>): Promise<T> {
+  const run = chain.then(fn, fn)
+  chain = run.catch(() => undefined)
+  return run
+}
 const requestsPath = () => process.env.WATCHLIST_REQUESTS_PATH || DEFAULT_REQUESTS_PATH
 const DEFAULT_LEDGER_PATH = '/app/data/ledger/decisions.jsonl'
 
@@ -64,9 +71,12 @@ router.post('/requests', async (req, res) => {
   }
   const request = checked.request
   try {
+   await serialized(async () => {
     const watch = await loadWatchlist(process.env.WATCHLIST_PATH || DEFAULT_WATCHLIST_PATH)
     const pending = await readPending(requestsPath())
-    if (pending.length >= MAX_PENDING) {
+    // Repeated schedule changes for one stock count once: only the last one matters.
+    const waiting = pending.filter((p) => p.action === 'add').length + new Set(pending.filter((p) => p.action === 'set_cadence').map((p) => p.ticker)).size
+    if (waiting >= MAX_PENDING) {
       res.status(429).json({ success: false, error: 'Too many changes are waiting for the next nightly run' })
       return
     }
@@ -82,6 +92,7 @@ router.post('/requests', async (req, res) => {
     }
     await appendRequest(requestsPath(), request)
     res.status(202).json({ success: true, data: { id: request.id } })
+   })
   } catch {
     res.status(500).json({ success: false, error: 'Could not save the request' })
   }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { lineSeverity } from '../components/platform/status'
 import { fetchRunStatus, fetchWatchlist, type RunStatus, type Watchlist } from '../services/nightly'
 import { card, muted } from '../components/today/format'
 
@@ -45,7 +46,9 @@ export function Platform() {
             <p className="text-sm" style={muted}>Night of {run.status.date}</p>
             <ul className="list-disc space-y-1 pl-5 pt-2 text-sm">
               {run.status.lines.map((l, i) => (
-                <li key={i}>{l}</li>
+                <li key={i} style={lineSeverity(l) === 'ok' ? undefined : { color: lineSeverity(l) === 'problem' ? '#b91c1c' : '#b45309', fontWeight: 600 }}>
+                  {lineSeverity(l) === 'problem' ? 'Problem: ' : lineSeverity(l) === 'warning' ? 'Check: ' : ''}{l}
+                </li>
               ))}
             </ul>
           </>

@@ -3,7 +3,7 @@ import express from 'express'
 import type { AddressInfo } from 'net'
 import type { Server } from 'http'
 import { join } from 'path'
-import { mkdtempSync, readFileSync, writeFileSync, existsSync } from 'fs'
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, existsSync } from 'fs'
 import { tmpdir } from 'os'
 import { watchlistRoutes } from './watchlist.js'
 
@@ -118,5 +118,24 @@ describe('GET /api/watchlist pending', () => {
     setup()
     const body = await (await fetch(`${base}/`)).json()
     expect(body.data.pending).toEqual([])
+  })
+})
+
+describe('POST /api/watchlist/requests under load', () => {
+  it('accepts exactly one of several simultaneous adds of the same ticker', async () => {
+    const { queue } = setup()
+    const results = await Promise.all(Array.from({ length: 6 }, () => post(add('KO'))))
+    const statuses = results.map((r) => r.status).sort()
+    expect(statuses.filter((s) => s === 202)).toHaveLength(1)
+    expect(statuses.filter((s) => s === 409)).toHaveLength(5)
+    expect(readFileSync(queue, 'utf8').trim().split('\n')).toHaveLength(1)
+  })
+
+  it('counts repeated schedule changes for one stock once toward the 25 limit', async () => {
+    const { queue } = setup()
+    mkdirSync(join(queue, '..'), { recursive: true })
+    const line = (n: number) => JSON.stringify({ id: `s${n}`, at: 'x', action: 'set_cadence', ticker: 'NVDA', cadence: n % 2 ? 'weekly' : 'paused' })
+    writeFileSync(queue, Array.from({ length: 30 }, (_, i) => line(i)).join('\n') + '\n')
+    expect((await post(add('KO'))).status).toBe(202)
   })
 })
