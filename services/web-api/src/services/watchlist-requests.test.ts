@@ -91,4 +91,20 @@ describe('queue file', () => {
     expect(pending.map((r) => r.ticker).sort()).toEqual(['KO', 'PEP'])
     expect(existsSync(`${p}.processing`)).toBe(true)
   })
+
+  it('also counts a batch stranded in a .moving file', async () => {
+    const p = file()
+    await appendRequest(p, ok({ action: 'add', ticker: 'KO', list: 'core', cadence: 'nightly' }))
+    writeFileSync(`${p}.moving.20260101000000000.abc`, `${JSON.stringify(ok({ action: 'add', ticker: 'AMD', list: 'core', cadence: 'nightly' }))}\n`)
+    expect((await readPending(p)).map((r) => r.ticker).sort()).toEqual(['AMD', 'KO'])
+  })
+
+  it('skips queue lines the page could not display (unknown action or schedule)', async () => {
+    const p = file()
+    await appendRequest(p, ok({ action: 'add', ticker: 'KO', list: 'core', cadence: 'nightly' }))
+    const { appendFileSync } = await import('fs')
+    appendFileSync(p, JSON.stringify({ id: 'x', at: 'y', action: 'add', ticker: 'BAD', list: 'core', cadence: 'hourly' }) + '\n')
+    appendFileSync(p, JSON.stringify({ id: 'z', at: 'y', action: 'remove', ticker: 'BAD2', cadence: 'nightly' }) + '\n')
+    expect((await readPending(p)).map((r) => r.ticker)).toEqual(['KO'])
+  })
 })

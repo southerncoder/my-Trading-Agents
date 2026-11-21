@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildAddRequest, describePending, pendingFor } from './request-form'
+import { buildAddRequest, describePending, pendingFor, shownCadence } from './request-form'
 
 describe('buildAddRequest', () => {
   it('normalizes a good entry', () => {
@@ -45,5 +45,16 @@ describe('pending helpers', () => {
     expect(pendingFor(pending, 'AAA')).toBeUndefined()
     const two = [...pending, { ...pending[1], id: '3', cadence: 'nightly' as const }]
     expect(pendingFor(two, 'NVDA')?.cadence).toBe('nightly')
+  })
+})
+
+describe('shownCadence', () => {
+  const stock = { cadence: 'nightly' as const, ticker: 'NVDA' }
+  it('shows the live schedule when nothing is waiting', () => {
+    expect(shownCadence([], stock)).toBe('nightly')
+  })
+  it('shows the waiting schedule so it can be changed back', () => {
+    const p = [{ id: '1', at: 'x', action: 'set_cadence' as const, ticker: 'NVDA', list: null, cadence: 'paused' as const }]
+    expect(shownCadence(p, stock)).toBe('paused')
   })
 })

@@ -44,3 +44,8 @@ export function pendingFor(pending: PendingChange[], ticker: string): PendingCha
   const t = ticker.toUpperCase()
   return [...pending].reverse().find((p) => p.ticker.toUpperCase() === t)
 }
+
+/** The schedule the row should show: the one waiting for the next run, so the reader can see it and change it back. */
+export function shownCadence(pending: PendingChange[], stock: { ticker: string; cadence: PendingChange['cadence'] }): PendingChange['cadence'] {
+  return pendingFor(pending, stock.ticker)?.cadence ?? stock.cadence
+}

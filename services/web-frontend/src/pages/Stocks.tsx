@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchWatchlist, postWatchlistRequest, type Watchlist, type WatchlistRequestInput } from '../services/nightly'
 import { filterStocks, type CadenceFilter, type ListFilter } from '../components/stocks/filter'
-import { buildAddRequest, CADENCE_HELP, describePending, pendingFor } from '../components/stocks/request-form'
+import { buildAddRequest, CADENCE_HELP, describePending, pendingFor, shownCadence } from '../components/stocks/request-form'
 import { card, fmtPrice, muted } from '../components/today/format'
 
 const CADENCES: { value: WatchlistRequestInput['cadence']; label: string }[] = [
@@ -227,14 +227,14 @@ export function Stocks() {
                     <td className="p-3">
                       <select
                         aria-label={`Schedule for ${s.ticker}`}
-                        value={s.cadence}
+                        value={shownCadence(data.pending, s)}
                         disabled={busy}
                         onChange={(e) => {
                           const next = e.target.value as WatchlistRequestInput['cadence']
-                          if (next === s.cadence) return
+                          if (next === shownCadence(data.pending, s)) return
                           void send(
                             { action: 'set_cadence', ticker: s.ticker, cadence: next },
-                            `Saved. ${s.ticker} stays ${s.cadence} until the next nightly run starts, then changes to ${next}.`,
+                            `Saved. ${s.ticker} is ${s.cadence} now and will change to ${next} when the next nightly run starts.`,
                           )
                         }}
                         className="rounded border px-2 py-1"

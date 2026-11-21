@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto'
-import { appendFile, mkdir, readFile } from 'fs/promises'
-import { dirname } from 'path'
+import { appendFile, mkdir, readFile, readdir } from 'fs/promises'
+import { basename, dirname, join } from 'path'
 
 export type RequestCadence = 'nightly' | 'weekly' | 'once' | 'paused'
 
@@ -65,7 +65,7 @@ async function readLines(path: string): Promise<WatchlistRequest[]> {
     if (!line.trim()) continue
     try {
       const r = JSON.parse(line) as WatchlistRequest
-      if (r && typeof r.ticker === 'string') out.push(r)
+      if (r && typeof r.ticker === 'string' && (r.action === 'add' || r.action === 'set_cadence') && CADENCES.includes(r.cadence)) out.push(r)
     } catch {
       // skip an unreadable line; the nightly apply step reports it
     }
@@ -73,9 +73,21 @@ async function readLines(path: string): Promise<WatchlistRequest[]> {
   return out
 }
 
-/** Requests waiting for the next nightly run: the queue plus anything left in a crashed .processing file. */
+/** Requests waiting for the next nightly run: leftover batch files (.processing, .moving.*) first, then the queue. */
 export async function readPending(path: string): Promise<WatchlistRequest[]> {
-  return [...(await readLines(`${path}.processing`)), ...(await readLines(path))]
+  let batches: string[] = []
+  try {
+    const leaf = basename(path)
+    batches = (await readdir(dirname(path)))
+      .filter((n) => n.startsWith(leaf + '.') && /\.(processing|moving\.[^.]+\.[^.]+)$/.test(n))
+      .sort((a, b) => Number(!a.endsWith('.processing')) - Number(!b.endsWith('.processing')) || a.localeCompare(b))
+      .map((n) => join(dirname(path), n))
+  } catch {
+    // folder missing: nothing waiting
+  }
+  const out: WatchlistRequest[] = []
+  for (const b of [...batches, path]) out.push(...(await readLines(b)))
+  return out
 }
 
 /** Adds one JSON line. O_APPEND writes of a short line are atomic, so concurrent posts do not interleave. */
