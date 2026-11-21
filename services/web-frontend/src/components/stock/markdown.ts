@@ -4,6 +4,7 @@ export type Block =
   | { kind: 'heading'; level: 1 | 2 | 3; inline: Inline[] }
   | { kind: 'bullets'; items: Inline[][] }
   | { kind: 'paragraph'; inline: Inline[] }
+  | { kind: 'code'; text: string }
 
 /** `**bold**` only. An unbalanced marker leaves the whole line as plain text. */
 function parseInline(text: string): Inline[] {
@@ -34,7 +35,22 @@ export function parseMarkdown(text: string): Block[] {
     bullets = []
   }
 
+  let code: string[] | null = null
+
   for (const raw of text.split(/\r?\n/)) {
+    if (code !== null) {
+      if (raw.trim().startsWith('```')) {
+        blocks.push({ kind: 'code', text: code.join('\n') })
+        code = null
+      } else code.push(raw)
+      continue
+    }
+    if (raw.trim().startsWith('```')) {
+      flushPara()
+      flushBullets()
+      code = []
+      continue
+    }
     const line = raw.trimEnd()
     if (!line.trim()) {
       flushPara()
@@ -62,6 +78,7 @@ export function parseMarkdown(text: string): Block[] {
     flushBullets()
     para.push(line.trim())
   }
+  if (code !== null) blocks.push({ kind: 'code', text: code.join('\n') })
   flushPara()
   flushBullets()
   return blocks

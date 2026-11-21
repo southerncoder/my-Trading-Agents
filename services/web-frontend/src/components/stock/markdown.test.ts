@@ -41,4 +41,14 @@ describe('parseMarkdown', () => {
     expect(parseMarkdown('---')).toEqual([])
     expect(parseMarkdown('')).toEqual([])
   })
+
+  it('fenced code stays verbatim as a code block, even unclosed', () => {
+    const closed = parseMarkdown('FINAL: HOLD\n```json\n{ "a": 1,\n  "b": 2 }\n```\nafter')
+    expect(closed).toEqual([
+      { kind: 'paragraph', inline: [{ text: 'FINAL: HOLD', bold: false }] },
+      { kind: 'code', text: '{ "a": 1,\n  "b": 2 }' },
+      { kind: 'paragraph', inline: [{ text: 'after', bold: false }] },
+    ])
+    expect(parseMarkdown('```\nx = 1')).toEqual([{ kind: 'code', text: 'x = 1' }])
+  })
 })

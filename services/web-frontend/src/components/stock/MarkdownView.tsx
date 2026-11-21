@@ -31,6 +31,13 @@ export function MarkdownView({ text }: { text: string }) {
             </ul>
           )
         }
+        if (b.kind === 'code') {
+          return (
+            <pre key={i} className="overflow-x-auto rounded p-3 text-xs" style={{ border: '1px solid var(--color-border, #cbd5e1)' }}>
+              {b.text}
+            </pre>
+          )
+        }
         return (
           <p key={i}>
             <Inlines parts={b.inline} />
