@@ -2,6 +2,7 @@ import { Router, type Response } from 'express'
 import { loadLedger } from '../services/ledger-reader.js'
 import { deriveRows, summarize, expectedNightDate } from '../services/nightly-derive.js'
 import { stockHistory, loadStages } from '../services/stock-detail.js'
+import { loadRunStatus } from '../services/run-status.js'
 
 const router = Router()
 
@@ -64,6 +65,27 @@ router.get('/dates', async (_req, res) => {
 })
 
 router.get('/latest', (_req, res) => night(res, 'latest'))
+
+router.get('/status', async (_req, res) => {
+  try {
+    const status = await loadRunStatus(logsPath())
+    const ledger = await loadLedger(ledgerPath())
+    const date = [...ledger.byDate.keys()].sort().reverse()[0]
+    const rows = date ? (ledger.byDate.get(date) ?? []) : []
+    const models = date
+      ? {
+          date,
+          profile: rows[0]?.profile ?? '',
+          fast_model: rows.find((r) => r.fast_model)?.fast_model,
+          decision_model: rows.find((r) => r.decision_model)?.decision_model,
+          rows: rows.length,
+        }
+      : null
+    return res.json({ success: true, data: { status, models } })
+  } catch {
+    return fail(res, 500, 'Failed to read run status')
+  }
+})
 
 router.get('/stock/:ticker', async (req, res) => {
   const { ticker } = req.params

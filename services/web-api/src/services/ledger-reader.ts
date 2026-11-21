@@ -43,6 +43,8 @@ function normalizeRow(raw: unknown): LedgerRow | null {
     trigger_reason: optStr(r.trigger_reason),
     walk_away: num(r.walk_away),
     atr: num(r.atr),
+    fast_model: optStr(r.fast_model),
+    decision_model: optStr(r.decision_model),
     stance,
     pm: {
       rationale: optStr(pm.rationale),

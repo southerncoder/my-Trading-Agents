@@ -335,6 +335,7 @@ services:
       - ./services/trading-agents:/app/trading-agents:ro
       - ./logs:/app/logs
       - ./data:/app/data:ro
+      - ./tools:/app/tools:ro
     ports:
       - "127.0.0.1:${WEB_API_PORT:-38401}:3001"
     networks:
