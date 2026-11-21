@@ -6,6 +6,7 @@ import { Today } from './pages/Today'
 import { Stock } from './pages/Stock'
 import { Stocks } from './pages/Stocks'
 import { Platform } from './pages/Platform'
+import { Scorecard } from './pages/Scorecard'
 import { Analysis } from './pages/Analysis'
 import { Backtesting } from './pages/Backtesting'
 import { History } from './pages/History'
@@ -19,6 +20,7 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/stocks" element={<Stocks />} />
           <Route path="/stock/:ticker" element={<Stock />} />
+          <Route path="/scorecard" element={<Scorecard />} />
           <Route path="/platform" element={<Platform />} />
           <Route path="/analysis" element={<Analysis />} />
           <Route path="/analysis/:symbol" element={<Analysis />} />

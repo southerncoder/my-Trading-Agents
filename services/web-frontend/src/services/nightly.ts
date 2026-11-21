@@ -148,3 +148,38 @@ export async function fetchWatchlist(): Promise<Watchlist> {
 export async function fetchRunStatus(): Promise<RunStatus> {
   return runStatusSchema.parse(await getJson('status'))
 }
+
+const scoreCellSchema = z.object({
+  key: z.string(),
+  horizon: z.number(),
+  n: z.number(),
+  avg_ret_pct: z.number(),
+  avg_excess_pct: z.number(),
+  up_share: z.number(),
+  enough: z.boolean(),
+  trigger: z
+    .object({ n: z.number(), fill_rate: z.number(), cancelled_rate: z.number(), wait_minus_now_pct: z.number() })
+    .nullish(),
+})
+
+export const scorecardSchema = z.object({
+  generated_at: z.string(),
+  benchmark: z.string(),
+  horizons: z.array(z.number()),
+  calls: z.number(),
+  unscored: z.number(),
+  matured: z.record(z.string(), z.number()),
+  groups: z.object({
+    label: z.array(scoreCellSchema),
+    band: z.array(scoreCellSchema),
+    profile: z.array(scoreCellSchema),
+  }),
+})
+
+export type ScoreCell = z.infer<typeof scoreCellSchema>
+export type Scorecard = z.infer<typeof scorecardSchema>
+
+export async function fetchScorecard(): Promise<Scorecard | null> {
+  const data = z.object({ scorecard: scorecardSchema.nullable() }).parse(await getJson('scorecard'))
+  return data.scorecard
+}

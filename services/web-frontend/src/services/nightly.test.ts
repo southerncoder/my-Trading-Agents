@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { fetchLatestNight, fetchNightDates, fetchStock, fetchWatchlist, fetchRunStatus, nightlyDaySchema } from './nightly'
+import { fetchLatestNight, fetchNightDates, fetchStock, fetchWatchlist, fetchRunStatus, fetchScorecard, nightlyDaySchema } from './nightly'
 
 const row = {
   date: '2026-11-20',
@@ -129,5 +129,39 @@ describe('watchlist and status clients', () => {
     const s = await fetchRunStatus()
     expect(s.status?.lines).toEqual(['a'])
     expect(s.models?.fast_model).toBeUndefined()
+  })
+})
+describe('scorecard client', () => {
+  const cell = { key: 'Buy now', horizon: 1, n: 20, avg_ret_pct: -2.1, avg_excess_pct: 0.2, up_share: 0.5, enough: true }
+  const sc = {
+    generated_at: '2026-11-21T05:00:00.000Z',
+    benchmark: 'SPY',
+    horizons: [1, 3, 5],
+    calls: 120,
+    unscored: 0,
+    matured: { '1': 96, '3': 48, '5': 0 },
+    groups: {
+      label: [cell, { ...cell, key: 'Wait', trigger: { n: 4, fill_rate: 0.25, cancelled_rate: 0.5, wait_minus_now_pct: 1.7 } }],
+      band: [],
+      profile: [],
+    },
+  }
+
+  it('parses a scorecard with and without trigger stats', async () => {
+    stubFetch(200, { success: true, data: { scorecard: sc } })
+    const s = await fetchScorecard()
+    expect(s?.groups.label[0].trigger).toBeUndefined()
+    expect(s?.groups.label[1].trigger?.fill_rate).toBe(0.25)
+    expect(String((fetch as unknown as { mock: { calls: string[][] } }).mock.calls[0][0])).toContain('/nightly/scorecard')
+  })
+
+  it('returns null when there is no scorecard yet', async () => {
+    stubFetch(200, { success: true, data: { scorecard: null } })
+    expect(await fetchScorecard()).toBeNull()
+  })
+
+  it('rejects a scorecard missing groups', async () => {
+    stubFetch(200, { success: true, data: { scorecard: { ...sc, groups: undefined } } })
+    await expect(fetchScorecard()).rejects.toThrow()
   })
 })

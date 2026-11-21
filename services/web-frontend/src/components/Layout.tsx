@@ -4,6 +4,7 @@ import {
   Sun,
   List,
   Server,
+  Target,
   BarChart3, 
   TrendingUp, 
   History, 
@@ -22,6 +23,7 @@ interface LayoutProps {
 const navigation = [
   { name: 'Today', href: '/', icon: Sun },
   { name: 'Stocks', href: '/stocks', icon: List },
+  { name: 'Scorecard', href: '/scorecard', icon: Target },
   { name: 'Dashboard', href: '/dashboard', icon: BarChart3 },
   { name: 'Analysis', href: '/analysis', icon: TrendingUp },
   { name: 'Backtesting', href: '/backtesting', icon: Activity },
