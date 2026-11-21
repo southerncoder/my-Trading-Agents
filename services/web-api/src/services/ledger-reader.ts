@@ -27,7 +27,8 @@ export async function loadLedger(path: string): Promise<Ledger> {
   const hit = cache.get(path)
   if (hit && hit.key === key) return hit.ledger
 
-  const text = await readFile(path, 'utf8')
+  // PowerShell 5.1 writes a BOM when it creates the file; JSON.parse rejects it.
+  const text = (await readFile(path, 'utf8')).replace(/^\uFEFF/, '')
   const byDate = new Map<string, LedgerRow[]>()
   let skipped = 0
   for (const line of text.split(/\r?\n/)) {

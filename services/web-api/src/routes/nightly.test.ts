@@ -4,6 +4,8 @@ import type { AddressInfo } from 'net'
 import type { Server } from 'http'
 import { fileURLToPath } from 'url'
 import { join, dirname } from 'path'
+import { writeFileSync, mkdtempSync } from 'fs'
+import { tmpdir } from 'os'
 import { nightlyRoutes } from './nightly.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -85,5 +87,15 @@ describe('nightly routes', () => {
     const missing = join(here, '__fixtures__', 'does-not-exist.jsonl')
     expect((await get('/dates', missing)).body.data).toEqual([])
     expect((await get('/latest', missing)).status).toBe(404)
+  })
+
+  it('a ledger file that starts with a UTF-8 BOM still loads its first row', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ledger-'))
+    const file = join(dir, 'decisions.jsonl')
+    const line = '{"date":"2026-11-16","ticker":"NVDA","group":"core","profile":"hybrid","label":"x","action_now":"a","decision":"HOLD","confidence":0.5,"price":156.14,"stance":{},"pm":{}}'
+    writeFileSync(file, '\uFEFF' + line + '\n', 'utf8')
+    const { body } = await get('/latest', file)
+    expect(body.data.rows).toHaveLength(1)
+    expect(body.data.skipped_lines).toBe(0)
   })
 })
