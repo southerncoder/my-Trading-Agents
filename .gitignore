@@ -133,3 +133,6 @@ docker/registry_data/
 .tokensave/
 # Added by code-review-graph
 .code-review-graph/
+
+# Watchlist change requests (queue + results)
+data/requests/
