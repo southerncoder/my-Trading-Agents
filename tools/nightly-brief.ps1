@@ -29,6 +29,14 @@ param(
   [string]$Adjustments = 'all',  # analysis adjustments: indicators,entrycheck,flat, all, or '' for none
   [string]$ReuseEvalDir     # rebuild data and page from an earlier run's logs (e.g. logs\eval\20261116-164247) without re-running the models
 )
+. (Join-Path $PSScriptRoot 'watchlist.ps1')
+# The stock lists come from tools\watchlist.json unless -Tickers / -BrandTickers are passed.
+$wl = Get-Watchlist -Date $Date
+if ($wl) {
+  if (-not $PSBoundParameters.ContainsKey('Tickers')) { $Tickers = @($wl.Core) }
+  if (-not $PSBoundParameters.ContainsKey('BrandTickers')) { $BrandTickers = @($wl.Brands) }
+  if ($wl.Skipped.Count) { Write-Host "Not running tonight (paused or off-day): $($wl.Skipped -join ', ')" }
+}
 $env:ANALYSIS_ADJUSTMENTS = $Adjustments
 $groupOf = @{}; foreach ($x in $BrandTickers) { $groupOf[$x] = 'brands' }; foreach ($x in $Tickers) { $groupOf[$x] = 'core' }
 $Tickers = @(@($Tickers) + @($BrandTickers) | Where-Object { $_ } | Select-Object -Unique)
@@ -47,6 +55,7 @@ $lessons = @{
   GME = 'Sentiment stock: the crowd, not the business, often moves the price.'
   M = 'Retail in decline: cheap can stay cheap when the business keeps shrinking.'
 }
+if ($wl) { foreach ($k in $wl.Lessons.Keys) { $lessons[$k] = $wl.Lessons[$k] } }
 function Num($v) { if ($null -eq $v) { return $null }; $s = ([string]$v) -replace '[^0-9.\-]', ''; $n = 0.0; if ($s -and [double]::TryParse($s, [ref]$n)) { return $n }; return $null }
 $ErrorActionPreference = 'Continue'
 $root = Split-Path $PSScriptRoot -Parent

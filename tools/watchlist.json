@@ -1,0 +1,125 @@
+{
+  "_comment": "The stocks the nightly run analyzes. list: core or brands. cadence: nightly, weekly (Mondays), once (runs one night, then is removed) or paused. lesson (optional) is shown on the stock's page.",
+  "stocks": [
+    {
+      "ticker": "NVDA",
+      "list": "core",
+      "cadence": "nightly"
+    },
+    {
+      "ticker": "MSFT",
+      "list": "core",
+      "cadence": "nightly"
+    },
+    {
+      "ticker": "GOOGL",
+      "list": "core",
+      "cadence": "nightly"
+    },
+    {
+      "ticker": "AMZN",
+      "list": "core",
+      "cadence": "nightly"
+    },
+    {
+      "ticker": "TSLA",
+      "list": "core",
+      "cadence": "nightly"
+    },
+    {
+      "ticker": "PLTR",
+      "list": "core",
+      "cadence": "nightly"
+    },
+    {
+      "ticker": "JPM",
+      "list": "core",
+      "cadence": "nightly"
+    },
+    {
+      "ticker": "UNH",
+      "list": "core",
+      "cadence": "nightly"
+    },
+    {
+      "ticker": "KO",
+      "list": "core",
+      "cadence": "nightly"
+    },
+    {
+      "ticker": "WMT",
+      "list": "core",
+      "cadence": "nightly"
+    },
+    {
+      "ticker": "XOM",
+      "list": "core",
+      "cadence": "nightly"
+    },
+    {
+      "ticker": "CAT",
+      "list": "core",
+      "cadence": "nightly"
+    },
+    {
+      "ticker": "F",
+      "list": "brands",
+      "cadence": "nightly"
+    },
+    {
+      "ticker": "T",
+      "list": "brands",
+      "cadence": "nightly"
+    },
+    {
+      "ticker": "PFE",
+      "list": "brands",
+      "cadence": "nightly"
+    },
+    {
+      "ticker": "NKE",
+      "list": "brands",
+      "cadence": "nightly"
+    },
+    {
+      "ticker": "SNAP",
+      "list": "brands",
+      "cadence": "nightly"
+    },
+    {
+      "ticker": "CCL",
+      "list": "brands",
+      "cadence": "nightly"
+    },
+    {
+      "ticker": "AAL",
+      "list": "brands",
+      "cadence": "nightly"
+    },
+    {
+      "ticker": "SOFI",
+      "list": "brands",
+      "cadence": "nightly"
+    },
+    {
+      "ticker": "RIVN",
+      "list": "brands",
+      "cadence": "nightly"
+    },
+    {
+      "ticker": "KHC",
+      "list": "brands",
+      "cadence": "nightly"
+    },
+    {
+      "ticker": "GME",
+      "list": "brands",
+      "cadence": "nightly"
+    },
+    {
+      "ticker": "M",
+      "list": "brands",
+      "cadence": "nightly"
+    }
+  ]
+}
