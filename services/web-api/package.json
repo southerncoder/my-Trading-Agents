@@ -17,6 +17,7 @@
     "type-check:6": "node node_modules/typescript/bin/tsc --noEmit",
     "docker:build": "docker build -t trading-agents-web-api .",
     "docker:run": "docker run -p 3001:3001 trading-agents-web-api",
+    "test": "vitest run",
     "lint:fix": "eslint . --fix"
   },
   "dependencies": {
@@ -37,7 +38,8 @@
     "native-typescript": "npm:typescript@^7.0.2",
     "nodemon": "^3.1.7",
     "ts-node": "^10.9.2",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^5.1.1"
   },
   "overrides": {
     "eslint": {

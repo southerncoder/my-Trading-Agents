@@ -1,0 +1,91 @@
+export interface LedgerRow {
+  date: string
+  ticker: string
+  group: string
+  profile: string
+  label: string
+  action_now: string
+  decision: string
+  confidence: number
+  price: number
+  trigger_price?: number
+  trigger_type?: string
+  trigger_reason?: string
+  walk_away?: number
+  atr?: number
+  stance: Record<string, string>
+  pm: {
+    rationale?: string
+    key_risks?: string[]
+    what_would_change_my_mind?: string
+  }
+}
+
+export interface NightlyRow extends LedgerRow {
+  change_pct: number | null
+  distance_to_trigger_pct: number | null
+  inside_half_day: boolean
+}
+
+export interface NightlySummary {
+  by_label: Record<string, number>
+  inside_half_day: number
+  biggest_mover: { ticker: string; change_pct: number } | null
+}
+
+const finite = (n: unknown): n is number => typeof n === 'number' && Number.isFinite(n)
+
+export function deriveRows(rows: LedgerRow[], previous?: LedgerRow[]): NightlyRow[] {
+  const prevPrice = new Map<string, number>()
+  for (const p of previous ?? []) if (finite(p.price) && p.price !== 0) prevPrice.set(p.ticker, p.price)
+
+  return rows.map((r) => {
+    const prev = prevPrice.get(r.ticker)
+    const change_pct = prev !== undefined && finite(r.price) ? (r.price / prev - 1) * 100 : null
+
+    const hasTrigger = finite(r.trigger_price) && finite(r.price) && r.price !== 0
+    const distance_to_trigger_pct = hasTrigger ? ((r.trigger_price as number) - r.price) / r.price * 100 : null
+
+    const atrPct = finite(r.atr) && finite(r.price) && r.price !== 0 ? (r.atr / r.price) * 100 : null
+    const inside_half_day =
+      distance_to_trigger_pct !== null && atrPct !== null && Math.abs(distance_to_trigger_pct) <= 0.5 * atrPct
+
+    return { ...r, change_pct, distance_to_trigger_pct, inside_half_day }
+  })
+}
+
+export function summarize(rows: NightlyRow[]): NightlySummary {
+  const by_label: Record<string, number> = {}
+  let inside = 0
+  let biggest: { ticker: string; change_pct: number } | null = null
+  for (const r of rows) {
+    by_label[r.label] = (by_label[r.label] ?? 0) + 1
+    if (r.inside_half_day) inside++
+    if (r.change_pct !== null && (biggest === null || Math.abs(r.change_pct) > Math.abs(biggest.change_pct))) {
+      biggest = { ticker: r.ticker, change_pct: r.change_pct }
+    }
+  }
+  return { by_label, inside_half_day: inside, biggest_mover: biggest }
+}
+
+const TZ = 'America/Chicago'
+const CUTOFF_HOUR = 18
+
+/** Most recent night the nightly run should have produced, as YYYY-MM-DD (Chicago time). */
+export function expectedNightDate(now: Date): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: TZ,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(now)
+  const get = (t: string) => Number(parts.find((p) => p.type === t)?.value)
+  const day = new Date(Date.UTC(get('year'), get('month') - 1, get('day')))
+  const isWeekend = (d: Date) => d.getUTCDay() === 0 || d.getUTCDay() === 6
+
+  if (get('hour') < CUTOFF_HOUR || isWeekend(day)) day.setUTCDate(day.getUTCDate() - 1)
+  while (isWeekend(day)) day.setUTCDate(day.getUTCDate() - 1)
+  return day.toISOString().slice(0, 10)
+}
