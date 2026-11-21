@@ -64,6 +64,8 @@ if (-not (Test-Url "$YahooUrl/health")) {
 }
 
 . (Join-Path $PSScriptRoot 'watchlist.ps1')
+$wlChanges = @()
+try { $wlChanges = @(Apply-WatchlistRequests) } catch { $wlChanges = @("Watchlist changes could not be applied: $($_.Exception.Message)") }
 $wlRun = Get-Watchlist -Date $date
 if (-not $wlRun) { $wlRun = [pscustomobject]@{ Core = @(1..12); Brands = @(1..12); Once = @() } }
 
@@ -110,6 +112,7 @@ if ($rows.Count -gt 0) {
   $lines += "Triggers inside half a typical day of movement: $inside of $($rows.Count)"
   if ($mv) { $lines += "Biggest mover: $($mv.ticker) $($mv.day_pct)%" }
 }
+foreach ($c in $wlChanges) { $lines += $c }
 $lines += "Page: $(Join-Path $nightly 'latest.html')"
 $lines += "Took $([int]$sw.Elapsed.TotalMinutes) minutes"
 if ($problems.Count -gt 0) { $lines = @("PROBLEMS: " + ($problems -join ' | ')) + $lines }
