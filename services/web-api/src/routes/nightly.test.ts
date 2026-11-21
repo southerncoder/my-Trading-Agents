@@ -132,3 +132,45 @@ describe('nightly routes', () => {
     expect(body.data.rows.map((r: { ticker: string }) => r.ticker)).toEqual(['AAA'])
   })
 })
+
+describe('stock detail route', () => {
+  const LOGS = join(here, '__fixtures__', 'logs')
+  const stock = async (path: string) => {
+    process.env.NIGHTLY_LOGS_PATH = LOGS
+    return get(`/stock${path}`)
+  }
+
+  it('200 with history and stages', async () => {
+    const { status, body } = await stock('/AAA')
+    expect(status).toBe(200)
+    expect(body.data.ticker).toBe('AAA')
+    expect(body.data.date).toBe('2026-11-20')
+    expect(body.data.history.map((h: { date: string }) => h.date)).toEqual(['2026-11-18', '2026-11-19', '2026-11-20'])
+    expect(body.data.stages.market).toContain('strong')
+    expect('bull' in body.data.stages).toBe(false)
+  })
+
+  it('date without pipeline -> stages null', async () => {
+    const { status, body } = await stock('/AAA?date=2026-11-19')
+    expect(status).toBe(200)
+    expect(body.data.date).toBe('2026-11-19')
+    expect(body.data.stages).toBeNull()
+  })
+
+  it('lowercase, too long or path-like ticker -> 400', async () => {
+    expect((await stock('/aaa')).status).toBe(400)
+    expect((await stock('/ABCDEFGHIJK')).status).toBe(400)
+    expect((await stock('/..%2f..%2fetc')).status).toBe(400)
+  })
+
+  it('unknown ticker -> 404, bad date -> 400, date not in ledger -> 404', async () => {
+    expect((await stock('/ZZZ')).status).toBe(404)
+    expect((await stock('/AAA?date=2026-13-45')).status).toBe(400)
+    expect((await stock('/AAA?date=2025-01-02')).status).toBe(404)
+  })
+
+  it('ticker on only some nights lists only those nights', async () => {
+    const { body } = await stock('/BBB')
+    expect(body.data.history.length).toBeGreaterThan(0)
+  })
+})
