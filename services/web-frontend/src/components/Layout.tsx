@@ -150,10 +150,11 @@ export function Layout({ children }: LayoutProps) {
                 setThemeOpen(!themeOpen)
                 setMoreOpen(false)
               }}
-              className="rounded-lg p-2"
-              style={{ color: themeOpen ? 'var(--color-primary)' : 'var(--color-text-muted)' }}
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium"
+              style={{ color: themeOpen ? 'var(--color-primary)' : 'var(--color-text-secondary, inherit)', border }}
             >
-              <Palette style={{ width: '1.25rem', height: '1.25rem' }} aria-hidden="true" />
+              <Palette style={{ width: '1.1rem', height: '1.1rem' }} aria-hidden="true" />
+              Theme
             </button>
             {themeOpen && (
               <div className="card absolute right-0 z-50 mt-2" style={{ minWidth: '14rem', maxWidth: '90vw' }}>
