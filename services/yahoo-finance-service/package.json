@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --check src/index.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
