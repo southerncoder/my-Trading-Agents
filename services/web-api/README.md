@@ -228,7 +228,8 @@ The ledger path comes from `NIGHTLY_LEDGER_PATH` (default `/app/data/ledger/deci
 
 ### Watchlist and run status (read-only)
 
-- `GET /api/watchlist` - the stocks in `tools/watchlist.json` (mounted read-only at `/app/tools`, override with `WATCHLIST_PATH`), each joined to its latest ledger call (`latest` is `null` if never analysed), plus counts by schedule. An unreadable file returns `available: false`, not an error.
+- `GET /api/watchlist` - the stocks in `tools/watchlist.json` (mounted read-only at `/app/tools`, override with `WATCHLIST_PATH`), each joined to its latest ledger call (`latest` is `null` if never analysed), plus counts by schedule. An unreadable file returns `available: false`, not an error. It also returns `pending`, the changes still waiting for the next nightly run.
+- `POST /api/watchlist/requests` - ask to add a stock (`{action:"add", ticker, list:"core"|"brands", cadence, lesson?}`) or change a schedule (`{action:"set_cadence", ticker, cadence}`). The API never edits `watchlist.json`: it appends one line to `data/requests/watchlist.jsonl` (mounted at `/app/requests`, override with `WATCHLIST_REQUESTS_PATH`), and `tools/nightly-run.ps1` applies the queue at the start of the next run and records each result in `watchlist.done.jsonl`. Replies: 202 `{id}`, 400 invalid, 404 unknown stock, 409 already listed or already pending, 415 not JSON, 429 more than 25 waiting. There is no remove.
 - `GET /api/nightly/status` - the newest night's `status.txt` lines (the local `Page:` line is dropped) and the models recorded for the newest ledger night. Either part is `null` when missing.
 
 ### Scorecard
