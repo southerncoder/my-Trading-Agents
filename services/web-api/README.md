@@ -221,3 +221,7 @@ Read-only views of the nightly ledger (`data/ledger/decisions.jsonl`), used by t
 | `GET /api/nightly/:date` | One night (`YYYY-MM-DD`) |
 
 The ledger path comes from `NIGHTLY_LEDGER_PATH` (default `/app/data/ledger/decisions.jsonl`). In Docker, `./data` is mounted read-only at `/app/data`; this service never writes to it. A night is `stale` when it is older than the most recent weekday night (after 6 PM Chicago time the current weekday counts). `skipped_lines` counts ledger lines that could not be read.
+
+### Stock detail
+
+`GET /api/nightly/stock/:ticker?date=YYYY-MM-DD` returns the ticker's history across ledger nights and that night's 12 stage write-ups (from `<NIGHTLY_LOGS_PATH>/<date>/pipeline.json`, default `/app/logs/nightly`). `stages` is `null` when that night's write-ups are missing. Tickers must match `^[A-Z][A-Z0-9.\-]{0,9}$`.
