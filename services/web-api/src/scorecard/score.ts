@@ -73,16 +73,32 @@ export function parseBars(csv: string): Bar[] {
   return bars.sort((a, b) => a.date.localeCompare(b.date))
 }
 
+/** Last SPY close on or before the call date (the ledger price is the last close, also on a holiday). */
+function spyBaseFor(call: ScoreInput, spy: Bar[]): Bar | undefined {
+  let base: Bar | undefined
+  for (const b of spy) if (b.date <= call.date && (!base || b.date > base.date) && b.close > 0) base = b
+  return base
+}
+
+/** False when a call can never be scored (no usable price or SPY base), as opposed to not yet matured. */
+export function isScorable(call: ScoreInput, spy: Bar[]): boolean {
+  return call.price > 0 && spyBaseFor(call, spy) !== undefined
+}
+
 export function scoreCall(call: ScoreInput, bars: Bar[], spy: Bar[], horizon: number): CallResult | null {
   if (!(call.price > 0) || horizon < 1) return null
   const after = bars.filter((b) => b.date > call.date).sort((a, b) => a.date.localeCompare(b.date))
-  const spyAfter = spy.filter((b) => b.date > call.date).sort((a, b) => a.date.localeCompare(b.date))
-  const spyBase = spy.find((b) => b.date === call.date)
-  if (!spyBase || spyBase.close <= 0 || after.length < horizon || spyAfter.length < horizon) return null
+  const spyBase = spyBaseFor(call, spy)
+  if (!spyBase || after.length < horizon) return null
 
-  const end = after[horizon - 1].close
+  // Measure SPY over the same dates as the stock window, not the same bar position.
+  const endBar = after[horizon - 1]
+  const spyEnd = spy.find((b) => b.date === endBar.date)
+  if (!spyEnd) return null
+
+  const end = endBar.close
   const now = (end / call.price - 1) * 100
-  const spyRet = (spyAfter[horizon - 1].close / spyBase.close - 1) * 100
+  const spyRet = (spyEnd.close / spyBase.close - 1) * 100
   if (!finite(now) || !finite(spyRet)) return null
 
   const result: CallResult = { now_ret_pct: now, excess_pct: now - spyRet }
@@ -158,7 +174,7 @@ export function buildScorecard(calls: ScoreInput[], barsByTicker: Map<string, Ba
 
   for (const call of calls) {
     const bars = barsByTicker.get(call.ticker)
-    if (!bars || bars.length === 0) {
+    if (!bars || bars.length === 0 || !isScorable(call, spy)) {
       unscored++
       continue
     }

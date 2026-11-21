@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { ZodError } from 'zod'
 import { fetchScorecard, type Scorecard as ScorecardData, type ScoreCell } from '../services/nightly'
 import { pivot } from '../components/scorecard/pivot'
 import { card, fmtPct, moveColor, muted } from '../components/today/format'
@@ -86,9 +87,9 @@ function WaitingTable({ cells }: { cells: ScoreCell[] }) {
                 <td className="p-2">{c.trigger?.n}</td>
                 <td className="p-2">{Math.round((c.trigger?.fill_rate ?? 0) * 100)}%</td>
                 <td className="p-2">{Math.round((c.trigger?.cancelled_rate ?? 0) * 100)}%</td>
-                <td className="p-2" style={c.enough ? { color: moveColor(c.trigger?.wait_minus_now_pct) } : muted}>
+                <td className="p-2" style={(c.trigger?.n ?? 0) >= 10 ? { color: moveColor(c.trigger?.wait_minus_now_pct) } : muted}>
                   {fmtPct(c.trigger?.wait_minus_now_pct)}
-                  {!c.enough && <span className="block text-xs">too early to judge</span>}
+                  {(c.trigger?.n ?? 0) < 10 && <span className="block text-xs">too early to judge</span>}
                 </td>
               </tr>
             ))}
@@ -107,7 +108,11 @@ export function Scorecard() {
     fetchScorecard()
       .then((data) => !cancelled && setState({ kind: 'ready', data }))
       .catch((e: unknown) =>
-        !cancelled && setState({ kind: 'error', message: e instanceof Error ? 'The scorecard data was not in the expected shape or could not be loaded' : 'Could not load the scorecard' }),
+        !cancelled &&
+        setState({
+          kind: 'error',
+          message: e instanceof ZodError ? 'The scorecard data was not in the expected shape' : 'Could not load the scorecard',
+        }),
       )
     return () => {
       cancelled = true
@@ -148,7 +153,7 @@ export function Scorecard() {
 
       <section className="rounded-lg p-4 text-sm" style={card} aria-label="How much data this is based on">
         <p>
-          {d.calls} calls scored. Finished results so far:{' '}
+          {d.calls} calls in the ledger. Finished results so far:{' '}
           {d.horizons.map((h, i) => (
             <span key={h}>
               {i > 0 && ', '}
@@ -165,6 +170,10 @@ export function Scorecard() {
         <p className="pt-1 text-xs" style={muted}>Updated {d.generated_at.slice(0, 16).replace('T', ' ')} UTC</p>
       </section>
 
+      <p className="text-xs" style={muted}>
+        Every number is measured from the close on the day of the call, whether or not a "wait for the trigger" call ever
+        triggered. The last table shows what waiting changed.
+      </p>
       <GroupTable title="By call" cells={d.groups.label} horizons={d.horizons} />
       <GroupTable title="By confidence" cells={d.groups.band} horizons={d.horizons} />
       <GroupTable title="By model setup" cells={d.groups.profile} horizons={d.horizons} />

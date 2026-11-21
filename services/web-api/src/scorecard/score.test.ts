@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseBars, scoreCall, buildScorecard, type Bar, type ScoreInput } from './score.js'
+import { parseBars, scoreCall, buildScorecard, isScorable, type Bar, type ScoreInput } from './score.js'
 
 const bar = (date: string, o: number, h: number, l: number, c: number): Bar => ({ date, open: o, high: h, low: l, close: c })
 // Fri 2026-11-20 call; next bars Mon 23, Tue 24, Wed 25 (weekend skipped)
@@ -103,7 +103,8 @@ describe('scoreCall trigger fills', () => {
     const bars = [bar('2026-11-23', 100, 101, 50, 60)]
     expect(scoreCall(trig({ trigger_price: 120 }), bars, spy, 1)?.trigger?.status).toBe('not_filled')
     const eq = scoreCall(trig({ trigger_price: 100 }), bars, spy, 1)
-    expect(Number.isFinite(eq?.trigger?.wait_ret_pct)).toBe(true)
+    expect(eq?.trigger?.status).toBe('filled') // equal counts as a pullback: low <= price
+    expect(eq?.trigger?.wait_ret_pct).toBeCloseTo((60 / 100 - 1) * 100, 5)
   })
 
   it('a buy-now call has no trigger part', () => {
@@ -152,5 +153,41 @@ describe('buildScorecard', () => {
     const many = Array.from({ length: 10 }, () => call())
     const big = buildScorecard(many, bars, spy, new Date('2026-11-26T00:00:00Z'))
     expect(big.groups.label.find((c) => c.horizon === 1)?.enough).toBe(true)
+  })
+})
+
+describe('holidays, gaps and unscorable calls', () => {
+  it('a call dated on a market holiday uses the last SPY close before it as the base', () => {
+    // Thanksgiving 2026-11-26: no SPY bar that day; ledger price is the 11-25 close
+    const spyH: Bar[] = [bar('2026-11-25', 600, 600, 600, 600), bar('2026-11-27', 600, 600, 600, 612)]
+    const bars = [bar('2026-11-27', 100, 105, 99, 104)]
+    const r = scoreCall(call({ date: '2026-11-26' }), bars, spyH, 1)
+    expect(r?.now_ret_pct).toBeCloseTo(4, 5)
+    expect(r?.excess_pct).toBeCloseTo(4 - 2, 5)
+  })
+
+  it('matches the SPY window by date when the stock is missing a day SPY has', () => {
+    // stock has no 11-24 bar; horizon 2 ends on 11-25, so SPY must be measured to 11-25 (495), not 11-24 (510)
+    const bars = [bar('2026-11-23', 100, 100, 100, 101), bar('2026-11-25', 100, 100, 100, 110)]
+    const r = scoreCall(call(), bars, spy, 2)
+    expect(r?.excess_pct).toBeCloseTo(10 - -1, 5)
+  })
+
+  it('returns null when SPY has no bar on the stock window end date', () => {
+    const bars = [bar('2026-11-23', 100, 100, 100, 101), bar('2026-11-26', 100, 100, 100, 110)]
+    expect(scoreCall(call(), bars, spy, 2)).toBeNull()
+  })
+
+  it('isScorable is false for price 0 or no SPY bar on or before the call date', () => {
+    expect(isScorable(call(), spy)).toBe(true)
+    expect(isScorable(call({ price: 0 }), spy)).toBe(false)
+    expect(isScorable(call({ date: '2026-11-01' }), spy)).toBe(false)
+  })
+
+  it('buildScorecard counts never-scorable calls as unscored, not as not-yet-matured', () => {
+    const bars = new Map<string, Bar[]>([['AAA', flat([103])]])
+    const sc = buildScorecard([call(), call({ price: 0 }), call({ date: '2026-11-01' })], bars, spy, new Date('2026-11-26T00:00:00Z'))
+    expect(sc.calls).toBe(3)
+    expect(sc.unscored).toBe(2)
   })
 })

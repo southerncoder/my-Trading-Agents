@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { mkdtempSync, writeFileSync, readFileSync, existsSync } from 'fs'
+import { mkdtempSync, writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { runScorecard } from './run.js'
@@ -74,6 +74,24 @@ describe('runScorecard', () => {
   it('leaves no temp file behind', async () => {
     const p = setup()
     await runScorecard(deps(p, ok))
+    expect(existsSync(p.out + '.tmp')).toBe(false)
+  })
+})
+
+describe('runScorecard partial failures', () => {
+  it('still writes, but reports every ticker whose history failed through warn', async () => {
+    const p = setup()
+    const warnings: string[] = []
+    await runScorecard({ ...deps(p, ok), warn: (m: string) => warnings.push(m) })
+    expect(existsSync(p.out)).toBe(true)
+    expect(warnings.join(' ')).toContain('BBB')
+    expect(warnings.join(' ')).not.toContain('AAA')
+  })
+
+  it('removes the temp file when the rename fails', async () => {
+    const p = setup()
+    mkdirSync(p.out) // outPath is a directory, so rename onto it fails
+    await expect(runScorecard(deps(p, ok))).rejects.toThrow()
     expect(existsSync(p.out + '.tmp')).toBe(false)
   })
 })

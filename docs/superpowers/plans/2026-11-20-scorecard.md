@@ -11,7 +11,7 @@
 - Scorer code in `services/web-api/src/scorecard/` (pure, tested) and `src/scripts/score.ts` (CLI, runs on the host). Reuses `loadLedger` (BOM, bad rows, one profile per night).
 - Env: `NIGHTLY_LEDGER_PATH` (default `../../data/ledger/decisions.jsonl` from the web-api dir), `NIGHTLY_LOGS_PATH` (default `../../logs/nightly`), `YAHOO_URL` (default `http://localhost:38402`). Output `<logs>/scorecard.json`, written to a temp file then renamed.
 - Prices: ledger `price` is that day's close. History CSV from `GET {YAHOO_URL}/api/historical/{T}?startDate=&endDate=` (header `Date,Open,High,Low,Close,...`, comment lines start with `#`).
-- Horizons 1, 3, 5 trading days (bars strictly after the call date). A call counts at a horizon only if that many bars exist for the stock and SPY.
+- Horizons 1, 3, 5 trading days (bars strictly after the call date; the SPY window uses the same dates as the stock window, and the SPY base is the last SPY close on or before the call date, so a call made on a market holiday still scores). A call counts at a horizon only if that many bars exist for the stock and SPY.
 - Fills (trigger calls, bars inside the horizon, in order): breakout (trigger > price) fills at `max(open, trigger)` when `high >= trigger`; pullback (trigger < price) fills at `min(open, trigger)` when `low <= trigger`; a bar with `low <= walk_away` before any fill cancels the call; a bar that would both fill and touch walk-away cancels it. Unfilled at horizon end = not filled.
 - Per call and horizon: `now_ret` = close(h)/price - 1; `excess` = now_ret - SPY return over the same window; trigger calls also get status and `wait_ret` (filled: close(h)/fill - 1; not filled or cancelled: 0).
 - Groups: label, confidence band (`0.70+`, `0.60-0.69`, `<0.60`), profile. Cell: `n`, `avg_ret_pct`, `avg_excess_pct`, `up_share` (share with excess > 0), `enough` = n >= 10; trigger calls add `fill_rate`, `cancelled_rate`, `wait_minus_now_pct` (avg wait_ret - now_ret).
@@ -21,7 +21,7 @@
 ## Review Focus
 - Weekend/holiday gaps (counted in bars, not days); ticker with no history or SPY missing -> call unscored and counted, never NaN.
 - Same bar fills and touches walk-away; gap open beyond trigger; trigger equal to price; missing walk_away; price 0.
-- Yahoo down or partial failure: CLI keeps the previous scorecard.json and exits non-zero.
+- Yahoo down (SPY fails, or every ticker fails, or empty ledger): CLI keeps the previous scorecard.json and exits 1. Partial failure (some tickers fail): scorecard is still written, those calls count as unscored, the CLI lists the tickers and exits 2 so the launcher logs a warning.
 - Fewer than 10 calls in a cell: shown but flagged "too early", never styled as a verdict.
 
 ### Task 1: Scoring core

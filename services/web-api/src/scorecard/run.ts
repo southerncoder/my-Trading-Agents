@@ -8,6 +8,8 @@ export interface RunDeps {
   yahooUrl: string
   fetchText: (url: string) => Promise<string>
   now: Date
+  /** Called with a message when some ticker histories could not be fetched. */
+  warn?: (message: string) => void
 }
 
 const BATCH = 6
@@ -53,14 +55,17 @@ export async function runScorecard(d: RunDeps): Promise<Scorecard> {
 
   const tickers = [...new Set(calls.map((c) => c.ticker))]
   const barsByTicker = new Map<string, Bar[]>()
+  const failed: string[] = []
   for (let i = 0; i < tickers.length; i += BATCH) {
     const batch = tickers.slice(i, i + BATCH)
     const settled = await Promise.allSettled(batch.map(history))
     settled.forEach((s, j) => {
       if (s.status === 'fulfilled' && s.value.length > 0) barsByTicker.set(batch[j], s.value)
+      else failed.push(batch[j])
     })
   }
   if (barsByTicker.size === 0) throw new Error('No ticker history could be fetched')
+  if (failed.length > 0) d.warn?.(`History could not be fetched for ${failed.length} ticker(s): ${failed.join(', ')}`)
 
   const scorecard = buildScorecard(calls, barsByTicker, spy, d.now)
   const tmp = `${d.outPath}.tmp`

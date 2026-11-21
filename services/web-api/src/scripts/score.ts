@@ -13,10 +13,20 @@ async function fetchText(url: string): Promise<string> {
 }
 
 try {
-  const sc = await runScorecard({ ledgerPath, outPath: join(logsDir, 'scorecard.json'), yahooUrl, fetchText, now: new Date() })
+  const warnings: string[] = []
+  const sc = await runScorecard({
+    ledgerPath,
+    outPath: join(logsDir, 'scorecard.json'),
+    yahooUrl,
+    fetchText,
+    now: new Date(),
+    warn: (m) => warnings.push(m),
+  })
   console.log(
     `Scorecard written: ${sc.calls} calls, ${sc.unscored} unscored, matured 1d/3d/5d = ${sc.matured['1']}/${sc.matured['3']}/${sc.matured['5']}`,
   )
+  for (const w of warnings) console.error(w)
+  if (warnings.length > 0) process.exitCode = 2 // written, but incomplete: the launcher logs a warning
 } catch (err) {
   console.error(`Scorecard not updated: ${err instanceof Error ? err.message : String(err)}`)
   process.exit(1)
