@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { fetchLatestNight, fetchNightDates, fetchStock, nightlyDaySchema } from './nightly'
+import { fetchLatestNight, fetchNightDates, fetchStock, fetchWatchlist, fetchRunStatus, nightlyDaySchema } from './nightly'
 
 const row = {
   date: '2026-11-20',
@@ -90,5 +90,44 @@ describe('stock client', () => {
   it('throws the server message on 404', async () => {
     stubFetch(404, { success: false, error: 'No history for ZZZ' })
     await expect(fetchStock('ZZZ')).rejects.toThrow('No history for ZZZ')
+  })
+})
+describe('watchlist and status clients', () => {
+  const wl = {
+    available: true,
+    skipped: 0,
+    counts: { nightly: 1, weekly: 1, once: 0, paused: 0 },
+    stocks: [
+      { ticker: 'AAA', list: 'core', cadence: 'nightly', latest: { date: '2026-11-20', price: 10, label: 'Buy now', decision: 'BUY', confidence: 0.7 } },
+      { ticker: 'NEW', list: 'brands', cadence: 'weekly', lesson: 'x', latest: null },
+    ],
+  }
+
+  it('parses a watchlist with a null latest and an optional trigger', async () => {
+    stubFetch(200, { success: true, data: wl })
+    const w = await fetchWatchlist()
+    expect(w.stocks[1].latest).toBeNull()
+    expect(w.stocks[0].latest?.trigger_price).toBeUndefined()
+    expect(String((fetch as unknown as { mock: { calls: string[][] } }).mock.calls[0][0])).toContain('/watchlist')
+  })
+
+  it('rejects a watchlist with an unknown cadence', async () => {
+    stubFetch(200, { success: true, data: { ...wl, stocks: [{ ...wl.stocks[0], cadence: 'hourly' }] } })
+    await expect(fetchWatchlist()).rejects.toThrow()
+  })
+
+  it('parses status null and models null', async () => {
+    stubFetch(200, { success: true, data: { status: null, models: null } })
+    expect(await fetchRunStatus()).toEqual({ status: null, models: null })
+  })
+
+  it('parses status lines and models with optional model names', async () => {
+    stubFetch(200, {
+      success: true,
+      data: { status: { date: '2026-11-20', lines: ['a'] }, models: { date: '2026-11-20', profile: 'p', rows: 24 } },
+    })
+    const s = await fetchRunStatus()
+    expect(s.status?.lines).toEqual(['a'])
+    expect(s.models?.fast_model).toBeUndefined()
   })
 })

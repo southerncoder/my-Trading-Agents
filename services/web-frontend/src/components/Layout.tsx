@@ -2,6 +2,8 @@ import { ReactNode, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { 
   Sun,
+  List,
+  Server,
   BarChart3, 
   TrendingUp, 
   History, 
@@ -19,10 +21,12 @@ interface LayoutProps {
 
 const navigation = [
   { name: 'Today', href: '/', icon: Sun },
+  { name: 'Stocks', href: '/stocks', icon: List },
   { name: 'Dashboard', href: '/dashboard', icon: BarChart3 },
   { name: 'Analysis', href: '/analysis', icon: TrendingUp },
   { name: 'Backtesting', href: '/backtesting', icon: Activity },
   { name: 'History', href: '/history', icon: History },
+  { name: 'Platform', href: '/platform', icon: Server },
 ]
 
 export function Layout({ children }: LayoutProps) {

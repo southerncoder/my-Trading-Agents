@@ -48,7 +48,11 @@ export type NightlyRow = z.infer<typeof nightlyRowSchema>
 export type NightlyDay = z.infer<typeof nightlyDaySchema>
 
 async function getJson(path: string): Promise<unknown> {
-  const res = await fetch(`${API_BASE_URL}/nightly/${path}`)
+  return getApi(`nightly/${path}`)
+}
+
+async function getApi(path: string): Promise<unknown> {
+  const res = await fetch(`${API_BASE_URL}/${path}`)
   const body = (await res.json()) as { success?: boolean; data?: unknown; error?: string }
   if (!res.ok || body.success === false) {
     throw new Error(body.error || `Request failed (${res.status})`)
@@ -93,4 +97,54 @@ export type StockDetail = z.infer<typeof stockDetailSchema>
 export async function fetchStock(ticker: string, date?: string): Promise<StockDetail> {
   const q = date ? `?date=${encodeURIComponent(date)}` : ''
   return stockDetailSchema.parse(await getJson(`stock/${encodeURIComponent(ticker)}${q}`))
+}
+const cadenceSchema = z.enum(['nightly', 'weekly', 'once', 'paused'])
+
+export const watchlistSchema = z.object({
+  available: z.boolean(),
+  skipped: z.number(),
+  counts: z.object({ nightly: z.number(), weekly: z.number(), once: z.number(), paused: z.number() }),
+  stocks: z.array(
+    z.object({
+      ticker: z.string(),
+      list: z.enum(['core', 'brands']),
+      cadence: cadenceSchema,
+      lesson: z.string().nullish(),
+      latest: z
+        .object({
+          date: z.string(),
+          price: z.number(),
+          label: z.string(),
+          decision: z.string(),
+          confidence: z.number(),
+          trigger_price: numOpt,
+        })
+        .nullable(),
+    }),
+  ),
+})
+
+export const runStatusSchema = z.object({
+  status: z.object({ date: z.string(), lines: z.array(z.string()) }).nullable(),
+  models: z
+    .object({
+      date: z.string(),
+      profile: z.string(),
+      fast_model: z.string().nullish(),
+      decision_model: z.string().nullish(),
+      rows: z.number(),
+    })
+    .nullable(),
+})
+
+export type Watchlist = z.infer<typeof watchlistSchema>
+export type WatchStock = Watchlist['stocks'][number]
+export type RunStatus = z.infer<typeof runStatusSchema>
+
+export async function fetchWatchlist(): Promise<Watchlist> {
+  return watchlistSchema.parse(await getApi('watchlist'))
+}
+
+export async function fetchRunStatus(): Promise<RunStatus> {
+  return runStatusSchema.parse(await getJson('status'))
 }
