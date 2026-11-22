@@ -17,9 +17,9 @@ function Reasons({ p }: { p: Pick }) {
 }
 
 function ProfessorReview({ p }: { p: Pick }) {
+  const [open, setOpen] = useState(false)
   const r = p.educational_review
   if (!r) return null
-  const [open, setOpen] = useState(false)
   return (
     <div className="rounded-lg border border-dashed p-2 text-xs" style={{ borderColor: 'var(--color-border, #e2e8f0)' }}>
       <button type="button" className="font-medium underline" onClick={() => setOpen((o) => !o)}>
