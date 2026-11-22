@@ -349,6 +349,42 @@ services:
       retries: 3
       start_period: 30s
 
+  # Paper portfolios: picks, orders, positions, exit and risk rules, results against SPY.
+  # Owns schema "portfolio" in Postgres. The agent pipeline is reached only through the host worker
+  # (tools/portfolio-worker.ps1), never from this container.
+  portfolio-service:
+    build:
+      context: ./services/portfolio-service
+      dockerfile: Dockerfile
+    container_name: trading-agents-portfolio
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - NODE_ENV=production
+      - PORT=3008
+      - YAHOO_URL=http://yahoo-finance:3002
+      - NEWS_URL=http://news-aggregator:3004
+      - OLLAMA_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      - LEDGER_PATH=/app/data/ledger/decisions.jsonl
+      - TOOLS_DIR=/app/tools
+    secrets:
+      - postgres_db
+      - postgres_user
+      - postgres_password
+    volumes:
+      - ./data/ledger:/app/data/ledger:ro
+      - ./tools:/app/tools:ro
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      yahoo-finance:
+        condition: service_started
+    ports:
+      - "127.0.0.1:${PORTFOLIO_PORT:-38408}:3008"
+    networks:
+      - my-Trading-Agents
+
   # Web Frontend
   web-frontend:
     build:
@@ -363,6 +399,8 @@ services:
     depends_on:
       web-api:
         condition: service_healthy
+      portfolio-service:
+        condition: service_started
     networks:
       - my-Trading-Agents
     healthcheck:

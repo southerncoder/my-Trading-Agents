@@ -1,0 +1,28 @@
+{
+  "name": "trading-agents-portfolio-service",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "description": "Paper portfolios: picks, orders, positions, exit and risk rules, results against SPY",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "node node_modules/typescript/bin/tsc",
+    "start": "node dist/server.js",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "type-check": "node node_modules/typescript/bin/tsc --noEmit"
+  },
+  "dependencies": {
+    "express": "^5.0.1",
+    "pg": "^8.13.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.20.5",
+    "@types/pg": "^8.11.10",
+    "eslint": "^10.14.0",
+    "typescript": "^6.0.3",
+    "vitest": "^5.1.1"
+  }
+}
