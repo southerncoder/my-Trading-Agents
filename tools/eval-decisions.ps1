@@ -19,6 +19,7 @@ param(
   [string]$Adjustments = $env:ANALYSIS_ADJUSTMENTS   # comma list: indicators,entrycheck,flat or all (needs -ModelProfile to take effect)
 )
 $env:ANALYSIS_ADJUSTMENTS = $Adjustments
+[Console]::OutputEncoding = [Text.Encoding]::UTF8   # the container writes UTF-8; the console default (code page 437) garbles punctuation
 
 $root = Split-Path $PSScriptRoot -Parent
 if ($ModelProfile) {

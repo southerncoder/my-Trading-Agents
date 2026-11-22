@@ -30,4 +30,4 @@ export const field = 'rounded border px-2 py-1.5 text-sm'
 export const button = 'rounded border px-3 py-1.5 text-sm font-medium disabled:opacity-50'
 export const primaryButton = 'rounded px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50'
 export const primaryStyle = { background: 'var(--color-primary, #2563eb)' }
-export const sectionTitle = 'text-lg font-semibold'
+export const sectionTitle = 'section-title text-lg font-semibold'

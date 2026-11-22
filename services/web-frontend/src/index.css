@@ -791,3 +791,7 @@
     }
   }
 }
+
+/* Portfolio pages: section headings and data tables. The themes style every h2 at page-title size. */
+h2.section-title { font-size: 1.125rem !important; line-height: 1.6rem !important; margin: 0 0 0.25rem 0 !important; font-weight: 600 !important; letter-spacing: normal !important; }
+table.data-table th, table.data-table td { padding: 0.35rem 0.5rem; vertical-align: top; }

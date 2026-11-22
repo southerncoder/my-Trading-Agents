@@ -48,7 +48,7 @@ export function IndexChart({ series, name }: { series: { date: string; portfolio
       </div>
       {table ? (
         <div className="max-h-64 overflow-auto">
-          <table className="w-full text-sm">
+          <table className="data-table w-full text-sm">
             <thead><tr style={ink}><th className="text-left">Date</th><th className="text-right">{name}</th><th className="text-right">SPY</th></tr></thead>
             <tbody>
               {series.map((s) => (

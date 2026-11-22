@@ -21,6 +21,7 @@ param(
 # into an error record, and Stop would abort on the first one. Real failures are thrown explicitly below.
 $ErrorActionPreference = 'Continue'
 . (Join-Path $PSScriptRoot 'decision-parse.ps1')
+[Console]::OutputEncoding = [Text.Encoding]::UTF8   # the container writes UTF-8; the console default (code page 437) garbles punctuation
 $Ticker = $Ticker.Trim().ToUpper()
 if ($Ticker -notmatch '^[A-Z][A-Z0-9.\-]{0,9}$') { throw "Not a stock symbol: $Ticker" }
 $root = Split-Path $PSScriptRoot -Parent

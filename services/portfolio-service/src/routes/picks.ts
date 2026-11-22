@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { pickIntent, type Candidate } from '../store/candidates.js'
+import { repairDeep } from '../store/mojibake.js'
 import { dateSchema, type ServiceDeps } from './deps.js'
 import { h, ok } from './http.js'
 
@@ -30,7 +31,8 @@ export function picksRouter(deps: ServiceDeps): Router {
       dates: dates.map((d) => d.d),
       picks: rows.map((c) => {
         const intent = pickIntent(c.label)
-        return { ...c, tradeable: intent !== null, direction: intent?.direction ?? null, kind: intent?.kind ?? null }
+        // Calls stored before the capture was fixed (and locked by an order) are repaired on the way out.
+        return { ...repairDeep(c), tradeable: intent !== null, direction: intent?.direction ?? null, kind: intent?.kind ?? null }
       }),
     })
   }))

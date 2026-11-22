@@ -55,12 +55,21 @@ async function gatherWeek(db: Db, from: string, to: string) {
   const picks = (await db.query(
     `SELECT source, label, count(*)::int n FROM candidates WHERE run_date BETWEEN $1 AND $2 GROUP BY source, label ORDER BY source, n DESC`, [from, to])).rows
   const closedThisWeek = results.positions.filter((p) => p.closed)
-  return { week: { from, to }, portfolios, trades, shadowTrades, alerts, picks, bySource: results.bySource, forwardTest: results.forwardTest, recentClosedShadowPositions: closedThisWeek.slice(-10) }
+  const closes = (await db.query(`SELECT count(*)::int n FROM trades WHERE action = 'close' AND traded_on BETWEEN $1 AND $2`, [from, to])).rows[0].n
+  // Counted here so the model only has to report them (it miscounted when left to count).
+  const facts = {
+    openPositions: Object.fromEntries(results.portfolios.map((p) => [p.name, p.openPositions])),
+    waitingOrders: Object.fromEntries(results.portfolios.map((p) => [p.name, p.pendingOrders])),
+    positionsClosedThisWeek: closes,
+    picksThisWeek: picks.reduce((s: number, r: { n: number }) => s + r.n, 0),
+  }
+  return { facts, week: { from, to }, portfolios, trades, shadowTrades, alerts, picks, bySource: results.bySource, forwardTest: results.forwardTest, recentClosedShadowPositions: closedThisWeek.slice(-10) }
 }
 
 const SYSTEM = `You write the weekly review for a paper-trading learning project (no real money). The reader is a senior
 software engineer who is new to markets. Write in plain English, short sentences, no hype. Use only the numbers
-given; never invent prices or events. Always compare results with SPY (the S&P 500 index fund) over the same days.
+given; never invent prices or events. A null number is not known yet (for example there is no earlier
+snapshot to compare with): say it is not known, never treat it as zero. Report the counts in "facts" exactly. Always compare results with SPY (the S&P 500 index fund) over the same days.
 This is education, not financial advice; do not tell the reader to buy or sell anything.
 Write Markdown with these sections:
 ## The week in brief (3-4 sentences)

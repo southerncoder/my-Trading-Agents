@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { Db } from '../db/pool.js'
+import { repairDeep } from './mojibake.js'
 
 const num = z.number().finite().nullable().optional()
 const str = z.string().nullable().optional()
@@ -65,7 +66,8 @@ export interface Candidate {
  * Stores one analysis in the decision journal. A re-run for the same night, ticker and source replaces it,
  * unless an order or position already points at it: then the journal keeps what the decision was based on.
  */
-export async function upsertCandidate(db: Db, a: Analysis, source: Source): Promise<number | null> {
+export async function upsertCandidate(db: Db, raw: Analysis, source: Source): Promise<number | null> {
+  const a = repairDeep(raw)
   const pm = a.pm ?? null
   const risks = Array.isArray(pm?.key_risks) ? (pm.key_risks as unknown[]).filter((r) => typeof r === 'string') : []
   const inputs = {

@@ -26,7 +26,7 @@ export function Results() {
             <p className="text-sm" style={muted}>No shadow positions yet. They start after the first nightly run with picks.</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="data-table w-full text-sm">
                 <thead><tr className="text-left" style={muted}><th>Source</th><th className="text-right">Positions</th><th className="text-right">Closed</th><th className="text-right">Made money</th><th className="text-right">Average return</th><th className="text-right">Average vs SPY</th></tr></thead>
                 <tbody>
                   {data.bySource.map((s) => (
@@ -51,7 +51,7 @@ export function Results() {
         <section className="space-y-2 rounded-lg p-4" style={card} aria-labelledby="yours">
           <h2 id="yours" className={sectionTitle}>Your choices against the system&apos;s</h2>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="data-table w-full text-sm">
               <thead><tr className="text-left" style={muted}><th>Portfolio</th><th className="text-right">Return</th><th className="text-right">SPY</th><th className="text-right">Difference</th><th className="text-right">Worst drop</th></tr></thead>
               <tbody>
                 {data.portfolios.map((p) => {

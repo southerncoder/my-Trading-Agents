@@ -96,7 +96,10 @@ describe('sources, results and weekly review', () => {
     const [model, system, user] = llm.mock.calls[0] as unknown as [string, string, string]
     expect(model).toBe('big-model:cloud')
     expect(system).toMatch(/paper/i)
+    expect(system).toMatch(/null.*not known/i)
     expect(user).toContain('SPY')
+    // Counts are handed over precomputed so the model does not have to count (it miscounted in the first real run).
+    expect(user).toMatch(/"facts": \{[^}]*"openPositions"/)
     expect((await api.get('/reviews')).data).toEqual([expect.objectContaining({ week_ending: '2026-11-27' })])
     expect((await api.get('/reviews/2026-11-27')).data).toMatchObject({ body_md: expect.stringContaining('calm') })
   })

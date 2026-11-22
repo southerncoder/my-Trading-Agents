@@ -175,7 +175,7 @@ export function Portfolio() {
           ))}
         </ul>
         <div className="hidden overflow-x-auto md:block">
-          <table className="w-full text-sm">
+          <table className="data-table w-full text-sm">
             <thead><tr className="text-left" style={muted}><th>Stock</th><th className="text-right">Shares</th><th className="text-right">Cost</th><th className="text-right">Last</th><th className="text-right">Profit</th><th>Exit plan</th><th>Source</th><th /></tr></thead>
             <tbody>
               {open.data?.map((x) => (
@@ -216,7 +216,7 @@ export function Portfolio() {
       <details className="rounded-lg p-4" style={card}>
         <summary className="cursor-pointer font-semibold">Closed positions ({closed.data?.length ?? 0}) and trade history</summary>
         <div className="mt-2 space-y-3 overflow-x-auto text-sm">
-          <table className="w-full">
+          <table className="data-table w-full">
             <thead><tr className="text-left" style={muted}><th>Stock</th><th>Held</th><th className="text-right">Return</th><th className="text-right">Profit</th><th>Source</th></tr></thead>
             <tbody>
               {closed.data?.map((x) => (
@@ -224,7 +224,7 @@ export function Portfolio() {
               ))}
             </tbody>
           </table>
-          <table className="w-full">
+          <table className="data-table w-full">
             <thead><tr className="text-left" style={muted}><th>Date</th><th>Trade</th><th className="text-right">Shares</th><th className="text-right">Price</th><th className="text-right">Realized</th></tr></thead>
             <tbody>
               {trades.data?.map((t) => (

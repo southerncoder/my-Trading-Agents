@@ -63,6 +63,13 @@ describe('ingestLedger', () => {
     expect((await db.pool.query(`SELECT confidence FROM candidates WHERE ticker='KO'`)).rows[0].confidence).toBe(0.7)
   })
 
+  it('repairs text the Windows console garbled (code page 437) before storing it', async () => {
+    writeFileSync(path, line({ date: '2026-11-21', ticker: 'GME', pm: { rationale: 'netΓÇæcash', key_risks: ['a ΓÇö b'] } }) + '\n')
+    await ingestLedger(db.pool, path, '2026-11-21')
+    const row = (await db.pool.query(`SELECT rationale, key_risks FROM candidates WHERE ticker='GME'`)).rows[0]
+    expect(row).toEqual({ rationale: 'net‑cash', key_risks: ['a — b'] })
+  })
+
   it('a missing ledger file is not an error', async () => {
     expect(await ingestLedger(db.pool, join(tmpdir(), 'nope', 'x.jsonl'), '2026-11-20')).toMatchObject({ stored: 0, missing: true })
   })
