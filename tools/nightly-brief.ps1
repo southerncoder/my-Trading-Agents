@@ -27,6 +27,7 @@ param(
   [string]$FastModel,      # optional one-off override
   [string]$DecisionModel,  # optional one-off override
   [string]$Adjustments = 'all',  # analysis adjustments: indicators,entrycheck,flat, all, or '' for none
+  [string[]]$ExtraTickers = @(),  # tonight's screen and news picks as TICKER:source (from the portfolio service)
   [string]$ReuseEvalDir     # rebuild data and page from an earlier run's logs (e.g. logs\eval\20261116-164247) without re-running the models
 )
 . (Join-Path $PSScriptRoot 'watchlist.ps1')
@@ -40,6 +41,11 @@ if ($wl) {
 $env:ANALYSIS_ADJUSTMENTS = $Adjustments
 $groupOf = @{}; foreach ($x in $BrandTickers) { $groupOf[$x] = 'brands' }; foreach ($x in $Tickers) { $groupOf[$x] = 'core' }
 $Tickers = @(@($Tickers) + @($BrandTickers) | Where-Object { $_ } | Select-Object -Unique)
+foreach ($x in @($ExtraTickers)) {
+  $parts = ([string]$x).Split(':')
+  $xt = $parts[0].Trim().ToUpper(); $xs = if ($parts.Count -gt 1) { $parts[1].Trim().ToLower() } else { 'screen' }
+  if ($xt -match '^[A-Z][A-Z0-9.\-]{0,9}$' -and $xs -in 'screen','news' -and $Tickers -notcontains $xt) { $groupOf[$xt] = $xs; $Tickers += $xt }
+}
 # What each brand is on the list to teach (shown on the page).
 $lessons = @{
   F = 'Cyclical business: profits swing with the economy, and the dividend depends on them.'
@@ -56,32 +62,13 @@ $lessons = @{
   M = 'Retail in decline: cheap can stay cheap when the business keeps shrinking.'
 }
 if ($wl) { foreach ($k in $wl.Lessons.Keys) { $lessons[$k] = $wl.Lessons[$k] } }
-function Num($v) { if ($null -eq $v) { return $null }; $s = ([string]$v) -replace '[^0-9.\-]', ''; $n = 0.0; if ($s -and [double]::TryParse($s, [ref]$n)) { return $n }; return $null }
+. (Join-Path $PSScriptRoot 'decision-parse.ps1')   # Num, Cut, Raw, NormAction, CallLabel, Read-PmDecision
 $ErrorActionPreference = 'Continue'
 $root = Split-Path $PSScriptRoot -Parent
 Set-Location $root
 $outDir = Join-Path $root "logs/nightly/$Date"
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 
-function Cut($s, $n) { if ($s) { $s = [string]$s; $s.Substring(0, [Math]::Min($n, $s.Length)) } else { '' } }
-function Raw($v) { if ($null -eq $v) { return $null }; if ($v -is [psobject] -and $v.PSObject.Properties['raw']) { return $v.raw }; return $v }
-function NormAction($v) {
-  if (-not $v) { return '' }
-  $s = ([string]$v).Trim().ToLower() -replace '[\s-]+', '_'
-  if ($s -in 'enter_now','wait_for_trigger','hold_existing','reduce','exit') { return $s }
-  if ($s -match 'trigger|pullback|dip|limit|on_|if_|pending|wait') { return 'wait_for_trigger' }
-  if ($s -match 'partial|enter|buy|add|accumulate|initiate|short') { return 'enter_now' }
-  if ($s -match 'trim|reduce|scale') { return 'reduce' }
-  if ($s -match 'exit|sell|close|cover') { return 'exit' }
-  if ($s -match 'hold|keep|maintain') { return 'hold_existing' }
-  return ''
-}
-function CallLabel($d, $a) {
-  if ($a -eq 'wait_for_trigger') { if ($d -eq 'SELL') { return 'Short if price reaches trigger' } else { return 'Buy if price reaches trigger' } }
-  if ($d -eq 'BUY') { if ($a -eq 'hold_existing') { return 'Keep' } else { return 'Buy now' } }
-  if ($d -eq 'SELL') { if ($a -eq 'reduce') { return 'Trim' } elseif ($a -eq 'enter_now') { return 'Short (bet price falls)' } else { return 'Exit' } }
-  if ($a -eq 'hold_existing') { return 'Keep' } else { return 'Wait' }
-}
 
 # 1. Models come from tools/model-profiles.json (never hardcoded here).
 . (Join-Path $PSScriptRoot 'model-profile.ps1')
@@ -110,19 +97,16 @@ if (Test-Path $ledgerPath) {
   Get-Content $ledgerPath | Where-Object { $_.Trim() } | ForEach-Object { try { $_ | ConvertFrom-Json } catch { } } |
     Where-Object { $_.date -lt $Date } | Sort-Object date | ForEach-Object { $prevCall[$_.ticker] = $_ }
 }
+$secondsOf = @{}
+$runsCsv = Join-Path $evalDir.FullName 'runs.csv'
+if (Test-Path $runsCsv) { foreach ($r in (Import-Csv $runsCsv)) { if ($r.Seconds) { $secondsOf[$r.Ticker] = [int]$r.Seconds } } }
 $rows = @()
 foreach ($t in $Tickers) {
   $o = [ordered]@{ ticker = $t }
   $logPath = Join-Path $evalDir.FullName "$t-1.log"
   $text = if (Test-Path $logPath) { Get-Content $logPath -Raw } else { '' }
-  $json = $null
-  $ms = [regex]::Matches($text, '\{[^{}]*"decision"[^{}]*\}')
-  # Models sometimes write LaTeX-style escapes (\%) inside the JSON; strip them or the whole block is lost.
-  if ($ms.Count) { try { $json = ($ms[$ms.Count - 1].Value -replace '\\(?!["\\/bfnrtu])', '') | ConvertFrom-Json } catch { $json = $null } }
-  $fin = [regex]::Match($text, 'Final trading decision:\s*(BUY|HOLD|SELL)\s*\(Confidence:\s*([0-9.]+)\)')
-  $d = if ($json) { ([string]$json.decision).ToUpper() } elseif ($fin.Success) { $fin.Groups[1].Value } else { 'HOLD' }
-  $c = if ($json -and $json.confidence) { [double]$json.confidence } elseif ($fin.Success) { [double]$fin.Groups[2].Value } else { 0.3 }
-  $a = if ($json) { NormAction $json.action_now } else { '' }
+  $pmd = Read-PmDecision $text
+  $json = $pmd.Json; $d = $pmd.Decision; $c = $pmd.Confidence; $a = $pmd.Action
   $o['decision'] = $d; $o['confidence'] = $c; $o['action_now'] = $a; $o['label'] = CallLabel $d $a
   $o['why'] = Cut $json.rationale 140
   $o['top_risk'] = Cut (@($json.key_risks)[0]) 90
@@ -211,7 +195,7 @@ $lines = foreach ($r in $rows) {
     price = $r.price; ma50 = $r.ma50; ma200 = $r.ma200; target = $r.target; range_pos = $r.range_pos
     pm = if ($r.pm_raw) { $r.pm_raw | ConvertFrom-Json } else { $null }
     stance = if ($trace[$r.ticker]) { [ordered]@{ market = $trace[$r.ticker].market; rm = $trace[$r.ticker].rm; trader = $trace[$r.ticker].trader; pm = $trace[$r.ticker].pm } } else { $null }
-    trigger_price = $r.trigger_price; trigger_type = $r.trigger_type; trigger_reason = $r.trigger_reason; walk_away = $r.walk_away; atr = $r.atr
+    trigger_price = $r.trigger_price; trigger_type = $r.trigger_type; trigger_reason = $r.trigger_reason; walk_away = $r.walk_away; atr = $r.atr; seconds = $secondsOf[$r.ticker]
   } | ConvertTo-Json -Compress -Depth 6
 }
 Set-Content -Path $ledgerFile -Value (@($keep) + @($lines)) -Encoding utf8

@@ -72,9 +72,28 @@ try { $wlChanges = @(Apply-WatchlistRequests) } catch { $wlChanges = @("Watchlis
 $wlRun = Get-Watchlist -Date $date
 if (-not $wlRun) { $wlRun = [pscustomobject]@{ Core = @(1..12); Brands = @(1..12); Once = @() } }
 
+# 1b. Paper portfolios: make sure the service is up, then ask it for tonight's screen and news picks.
+$portfolioUrl = 'http://localhost:38408/api/portfolio'
+$pfLines = @()
+function Post-Portfolio([string]$path, $body, [int]$timeout = 600) {
+  $bytes = [Text.Encoding]::UTF8.GetBytes(($body | ConvertTo-Json -Compress))
+  (Invoke-RestMethod "$portfolioUrl$path" -Method Post -ContentType 'application/json; charset=utf-8' -Body $bytes -TimeoutSec $timeout).data
+}
+if (-not (Test-Url "$portfolioUrl/health")) {
+  & (Join-Path $PSScriptRoot 'compose.ps1') up -d --no-deps portfolio-service *> $null
+  Start-Sleep -Seconds 30
+}
+$extra = @()
+try {
+  $src = Post-Portfolio '/sources/tonight' @{ date = $date }
+  $extra = @(@($src.screen | ForEach-Object { "$($_.ticker):screen" }) + @($src.news | ForEach-Object { "$($_.ticker):news" }))
+  if ($extra.Count) { $pfLines += "Extra picks tonight: $($extra -join ', ')" }
+  foreach ($n in @($src.notes)) { if ($n -and $n -notmatch 'already chosen') { $pfLines += "Pick sources: $n" } }
+} catch { $pfLines += "Pick sources failed (watchlist only tonight): $($_.Exception.Message)" }
+
 # 2. The run itself (about 70 to 90 minutes).
 $sw = [Diagnostics.Stopwatch]::StartNew()
-try { & (Join-Path $PSScriptRoot 'nightly-brief.ps1') } catch { $problems.Add("nightly-brief.ps1 threw: $($_.Exception.Message)") }
+try { & (Join-Path $PSScriptRoot 'nightly-brief.ps1') -ExtraTickers $extra } catch { $problems.Add("nightly-brief.ps1 threw: $($_.Exception.Message)") }
 
 # 3. Check the data; if prices are missing, wait and rebuild from the same model output without re-running the models.
 function Read-Rows { $f = Join-Path $outDir 'brief-data.json'; if (Test-Path $f) { @(Get-Content $f -Raw | ConvertFrom-Json) } else { @() } }
@@ -89,7 +108,7 @@ if ($rows.Count -gt 0 -and $noPrice.Count -gt 0) {
   $rows = Read-Rows
   $noPrice = @($rows | Where-Object { -not $_.price })
 }
-$expected = @($wlRun.Core).Count + @($wlRun.Brands).Count
+$expected = @($wlRun.Core).Count + @($wlRun.Brands).Count + @($extra).Count
 if ($rows.Count -ne $expected) { $problems.Add("expected $expected rows, found $($rows.Count)") }
 if ($noPrice.Count -gt 0) { $problems.Add("no price for: " + (($noPrice | ForEach-Object { $_.ticker }) -join ', ')) }
 $js = Join-Path $outDir 'brief-data.js'
@@ -103,6 +122,19 @@ try {
   & npm run score *> (Join-Path $nightly 'score.log')
   if ($LASTEXITCODE -ne 0) { Write-Warning "Scorecard step failed; see logs\nightly\score.log" }
 } catch { Write-Warning "Scorecard step threw: $($_.Exception.Message)" } finally { Pop-Location }
+# 3c. Paper portfolios: fills, exit and risk rules, shadow portfolio, snapshots (non-fatal).
+try {
+  $pn = Post-Portfolio '/jobs/nightly' @{ date = $date } 900
+  $s = $pn.summary
+  if ($pn.status -eq 'ok') {
+    $pfLines += "Portfolios: $($s.fills) orders filled, $($s.alerts) new alerts, shadow opened $($s.shadowOpened) and closed $($s.shadowClosed)"
+  } else { $pfLines += "Portfolio step failed: $(@($s.notes) -join '; ')" }
+} catch { $pfLines += "Portfolio step failed: $($_.Exception.Message)" }
+try { & (Join-Path $PSScriptRoot 'portfolio-worker.ps1') -MaxJobs 5 -FromNightly | Out-Host } catch { $pfLines += "Re-analysis step failed: $($_.Exception.Message)" }
+if ((Get-Date $date).DayOfWeek -eq 'Friday') {
+  try { $rv = Post-Portfolio '/jobs/weekly-review' @{ weekEnding = $date } 900; $pfLines += "Weekly review written$(if (-not $rv.model) { ' (numbers only: the model could not be reached)' })" }
+  catch { $pfLines += "Weekly review failed: $($_.Exception.Message)" }
+}
 # 4. Summary written from the data (no model needed).
 $lines = @()
 if ($rows.Count -gt 0) {
@@ -116,6 +148,7 @@ if ($rows.Count -gt 0) {
   if ($mv) { $lines += "Biggest mover: $($mv.ticker) $($mv.day_pct)%" }
 }
 foreach ($c in $wlChanges) { $lines += $c }
+foreach ($c in $pfLines) { $lines += $c }
 $lines += "Page: $(Join-Path $nightly 'latest.html')"
 $lines += "Took $([int]$sw.Elapsed.TotalMinutes) minutes"
 if ($problems.Count -gt 0) { $lines = @("PROBLEMS: " + ($problems -join ' | ')) + $lines }
