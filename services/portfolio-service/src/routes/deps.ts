@@ -18,6 +18,8 @@ export interface ServiceDeps {
   watchlist?: () => string[]
   /** Replaceable LLM call for the weekly review (tests). */
   llm?: (model: string, system: string, user: string) => Promise<string>
+  /** Replaceable fetch for the news service (tests). */
+  fetch?: typeof fetch
 }
 
 /** Today's date in the market's home time zone (the nightly run is on Chicago time). */
