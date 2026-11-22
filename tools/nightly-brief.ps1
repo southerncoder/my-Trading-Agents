@@ -106,12 +106,14 @@ foreach ($t in $Tickers) {
   $logPath = Join-Path $evalDir.FullName "$t-1.log"
   $text = if (Test-Path $logPath) { Get-Content $logPath -Raw } else { '' }
   $pmd = Read-PmDecision $text
+  $prof = Read-ProfessorReview $text
   $json = $pmd.Json; $d = $pmd.Decision; $c = $pmd.Confidence; $a = $pmd.Action
   $o['decision'] = $d; $o['confidence'] = $c; $o['action_now'] = $a; $o['label'] = CallLabel $d $a
   $o['why'] = Cut $json.rationale 140
   $o['top_risk'] = Cut (@($json.key_risks)[0]) 90
   $o['change_my_mind'] = Cut $json.what_would_change_my_mind 120
   $o['pm_raw'] = if ($json) { ($json | ConvertTo-Json -Compress -Depth 4) } else { $null }
+  $o['educational_review'] = $prof
   $o['group'] = $groupOf[$t]; if ($lessons[$t] -and $groupOf[$t] -eq 'brands') { $o['lesson'] = $lessons[$t] }
   $o['why_full'] = Cut $json.rationale 420
   $o['risks'] = @(@($json.key_risks) | Where-Object { $_ } | Select-Object -First 3 | ForEach-Object { Cut $_ 110 })
@@ -195,6 +197,7 @@ $lines = foreach ($r in $rows) {
     price = $r.price; ma50 = $r.ma50; ma200 = $r.ma200; target = $r.target; range_pos = $r.range_pos
     pm = if ($r.pm_raw) { $r.pm_raw | ConvertFrom-Json } else { $null }
     stance = if ($trace[$r.ticker]) { [ordered]@{ market = $trace[$r.ticker].market; rm = $trace[$r.ticker].rm; trader = $trace[$r.ticker].trader; pm = $trace[$r.ticker].pm } } else { $null }
+    educational_review = $r.educational_review
     trigger_price = $r.trigger_price; trigger_type = $r.trigger_type; trigger_reason = $r.trigger_reason; walk_away = $r.walk_away; atr = $r.atr; seconds = $secondsOf[$r.ticker]
   } | ConvertTo-Json -Compress -Depth 6
 }

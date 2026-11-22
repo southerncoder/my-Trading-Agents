@@ -144,6 +144,13 @@ export class AgentStateHelpers {
   }
 
   /**
+   * Check if a final trade decision exists (used by the educational reviewer)
+   */
+  static hasFinalDecision(state: AgentState): boolean {
+    return !!state.final_trade_decision;
+  }
+
+  /**
    * Get the current analysis stage
    */
   static getAnalysisStage(state: AgentState): string {

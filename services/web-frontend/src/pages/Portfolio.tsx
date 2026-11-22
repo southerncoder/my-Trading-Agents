@@ -59,6 +59,29 @@ function PlanLine({ p }: { p: Position }) {
   )
 }
 
+function PositionReview({ p }: { p: Position }) {
+  const r = p.educational_review
+  if (!r) return null
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="w-full rounded-lg border border-dashed p-2 text-xs" style={{ borderColor: 'var(--color-border, #e2e8f0)' }}>
+      <button type="button" className="font-medium underline" onClick={() => setOpen((o) => !o)}>
+        {open ? 'Hide why this position was chosen' : 'Why was this position chosen?'}
+      </button>
+      {open && (
+        <div className="mt-2 space-y-1" style={muted}>
+          {r.summary && <p><strong>Summary:</strong> {r.summary}</p>}
+          {r.why_not_before_flag && <p><strong>Why not before the flag?</strong> {r.why_not_before_flag}</p>}
+          {r.figures_explained && <p><strong>Figures explained:</strong> {r.figures_explained}</p>}
+          {r.buy_low_sell_high && <p><strong>Buy low, sell high?</strong> {r.buy_low_sell_high}</p>}
+          {r.risk_temperament && <p><strong>Risk temperament:</strong> {r.risk_temperament}</p>}
+          {r.portfolio_fit && <p><strong>Portfolio fit:</strong> {r.portfolio_fit}</p>}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function RulesForm({ id, rules, onDone }: { id: number; rules: Rules; onDone: () => void }) {
   const [draft, setDraft] = useState<Record<string, string>>(Object.fromEntries(Object.entries(rules).map(([k, v]) => [k, String(v)])))
   const [msg, setMsg] = useState<string | null>(null)
@@ -182,25 +205,31 @@ export function Portfolio() {
               </div>
               <div style={muted} className="text-xs">{x.quantity} @ {money(x.avg_cost)} &middot; last {money(x.mark)} ({x.mark_date ?? 'cost'}) &middot; {SOURCE_LABEL[x.source ?? ''] ?? x.source}</div>
               <PlanLine p={x} />
+              <PositionReview p={x} />
               {owner && (selling === x.id ? <SellForm pid={id} pos={x} onDone={() => { setSelling(null); refresh() }} /> : <button type="button" className={`${button} mt-1`} style={card} onClick={() => setSelling(x.id)}>{x.direction === 'long' ? 'Sell' : 'Cover'}</button>)}
             </li>
           ))}
         </ul>
         <div className="hidden overflow-x-auto md:block">
           <table className="data-table w-full text-sm">
-            <thead><tr className="text-left" style={muted}><th>Stock</th><th className="text-right">Shares</th><th className="text-right">Cost</th><th className="text-right">Last</th><th className="text-right">Profit</th><th>Exit plan</th><th>Source</th><th /></tr></thead>
+            <thead><tr className="text-left" style={muted}><th colSpan={8}>Stock</th></tr></thead>
             <tbody>
               {open.data?.map((x) => (
                 <tr key={x.id} className="align-top" style={{ borderTop: '1px solid var(--color-border, #e2e8f0)' }}>
-                  <td className="py-2"><Link to={`/stock/${x.ticker}`} className="font-semibold underline">{x.ticker}</Link>{x.direction === 'short' && <span style={muted}> short</span>}<div className="text-xs" style={muted}>since {x.opened_on}</div></td>
-                  <td className="text-right">{x.quantity}</td>
-                  <td className="text-right">{money(x.avg_cost)}</td>
-                  <td className="text-right">{money(x.mark)}<div className="text-xs" style={muted}>{x.mark_date ?? 'at cost'}</div></td>
-                  <td className="text-right" style={{ color: moveColor(x.unrealized) }}>{signedMoney(x.unrealized)}<div className="text-xs">{fmtPct(x.returnPct)}</div></td>
-                  <td><PlanLine p={x} /></td>
-                  <td className="text-xs">{SOURCE_LABEL[x.source ?? ''] ?? x.source}</td>
-                  <td className="text-right">
-                    {owner && (selling === x.id ? <SellForm pid={id} pos={x} onDone={() => { setSelling(null); refresh() }} /> : <button type="button" className={button} style={card} onClick={() => setSelling(x.id)}>{x.direction === 'long' ? 'Sell' : 'Cover'}</button>)}
+                  <td className="py-2" colSpan={8}>
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <span><Link to={`/stock/${x.ticker}`} className="font-semibold underline">{x.ticker}</Link>{x.direction === 'short' && <span style={muted}> short</span>}<div className="text-xs" style={muted}>since {x.opened_on}</div></span>
+                      <span className="text-right" style={{ color: moveColor(x.unrealized) }}>{signedMoney(x.unrealized)} <span className="text-xs">{fmtPct(x.returnPct)}</span></span>
+                    </div>
+                    <div className="grid grid-cols-[repeat(2,minmax(0,1fr))] gap-x-4 gap-y-1 text-right text-xs sm:grid-cols-[repeat(4,minmax(0,1fr))]" style={muted}>
+                      <div><strong>Shares:</strong> {x.quantity}</div>
+                      <div><strong>Cost:</strong> {money(x.avg_cost)}</div>
+                      <div><strong>Last:</strong> {money(x.mark)} <span className="text-xs">{x.mark_date ?? 'at cost'}</span></div>
+                      <div><strong>Source:</strong> {SOURCE_LABEL[x.source ?? ''] ?? x.source}</div>
+                    </div>
+                    <div className="mt-1 text-xs" style={muted}><PlanLine p={x} /></div>
+                    <PositionReview p={x} />
+                    {owner && (selling === x.id ? <SellForm pid={id} pos={x} onDone={() => { setSelling(null); refresh() }} /> : <button type="button" className={`${button} mt-1`} style={card} onClick={() => setSelling(x.id)}>{x.direction === 'long' ? 'Sell' : 'Cover'}</button>)}
                   </td>
                 </tr>
               ))}

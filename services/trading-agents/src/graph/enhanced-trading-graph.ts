@@ -364,6 +364,7 @@ export class EnhancedTradingAgentsGraph {
     ensembleSignal?: any;
     positionSize?: any;
     governmentData?: any;
+    educationalReview?: any;
   }> {
     let memoryInsights: any = null;
     let riskAssessment: any = null;
@@ -625,6 +626,12 @@ export class EnhancedTradingAgentsGraph {
       }
     }
 
+    // Educational review from the Professor agent, if it ran successfully.
+    const educationalReview = execution.result?.metadata?.educational_review ?? null;
+    if (educationalReview) {
+      reasoning.push(`Professor Review: ${educationalReview.summary || 'No summary provided'}`);
+    }
+
     return {
       decision,
       reasoning,
@@ -634,7 +641,8 @@ export class EnhancedTradingAgentsGraph {
       riskAssessment,
       ensembleSignal,
       positionSize,
-      governmentData
+      governmentData,
+      educationalReview
     };
   }
 

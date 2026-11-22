@@ -97,6 +97,7 @@
     { "ticker": "MU", "match": ["Micron"] },
     { "ticker": "LRCX", "match": ["Lam Research"] },
     { "ticker": "PANW", "match": ["Palo Alto Networks"] },
-    { "ticker": "ANET", "match": ["Arista Networks", "Arista"] }
+    { "ticker": "ANET", "match": ["Arista Networks", "Arista"] },
+    { "ticker": "ANT", "match": ["Anthropic"] }
   ]
 }

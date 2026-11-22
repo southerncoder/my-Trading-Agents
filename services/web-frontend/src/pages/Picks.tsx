@@ -16,6 +16,29 @@ function Reasons({ p }: { p: Pick }) {
   return null
 }
 
+function ProfessorReview({ p }: { p: Pick }) {
+  const r = p.educational_review
+  if (!r) return null
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="rounded-lg border border-dashed p-2 text-xs" style={{ borderColor: 'var(--color-border, #e2e8f0)' }}>
+      <button type="button" className="font-medium underline" onClick={() => setOpen((o) => !o)}>
+        {open ? 'Hide Professor review' : 'Why this call? (Professor review)'}
+      </button>
+      {open && (
+        <div className="mt-2 space-y-1" style={muted}>
+          {r.summary && <p><strong>Summary:</strong> {r.summary}</p>}
+          {r.why_not_before_flag && <p><strong>Why not before the flag?</strong> {r.why_not_before_flag}</p>}
+          {r.figures_explained && <p><strong>Figures explained:</strong> {r.figures_explained}</p>}
+          {r.buy_low_sell_high && <p><strong>Buy low, sell high?</strong> {r.buy_low_sell_high}</p>}
+          {r.risk_temperament && <p><strong>Risk temperament:</strong> {r.risk_temperament}</p>}
+          {r.portfolio_fit && <p><strong>Portfolio fit:</strong> {r.portfolio_fit}</p>}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function PickCard({ p, portfolioId, amount, onTraded }: { p: Pick; portfolioId: number | null; amount: number; onTraded: (msg: string) => void }) {
   const action = pickAction(p)
   const [busy, setBusy] = useState(false)
@@ -61,6 +84,7 @@ function PickCard({ p, portfolioId, amount, onTraded }: { p: Pick; portfolioId: 
       {p.rationale && <p className="line-clamp-3">{p.rationale}</p>}
       {risks.length > 0 && <p className="text-xs" style={muted}>Risks: {risks.join('; ')}</p>}
       <Reasons p={p} />
+      <ProfessorReview p={p} />
       {action && (
         <div className="flex flex-wrap items-center gap-2 pt-1">
           <button type="button" disabled={busy || done || !portfolioId} onClick={act} className={primaryButton} style={primaryStyle}>

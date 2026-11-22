@@ -18,6 +18,16 @@ export const rulesSchema = z.object({
 })
 export type Rules = z.infer<typeof rulesSchema>
 
+export const educationalReviewSchema = z.object({
+  summary: z.string(),
+  why_not_before_flag: z.string(),
+  figures_explained: z.string(),
+  buy_low_sell_high: z.string(),
+  risk_temperament: z.string(),
+  portfolio_fit: z.string(),
+}).partial()
+export type EducationalReview = z.infer<typeof educationalReviewSchema>
+
 export const summarySchema = z.object({
   id: n,
   name: z.string(),
@@ -60,6 +70,7 @@ export const positionSchema = z.object({
   market_value: n,
   unrealized: n,
   returnPct: n,
+  educational_review: educationalReviewSchema.nullable().optional(),
 })
 export type Position = z.infer<typeof positionSchema>
 
@@ -135,6 +146,7 @@ export const pickSchema = z.looseObject({
   direction: z.enum(['long', 'short']).nullable(),
   kind: z.enum(['market', 'trigger']).nullable(),
   reasons: z.record(z.string(), z.unknown()).nullable().optional(),
+  educational_review: educationalReviewSchema.nullable().optional(),
   company: sn.optional(),
   sector: sn.optional(),
   llm_seconds: nn.optional(),

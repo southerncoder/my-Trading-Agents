@@ -62,6 +62,12 @@
       "cadence": "nightly"
     },
     {
+      "ticker": "ANT",
+      "list": "core",
+      "cadence": "nightly",
+      "lesson": "Recent IPO: a freshly public company often trades on growth story and valuation, not on steady earnings history."
+    },
+    {
       "ticker": "F",
       "list": "brands",
       "cadence": "nightly"

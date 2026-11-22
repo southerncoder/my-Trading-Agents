@@ -20,11 +20,19 @@ export interface PositionView extends PositionRow {
   market_value: number
   unrealized: number
   returnPct: number
+  educational_review: Record<string, string> | null
 }
 
 export async function positionsView(db: Db, portfolioId: number, status: 'open' | 'closed' | 'all', asOf: string): Promise<PositionView[]> {
-  const where = status === 'all' ? '' : `AND status = '${status === 'open' ? 'open' : 'closed'}'`
-  const { rows } = await db.query<PositionRow>(`SELECT * FROM positions WHERE portfolio_id = $1 ${where} ORDER BY status, opened_on DESC, id DESC`, [portfolioId])
+  const where = status === 'all' ? '' : `AND p.status = '${status === 'open' ? 'open' : 'closed'}'`
+  const { rows } = await db.query<PositionRow & { educational_review: Record<string, string> | null }>(
+    `SELECT p.*, c.educational_review
+     FROM positions p
+     LEFT JOIN candidates c ON c.id = p.candidate_id
+     WHERE p.portfolio_id = $1 ${where}
+     ORDER BY p.status, p.opened_on DESC, p.id DESC`,
+    [portfolioId],
+  )
   const marks = await latestMarks(db, [...new Set(rows.map((r) => r.ticker))], asOf)
   const exits = new Map<number, number>()
   if (rows.some((r) => r.status === 'closed')) {
@@ -44,6 +52,7 @@ export async function positionsView(db: Db, portfolioId: number, status: 'open' 
       market_value: round(p.quantity * m),
       unrealized: p.status === 'open' ? round(sign * (m - p.avg_cost) * p.quantity) : 0,
       returnPct: round(positionReturn(p.direction, p.avg_cost, m), 2),
+      educational_review: p.educational_review,
     }
   })
 }

@@ -30,6 +30,27 @@ Final trading decision: HOLD (Confidence: 0.62)
   }
 }
 
+Describe 'Read-ProfessorReview' {
+  It 'reads the last educational-review JSON block' {
+    $log = @'
+noise {"decision": "BUY", "confidence": 0.7}
+```json
+{"summary": "first", "why_not_before_flag": "x", "figures_explained": "x", "buy_low_sell_high": "x", "risk_temperament": "x", "portfolio_fit": "x"}
+```
+more noise
+```json
+{"summary": "second", "why_not_before_flag": "wait for confirmation", "figures_explained": "ma50", "buy_low_sell_high": "momentum", "risk_temperament": "moderate", "portfolio_fit": "growth"}
+```
+'@
+    $r = Read-ProfessorReview $log
+    $r.summary | Should Be 'second'
+    $r.portfolio_fit | Should Be 'growth'
+  }
+  It 'returns null when no review is present' {
+    Read-ProfessorReview 'no json here' | Should BeNullOrEmpty
+  }
+}
+
 Describe 'NormAction and CallLabel' {
   It 'maps free-form actions onto the allowed set' {
     NormAction 'Enter on trigger' | Should Be 'wait_for_trigger'

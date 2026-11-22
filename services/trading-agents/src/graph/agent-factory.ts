@@ -15,6 +15,7 @@ import { RiskyAnalyst } from '../agents/risk-mgmt/risky-analyst';
 import { SafeAnalyst } from '../agents/risk-mgmt/safe-analyst';
 import { NeutralAnalyst } from '../agents/risk-mgmt/neutral-analyst';
 import { PortfolioManager } from '../agents/risk-mgmt/portfolio-manager';
+import { Professor } from '../agents/educational/professor';
 import { LearningTrader } from '../agents/traders/learning-trader';
 import { Trader } from '../agents/trader/trader';
 import { ModelProvider, LLMProvider } from '../models/provider';
@@ -259,9 +260,19 @@ export class AgentFactory {
    */
   async createPortfolioManager(): Promise<PortfolioManager> {
     logger.info('createPortfolioManager', 'Creating Portfolio Manager instance');
-    
+
     const llm = await this.createLLM('deepThinkLlm'); // Use deep thinking model
     return new PortfolioManager(llm, []);
+  }
+
+  /**
+   * Create Professor (educational reviewer)
+   */
+  async createProfessor(): Promise<Professor> {
+    logger.info('createProfessor', 'Creating Professor instance');
+
+    const llm = await this.createLLM('deepThinkLlm'); // Use deep thinking model
+    return new Professor(llm, []);
   }
 
   /**

@@ -200,6 +200,9 @@ export class LangGraphSetup {
       // ==== PHASE 4: TRADING (1 agent) ====
       workflow.addNode('learning_trader', createAgentNode('Learning Trader', this.agentFactory.createLearningTrader()));
 
+      // ==== PHASE 5: EDUCATIONAL REVIEW (1 agent, optional) ====
+      workflow.addNode('professor', createAgentNode('Professor', this.agentFactory.createProfessor()));
+
       // Build the workflow edges
       this.addWorkflowEdges(workflow, selectedAnalysts);
 
@@ -259,8 +262,11 @@ export class LangGraphSetup {
     // ==== PHASE 4: TRADING EXECUTION ====
     // Portfolio Manager hands off to Learning Trader for final decision
     workflow.addEdge('portfolio_manager', 'learning_trader');
-    // Trading decision is final
-    workflow.addEdge('learning_trader', '__end__');
+
+    // ==== PHASE 5: EDUCATIONAL REVIEW ====
+    // The Professor reviews the final decision and writes a beginner-friendly explanation
+    workflow.addEdge('learning_trader', 'professor');
+    workflow.addEdge('professor', '__end__');
   }
 
   /**

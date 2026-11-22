@@ -15,13 +15,25 @@ param(
   [Parameter(Mandatory)][string]$Ticker,
   [string]$Date = (Get-Date -Format yyyy-MM-dd),
   [string]$YahooUrl = 'http://localhost:38402',
-  [string]$OutFile
+  [string]$OutFile,
+  [string]$ModelProfile   # if set: apply this profile from tools/model-profiles.json and recreate the container
 )
 # Continue, not Stop: Windows PowerShell turns every stderr line of a native command (dotenv's banner, warnings)
 # into an error record, and Stop would abort on the first one. Real failures are thrown explicitly below.
 $ErrorActionPreference = 'Continue'
 . (Join-Path $PSScriptRoot 'decision-parse.ps1')
 [Console]::OutputEncoding = [Text.Encoding]::UTF8   # the container writes UTF-8; the console default (code page 437) garbles punctuation
+
+# Apply a model profile and recreate the container so this run definitely uses the requested models.
+if ($ModelProfile) {
+  . (Join-Path $PSScriptRoot 'model-profile.ps1')
+  $prof = Use-ModelProfile -Name $ModelProfile
+  Write-Host ('Profile {0}: fast={1} decision={2}' -f $prof.Profile, $prof.Fast, $prof.Decision)
+  # Rebuild the image so code changes (e.g. the Professor agent) are in the container.
+  & (Join-Path $PSScriptRoot 'compose.ps1') up -d --build trading-agents | Out-Null
+  Start-Sleep 20
+}
+
 $Ticker = $Ticker.Trim().ToUpper()
 if ($Ticker -notmatch '^[A-Z][A-Z0-9.\-]{0,9}$') { throw "Not a stock symbol: $Ticker" }
 $root = Split-Path $PSScriptRoot -Parent
@@ -35,6 +47,7 @@ $sw.Stop()
 $text = Get-Content $log -Raw
 if (-not $text -or $text -notmatch 'Final trading decision|"decision"') { throw "The analysis produced no decision (see $log)" }
 $pmd = Read-PmDecision $text
+$prof = Read-ProfessorReview $text
 $json = $pmd.Json
 
 $price = $null; $ma50 = $null; $ma200 = $null; $target = $null
@@ -62,6 +75,7 @@ $out = [ordered]@{
   decision = $pmd.Decision; confidence = $pmd.Confidence; action_now = $pmd.Action; label = $pmd.Label
   price = $price; ma50 = $ma50; ma200 = $ma200; target = $target
   pm = $json
+  educational_review = $prof
   trigger_price = $trigger; trigger_type = $ttype; trigger_reason = (Cut $json.trigger_reason 140); walk_away = $walk
   seconds = [int]$sw.Elapsed.TotalSeconds
   log = $log

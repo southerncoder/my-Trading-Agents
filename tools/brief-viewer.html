@@ -132,6 +132,12 @@ details.deep { border-top: 1px solid var(--line); padding-top: 10px; }
 details.deep > summary { cursor: pointer; font-weight: 600; font-size: .92rem; }
 details.deep[open] > summary { margin-bottom: 10px; }
 .deepbody { display: flex; flex-direction: column; gap: 16px; }
+details.professor { border-top: 1px solid var(--line); padding-top: 10px; }
+details.professor > summary { cursor: pointer; font-weight: 600; font-size: .92rem; }
+details.professor[open] > summary { margin-bottom: 10px; }
+.profbody { display: flex; flex-direction: column; gap: 14px; }
+.profbody h4 { margin: 0; font-family: var(--display); font-size: .95rem; color: var(--accent); }
+.profbody p { font-size: .92rem; }
 .flow { background: var(--paper); border-radius: 10px; padding: 10px 12px; display: grid; gap: 8px; }
 .flow ol { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 4px; align-items: center; }
 .flow li { display: flex; align-items: center; gap: 6px; font-size: .86rem; }
@@ -593,6 +599,23 @@ function start(D) {
     if (!words && !r.stance) return '';
     return '<details class="deep" data-t="' + esc(r.ticker) + '"><summary>How this call was made: every analyst, the debate and the final memo' + (words ? ' <span class="muted">(' + Math.round(words / 200) + ' min read in full)</span>' : '') + '</summary><div class="deepbody"></div></details>';
   }
+  function professorReview(r) {
+    var rev = r.educational_review;
+    if (!rev || !rev.summary) return '';
+    var fields = [
+      ['Summary', 'summary'],
+      ['Why not before the flag', 'why_not_before_flag'],
+      ['The figures explained', 'figures_explained'],
+      ['Buy low, sell high?', 'buy_low_sell_high'],
+      ['Risk temperament', 'risk_temperament'],
+      ['Portfolio fit', 'portfolio_fit']
+    ].filter(function (f) { return rev[f[1]]; });
+    if (!fields.length) return '';
+    var used = {};
+    return '<details class="professor"><summary>Professor review: beginner-friendly take on this call</summary><div class="profbody">' +
+      fields.map(function (f) { return '<div class="profitem"><h4>' + esc(f[0]) + '</h4><p>' + withTerms(rev[f[1]], r, used) + '</p></div>'; }).join('') +
+      '</div></details>';
+  }
   document.addEventListener('toggle', function (e) {
     var d = e.target;
     if (!d.classList || !d.classList.contains('deep') || !d.open) return;
@@ -620,6 +643,7 @@ function start(D) {
     if (risks.length) h += '<div><span class="k">Biggest risks</span><ul>' + risks.map(function (x) { return '<li>' + withTerms(x, r, used) + '</li>'; }).join('') + '</ul></div>';
     if (r.change_my_mind) h += '<p><span class="k">It would change its mind if: </span>' + withTerms(r.change_my_mind, r, used) + '</p>';
     h += '</div></details>';
+    h += professorReview(r);
     h += deep(r);
     h += '<div class="facts"><span>30 days <span class="num ' + (r.ret30_pct >= 0 ? 'up' : 'down') + '">' + pct(r.ret30_pct, true) + '</span></span>';
     if (r.range_pos != null) h += '<span>' + r.range_pos + '% of the way from its 52-week low to high</span>';

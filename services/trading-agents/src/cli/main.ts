@@ -409,13 +409,14 @@ export class TradingAgentsCLI {
           final_trade_decision: `Decision: ${analysisResult.decision} (Confidence: ${analysisResult.confidence})`,
           reasoning: analysisResult.reasoning.join('\n'),
           messages: analysisResult.messages,
-          
+          educational_review: analysisResult.educationalReview ?? null,
+
           // Include all detailed agent reports from full state
           ...fullState,
-          
+
           // Ensure we have the main analysis sections
           market_report: fullState?.market_report,
-          sentiment_report: fullState?.sentiment_report, 
+          sentiment_report: fullState?.sentiment_report,
           news_report: fullState?.news_report,
           fundamentals_report: fullState?.fundamentals_report,
           investment_debate_state: fullState?.investment_debate_state,
@@ -442,8 +443,17 @@ export class TradingAgentsCLI {
 
         // Show final decision
         this.display.showSuccess(`Final trading decision: ${decision} (Confidence: ${analysisResult.confidence})`);
+
+        // Print the Professor review to the log so nightly/ondemand parsers can extract it.
+        if (analysisResult.educationalReview) {
+          console.log('\n```json')
+          console.log(JSON.stringify(analysisResult.educationalReview))
+          console.log('```')
+          console.log('Professor review printed above.')
+        }
+
         this.display.showSuccess('Analysis completed successfully!');
-        
+
         // Complete operation timer
         const duration = timer();
         console.log(chalk.green(`\n✅ Analysis completed in ${duration}ms`));
@@ -485,7 +495,11 @@ export class TradingAgentsCLI {
     
     // Save analysis report
     try {
-      const reportContent = `# Trading Analysis Report\n\n## Decision: ${analysisResult.decision}\n\n## Confidence: ${analysisResult.confidence}\n\n## Reasoning:\n${analysisResult.reasoning.join('\n\n')}`;
+      const review = analysisResult.educationalReview;
+      const reviewMd = review
+        ? `\n\n## Professor's Review (beginner-friendly)\n\n**Summary:** ${review.summary}\n\n**Why not before the flag?** ${review.why_not_before_flag}\n\n**The figures explained:** ${review.figures_explained}\n\n**Buy low, sell high?** ${review.buy_low_sell_high}\n\n**Risk temperament:** ${review.risk_temperament}\n\n**Portfolio fit:** ${review.portfolio_fit}`
+        : '';
+      const reportContent = `# Trading Analysis Report\n\n## Decision: ${analysisResult.decision}\n\n## Confidence: ${analysisResult.confidence}\n\n## Reasoning:\n${analysisResult.reasoning.join('\n\n')}${reviewMd}`;
       writeFileSync(join(reportDir, 'analysis_report.md'), reportContent);
     } catch {
       // Ignore file write errors

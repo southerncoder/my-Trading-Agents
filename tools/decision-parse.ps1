@@ -40,3 +40,23 @@ function Read-PmDecision([string]$Text) {
   $a = if ($json) { NormAction $json.action_now } else { '' }
   [pscustomobject]@{ Json = $json; Decision = $d; Confidence = $c; Action = $a; Label = (CallLabel $d $a) }
 }
+
+# The Professor's beginner-friendly review from a log: the last fenced JSON block (or plain JSON object)
+# that contains both "summary" and "portfolio_fit". Handles multi-line output and nested braces.
+function Read-ProfessorReview([string]$Text) {
+  # Try fenced json blocks first.
+  $fenced = [regex]::Matches($Text, '```(?:json)?\s*(\{[\s\S]*?\})\s*```')
+  $candidates = @()
+  foreach ($m in $fenced) {
+    $c = $m.Groups[1].Value
+    if ($c -match '"summary"' -and $c -match '"portfolio_fit"') { $candidates += $c }
+  }
+  # Fallback: last plain { ... } that contains the two keys (greedy to allow nested values).
+  if ($candidates.Count -eq 0) {
+    $plain = [regex]::Matches($Text, '\{[\s\S]*?"summary"[\s\S]*?"portfolio_fit"[\s\S]*?\}')
+    if ($plain.Count) { $candidates += $plain[$plain.Count - 1].Value }
+  }
+  if ($candidates.Count -eq 0) { return $null }
+  $last = $candidates[$candidates.Count - 1]
+  try { return ($last -replace '\\(?!["\\/bfnrtu])', '') | ConvertFrom-Json } catch { return $null }
+}
