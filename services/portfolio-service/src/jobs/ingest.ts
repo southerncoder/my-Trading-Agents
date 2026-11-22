@@ -9,7 +9,7 @@ import { analysisSchema, sourceForGroup, upsertCandidate, type Analysis } from '
  */
 export async function ingestLedger(pool: pg.Pool, path: string, date: string) {
   if (!existsSync(path)) return { stored: 0, skippedLines: 0, missing: true }
-  const text = readFileSync(path, 'utf8').replace(/^﻿/, '')
+  const text = readFileSync(path, 'utf8').replace(/^\uFEFF/, '')
   const latest = new Map<string, Analysis>()
   let skippedLines = 0
   for (const raw of text.split(/\r?\n/)) {

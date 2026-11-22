@@ -23,7 +23,7 @@ describe('ingestLedger', () => {
     path = join(mkdtempSync(join(tmpdir(), 'ledger-')), 'decisions.jsonl')
     writeFileSync(
       path,
-      '﻿' +
+      '\uFEFF' +
         [
           line({}),
           line({ ticker: 'AAPL', group: 'screen', decision: 'HOLD', action_now: 'wait_for_trigger', label: 'Buy if price reaches trigger', trigger_price: 250, trigger_type: 'breakout' }),
