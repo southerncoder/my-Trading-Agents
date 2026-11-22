@@ -104,6 +104,17 @@ describe('sources, results and weekly review', () => {
     expect((await api.get('/reviews/2026-11-27')).data).toMatchObject({ body_md: expect.stringContaining('calm') })
   })
 
+  it('weekly review: a failure while gathering the numbers marks the run failed instead of leaving it running', async () => {
+    const spy = vi.spyOn(db.pool, 'query')
+    spy.mockImplementationOnce((() => Promise.resolve({ rows: [{ id: 999999 }] })) as never)
+    spy.mockImplementationOnce((() => Promise.reject(new Error('db down'))) as never)
+    const r = await api.post('/jobs/weekly-review', { weekEnding: '2026-11-13' })
+    const sql = spy.mock.calls.map((c) => String(c[0]))
+    spy.mockRestore()
+    expect(r.status).toBe(500)
+    expect(sql.some((s) => s.includes("status = 'failed'"))).toBe(true)
+  })
+
   it('weekly review: when the model fails, a numbers-only review is stored instead', async () => {
     llm.mockRejectedValueOnce(new Error('timeout'))
     const r = await api.post('/jobs/weekly-review', { weekEnding: '2026-11-20' })

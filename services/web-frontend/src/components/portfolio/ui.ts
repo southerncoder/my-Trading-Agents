@@ -1,10 +1,17 @@
 import { useCallback, useEffect, useState } from 'react'
 
-/** Loads data when its inputs change; `reload` fetches again (after a trade, an ack, ...). */
-export function useLoad<T>(fn: () => Promise<T>, key: string) {
+/**
+ * Loads data when `key` changes; `reload` fetches again (after a trade, an ack, ...). When `identity` changes
+ * (another portfolio or night) the old data is cleared; a plain refresh keeps it on screen while loading.
+ */
+export function useLoad<T>(fn: () => Promise<T>, key: string, identity: string = key) {
   const [data, setData] = useState<T | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [tick, setTick] = useState(0)
+  // Switching to another portfolio or night clears the old data instead of showing it under the new heading.
+  useEffect(() => {
+    setData(null)
+  }, [identity])
   useEffect(() => {
     let live = true
     setError(null)

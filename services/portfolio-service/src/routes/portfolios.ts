@@ -56,8 +56,17 @@ export function portfoliosRouter(deps: ServiceDeps): Router {
     ok(res, await portfolioSummary(pool, await getPortfolio(pool, id), today(deps)))
   }))
 
+  /** The shadow portfolio runs by itself; only owner portfolios take trades, cancels and rule changes. */
+  async function ownerOnly(id: number) {
+    const p = await getPortfolio(pool, id)
+    if (p.kind !== 'owner') throw new UserError('The shadow portfolio runs by itself and cannot be changed by hand')
+    return p
+  }
+
   r.patch('/portfolios/:id/rules', h(async (req, res) => {
-    ok(res, await updateRules(pool, idParam(req.params.id), rulesSchema.partial().parse(req.body)))
+    const id = idParam(req.params.id)
+    await ownerOnly(id)
+    ok(res, await updateRules(pool, id, rulesSchema.partial().parse(req.body)))
   }))
 
   r.get('/portfolios/:id/positions', h(async (req, res) => {
@@ -145,14 +154,20 @@ export function portfoliosRouter(deps: ServiceDeps): Router {
     const id = idParam(req.params.id)
     const positionId = idParam(req.params.positionId)
     const body = z.object({ quantity: z.number().positive().optional(), price: money.optional(), note: z.string().max(300).optional() }).parse(req.body)
+    await ownerOnly(id)
+    // Shares are kept to 4 decimal places; anything smaller is not a sale.
+    const quantity = body.quantity === undefined ? undefined : Math.round(body.quantity * 1e4) / 1e4
+    if (quantity !== undefined && quantity <= 0) throw new UserError('Quantity is too small (shares are kept to 4 decimal places)')
     const pos = (await pool.query<{ ticker: string }>('SELECT ticker FROM positions WHERE id = $1 AND portfolio_id = $2', [positionId, id])).rows[0]
     if (!pos) throw new UserError('Position not found', 404)
     const price = body.price ?? (await quotePrice(deps, pos.ticker))
-    ok(res, await recordSell(pool, { portfolioId: id, positionId, quantity: body.quantity, price, date: today(deps), note: body.note ?? null }))
+    ok(res, await recordSell(pool, { portfolioId: id, positionId, quantity, price, date: today(deps), note: body.note ?? null }))
   }))
 
   r.post('/portfolios/:id/orders/:orderId/cancel', h(async (req, res) => {
-    ok(res, await cancelOrder(pool, idParam(req.params.id), idParam(req.params.orderId)))
+    const id = idParam(req.params.id)
+    await ownerOnly(id)
+    ok(res, await cancelOrder(pool, id, idParam(req.params.orderId)))
   }))
 
   return r

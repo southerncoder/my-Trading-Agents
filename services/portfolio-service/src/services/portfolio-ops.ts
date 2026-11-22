@@ -62,6 +62,14 @@ export async function createPortfolio(
   })
 }
 
+/**
+ * What the portfolio can still put to work. Each open short holds back twice its entry value: the sale proceeds
+ * (owed back) and equal collateral (a short must be fully covered by cash). So $10,000 can short at most $10,000.
+ */
+export function buyingPower(cash: number, open: { direction: string; quantity: number; avg_cost: number }[]): number {
+  return round(cash - 2 * open.filter((x) => x.direction === 'short').reduce((s, x) => s + x.quantity * x.avg_cost, 0))
+}
+
 export interface OpenArgs {
   portfolioId: number
   ticker: string
@@ -95,7 +103,8 @@ export async function openInTx(db: Db, a: OpenArgs) {
   const { equity } = valuation(p.cash, open.map((x) => ({ ticker: x.ticker, direction: x.direction, quantity: x.quantity, avgCost: x.avg_cost })), marks)
   const sector = a.sector ?? null
   const check = preTradeCheck({
-    cash: p.cash, equity, amount, ticker: a.ticker, rules: p.rules,
+    // Short sale proceeds sit in cash but are owed back: they are not buying power.
+    cash: buyingPower(p.cash, open), equity, amount, ticker: a.ticker, rules: p.rules,
     openTickers: [...new Set(open.map((x) => x.ticker))],
     tickerValue: open.filter((x) => x.ticker === a.ticker).reduce((s, x) => s + x.quantity * x.avg_cost, 0),
     sector,
@@ -197,7 +206,9 @@ export async function placeTriggerOrder(
   return tx(pool, async (db) => {
     const p = await getPortfolio(db, a.portfolioId, true)
     if (!(a.triggerPrice > 0) || !(a.refPrice > 0)) throw new UserError('Trigger and reference prices must be positive')
-    if (a.amount > p.cash + 1e-6) throw new UserError(`Not enough cash: this needs $${a.amount.toFixed(2)} and the portfolio has $${p.cash.toFixed(2)}`)
+    const { rows: open } = await db.query<PositionRow>(`SELECT * FROM positions WHERE portfolio_id = $1 AND status = 'open'`, [p.id])
+    const power = buyingPower(p.cash, open)
+    if (a.amount > power + 1e-6) throw new UserError(`Not enough cash: this needs $${a.amount.toFixed(2)} and the portfolio has $${power.toFixed(2)} to spend`)
     const { rows } = await db.query(
       `INSERT INTO orders (portfolio_id, candidate_id, ticker, direction, intent, kind, trigger_price, trigger_when, amount, status, created_on, expires_on, source, note)
        VALUES ($1,$2,$3,$4,'open','trigger',$5,$6,$7,'pending',$8,$9,$10,$11) RETURNING *`,

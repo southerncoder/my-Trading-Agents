@@ -81,11 +81,11 @@ describe('nightly job', () => {
     expect(shadow).toHaveLength(1)
     expect(shadow[0]).toMatchObject({ starting_cash: 100000 })
     const sid = shadow[0].id
-    expect((await db.pool.query(`SELECT ticker, quantity, avg_cost, stop_price, source FROM positions WHERE portfolio_id=$1`, [sid])).rows).toEqual([
-      { ticker: 'NVDA', quantity: 16, avg_cost: 125, stop_price: 115, source: 'watchlist' },
-    ])
-    expect((await db.pool.query(`SELECT ticker, trigger_price, trigger_when, status FROM orders WHERE portfolio_id=$1 AND kind='trigger'`, [sid])).rows).toEqual([
-      { ticker: 'AMD', trigger_price: 105, trigger_when: 'above', status: 'pending' },
+    // Point-in-time: tonight's "buy now" waits for tomorrow's open, like the trigger pick.
+    expect((await db.pool.query(`SELECT count(*)::int n FROM positions WHERE portfolio_id=$1`, [sid])).rows[0].n).toBe(0)
+    expect((await db.pool.query(`SELECT ticker, kind, trigger_price, trigger_when, status FROM orders WHERE portfolio_id=$1 ORDER BY ticker`, [sid])).rows).toEqual([
+      { ticker: 'AMD', kind: 'trigger', trigger_price: 105, trigger_when: 'above', status: 'pending' },
+      { ticker: 'NVDA', kind: 'market', trigger_price: null, trigger_when: null, status: 'pending' },
     ])
   })
 
@@ -124,7 +124,8 @@ describe('nightly job', () => {
     expect(await count('positions', `portfolio_id=${owner} AND ticker='KO' AND status='open'`)).toBe(1)
     expect((await db.pool.query(`SELECT ticker, reason, status FROM analysis_requests`)).rows).toContainEqual({ ticker: 'KO', reason: 'stop_hit', status: 'queued' })
     const nvda = (await db.pool.query(`SELECT * FROM positions WHERE ticker='NVDA'`)).rows[0]
-    expect(nvda).toMatchObject({ status: 'closed', closed_on: '2026-11-24', realized_pnl: -160 })
+    // Bought at 11-23's open (126), stopped at the walk-away 115: (115 - 126) x 15.873 shares.
+    expect(nvda).toMatchObject({ status: 'closed', closed_on: '2026-11-24', avg_cost: 126, realized_pnl: -174.603 })
   })
 
   it('a pending order past its expiry is expired with a note to the owner', async () => {

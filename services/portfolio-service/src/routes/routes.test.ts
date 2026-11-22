@@ -96,6 +96,18 @@ describe('API routes', () => {
     expect(perf.data).toMatchObject({ series: expect.any(Array), summary: { returnPct: expect.any(Number) } })
   })
 
+  it('a sell of a vanishing quantity is a 400, not a 500', async () => {
+    const pos = ((await api.get(`/portfolios/${pid}/positions`)).data as { id: number }[])[0]
+    expect(await api.post(`/portfolios/${pid}/positions/${pos.id}/sell`, { quantity: 0.00001, price: 75 })).toMatchObject({ status: 400 })
+  })
+
+  it('the shadow portfolio cannot be traded, cancelled or re-ruled through the API', async () => {
+    const shadow = ((await api.get('/portfolios')).data as { id: number; kind: string }[]).find((p) => p.kind === 'shadow')!
+    const { rows: [o] } = await db.pool.query(`INSERT INTO orders (portfolio_id, ticker, direction, intent, kind, amount, created_on) VALUES ($1,'KO','long','open','market',10,'2026-11-20') RETURNING id`, [shadow.id])
+    expect(await api.post(`/portfolios/${shadow.id}/orders/${o.id}/cancel`)).toMatchObject({ status: 400 })
+    expect(await api.patch(`/portfolios/${shadow.id}/rules`, { stop_pct: 5 })).toMatchObject({ status: 400 })
+  })
+
   it('updates rules within limits', async () => {
     expect(await api.patch(`/portfolios/${pid}/rules`, { stop_pct: 5 })).toMatchObject({ status: 200, data: { rules: { stop_pct: 5 } } })
     expect(await api.patch(`/portfolios/${pid}/rules`, { stop_pct: 500 })).toMatchObject({ status: 400 })

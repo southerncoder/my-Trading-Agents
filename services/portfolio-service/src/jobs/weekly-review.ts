@@ -95,7 +95,13 @@ export async function weeklyReview(deps: ServiceDeps, weekEnding: string) {
   const { pool } = deps
   const from = addDays(weekEnding, -6)
   const run = (await pool.query<{ id: number }>(`INSERT INTO runs (kind, run_date) VALUES ('weekly_review', $1) RETURNING id`, [weekEnding])).rows[0].id
-  const data = await gatherWeek(pool, from, weekEnding)
+  let data: Awaited<ReturnType<typeof gatherWeek>>
+  try {
+    data = await gatherWeek(pool, from, weekEnding)
+  } catch (e) {
+    await pool.query(`UPDATE runs SET status = 'failed', finished_at = now(), summary = $2 WHERE id = $1`, [run, JSON.stringify({ error: (e as Error).message })])
+    throw e
+  }
   const model = deps.reviewModel?.() ?? null
   let body: string
   let usedModel: string | null = null

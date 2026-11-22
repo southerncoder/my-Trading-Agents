@@ -50,6 +50,14 @@ describe('portfolio operations', () => {
     expect(await cash(p.id)).toBe(5100)
   })
 
+  it('short sale proceeds are not buying power: exposure cannot grow past the money put in', async () => {
+    const p = await createPortfolio(db.pool, { name: 'BP', startingCash: 10000, createdOn: date, rules: { max_position_pct: 100, max_sector_pct: 100 } })
+    await recordBuy(db.pool, { portfolioId: p.id, ticker: 'AAA', direction: 'short', amount: 10000, price: 50, date })
+    expect(await cash(p.id)).toBe(20000)
+    await expect(recordBuy(db.pool, { portfolioId: p.id, ticker: 'BBB', direction: 'short', amount: 5000, price: 50, date })).rejects.toThrow(/Not enough cash/)
+    await expect(recordBuy(db.pool, { portfolioId: p.id, ticker: 'CCC', direction: 'long', amount: 5000, price: 50, date })).rejects.toThrow(/Not enough cash/)
+  })
+
   it('selling part keeps the rest open; selling more than held is refused', async () => {
     const p = await createPortfolio(db.pool, { name: 'P', startingCash: 5000, createdOn: date })
     const { position } = await recordBuy(db.pool, { portfolioId: p.id, ticker: 'T', direction: 'long', amount: 1000, price: 25, date })

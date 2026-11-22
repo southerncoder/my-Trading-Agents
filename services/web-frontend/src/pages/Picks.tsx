@@ -20,8 +20,10 @@ function PickCard({ p, portfolioId, amount, onTraded }: { p: Pick; portfolioId: 
   const action = pickAction(p)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null)
+  // One recording per pick per visit: a second click would add to the same position by mistake.
+  const [done, setDone] = useState(false)
   async function act() {
-    if (!action || !portfolioId) return
+    if (!action || !portfolioId || done) return
     setBusy(true)
     setMsg(null)
     try {
@@ -32,6 +34,7 @@ function PickCard({ p, portfolioId, amount, onTraded }: { p: Pick; portfolioId: 
         await triggerOrder(portfolioId, { ticker: p.ticker, direction: p.direction ?? 'long', amount, candidateId: p.id, triggerPrice: p.trigger_price as number })
         setMsg({ text: 'Order placed. It fills if a later day trades through the price.', ok: true })
       }
+      setDone(true)
       onTraded(p.ticker)
     } catch (e) {
       setMsg({ text: (e as Error).message, ok: false })
@@ -60,8 +63,8 @@ function PickCard({ p, portfolioId, amount, onTraded }: { p: Pick; portfolioId: 
       <Reasons p={p} />
       {action && (
         <div className="flex flex-wrap items-center gap-2 pt-1">
-          <button type="button" disabled={busy || !portfolioId} onClick={act} className={primaryButton} style={primaryStyle}>
-            {busy ? 'Saving...' : `${action.text} (${money(amount, 0)})`}
+          <button type="button" disabled={busy || done || !portfolioId} onClick={act} className={primaryButton} style={primaryStyle}>
+            {done ? 'Recorded' : busy ? 'Saving...' : `${action.text} (${money(amount, 0)})`}
           </button>
           {!portfolioId && <span className="text-xs" style={muted}>Choose a portfolio above first.</span>}
           {msg && <span role={msg.ok ? 'status' : 'alert'} className="text-xs" style={msg.ok ? good : bad}>{msg.text}</span>}

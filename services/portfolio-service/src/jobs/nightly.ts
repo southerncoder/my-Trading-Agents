@@ -79,7 +79,8 @@ const money = (n: number) => `$${n.toFixed(2)}`
 
 /** Fill or expire pending orders using every bar since they were last checked. */
 async function processOrders(db: Db, p: PortfolioRow, h: History, lastChecked: string, date: string, summary: Summary) {
-  const { rows: orders } = await db.query(`SELECT * FROM orders WHERE portfolio_id = $1 AND status = 'pending' AND created_on <= $2 ORDER BY id`, [p.id, date])
+  // FOR UPDATE: a cancel from the page waits for this transaction, then finds the order no longer pending.
+  const { rows: orders } = await db.query(`SELECT * FROM orders WHERE portfolio_id = $1 AND status = 'pending' AND created_on <= $2 ORDER BY id FOR UPDATE`, [p.id, date])
   for (const o of orders) {
     const bars = h.window(o.ticker, later(lastChecked, o.created_on), date).filter((x) => !o.expires_on || x.date <= o.expires_on)
     let filled = false
@@ -89,6 +90,21 @@ async function processOrders(db: Db, p: PortfolioRow, h: History, lastChecked: s
       const cand = o.candidate_id ? (await db.query<Candidate>('SELECT * FROM candidates WHERE id = $1', [o.candidate_id])).rows[0] : undefined
       try {
         await db.query('SAVEPOINT fill')
+        if (o.intent === 'close') {
+          // A queued exit (the shadow's response to a sell call) fills at the next open, like any market order.
+          const pos = o.position_id ? (await db.query<{ status: string }>('SELECT status FROM positions WHERE id = $1', [o.position_id])).rows[0] : undefined
+          if (!pos || pos.status !== 'open') {
+            await db.query('RELEASE SAVEPOINT fill')
+            await db.query(`UPDATE orders SET status = 'cancelled', note = 'position already closed' WHERE id = $1`, [o.id])
+            filled = true
+            break
+          }
+          await closeInTx(db, { portfolioId: p.id, positionId: o.position_id, price, date: bar.date, quantity: o.quantity ?? undefined, orderId: o.id, note: o.note })
+          await db.query('RELEASE SAVEPOINT fill')
+          if (p.kind === 'shadow') summary.shadowClosed++
+          filled = true
+          break
+        }
         await openInTx(db, { portfolioId: p.id, ticker: o.ticker, direction: o.direction, amount: o.amount, price, date: bar.date, orderId: o.id, candidateId: o.candidate_id, source: o.source, walkAway: cand?.walk_away ?? null, sector: await sectorOf(db, o.ticker) })
         await db.query('RELEASE SAVEPOINT fill')
         summary.fills++
@@ -127,32 +143,30 @@ async function sectorOf(db: Db, ticker: string): Promise<string | null> {
 async function shadowOpens(db: Db, p: PortfolioRow, date: string, summary: Summary) {
   const { rows: picks } = await db.query<Candidate>(`SELECT * FROM candidates WHERE run_date = $1 AND source = ANY($2) ORDER BY id`, [date, PICK_SOURCES])
   const held = new Set((await db.query<{ ticker: string }>(`SELECT ticker FROM positions WHERE portfolio_id = $1 AND status = 'open'`, [p.id])).rows.map((r) => r.ticker))
+  // Tickers already handled tonight (an order for this exact call, or any order placed tonight, such as a queued
+  // exit): a re-run of the night must not place a second order or flip into the opposite position.
+  const { rows: tonight } = await db.query<{ ticker: string; candidate_id: number | null }>(
+    `SELECT ticker, candidate_id FROM orders WHERE portfolio_id = $1 AND (created_on = $2 OR candidate_id = ANY($3))`,
+    [p.id, date, picks.map((c) => c.id)],
+  )
+  const handled = new Set(tonight.map((o) => o.ticker))
+  const ordered = new Set(tonight.map((o) => o.candidate_id))
   for (const c of picks) {
     const intent = pickIntent(c.label)
-    if (!intent || held.has(c.ticker) || !c.price) continue
-    if (intent.kind === 'market') {
-      try {
-        await db.query('SAVEPOINT pick')
-        await openInTx(db, { portfolioId: p.id, ticker: c.ticker, direction: intent.direction, amount: p.rules.position_size, price: c.price, date, candidateId: c.id, source: c.source, walkAway: c.walk_away, sector: await sectorOf(db, c.ticker), note: 'shadow: every pick' })
-        await db.query('RELEASE SAVEPOINT pick')
-        held.add(c.ticker)
-        summary.shadowOpened++
-      } catch (e) {
-        await db.query('ROLLBACK TO SAVEPOINT pick')
-        if (!(e instanceof UserError)) throw e
-        summary.notes.push(`shadow skipped ${c.ticker}: ${e.message}`)
-      }
-    } else if (c.trigger_price) {
-      // A newer call replaces an older pending trigger for the same ticker.
-      await db.query(`UPDATE orders SET status = 'cancelled', note = 'replaced by a newer call' WHERE portfolio_id = $1 AND ticker = $2 AND status = 'pending'`, [p.id, c.ticker])
-      await db.query(
-        `INSERT INTO orders (portfolio_id, candidate_id, ticker, direction, intent, kind, trigger_price, trigger_when, amount, status, created_on, expires_on, source, note)
-         VALUES ($1,$2,$3,$4,'open','trigger',$5,$6,$7,'pending',$8,$9,$10,'shadow: every pick')`,
-        [p.id, c.id, c.ticker, intent.direction, c.trigger_price, c.trigger_price >= c.price ? 'above' : 'below', p.rules.position_size, date,
-          addTradingDays(date, p.rules.order_expiry_days), c.source],
-      )
-      summary.shadowOrders++
-    }
+    if (!intent || held.has(c.ticker) || handled.has(c.ticker) || ordered.has(c.id) || !c.price) continue
+    if (intent.kind === 'trigger' && !c.trigger_price) continue
+    // A newer call replaces an older pending order for the same ticker.
+    await db.query(`UPDATE orders SET status = 'cancelled', note = 'replaced by a newer call' WHERE portfolio_id = $1 AND ticker = $2 AND status = 'pending'`, [p.id, c.ticker])
+    // Point-in-time: the call is made after the close, so even "buy now" first fills at the next day's open.
+    const trigger = intent.kind === 'trigger' ? c.trigger_price : null
+    await db.query(
+      `INSERT INTO orders (portfolio_id, candidate_id, ticker, direction, intent, kind, trigger_price, trigger_when, amount, status, created_on, expires_on, source, note)
+       VALUES ($1,$2,$3,$4,'open',$5,$6,$7,$8,'pending',$9,$10,$11,'shadow: every pick')`,
+      [p.id, c.id, c.ticker, intent.direction, intent.kind, trigger, trigger === null ? null : trigger >= c.price ? 'above' : 'below',
+        p.rules.position_size, date, addTradingDays(date, intent.kind === 'trigger' ? p.rules.order_expiry_days : 3), c.source],
+    )
+    handled.add(c.ticker)
+    summary.shadowOrders++
   }
 }
 
@@ -171,6 +185,9 @@ async function processPositions(db: Db, p: PortfolioRow, h: History, lastChecked
         await closeInTx(db, { portfolioId: p.id, positionId: pos.id, price: hit.price, date: bar.date, note: `shadow: ${hit.kind}` })
         summary.shadowClosed++
       } else {
+        // Once per position and rule: a stop that stays broken must not alert (and spend a re-analysis) every night.
+        const already = (await db.query('SELECT 1 FROM alerts WHERE position_id = $1 AND kind = $2 LIMIT 1', [pos.id, hit.kind])).rows[0]
+        if (already) break
         const isNew = await insertAlert(db, {
           portfolioId: p.id, positionId: pos.id, ticker: pos.ticker, kind: hit.kind, severity: 'action', runDate: bar.date, data: { price: hit.price },
           message: `${pos.ticker} ${EXIT_TEXT[hit.kind]} on ${bar.date} (${money(hit.price)}). The plan says ${pos.direction === 'long' ? 'sell' : 'cover'}; record the sale if you act on it.`,
@@ -182,13 +199,18 @@ async function processPositions(db: Db, p: PortfolioRow, h: History, lastChecked
     }
     if (exited && p.kind === 'shadow') continue
 
-    const call = (await db.query<Candidate>(`SELECT * FROM candidates WHERE ticker = $1 AND run_date = $2 ORDER BY id DESC LIMIT 1`, [pos.ticker, date])).rows[0]
+    // Only the nightly pick sources count: the owner's own on-demand analyses must not steer the shadow.
+    const call = (await db.query<Candidate>(`SELECT * FROM candidates WHERE ticker = $1 AND run_date = $2 AND source = ANY($3) ORDER BY id DESC LIMIT 1`, [pos.ticker, date, PICK_SOURCES])).rows[0]
     if (call && callSaysExit(pos.direction, call.decision)) {
       if (p.kind === 'shadow') {
-        const price = h.barOn(pos.ticker, date)?.close ?? call.price
-        if (price) {
-          await closeInTx(db, { portfolioId: p.id, positionId: pos.id, price, date, note: `shadow: ${call.label} call` })
-          summary.shadowClosed++
+        // Queue the exit for the next open (point-in-time), once.
+        const queued = (await db.query(`SELECT 1 FROM orders WHERE position_id = $1 AND intent = 'close' AND status = 'pending'`, [pos.id])).rows[0]
+        if (!queued) {
+          await db.query(
+            `INSERT INTO orders (portfolio_id, candidate_id, position_id, ticker, direction, intent, kind, status, created_on, expires_on, source, note)
+             VALUES ($1,$2,$3,$4,$5,'close','market','pending',$6,$7,$8,$9)`,
+            [p.id, call.id, pos.id, pos.ticker, pos.direction, date, addTradingDays(date, 3), pos.source, `shadow: ${call.label} call`],
+          )
         }
         continue
       }

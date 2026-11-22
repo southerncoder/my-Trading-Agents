@@ -97,15 +97,26 @@ export function Portfolio() {
   const id = Number(useParams().id)
   const [tick, setTick] = useState(0)
   const key = `${id}:${tick}`
-  const summary = useLoad(() => fetchPortfolio(id), key)
-  const perf = useLoad(() => fetchPerformance(id), key)
-  const open = useLoad(() => fetchPositions(id, 'open'), key)
-  const closed = useLoad(() => fetchPositions(id, 'closed'), key)
-  const alerts = useLoad(() => fetchAlerts(id, true), key)
-  const orders = useLoad(() => fetchOrders(id, true), key)
-  const trades = useLoad(() => fetchTrades(id), key)
+  const summary = useLoad(() => fetchPortfolio(id), key, String(id))
+  const perf = useLoad(() => fetchPerformance(id), key, String(id))
+  const open = useLoad(() => fetchPositions(id, 'open'), key, String(id))
+  const closed = useLoad(() => fetchPositions(id, 'closed'), key, String(id))
+  const alerts = useLoad(() => fetchAlerts(id, true), key, String(id))
+  const orders = useLoad(() => fetchOrders(id, true), key, String(id))
+  const trades = useLoad(() => fetchTrades(id), key, String(id))
   const [selling, setSelling] = useState<number | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
   const refresh = () => setTick((t) => t + 1)
+  /** Runs a button's request; a refusal (order already filled, service down) shows as a message instead of vanishing. */
+  async function act(fn: () => Promise<unknown>) {
+    setActionError(null)
+    try {
+      await fn()
+      refresh()
+    } catch (e) {
+      setActionError((e as Error).message)
+    }
+  }
   const p = summary.data
   const owner = p?.kind === 'owner'
 
@@ -123,6 +134,7 @@ export function Portfolio() {
         </p>
       </header>
 
+      {actionError && <p role="alert" className="text-sm" style={bad}>{actionError}</p>}
       <div className="grid grid-cols-[repeat(2,minmax(0,1fr))] gap-3 md:grid-cols-[repeat(4,minmax(0,1fr))]">
         <Tile title="Value" hint={`cash ${money(p.cash, 0)}`}>{money(p.equity, 0)}</Tile>
         <Tile title="Return" hint="since it started"><span style={{ color: moveColor(p.returnPct) }}>{fmtPct(p.returnPct)}</span></Tile>
@@ -148,7 +160,7 @@ export function Portfolio() {
               </div>
               <p>{a.message}</p>
               <div className="mt-1 flex flex-wrap gap-2">
-                <button type="button" className={button} style={card} onClick={async () => { await ackAlert(id, a.id); refresh() }}>Got it</button>
+                <button type="button" className={button} style={card} onClick={() => act(() => ackAlert(id, a.id))}>Got it</button>
                 {owner && a.position_id && EXIT_KINDS.has(a.kind) && open.data?.some((x) => x.id === a.position_id) && (
                   <button type="button" className={button} style={card} onClick={() => setSelling(a.position_id)}>Record sale</button>
                 )}
@@ -207,7 +219,7 @@ export function Portfolio() {
                 <strong>{o.ticker}</strong> {o.direction === 'long' ? 'buy' : 'short'} {money(o.amount, 0)} if the price {o.trigger_when === 'above' ? 'rises to' : 'falls to'} {money(o.trigger_price)}
                 <span style={muted}> &middot; placed {o.created_on}, expires {o.expires_on ?? '-'}</span>
               </span>
-              {owner && <button type="button" className={button} style={card} onClick={async () => { await cancelOrder(id, o.id); refresh() }}>Cancel</button>}
+              {owner && <button type="button" className={button} style={card} onClick={() => act(() => cancelOrder(id, o.id))}>Cancel</button>}
             </li>
           ))}
         </ul>

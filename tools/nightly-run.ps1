@@ -104,7 +104,7 @@ if ($rows.Count -gt 0 -and $noPrice.Count -gt 0) {
   Start-Sleep -Seconds ($PriceRetryMinutes * 60)
   $evalRoot = Join-Path $root 'logs\eval'
   $newest = Get-ChildItem $evalRoot -Directory | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-  if ($newest) { try { & (Join-Path $PSScriptRoot 'nightly-brief.ps1') -ReuseEvalDir $newest.FullName } catch { $problems.Add("rebuild threw: $($_.Exception.Message)") } }
+  if ($newest) { try { & (Join-Path $PSScriptRoot 'nightly-brief.ps1') -ReuseEvalDir $newest.FullName -ExtraTickers $extra } catch { $problems.Add("rebuild threw: $($_.Exception.Message)") } }
   $rows = Read-Rows
   $noPrice = @($rows | Where-Object { -not $_.price })
 }
