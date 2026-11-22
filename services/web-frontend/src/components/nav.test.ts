@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest'
 import { PRIMARY, MORE, isActive } from './nav'
 
 describe('navigation model', () => {
-  it('has the four everyday pages up front and every legacy page under More', () => {
-    expect(PRIMARY.map((n) => n.href)).toEqual(['/', '/stocks', '/scorecard', '/platform'])
-    expect(MORE.map((n) => n.href)).toEqual(['/dashboard', '/analysis', '/backtesting', '/history'])
+  it('has the four everyday pages up front and everything else under More', () => {
+    expect(PRIMARY.map((n) => n.href)).toEqual(['/', '/picks', '/portfolios', '/stocks'])
+    expect(MORE.map((n) => n.href)).toEqual(['/results', '/reviews', '/scorecard', '/platform', '/dashboard', '/analysis', '/backtesting', '/history'])
   })
 
   it('never lists a page twice', () => {
@@ -25,8 +25,9 @@ describe('isActive', () => {
     expect(isActive('/stocksfoo', '/stocks')).toBe(false)
   })
 
-  it('treats a single stock page as part of Stocks', () => {
+  it('treats a single stock page as part of Stocks and one portfolio as part of Portfolios', () => {
     expect(isActive('/stock/NVDA', '/stocks')).toBe(true)
     expect(isActive('/stock/NVDA', '/')).toBe(false)
+    expect(isActive('/portfolios/3', '/portfolios')).toBe(true)
   })
 })

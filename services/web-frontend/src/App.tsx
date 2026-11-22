@@ -10,6 +10,11 @@ import { Scorecard } from './pages/Scorecard'
 import { Analysis } from './pages/Analysis'
 import { Backtesting } from './pages/Backtesting'
 import { History } from './pages/History'
+import { Picks } from './pages/Picks'
+import { Portfolios } from './pages/Portfolios'
+import { Portfolio } from './pages/Portfolio'
+import { Results } from './pages/Results'
+import { Reviews } from './pages/Reviews'
 
 function App() {
   return (
@@ -26,6 +31,12 @@ function App() {
           <Route path="/analysis/:symbol" element={<Analysis />} />
           <Route path="/backtesting" element={<Backtesting />} />
           <Route path="/history" element={<History />} />
+          <Route path="/picks" element={<Picks />} />
+          <Route path="/portfolios" element={<Portfolios />} />
+          <Route path="/portfolios/:id" element={<Portfolio />} />
+          <Route path="/results" element={<Results />} />
+          <Route path="/reviews" element={<Reviews />} />
+          <Route path="/reviews/:week" element={<Reviews />} />
         </Routes>
       </Layout>
     </ThemeProvider>
