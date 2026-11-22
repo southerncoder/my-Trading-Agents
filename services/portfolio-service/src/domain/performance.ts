@@ -24,7 +24,8 @@ export function summarize(snaps: SnapshotPoint[], startingCash: number) {
   const series = indexSeries(snaps, startingCash)
   const lastPoint = series.at(-1)
   const returnPct = lastPoint ? round(lastPoint.portfolio - 100, 2) : 0
-  const spyReturnPct = lastPoint?.spy != null ? round(lastPoint.spy - 100, 2) : null
+  const lastSpy = lastPoint ? lastPoint.spy : null
+  const spyReturnPct = lastSpy !== null ? round(lastSpy - 100, 2) : null
   let peak = startingCash
   let maxDd = 0
   for (const s of snaps) {
