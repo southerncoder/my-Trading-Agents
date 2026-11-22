@@ -1,9 +1,12 @@
 import { createApp } from './app.js'
+import { reviewModelFrom, watchlistFrom } from './config.js'
 import { createPool, dbConfig } from './db/pool.js'
 import { migrate } from './db/migrate.js'
+import { createYahoo } from './market/yahoo.js'
 import { buildRouters } from './routes/index.js'
 
 const port = Number(process.env.PORT ?? 3008)
+const toolsDir = process.env.TOOLS_DIR ?? '/app/tools'
 
 async function main() {
   const cfg = dbConfig()
@@ -20,7 +23,16 @@ async function main() {
       await new Promise((r) => setTimeout(r, 3000))
     }
   }
-  const app = createApp({ pool, routers: buildRouters(pool) })
+  const routers = buildRouters({
+    pool,
+    market: createYahoo(process.env.YAHOO_URL ?? 'http://yahoo-finance:3002'),
+    ledgerPath: process.env.LEDGER_PATH ?? '/app/data/ledger/decisions.jsonl',
+    newsUrl: process.env.NEWS_URL ?? 'http://news-aggregator:3004',
+    ollamaUrl: process.env.OLLAMA_URL ?? 'http://host.docker.internal:11434',
+    reviewModel: () => process.env.REVIEW_MODEL || reviewModelFrom(toolsDir),
+    watchlist: () => watchlistFrom(toolsDir),
+  })
+  const app = createApp({ pool, routers })
   app.listen(port, () => console.log(`[portfolio-service] listening on ${port}`))
 }
 

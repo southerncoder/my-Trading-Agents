@@ -1,8 +1,11 @@
 import type { Router } from 'express'
-import type pg from 'pg'
+import { analysisRouter } from './analysis.js'
+import type { ServiceDeps } from './deps.js'
+import { jobsRouter } from './jobs.js'
+import { picksRouter } from './picks.js'
+import { portfoliosRouter } from './portfolios.js'
 
 /** Every API router, mounted under /api/portfolio. */
-export function buildRouters(pool: pg.Pool): Router[] {
-  void pool
-  return []
+export function buildRouters(deps: ServiceDeps): Router[] {
+  return [portfoliosRouter(deps), picksRouter(deps), analysisRouter(deps), jobsRouter(deps)]
 }
