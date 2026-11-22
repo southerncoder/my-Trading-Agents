@@ -104,7 +104,7 @@ export async function openInTx(db: Db, a: OpenArgs) {
   const sector = a.sector ?? null
   const check = preTradeCheck({
     // Short sale proceeds sit in cash but are owed back: they are not buying power.
-    cash: buyingPower(p.cash, open), equity, amount, ticker: a.ticker, rules: p.rules,
+    cash: buyingPower(p.cash, open), equity, amount: a.amount ?? amount, ticker: a.ticker, rules: p.rules,
     openTickers: [...new Set(open.map((x) => x.ticker))],
     tickerValue: open.filter((x) => x.ticker === a.ticker).reduce((s, x) => s + x.quantity * x.avg_cost, 0),
     sector,

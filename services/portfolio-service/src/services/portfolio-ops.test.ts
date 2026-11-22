@@ -33,6 +33,13 @@ describe('portfolio operations', () => {
     expect(again.position).toMatchObject({ quantity: 20, avg_cost: 105, stop_price: 95 })
   })
 
+  it('cash moves in whole cents, and a refusal quotes the amount asked for', async () => {
+    const p = await createPortfolio(db.pool, { name: 'Cents', startingCash: 10000, createdOn: date })
+    await recordBuy(db.pool, { portfolioId: p.id, ticker: 'KO', direction: 'long', amount: 1000, price: 96.99, date })
+    expect(await cash(p.id)).toBe(9000)
+    await expect(recordBuy(db.pool, { portfolioId: p.id, ticker: 'MSFT', direction: 'long', amount: 50000, price: 333, date })).rejects.toThrow('$50000.00')
+  })
+
   it('refuses a buy larger than cash and writes nothing', async () => {
     const p = await createPortfolio(db.pool, { name: 'C', startingCash: 500, createdOn: date })
     await expect(recordBuy(db.pool, { portfolioId: p.id, ticker: 'KO', direction: 'long', amount: 600, price: 100, date })).rejects.toThrow(/Not enough cash/)

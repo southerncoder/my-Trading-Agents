@@ -10,6 +10,7 @@ import { round, type Bar } from '../domain/types.js'
 import type { Market } from '../market/yahoo.js'
 import { pickIntent, type Candidate } from '../store/candidates.js'
 import { insertAlert, requestAnalysis } from '../store/events.js'
+import { latestMarks } from '../services/queries.js'
 import { closeInTx, createPortfolio, getPortfolio, openInTx, type PortfolioRow, type PositionRow } from '../services/portfolio-ops.js'
 import { UserError } from '../routes/http.js'
 import { ingestLedger } from './ingest.js'
@@ -88,17 +89,21 @@ async function processOrders(db: Db, p: PortfolioRow, h: History, lastChecked: s
       const price = o.kind === 'trigger' ? triggerFill(o.trigger_when, o.trigger_price, bar) : bar.open
       if (price === null) continue
       const cand = o.candidate_id ? (await db.query<Candidate>('SELECT * FROM candidates WHERE id = $1', [o.candidate_id])).rows[0] : undefined
+      // Checks first, then only the fill itself inside the savepoint, then alerts: a failure in an alert can never
+      // land between RELEASE and ROLLBACK TO (which would abort the whole portfolio's night).
+      if (o.intent === 'close') {
+        // A queued exit (the shadow's response to a sell call) fills at the next open, like any market order.
+        const pos = o.position_id ? (await db.query<{ status: string }>('SELECT status FROM positions WHERE id = $1', [o.position_id])).rows[0] : undefined
+        if (!pos || pos.status !== 'open') {
+          await db.query(`UPDATE orders SET status = 'cancelled', note = 'position already closed' WHERE id = $1`, [o.id])
+          filled = true
+          break
+        }
+      }
+      let opened = false
       try {
         await db.query('SAVEPOINT fill')
         if (o.intent === 'close') {
-          // A queued exit (the shadow's response to a sell call) fills at the next open, like any market order.
-          const pos = o.position_id ? (await db.query<{ status: string }>('SELECT status FROM positions WHERE id = $1', [o.position_id])).rows[0] : undefined
-          if (!pos || pos.status !== 'open') {
-            await db.query('RELEASE SAVEPOINT fill')
-            await db.query(`UPDATE orders SET status = 'cancelled', note = 'position already closed' WHERE id = $1`, [o.id])
-            filled = true
-            break
-          }
           await closeInTx(db, { portfolioId: p.id, positionId: o.position_id, price, date: bar.date, quantity: o.quantity ?? undefined, orderId: o.id, note: o.note })
           await db.query('RELEASE SAVEPOINT fill')
           if (p.kind === 'shadow') summary.shadowClosed++
@@ -107,11 +112,7 @@ async function processOrders(db: Db, p: PortfolioRow, h: History, lastChecked: s
         }
         await openInTx(db, { portfolioId: p.id, ticker: o.ticker, direction: o.direction, amount: o.amount, price, date: bar.date, orderId: o.id, candidateId: o.candidate_id, source: o.source, walkAway: cand?.walk_away ?? null, sector: await sectorOf(db, o.ticker) })
         await db.query('RELEASE SAVEPOINT fill')
-        summary.fills++
-        if (p.kind === 'owner') {
-          await insertAlert(db, { portfolioId: p.id, orderId: o.id, ticker: o.ticker, kind: 'order_filled', severity: 'info', runDate: bar.date, data: { price },
-            message: `Your ${o.direction === 'long' ? 'buy' : 'short'} order for ${o.ticker} filled at ${money(price)} on ${bar.date} (trigger ${money(o.trigger_price)}).` })
-        }
+        opened = true
       } catch (e) {
         await db.query('ROLLBACK TO SAVEPOINT fill')
         if (!(e instanceof UserError)) throw e
@@ -119,6 +120,13 @@ async function processOrders(db: Db, p: PortfolioRow, h: History, lastChecked: s
         if (p.kind === 'owner') {
           await insertAlert(db, { portfolioId: p.id, orderId: o.id, ticker: o.ticker, kind: 'order_failed', severity: 'action', runDate: bar.date,
             message: `${o.ticker} reached your trigger but the order could not fill: ${e.message}` })
+        }
+      }
+      if (opened) {
+        summary.fills++
+        if (p.kind === 'owner') {
+          await insertAlert(db, { portfolioId: p.id, orderId: o.id, ticker: o.ticker, kind: 'order_filled', severity: 'info', runDate: bar.date, data: { price },
+            message: `Your ${o.direction === 'long' ? 'buy' : 'short'} order for ${o.ticker} filled at ${money(price)} on ${bar.date}${o.trigger_price ? ` (trigger ${money(o.trigger_price)})` : ''}.` })
         }
       }
       filled = true
@@ -245,6 +253,9 @@ async function snapshotAndRisk(db: Db, portfolioId: number, h: History, date: st
   const { rows: open } = await db.query<PositionRow>(`SELECT * FROM positions WHERE portfolio_id = $1 AND status = 'open'`, [p.id])
   const marks: Record<string, number | undefined> = {}
   for (const x of open) marks[x.ticker] = h.mark(x.ticker, date)
+  // A stock with no price in the loaded window (a long halt) keeps its last stored close rather than its cost.
+  const missing = open.filter((x) => marks[x.ticker] === undefined).map((x) => x.ticker)
+  for (const [t, m] of Object.entries(await latestMarks(db, missing, date))) marks[t] = m.close
   const v = valuation(p.cash, open.map((x) => ({ ticker: x.ticker, direction: x.direction, quantity: x.quantity, avgCost: x.avg_cost })), marks)
   const spy = h.barOn('SPY', date)?.close ?? null
   await db.query(
@@ -294,7 +305,9 @@ export async function runNightly(deps: NightlyDeps, date: string) {
     if (ing.skippedLines) summary.notes.push(`${ing.skippedLines} unreadable ledger lines skipped`)
 
     const lastOk = (await pool.query<{ d: string | null }>(`SELECT max(run_date)::text d FROM runs WHERE kind = 'nightly' AND status = 'ok' AND run_date < $1`, [date])).rows[0].d
-    const lastChecked = lastOk ?? addDays(date, -1)
+    // The first run ever looks back over the whole history window: orders placed before it are still checked
+    // (each order and position only looks at bars after it was placed or opened).
+    const lastChecked = lastOk ?? addDays(date, -HISTORY_DAYS)
 
     const { rows: tick } = await pool.query<{ ticker: string }>(
       `SELECT ticker FROM positions WHERE status = 'open'

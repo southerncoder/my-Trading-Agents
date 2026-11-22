@@ -216,7 +216,7 @@ export function Portfolio() {
           {orders.data?.map((o) => (
             <li key={o.id} className="flex flex-wrap items-center justify-between gap-2">
               <span>
-                <strong>{o.ticker}</strong> {o.direction === 'long' ? 'buy' : 'short'} {money(o.amount, 0)} if the price {o.trigger_when === 'above' ? 'rises to' : 'falls to'} {money(o.trigger_price)}
+                <strong>{o.ticker}</strong> {o.direction === 'long' ? 'buy' : 'short'} {money(o.amount, 0)} {o.trigger_price === null || o.trigger_price === undefined ? 'at the next market open' : `if the price ${o.trigger_when === 'above' ? 'rises to' : 'falls to'} ${money(o.trigger_price)}`}
                 <span style={muted}> &middot; placed {o.created_on}, expires {o.expires_on ?? '-'}</span>
               </span>
               {owner && <button type="button" className={button} style={card} onClick={() => act(() => cancelOrder(id, o.id))}>Cancel</button>}

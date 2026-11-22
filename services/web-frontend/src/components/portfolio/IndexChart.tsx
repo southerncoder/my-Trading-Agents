@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { chartGeometry, pathOf } from './helpers'
 
-const W = 640
+// Drawn at the container's real width (clamped), so 10px labels stay 10px on a phone instead of shrinking with the SVG.
+const MAX_W = 640
+const MIN_W = 300
 const H = 220
 const PAD = 28
 // Portfolio in the theme's accent; SPY, the yardstick, in a quiet gray with a dashed line (identity is never color alone).
@@ -13,6 +15,15 @@ const ink = { color: 'var(--color-text-secondary, #475569)' }
 export function IndexChart({ series, name }: { series: { date: string; portfolio: number; spy: number | null }[]; name: string }) {
   const [hover, setHover] = useState<number | null>(null)
   const [table, setTable] = useState(false)
+  const box = useRef<HTMLDivElement>(null)
+  const [W, setW] = useState(MAX_W)
+  useEffect(() => {
+    const el = box.current
+    if (!el || typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(([e]) => setW(Math.max(MIN_W, Math.min(MAX_W, Math.round(e.contentRect.width)))))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [table])
   if (series.length === 0) return <p className="text-sm" style={ink}>No history yet. The first point is written by the next nightly run.</p>
   const g = chartGeometry(series, W, H, PAD)
   const last = g.portfolio[g.portfolio.length - 1]
@@ -58,7 +69,7 @@ export function IndexChart({ series, name }: { series: { date: string; portfolio
           </table>
         </div>
       ) : (
-        <div className="relative">
+        <div className="relative" ref={box}>
           <svg
             viewBox={`0 0 ${W} ${H}`}
             className="h-auto w-full touch-none"

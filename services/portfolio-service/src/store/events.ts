@@ -16,7 +16,7 @@ export interface AlertInput {
 export async function insertAlert(db: Db, a: AlertInput): Promise<boolean> {
   const { rowCount } = await db.query(
     `INSERT INTO alerts (portfolio_id, position_id, order_id, ticker, kind, severity, message, run_date, data)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT (portfolio_id, ticker, kind, run_date) DO NOTHING`,
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT (portfolio_id, ticker, kind, run_date, (COALESCE(order_id, 0)), (COALESCE(position_id, 0))) DO NOTHING`,
     [a.portfolioId, a.positionId ?? null, a.orderId ?? null, a.ticker, a.kind, a.severity, a.message, a.runDate, JSON.stringify(a.data ?? {})],
   )
   return (rowCount ?? 0) > 0

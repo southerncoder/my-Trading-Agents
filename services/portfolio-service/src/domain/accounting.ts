@@ -28,7 +28,8 @@ export function applyClose(pos: PositionState, quantity: number, price: number):
 
 /** Change in cash from a trade. Shorting credits the proceeds; covering pays them back. */
 export function cashDelta(direction: Direction, intent: 'open' | 'close', quantity: number, price: number): number {
-  const gross = round(quantity * price)
+  // Cash moves in whole cents, like a real account.
+  const gross = round(quantity * price, 2)
   const pays = (direction === 'long' && intent === 'open') || (direction === 'short' && intent === 'close')
   return pays ? -gross : gross
 }
