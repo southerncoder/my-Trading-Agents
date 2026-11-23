@@ -100,6 +100,7 @@ export const tradeSchema = z.looseObject({
   id: n,
   ticker: z.string(),
   direction: z.string(),
+  position_id: nn.optional(),
   action: z.string(),
   quantity: n,
   price: n,

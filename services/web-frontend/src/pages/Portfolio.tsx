@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { IndexChart } from '../components/portfolio/IndexChart'
+import { OpenPositions } from '../components/portfolio/OpenPositions'
 import { ALERT_LABEL, SOURCE_LABEL } from '../components/portfolio/helpers'
 import { button, field, money, sectionTitle, signedMoney, useLoad } from '../components/portfolio/ui'
 import { card, fmtPct, moveColor, muted } from '../components/today/format'
@@ -49,14 +50,6 @@ function SellForm({ pid, pos, onDone }: { pid: number; pos: Position; onDone: ()
       <button type="submit" disabled={busy} className={button} style={card}>{busy ? 'Saving...' : `${verb} ${pos.ticker}`}</button>
       {msg && <span role="alert" style={bad}>{msg}</span>}
     </form>
-  )
-}
-
-function PlanLine({ p }: { p: Position }) {
-  return (
-    <span className="text-xs" style={muted}>
-      stop {money(p.stop_price)} &middot; target {money(p.target_price)} &middot; review by {p.hold_until ?? '-'}
-    </span>
   )
 }
 
@@ -201,47 +194,19 @@ export function Portfolio() {
 
       <section className="space-y-2 rounded-lg p-4" style={card} aria-labelledby="open">
         <h2 id="open" className={sectionTitle}>Open positions</h2>
-        {open.data?.length === 0 && <p className="text-sm" style={muted}>None yet. {owner ? <>Record a buy from the <Link to="/picks" className="underline">Picks</Link> page.</> : 'The shadow portfolio buys after the next nightly run.'}</p>}
-        <ul className="space-y-2 md:hidden">
-          {open.data?.map((x) => (
-            <li key={x.id} className="rounded p-2 text-sm" style={{ border: '1px solid var(--color-border, #e2e8f0)' }}>
-              <div className="flex justify-between gap-2">
-                <span><TickerLink ticker={x.ticker} /> {x.direction === 'short' && <span style={muted}>short</span>}</span>
-                <span style={{ color: moveColor(x.unrealized) }}>{signedMoney(x.unrealized)} ({fmtPct(x.returnPct)})</span>
-              </div>
-              <div style={muted} className="text-xs">{x.quantity} @ {money(x.avg_cost)} &middot; last {money(x.mark)} ({x.mark_date ?? 'cost'}) &middot; {SOURCE_LABEL[x.source ?? ''] ?? x.source}</div>
-              <PlanLine p={x} />
-              <PositionReview p={x} />
-              {owner && (selling === x.id ? <SellForm pid={id} pos={x} onDone={() => { setSelling(null); refresh() }} /> : <button type="button" className={`${button} mt-1`} style={card} onClick={() => setSelling(x.id)}>{x.direction === 'long' ? 'Sell' : 'Cover'}</button>)}
-            </li>
-          ))}
-        </ul>
-        <div className="hidden overflow-x-auto md:block">
-          <table className="data-table w-full text-sm">
-            <thead><tr className="text-left" style={muted}><th colSpan={8}>Stock</th></tr></thead>
-            <tbody>
-              {open.data?.map((x) => (
-                <tr key={x.id} className="align-top" style={{ borderTop: '1px solid var(--color-border, #e2e8f0)' }}>
-                  <td className="py-2" colSpan={8}>
-                    <div className="flex flex-wrap items-baseline justify-between gap-2">
-                      <span><TickerLink ticker={x.ticker} />{x.direction === 'short' && <span style={muted}> short</span>}<div className="text-xs" style={muted}>since {x.opened_on}</div></span>
-                      <span className="text-right" style={{ color: moveColor(x.unrealized) }}>{signedMoney(x.unrealized)} <span className="text-xs">{fmtPct(x.returnPct)}</span></span>
-                    </div>
-                    <div className="grid grid-cols-[repeat(2,minmax(0,1fr))] gap-x-4 gap-y-1 text-right text-xs sm:grid-cols-[repeat(4,minmax(0,1fr))]" style={muted}>
-                      <div><strong>Shares:</strong> {x.quantity}</div>
-                      <div><strong>Cost:</strong> {money(x.avg_cost)}</div>
-                      <div><strong>Last:</strong> {money(x.mark)} <span className="text-xs">{x.mark_date ?? 'at cost'}</span></div>
-                      <div><strong>Source:</strong> {SOURCE_LABEL[x.source ?? ''] ?? x.source}</div>
-                    </div>
-                    <div className="mt-1 text-xs" style={muted}><PlanLine p={x} /></div>
-                    <PositionReview p={x} />
-                    {owner && (selling === x.id ? <SellForm pid={id} pos={x} onDone={() => { setSelling(null); refresh() }} /> : <button type="button" className={`${button} mt-1`} style={card} onClick={() => setSelling(x.id)}>{x.direction === 'long' ? 'Sell' : 'Cover'}</button>)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {open.data?.length === 0 && <p className="text-sm" style={muted}>None yet. {owner ? <>Record a buy from the <Link to="/picks" className="underline">Picks</Link> page.</> : `The ${p.kind} portfolio buys after the next nightly run.`}</p>}
+        {open.data && open.data.length > 0 && (
+          <OpenPositions
+            positions={open.data}
+            trades={trades.data ?? []}
+            showPlan={p.kind !== 'baseline'}
+            canSell={owner}
+            selling={selling}
+            onSell={setSelling}
+            renderSellForm={(x) => <SellForm pid={id} pos={x} onDone={() => { setSelling(null); refresh() }} />}
+            renderReview={(x) => <PositionReview p={x} />}
+          />
+        )}
       </section>
 
       <section className="space-y-2 rounded-lg p-4" style={card} aria-labelledby="orders">
@@ -251,7 +216,7 @@ export function Portfolio() {
           {orders.data?.map((o) => (
             <li key={o.id} className="flex flex-wrap items-center justify-between gap-2">
               <span>
-                <TickerLink ticker={o.ticker} /> {o.direction === 'long' ? 'buy' : 'short'} {money(o.amount, 0)} {o.trigger_price === null || o.trigger_price === undefined ? 'at the next market open' : `if the price ${o.trigger_when === 'above' ? 'rises to' : 'falls to'} ${money(o.trigger_price)}`}
+                <TickerLink ticker={o.ticker} /> {o.intent === 'close' ? 'sell' : o.direction === 'long' ? 'buy' : 'short'} {o.quantity ? `${o.quantity} share${o.quantity === 1 ? '' : 's'}` : money(o.amount, 0)} {o.intent === 'close' ? 'at the next market open' : o.trigger_price === null || o.trigger_price === undefined ? 'at the next market open' : `if the price ${o.trigger_when === 'above' ? 'rises to' : 'falls to'} ${money(o.trigger_price)}`}
                 <span style={muted}> &middot; placed {o.created_on}, expires {o.expires_on ?? '-'}</span>
               </span>
               {owner && <button type="button" className={button} style={card} onClick={() => act(() => cancelOrder(id, o.id))}>Cancel</button>}
