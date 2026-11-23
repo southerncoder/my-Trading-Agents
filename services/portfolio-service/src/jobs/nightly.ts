@@ -107,10 +107,11 @@ async function processOrders(db: Db, p: PortfolioRow, h: History, lastChecked: s
           await closeInTx(db, { portfolioId: p.id, positionId: o.position_id, price, date: bar.date, quantity: o.quantity ?? undefined, orderId: o.id, note: o.note })
           await db.query('RELEASE SAVEPOINT fill')
           if (p.kind === 'shadow') summary.shadowClosed++
+          if (p.kind === 'baseline') summary.baselineFills++
           filled = true
           break
         }
-        await openInTx(db, { portfolioId: p.id, ticker: o.ticker, direction: o.direction, amount: o.amount, price, date: bar.date, orderId: o.id, candidateId: o.candidate_id, source: o.source, walkAway: cand?.walk_away ?? null, sector: await sectorOf(db, o.ticker) })
+        await openInTx(db, { portfolioId: p.id, ticker: o.ticker, direction: o.direction, amount: o.quantity ? undefined : o.amount, quantity: o.quantity ?? undefined, price, date: bar.date, orderId: o.id, candidateId: o.candidate_id, source: o.source, walkAway: cand?.walk_away ?? null, sector: await sectorOf(db, o.ticker) })
         await db.query('RELEASE SAVEPOINT fill')
         opened = true
       } catch (e) {
@@ -124,6 +125,7 @@ async function processOrders(db: Db, p: PortfolioRow, h: History, lastChecked: s
       }
       if (opened) {
         summary.fills++
+        if (p.kind === 'baseline') summary.baselineFills++
         if (p.kind === 'owner') {
           await insertAlert(db, { portfolioId: p.id, orderId: o.id, ticker: o.ticker, kind: 'order_filled', severity: 'info', runDate: bar.date, data: { price },
             message: `Your ${o.direction === 'long' ? 'buy' : 'short'} order for ${o.ticker} filled at ${money(price)} on ${bar.date}${o.trigger_price ? ` (trigger ${money(o.trigger_price)})` : ''}.` })
@@ -175,6 +177,55 @@ async function shadowOpens(db: Db, p: PortfolioRow, date: string, summary: Summa
     )
     handled.add(c.ticker)
     summary.shadowOrders++
+  }
+}
+
+/**
+ * The baseline portfolio follows every call from tonight's sources with the same number of shares: a buy call buys
+ * that many (now, or when the trigger is reached), a sell or short call sells that many of a held position. Holds and
+ * waits do nothing. No stops, targets or alerts: the position history shows exactly what following the advice did.
+ * Long only. Orders fill at the next open or at the trigger, like every other order (point-in-time).
+ */
+async function baselineOrders(db: Db, p: PortfolioRow, date: string, summary: Summary) {
+  const shares = p.rules.follow_shares ?? 1
+  // The newest call per ticker: a ticker can appear in more than one source on a night.
+  const { rows: picks } = await db.query<Candidate>(
+    `SELECT DISTINCT ON (ticker) * FROM candidates WHERE run_date = $1 AND source = ANY($2) ORDER BY ticker, id DESC`,
+    [date, PICK_SOURCES],
+  )
+  const { rows: tonight } = await db.query<{ ticker: string }>(`SELECT ticker FROM orders WHERE portfolio_id = $1 AND created_on = $2`, [p.id, date])
+  const handled = new Set(tonight.map((o) => o.ticker))
+  const { rows: open } = await db.query<PositionRow>(`SELECT * FROM positions WHERE portfolio_id = $1 AND status = 'open' AND direction = 'long'`, [p.id])
+  const held = new Map(open.map((x) => [x.ticker, x]))
+  const expiry = (days: number) => addTradingDays(date, days)
+
+  for (const c of picks) {
+    if (handled.has(c.ticker) || !c.price) continue
+    const intent = pickIntent(c.label)
+    const sell = callSaysExit('long', c.decision) || intent?.direction === 'short'
+    if (sell) {
+      const pos = held.get(c.ticker)
+      // A sell call also withdraws any buy still waiting for its trigger.
+      await db.query(`UPDATE orders SET status = 'cancelled', note = 'replaced by a sell call' WHERE portfolio_id = $1 AND ticker = $2 AND status = 'pending' AND intent = 'open'`, [p.id, c.ticker])
+      if (!pos) continue
+      await db.query(
+        `INSERT INTO orders (portfolio_id, candidate_id, position_id, ticker, direction, intent, kind, quantity, status, created_on, expires_on, source, note)
+         VALUES ($1,$2,$3,$4,'long','close','market',$5,'pending',$6,$7,$8,$9)`,
+        [p.id, c.id, pos.id, c.ticker, Math.min(shares, pos.quantity), date, expiry(3), c.source, `baseline: ${c.label} call, sell ${shares}`],
+      )
+    } else if (intent?.direction === 'long') {
+      if (intent.kind === 'trigger' && !c.trigger_price) continue
+      await db.query(`UPDATE orders SET status = 'cancelled', note = 'replaced by a newer call' WHERE portfolio_id = $1 AND ticker = $2 AND status = 'pending' AND intent = 'open'`, [p.id, c.ticker])
+      const trigger = intent.kind === 'trigger' ? c.trigger_price : null
+      await db.query(
+        `INSERT INTO orders (portfolio_id, candidate_id, ticker, direction, intent, kind, trigger_price, trigger_when, quantity, status, created_on, expires_on, source, note)
+         VALUES ($1,$2,$3,'long','open',$4,$5,$6,$7,'pending',$8,$9,$10,$11)`,
+        [p.id, c.id, c.ticker, intent.kind, trigger, trigger === null ? null : trigger >= c.price ? 'above' : 'below', shares, date,
+          expiry(intent.kind === 'trigger' ? p.rules.order_expiry_days : 3), c.source, `baseline: ${c.label} call, buy ${shares}`],
+      )
+    } else continue
+    handled.add(c.ticker)
+    summary.baselineOrders++
   }
 }
 
@@ -285,6 +336,8 @@ interface Summary {
   shadowOpened: number
   shadowOrders: number
   shadowClosed: number
+  baselineOrders: number
+  baselineFills: number
   notes: string[]
   equity: Record<string, number>
 }
@@ -297,7 +350,7 @@ interface Summary {
 export async function runNightly(deps: NightlyDeps, date: string) {
   const { pool, market } = deps
   const run = (await pool.query<{ id: number }>(`INSERT INTO runs (kind, run_date) VALUES ('nightly', $1) RETURNING id`, [date])).rows[0].id
-  const summary: Summary = { candidates: 0, fills: 0, expired: 0, alerts: 0, shadowOpened: 0, shadowOrders: 0, shadowClosed: 0, notes: [], equity: {} }
+  const summary: Summary = { candidates: 0, fills: 0, expired: 0, alerts: 0, shadowOpened: 0, shadowOrders: 0, shadowClosed: 0, baselineOrders: 0, baselineFills: 0, notes: [], equity: {} }
   try {
     const ing = await ingestLedger(pool, deps.ledgerPath, date)
     summary.candidates = ing.stored
@@ -339,7 +392,9 @@ export async function runNightly(deps: NightlyDeps, date: string) {
           const p = await getPortfolio(db, id, true)
           await processOrders(db, p, h, lastChecked, date, summary)
           if (p.kind === 'shadow') await shadowOpens(db, await getPortfolio(db, id), date, summary)
-          await processPositions(db, await getPortfolio(db, id), h, lastChecked, date, summary)
+          // The baseline only follows the calls: no exit rules, alerts or re-analysis requests.
+          if (p.kind === 'baseline') await baselineOrders(db, await getPortfolio(db, id), date, summary)
+          else await processPositions(db, await getPortfolio(db, id), h, lastChecked, date, summary)
           return snapshotAndRisk(db, id, h, date)
         })
       } catch (e) {

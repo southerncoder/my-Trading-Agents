@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { SOURCE_LABEL } from '../components/portfolio/helpers'
+import { KIND_INFO, SOURCE_LABEL } from '../components/portfolio/helpers'
 import { sectionTitle, useLoad } from '../components/portfolio/ui'
 import { card, fmtPct, moveColor, muted } from '../components/today/format'
 import { fetchResults } from '../services/portfolio'
@@ -59,7 +59,7 @@ export function Results() {
                   const diff = p.spyReturnPct === null ? null : Math.round((p.returnPct - p.spyReturnPct) * 100) / 100
                   return (
                     <tr key={p.id} className="clickable-row" onClick={() => navigate(`/portfolios/${p.id}`)} style={{ borderTop: '1px solid var(--color-border, #e2e8f0)' }}>
-                      <td className="py-1.5"><Link to={`/portfolios/${p.id}`} className="underline">{p.name}</Link>{p.kind === 'shadow' && <span style={muted}> (shadow)</span>}</td>
+                      <td className="py-1.5"><Link to={`/portfolios/${p.id}`} className="underline">{p.name}</Link>{KIND_INFO[p.kind].tag && <span style={muted}> ({KIND_INFO[p.kind].tag})</span>}</td>
                       <td className="text-right" style={{ color: moveColor(p.returnPct) }}>{fmtPct(p.returnPct, 2)}</td>
                       <td className="text-right">{p.spyReturnPct === null ? 'n/a' : fmtPct(p.spyReturnPct, 2)}</td>
                       <td className="text-right" style={{ color: moveColor(diff) }}>{diff === null ? 'n/a' : fmtPct(diff, 2)}</td>

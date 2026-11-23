@@ -59,7 +59,7 @@ export function portfoliosRouter(deps: ServiceDeps): Router {
   /** The shadow portfolio runs by itself; only owner portfolios take trades, cancels and rule changes. */
   async function ownerOnly(id: number) {
     const p = await getPortfolio(pool, id)
-    if (p.kind !== 'owner') throw new UserError('The shadow portfolio runs by itself and cannot be changed by hand')
+    if (p.kind !== 'owner') throw new UserError(`The ${p.kind} portfolio runs by itself and cannot be changed by hand`)
     return p
   }
 

@@ -8,10 +8,13 @@ import { parseRules, preTradeCheck, type Rules } from '../domain/risk.js'
 import { round, type Direction } from '../domain/types.js'
 import { UserError } from '../routes/http.js'
 
+/** owner: you trade it; shadow: takes every pick at a fixed dollar size; baseline: follows every call with a fixed share count. */
+export type PortfolioKind = 'owner' | 'shadow' | 'baseline'
+
 export interface PortfolioRow {
   id: number
   name: string
-  kind: 'owner' | 'shadow'
+  kind: PortfolioKind
   starting_cash: number
   cash: number
   rules: Rules
@@ -46,7 +49,7 @@ export async function getPortfolio(db: Db, id: number, forUpdate = false): Promi
 
 export async function createPortfolio(
   pool: pg.Pool,
-  a: { name: string; startingCash: number; createdOn: string; kind?: 'owner' | 'shadow'; rules?: Partial<Rules>; spyClose?: number | null },
+  a: { name: string; startingCash: number; createdOn: string; kind?: PortfolioKind; rules?: Partial<Rules>; spyClose?: number | null },
 ): Promise<PortfolioRow> {
   const rules = parseRules(a.rules ?? {})
   return tx(pool, async (db) => {

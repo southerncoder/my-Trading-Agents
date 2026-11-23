@@ -13,6 +13,8 @@ export const rulesSchema = z.object({
   order_expiry_days: z.number().int().positive().max(250),
   drawdown_alert_pct: pct,
   max_open_positions: z.number().int().positive().max(500),
+  /** Baseline portfolio only: shares bought or sold on each call. */
+  follow_shares: z.number().positive().max(10000).optional(),
 })
 export type Rules = z.infer<typeof rulesSchema>
 

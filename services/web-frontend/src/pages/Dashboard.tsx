@@ -20,6 +20,7 @@ import { fetchPortfolios, fetchPicks, type PortfolioSummary, type Pick } from '.
 import { BuyNowList } from '../components/today/BuyNowList'
 import { TriggerTable } from '../components/today/TriggerTable'
 import { useTheme } from '../contexts/ThemeContext'
+import { KIND_INFO } from '../components/portfolio/helpers'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
 
@@ -78,7 +79,7 @@ function PortfolioCard({ p }: { p: PortfolioSummary }) {
         <div>
           <h3 className="font-bold">{p.name}</h3>
           <p className="text-xs" style={mutedStyle}>
-            {p.kind === 'shadow' ? 'System shadow' : 'Owner portfolio'}
+            {KIND_INFO[p.kind].label}
           </p>
         </div>
         <span className="text-sm font-bold" style={{ color: tint }}>

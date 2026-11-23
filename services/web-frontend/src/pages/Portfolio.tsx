@@ -86,7 +86,8 @@ function PositionReview({ p }: { p: Position }) {
 function RulesForm({ id, rules, onDone }: { id: number; rules: Rules; onDone: () => void }) {
   const [draft, setDraft] = useState<Record<string, string>>(Object.fromEntries(Object.entries(rules).map(([k, v]) => [k, String(v)])))
   const [msg, setMsg] = useState<string | null>(null)
-  const labels: Record<keyof Rules, string> = {
+  // follow_shares belongs to the baseline portfolio, which has no rules form.
+  const labels: Record<Exclude<keyof Rules, 'follow_shares'>, string> = {
     position_size: 'Dollars per new position', max_position_pct: 'Largest position (% of value)', max_sector_pct: 'Largest sector (% of value)',
     stop_pct: 'Stop when there is no walk-away price (%)', target_pct: 'Profit target (%)', max_hold_days: 'Review after (trading days)',
     order_expiry_days: 'Waiting orders expire after (trading days)', drawdown_alert_pct: 'Warn when down from peak (%)', max_open_positions: 'Most open positions',
@@ -104,7 +105,7 @@ function RulesForm({ id, rules, onDone }: { id: number; rules: Rules; onDone: ()
   return (
     <form onSubmit={save} className="space-y-2 text-sm">
       <div className="grid grid-cols-[repeat(1,minmax(0,1fr))] gap-2 sm:grid-cols-[repeat(3,minmax(0,1fr))]">
-        {(Object.keys(labels) as (keyof Rules)[]).map((k) => (
+        {(Object.keys(labels) as (keyof typeof labels)[]).map((k) => (
           <label key={k} className="flex flex-col gap-1">
             {labels[k]}
             <input type="number" step="any" min="0" value={draft[k]} onChange={(e) => setDraft({ ...draft, [k]: e.target.value })} className={field} style={card} />
@@ -153,7 +154,11 @@ export function Portfolio() {
         <Link to="/portfolios" className="text-sm underline">&larr; Portfolios</Link>
         <h1 className="text-2xl font-semibold">{p.name}</h1>
         <p className="text-sm" style={muted}>
-          {owner ? 'Your paper portfolio. You record trades; the nightly run checks each exit plan and the limits and raises alerts.' : 'Shadow portfolio: takes every pick at the same size and exits by the rules, so it shows what the system would do on its own.'}
+          {owner
+            ? 'Your paper portfolio. You record trades; the nightly run checks each exit plan and the limits and raises alerts.'
+            : p.kind === 'baseline'
+              ? `Baseline: follows every call by itself, buying ${p.rules.follow_shares ?? 1} share${(p.rules.follow_shares ?? 1) === 1 ? '' : 's'} on a buy call (now, or at the trigger) and selling the same on a sell call. No stops or targets, so each position's trades show exactly what following the advice did.`
+              : 'Shadow portfolio: takes every pick at the same size and exits by the rules, so it shows what the system would do on its own.'}
           {' '}Started {p.created_on} with {money(p.starting_cash, 0)}.
         </p>
       </header>

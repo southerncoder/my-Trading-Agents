@@ -128,3 +128,10 @@ export const ALERT_LABEL: Record<string, string> = {
   risk_sector: 'Sector too heavy',
   risk_drawdown: 'Down from peak',
 }
+
+/** Short tag and one-line description for each kind of portfolio. */
+export const KIND_INFO: Record<'owner' | 'shadow' | 'baseline', { tag: string | null; label: string }> = {
+  owner: { tag: null, label: 'Owner portfolio' },
+  shadow: { tag: 'shadow', label: 'System shadow' },
+  baseline: { tag: 'baseline', label: 'Follows every call' },
+}

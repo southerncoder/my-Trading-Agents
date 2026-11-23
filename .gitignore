@@ -136,3 +136,6 @@ docker/registry_data/
 
 # Watchlist change requests (queue + results)
 data/requests/
+
+# Playwright MCP screenshots and logs
+.playwright-mcp/

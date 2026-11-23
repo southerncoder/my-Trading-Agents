@@ -15,6 +15,7 @@ export const rulesSchema = z.object({
   order_expiry_days: n,
   drawdown_alert_pct: n,
   max_open_positions: n,
+  follow_shares: n.optional(),
 })
 export type Rules = z.infer<typeof rulesSchema>
 
@@ -31,7 +32,7 @@ export type EducationalReview = z.infer<typeof educationalReviewSchema>
 export const summarySchema = z.object({
   id: n,
   name: z.string(),
-  kind: z.enum(['owner', 'shadow']),
+  kind: z.enum(['owner', 'shadow', 'baseline']),
   starting_cash: n,
   cash: n,
   created_on: z.string(),
