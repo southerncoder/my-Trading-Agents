@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { SOURCE_LABEL } from '../components/portfolio/helpers'
 import { sectionTitle, useLoad } from '../components/portfolio/ui'
 import { card, fmtPct, moveColor, muted } from '../components/today/format'
@@ -6,6 +6,7 @@ import { fetchResults } from '../services/portfolio'
 
 export function Results() {
   const { data, error } = useLoad(fetchResults, 'r')
+  const navigate = useNavigate()
   const ft = data?.forwardTest
   return (
     <div className="space-y-4 p-2 sm:p-4 md:p-6">
@@ -31,7 +32,7 @@ export function Results() {
                 <tbody>
                   {data.bySource.map((s) => (
                     <tr key={s.source} style={{ borderTop: '1px solid var(--color-border, #e2e8f0)' }}>
-                      <td className="py-1.5">{SOURCE_LABEL[s.source] ?? s.source}</td>
+                      <td className="py-1.5"><Link to="/picks" className="underline decoration-dotted underline-offset-2 hover:decoration-solid" title="See tonight's picks">{SOURCE_LABEL[s.source] ?? s.source}</Link></td>
                       <td className="text-right">{s.positions}</td>
                       <td className="text-right">{s.closed}</td>
                       <td className="text-right">{s.winRatePct}%</td>
@@ -57,7 +58,7 @@ export function Results() {
                 {data.portfolios.map((p) => {
                   const diff = p.spyReturnPct === null ? null : Math.round((p.returnPct - p.spyReturnPct) * 100) / 100
                   return (
-                    <tr key={p.id} style={{ borderTop: '1px solid var(--color-border, #e2e8f0)' }}>
+                    <tr key={p.id} className="clickable-row" onClick={() => navigate(`/portfolios/${p.id}`)} style={{ borderTop: '1px solid var(--color-border, #e2e8f0)' }}>
                       <td className="py-1.5"><Link to={`/portfolios/${p.id}`} className="underline">{p.name}</Link>{p.kind === 'shadow' && <span style={muted}> (shadow)</span>}</td>
                       <td className="text-right" style={{ color: moveColor(p.returnPct) }}>{fmtPct(p.returnPct, 2)}</td>
                       <td className="text-right">{p.spyReturnPct === null ? 'n/a' : fmtPct(p.spyReturnPct, 2)}</td>

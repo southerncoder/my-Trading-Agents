@@ -3,7 +3,7 @@ import { readFile } from 'fs/promises'
 import { join } from 'path'
 import { loadLedger } from '../services/ledger-reader.js'
 import { deriveRows, summarize, expectedNightDate } from '../services/nightly-derive.js'
-import { stockHistory, loadStages } from '../services/stock-detail.js'
+import { stockHistory, loadStages, pickReview, stockRow } from '../services/stock-detail.js'
 import { loadRunStatus } from '../services/run-status.js'
 
 const router = Router()
@@ -116,7 +116,8 @@ router.get('/stock/:ticker', async (req, res) => {
     if (!history.some((h) => h.date === date)) return fail(res, 404, `No data for ${ticker} on ${date}`)
 
     const stages = await loadStages(logsPath(), date, ticker)
-    return res.json({ success: true, data: { ticker, date, history, stages } })
+    const review = pickReview(stockRow(ledger.byDate, ticker, date)?.educational_review)
+    return res.json({ success: true, data: { ticker, date, history, stages, review } })
   } catch {
     return fail(res, 500, 'Failed to read nightly data')
   }

@@ -3,7 +3,19 @@ import { Link, useParams } from 'react-router-dom'
 import { fetchStock, type StockDetail } from '../services/nightly'
 import { HistoryTable } from '../components/stock/HistoryTable'
 import { StageTabs } from '../components/stock/StageTabs'
-import { fmtPrice, muted } from '../components/today/format'
+import { arrow, card, fmtPct, fmtPrice, moveColor, muted } from '../components/today/format'
+import { ProfessorPanel } from '../components/stock/ProfessorPanel'
+import { decisionColor } from '../components/stock/DecisionCard'
+
+function Fig({ label, value, hint, hintColor }: { label: string; value: React.ReactNode; hint?: string; hintColor?: string }) {
+  return (
+    <div className="min-w-0 rounded-lg p-3" style={card}>
+      <div className="text-xs" style={muted}>{label}</div>
+      <div className="text-xl font-semibold">{value}</div>
+      {hint && <div className="truncate text-xs" style={{ color: hintColor ?? muted.color }} title={hint}>{hint}</div>}
+    </div>
+  )
+}
 
 type Result = { key: string; data?: StockDetail; error?: string }
 
@@ -24,9 +36,11 @@ export function Stock() {
   }, [ticker, date, key])
 
   const back = (
-    <Link to="/" className="text-sm underline">
-      &larr; Today
-    </Link>
+    <nav className="flex flex-wrap gap-x-4 text-sm" aria-label="Related pages">
+      <Link to="/" className="underline">&larr; Today</Link>
+      <Link to="/picks" className="underline">Picks</Link>
+      <Link to="/stocks" className="underline">All stocks</Link>
+    </nav>
   )
 
   if (result?.key === key && result.error) {
@@ -49,28 +63,40 @@ export function Stock() {
   }
 
   const point = data.history.find((h) => h.date === data.date) ?? data.history[data.history.length - 1]
+  const prev = data.history[data.history.indexOf(point) - 1]
+  const change = prev ? (point.price / prev.price - 1) * 100 : null
+  const priceHint = prev ? `${arrow(change)} ${fmtPct(change)} since ${prev.date}` : 'first night on record'
+  const toTrigger = point.trigger_price != null && point.price ? ((point.trigger_price - point.price) / point.price) * 100 : null
 
   return (
     <div className="space-y-6 p-4 md:p-6">
-      <header className="space-y-1">
+      <header className="space-y-3">
         {back}
-        <h1 className="text-2xl font-semibold">
-          {data.ticker} <span className="text-base font-normal" style={muted}>night of {data.date}</span>
-        </h1>
-        <p className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
-          <span>{fmtPrice(point.price)}</span>
-          <span>{point.label}</span>
-          <span>
-            <span style={muted}>Trigger: </span>
-            {fmtPrice(point.trigger_price)}
-            {point.trigger_type ? ` (${point.trigger_type})` : ''}
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <h1 className="text-3xl font-bold">{data.ticker}</h1>
+          <span
+            className="rounded-md px-2 py-0.5 text-sm font-semibold"
+            style={{ color: decisionColor(point.decision.toUpperCase()), border: `1px solid ${decisionColor(point.decision.toUpperCase())}` }}
+          >
+            {point.label}
           </span>
-          <span>
-            <span style={muted}>Walk away below: </span>
-            {fmtPrice(point.walk_away)}
+          <span className="text-sm" style={muted}>
+            night of {data.date} &middot; models: {point.profile}
           </span>
-        </p>
+        </div>
+        <div className="grid grid-cols-[repeat(2,minmax(0,1fr))] gap-3 md:grid-cols-[repeat(4,minmax(0,1fr))]">
+          <Fig label="Price" value={fmtPrice(point.price)} hint={priceHint} hintColor={moveColor(change)} />
+          <Fig
+            label="Trigger"
+            value={fmtPrice(point.trigger_price)}
+            hint={point.trigger_type ? `${point.trigger_type}${toTrigger !== null ? ` · ${fmtPct(toTrigger)} away` : ''}` : 'no trigger: acts on the call alone'}
+          />
+          <Fig label="Walk away below" value={fmtPrice(point.walk_away)} hint="the idea is dropped below this" />
+          <Fig label="Confidence" value={`${Math.round(point.confidence * 100)}%`} hint={`decision: ${point.decision}`} />
+        </div>
       </header>
+
+      <ProfessorPanel review={data.review} history={data.history} date={data.date} />
 
       <section aria-labelledby="history-heading" className="space-y-2">
         <h2 id="history-heading" className="text-lg font-semibold">

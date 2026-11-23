@@ -795,3 +795,14 @@
 /* Portfolio pages: section headings and data tables. The themes style every h2 at page-title size. */
 h2.section-title { font-size: 1.125rem !important; line-height: 1.6rem !important; margin: 0 0 0.25rem 0 !important; font-weight: 600 !important; letter-spacing: normal !important; }
 table.data-table th, table.data-table td { padding: 0.35rem 0.5rem; vertical-align: top; }
+
+/* Clickable affordances: tickers, tiles, cards and rows all show they can be clicked. */
+a.ticker-link { font-weight: 600; color: inherit; text-decoration: underline; text-decoration-style: dotted; text-decoration-color: var(--color-text-muted, #94a3b8); text-underline-offset: 3px; transition: color 150ms, text-decoration-color 150ms; }
+a.ticker-link:hover, a.ticker-link:focus-visible { color: var(--color-primary, #2563eb); text-decoration-style: solid; text-decoration-color: currentColor; }
+.clickable { cursor: pointer; transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease; text-decoration: none; color: inherit; }
+.clickable:hover, .clickable:focus-visible { border-color: var(--color-primary, #2563eb) !important; box-shadow: 0 4px 18px color-mix(in srgb, var(--color-primary, #2563eb) 22%, transparent) !important; transform: translateY(-1px); }
+.clickable:focus-visible, a.ticker-link:focus-visible { outline: 2px solid var(--color-primary, #2563eb); outline-offset: 2px; }
+tr.clickable-row { cursor: pointer; transition: background 120ms; }
+tr.clickable-row:hover { background: color-mix(in srgb, var(--color-primary, #2563eb) 7%, transparent); }
+.chevron { transition: transform 150ms ease; }
+.chevron[data-open='true'] { transform: rotate(180deg); }

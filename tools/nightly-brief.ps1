@@ -106,14 +106,15 @@ foreach ($t in $Tickers) {
   $logPath = Join-Path $evalDir.FullName "$t-1.log"
   $text = if (Test-Path $logPath) { Get-Content $logPath -Raw } else { '' }
   $pmd = Read-PmDecision $text
-  $prof = Read-ProfessorReview $text
+  # Not $prof: that holds the model profile, which the ledger key and fields below depend on.
+  $review = Read-ProfessorReview $text
   $json = $pmd.Json; $d = $pmd.Decision; $c = $pmd.Confidence; $a = $pmd.Action
   $o['decision'] = $d; $o['confidence'] = $c; $o['action_now'] = $a; $o['label'] = CallLabel $d $a
   $o['why'] = Cut $json.rationale 140
   $o['top_risk'] = Cut (@($json.key_risks)[0]) 90
   $o['change_my_mind'] = Cut $json.what_would_change_my_mind 120
   $o['pm_raw'] = if ($json) { ($json | ConvertTo-Json -Compress -Depth 4) } else { $null }
-  $o['educational_review'] = $prof
+  $o['educational_review'] = $review
   $o['group'] = $groupOf[$t]; if ($lessons[$t] -and $groupOf[$t] -eq 'brands') { $o['lesson'] = $lessons[$t] }
   $o['why_full'] = Cut $json.rationale 420
   $o['risks'] = @(@($json.key_risks) | Where-Object { $_ } | Select-Object -First 3 | ForEach-Object { Cut $_ 110 })

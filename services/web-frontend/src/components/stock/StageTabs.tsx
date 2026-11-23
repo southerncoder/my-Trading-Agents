@@ -1,5 +1,7 @@
 import { useState, type KeyboardEvent } from 'react'
 import { MarkdownView } from './MarkdownView'
+import { DecisionCard } from './DecisionCard'
+import { extractDecision } from './decision'
 import { card, muted } from '../today/format'
 
 const STAGES: Array<{ key: string; name: string; hint: string }> = [
@@ -16,6 +18,18 @@ const STAGES: Array<{ key: string; name: string; hint: string }> = [
   { key: 'neutral', name: 'Risk: balanced', hint: 'Risk review in the middle.' },
   { key: 'pm', name: 'Final call', hint: 'The portfolio manager’s decision, trigger and walk-away.' },
 ]
+
+/** A write-up that carries a JSON decision shows it as a card, with any prose around it below. */
+function StageBody({ text }: { text: string }) {
+  const found = extractDecision(text)
+  if (!found) return <MarkdownView text={text} />
+  return (
+    <div className="space-y-4">
+      <DecisionCard d={found.decision} />
+      {found.rest && <MarkdownView text={found.rest} />}
+    </div>
+  )
+}
 
 export function StageTabs({ stages }: { stages: Record<string, string> }) {
   const available = STAGES.filter((s) => stages[s.key])
@@ -65,7 +79,7 @@ export function StageTabs({ stages }: { stages: Record<string, string> }) {
         <p className="pb-2 text-xs" style={muted}>
           {active.hint}
         </p>
-        <MarkdownView text={stages[active.key]} />
+        <StageBody text={stages[active.key]} />
       </div>
     </div>
   )

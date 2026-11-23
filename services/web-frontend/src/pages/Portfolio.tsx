@@ -4,6 +4,7 @@ import { IndexChart } from '../components/portfolio/IndexChart'
 import { ALERT_LABEL, SOURCE_LABEL } from '../components/portfolio/helpers'
 import { button, field, money, sectionTitle, signedMoney, useLoad } from '../components/portfolio/ui'
 import { card, fmtPct, moveColor, muted } from '../components/today/format'
+import { TickerLink } from '../components/TickerLink'
 import {
   ackAlert, cancelOrder, fetchAlerts, fetchOrders, fetchPerformance, fetchPortfolio, fetchPositions, fetchTrades, patchRules, sell,
   type Position, type Rules,
@@ -178,7 +179,7 @@ export function Portfolio() {
             <li key={a.id} className="rounded p-2 text-sm" style={{ border: `1px solid ${a.severity === 'action' ? '#D4501A' : 'var(--color-border, #e2e8f0)'}` }}>
               <div className="flex flex-wrap items-baseline gap-x-2">
                 <strong>{ALERT_LABEL[a.kind] ?? a.kind}</strong>
-                {a.ticker && !a.ticker.startsWith('sector:') && <span>{a.ticker}</span>}
+                {a.ticker && !a.ticker.startsWith('sector:') && <TickerLink ticker={a.ticker} />}
                 <span className="text-xs" style={muted}>{a.run_date}</span>
               </div>
               <p>{a.message}</p>
@@ -200,7 +201,7 @@ export function Portfolio() {
           {open.data?.map((x) => (
             <li key={x.id} className="rounded p-2 text-sm" style={{ border: '1px solid var(--color-border, #e2e8f0)' }}>
               <div className="flex justify-between gap-2">
-                <span><Link to={`/stock/${x.ticker}`} className="font-semibold underline">{x.ticker}</Link> {x.direction === 'short' && <span style={muted}>short</span>}</span>
+                <span><TickerLink ticker={x.ticker} /> {x.direction === 'short' && <span style={muted}>short</span>}</span>
                 <span style={{ color: moveColor(x.unrealized) }}>{signedMoney(x.unrealized)} ({fmtPct(x.returnPct)})</span>
               </div>
               <div style={muted} className="text-xs">{x.quantity} @ {money(x.avg_cost)} &middot; last {money(x.mark)} ({x.mark_date ?? 'cost'}) &middot; {SOURCE_LABEL[x.source ?? ''] ?? x.source}</div>
@@ -218,7 +219,7 @@ export function Portfolio() {
                 <tr key={x.id} className="align-top" style={{ borderTop: '1px solid var(--color-border, #e2e8f0)' }}>
                   <td className="py-2" colSpan={8}>
                     <div className="flex flex-wrap items-baseline justify-between gap-2">
-                      <span><Link to={`/stock/${x.ticker}`} className="font-semibold underline">{x.ticker}</Link>{x.direction === 'short' && <span style={muted}> short</span>}<div className="text-xs" style={muted}>since {x.opened_on}</div></span>
+                      <span><TickerLink ticker={x.ticker} />{x.direction === 'short' && <span style={muted}> short</span>}<div className="text-xs" style={muted}>since {x.opened_on}</div></span>
                       <span className="text-right" style={{ color: moveColor(x.unrealized) }}>{signedMoney(x.unrealized)} <span className="text-xs">{fmtPct(x.returnPct)}</span></span>
                     </div>
                     <div className="grid grid-cols-[repeat(2,minmax(0,1fr))] gap-x-4 gap-y-1 text-right text-xs sm:grid-cols-[repeat(4,minmax(0,1fr))]" style={muted}>
@@ -245,7 +246,7 @@ export function Portfolio() {
           {orders.data?.map((o) => (
             <li key={o.id} className="flex flex-wrap items-center justify-between gap-2">
               <span>
-                <strong>{o.ticker}</strong> {o.direction === 'long' ? 'buy' : 'short'} {money(o.amount, 0)} {o.trigger_price === null || o.trigger_price === undefined ? 'at the next market open' : `if the price ${o.trigger_when === 'above' ? 'rises to' : 'falls to'} ${money(o.trigger_price)}`}
+                <TickerLink ticker={o.ticker} /> {o.direction === 'long' ? 'buy' : 'short'} {money(o.amount, 0)} {o.trigger_price === null || o.trigger_price === undefined ? 'at the next market open' : `if the price ${o.trigger_when === 'above' ? 'rises to' : 'falls to'} ${money(o.trigger_price)}`}
                 <span style={muted}> &middot; placed {o.created_on}, expires {o.expires_on ?? '-'}</span>
               </span>
               {owner && <button type="button" className={button} style={card} onClick={() => act(() => cancelOrder(id, o.id))}>Cancel</button>}
@@ -261,7 +262,7 @@ export function Portfolio() {
             <thead><tr className="text-left" style={muted}><th>Stock</th><th>Held</th><th className="text-right">Return</th><th className="text-right">Profit</th><th>Source</th></tr></thead>
             <tbody>
               {closed.data?.map((x) => (
-                <tr key={x.id}><td>{x.ticker}{x.direction === 'short' ? ' (short)' : ''}</td><td>{x.opened_on} to {x.closed_on}</td><td className="text-right" style={{ color: moveColor(x.returnPct) }}>{fmtPct(x.returnPct)}</td><td className="text-right" style={{ color: moveColor(x.realized_pnl) }}>{signedMoney(x.realized_pnl)}</td><td>{SOURCE_LABEL[x.source ?? ''] ?? x.source}</td></tr>
+                <tr key={x.id}><td><TickerLink ticker={x.ticker} />{x.direction === 'short' ? ' (short)' : ''}</td><td>{x.opened_on} to {x.closed_on}</td><td className="text-right" style={{ color: moveColor(x.returnPct) }}>{fmtPct(x.returnPct)}</td><td className="text-right" style={{ color: moveColor(x.realized_pnl) }}>{signedMoney(x.realized_pnl)}</td><td>{SOURCE_LABEL[x.source ?? ''] ?? x.source}</td></tr>
               ))}
             </tbody>
           </table>
@@ -269,7 +270,7 @@ export function Portfolio() {
             <thead><tr className="text-left" style={muted}><th>Date</th><th>Trade</th><th className="text-right">Shares</th><th className="text-right">Price</th><th className="text-right">Realized</th></tr></thead>
             <tbody>
               {trades.data?.map((t) => (
-                <tr key={t.id}><td>{t.traded_on}</td><td>{t.action} {t.direction} {t.ticker}</td><td className="text-right">{t.quantity}</td><td className="text-right">{money(t.price)}</td><td className="text-right">{t.realized_pnl ? signedMoney(t.realized_pnl) : ''}</td></tr>
+                <tr key={t.id}><td>{t.traded_on}</td><td>{t.action} {t.direction} <TickerLink ticker={t.ticker} /></td><td className="text-right">{t.quantity}</td><td className="text-right">{money(t.price)}</td><td className="text-right">{t.realized_pnl ? signedMoney(t.realized_pnl) : ''}</td></tr>
               ))}
             </tbody>
           </table>

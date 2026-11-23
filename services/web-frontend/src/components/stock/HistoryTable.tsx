@@ -22,7 +22,7 @@ export function HistoryTable({ history, selected, onSelect }: Props) {
           const change = changeAt(i)
           const on = h.date === selected
           return (
-            <li key={h.date} className="rounded-lg" style={{ ...card, borderColor: on ? 'var(--color-primary)' : undefined }}>
+            <li key={h.date} className="clickable rounded-lg" style={{ ...card, borderColor: on ? 'var(--color-primary)' : undefined }}>
               <button
                 type="button"
                 aria-current={on ? 'true' : undefined}
@@ -67,9 +67,23 @@ export function HistoryTable({ history, selected, onSelect }: Props) {
               const change = changeAt(i)
               const on = h.date === selected
               return (
-                <tr key={h.date} style={{ borderTop: '1px solid var(--color-border, #e2e8f0)', fontWeight: on ? 600 : 400 }}>
+                <tr
+                  key={h.date}
+                  className="clickable-row"
+                  onClick={() => onSelect(h.date)}
+                  style={{
+                    borderTop: '1px solid var(--color-border, #e2e8f0)',
+                    fontWeight: on ? 600 : 400,
+                    background: on ? 'color-mix(in srgb, var(--color-primary, #2563eb) 10%, transparent)' : undefined,
+                  }}
+                >
                   <td className="p-3">
-                    <button type="button" aria-current={on ? 'true' : undefined} onClick={() => onSelect(h.date)} className="underline">
+                    <button type="button" aria-current={on ? 'true' : undefined} onClick={(e) => {
+                        e.stopPropagation()
+                        onSelect(h.date)
+                      }}
+                      className="underline"
+                    >
                       {h.date}
                     </button>
                   </td>

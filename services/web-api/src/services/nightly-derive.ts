@@ -13,6 +13,9 @@ export interface LedgerRow {
   trigger_reason?: string
   walk_away?: number
   atr?: number
+  ma50?: number
+  ma200?: number
+  educational_review?: unknown
   fast_model?: string
   decision_model?: string
   stance: Record<string, string>

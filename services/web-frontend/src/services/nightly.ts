@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { educationalReviewSchema } from './portfolio'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
 
@@ -87,6 +88,8 @@ export const historyPointSchema = z.object({
   trigger_price: numOpt,
   trigger_type: z.string().nullish(),
   walk_away: numOpt,
+  ma50: numOpt,
+  ma200: numOpt,
 })
 
 export const stockDetailSchema = z.object({
@@ -94,6 +97,7 @@ export const stockDetailSchema = z.object({
   date: z.string(),
   history: z.array(historyPointSchema),
   stages: z.record(z.string(), z.string()).nullable(),
+  review: educationalReviewSchema.nullable().optional(),
 })
 
 export type HistoryPoint = z.infer<typeof historyPointSchema>

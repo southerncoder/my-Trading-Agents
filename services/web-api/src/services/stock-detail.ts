@@ -27,13 +27,45 @@ export interface HistoryPoint {
   trigger_price?: number
   trigger_type?: string
   walk_away?: number
+  ma50?: number
+  ma200?: number
+}
+
+export const REVIEW_KEYS = [
+  'summary',
+  'why_not_before_flag',
+  'figures_explained',
+  'buy_low_sell_high',
+  'risk_temperament',
+  'portfolio_fit',
+] as const
+
+export type EducationalReview = Partial<Record<(typeof REVIEW_KEYS)[number], string>>
+
+const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : undefined)
+
+/** The Professor's review stored on a ledger row: only its known, non-empty text fields, or null. */
+export function pickReview(v: unknown): EducationalReview | null {
+  if (typeof v !== 'object' || v === null || Array.isArray(v)) return null
+  const out: EducationalReview = {}
+  for (const k of REVIEW_KEYS) {
+    const t = (v as Record<string, unknown>)[k]
+    if (typeof t === 'string' && t.trim()) out[k] = t.trim()
+  }
+  return Object.keys(out).length ? out : null
+}
+
+/** The ticker's ledger row for one night (the last one written, matching the nightly page). */
+export function stockRow(byDate: Map<string, LedgerRow[]>, ticker: string, date: string): LedgerRow | undefined {
+  const rows = byDate.get(date)?.filter((x) => x.ticker === ticker) ?? []
+  return rows[rows.length - 1]
 }
 
 /** The ticker's rows across nights, oldest first. Nights without the ticker are skipped. */
 export function stockHistory(byDate: Map<string, LedgerRow[]>, ticker: string): HistoryPoint[] {
   const out: HistoryPoint[] = []
   for (const date of [...byDate.keys()].sort()) {
-    const r = byDate.get(date)?.find((x) => x.ticker === ticker)
+    const r = stockRow(byDate, ticker, date)
     if (!r) continue
     out.push({
       date,
@@ -45,6 +77,8 @@ export function stockHistory(byDate: Map<string, LedgerRow[]>, ticker: string): 
       trigger_price: r.trigger_price,
       trigger_type: r.trigger_type,
       walk_away: r.walk_away,
+      ma50: num(r.ma50),
+      ma200: num(r.ma200),
     })
   }
   return out

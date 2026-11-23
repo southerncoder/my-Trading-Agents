@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { fetchWatchlist, postWatchlistRequest, type WatchStock, type Watchlist, type WatchlistRequestInput } from '../services/nightly'
 import { filterStocks, type CadenceFilter, type ListFilter } from '../components/stocks/filter'
 import { buildAddRequest, CADENCE_HELP, describePending, pendingFor, shownCadence } from '../components/stocks/request-form'
 import { card, fmtPrice, muted } from '../components/today/format'
+import { TickerLink } from '../components/TickerLink'
 
 const CADENCES: { value: WatchlistRequestInput['cadence']; label: string }[] = [
   { value: 'nightly', label: 'Every night' },
@@ -132,7 +132,7 @@ export function Stocks() {
   }
 
   const tickerCell = (s: WatchStock) =>
-    s.latest ? <Link to={`/stock/${s.ticker}`} className="underline">{s.ticker}</Link> : <>{s.ticker}</>
+    s.latest ? <TickerLink ticker={s.ticker} /> : <span title="No call yet: it gets a page after its first nightly run">{s.ticker}</span>
 
   const latestCell = (s: WatchStock) =>
     s.latest ? (

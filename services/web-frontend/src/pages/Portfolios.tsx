@@ -52,7 +52,7 @@ export function Portfolios() {
       {data && (
         <div className="grid grid-cols-[repeat(1,minmax(0,1fr))] gap-3 sm:grid-cols-[repeat(2,minmax(0,1fr))] lg:grid-cols-[repeat(3,minmax(0,1fr))]">
           {data.map((p) => (
-            <Link key={p.id} to={`/portfolios/${p.id}`} className="block rounded-lg p-4 no-underline" style={card}>
+            <Link key={p.id} to={`/portfolios/${p.id}`} className="clickable block rounded-lg p-4 no-underline" style={card} title={`Open ${p.name}`}>
               <div className="flex items-baseline justify-between gap-2">
                 <span className="font-semibold">{p.name}</span>
                 {p.kind === 'shadow' && <span className="rounded px-1.5 text-xs" style={{ ...muted, border: '1px solid currentColor' }}>shadow</span>}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import { fetchLatestNight, fetchNight, fetchNightDates, type NightlyDay } from '../services/nightly'
 import { SummaryStrip } from '../components/today/SummaryStrip'
 import { BuyNowList } from '../components/today/BuyNowList'
@@ -13,6 +14,13 @@ export function Today() {
   // undefined means "the newest night"; a date means the reader picked an older one.
   const [picked, setPicked] = useState<string | undefined>(undefined)
   const [loading, setLoading] = useState(true)
+  const { hash } = useLocation()
+
+  // Tiles and the dashboard link to #buy-now / #waiting: scroll there once the night has rendered.
+  useEffect(() => {
+    if (!hash || !day) return
+    document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [hash, day])
 
   useEffect(() => {
     let cancelled = false
@@ -69,7 +77,14 @@ export function Today() {
         <div>
           <h1 className="text-2xl font-semibold">{older ? 'Past night' : 'Today'}</h1>
           <p className="text-sm" style={muted}>
-            Night of {day.date} &middot; {day.rows.length} stocks &middot; models: {day.profile}
+            Night of {day.date} &middot;{' '}
+            <Link to="/stocks" className="underline decoration-dotted underline-offset-2 hover:decoration-solid">
+              {day.rows.length} stocks
+            </Link>{' '}
+            &middot; models: {day.profile} &middot;{' '}
+            <Link to="/scorecard" className="underline decoration-dotted underline-offset-2 hover:decoration-solid">
+              how past calls did
+            </Link>
           </p>
         </div>
 

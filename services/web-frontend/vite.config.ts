@@ -26,6 +26,11 @@ export default defineConfig({
       }
     })() : false,
     proxy: {
+      // Paper portfolios have their own service (nginx routes it the same way in the container).
+      '/api/portfolio': {
+        target: `http://localhost:${process.env.PORTFOLIO_PORT || '38408'}`,
+        changeOrigin: true,
+      },
       '/api': {
         target: process.env.HTTPS_ENABLED === 'true' ? `https://localhost:${process.env.WEB_API_PORT || '38401'}` : `http://localhost:${process.env.WEB_API_PORT || '38401'}`,
         changeOrigin: true,

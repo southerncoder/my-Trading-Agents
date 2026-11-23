@@ -1,4 +1,6 @@
 import { Fragment, useState } from 'react'
+import { ChevronDown } from 'lucide-react'
+import { TickerLink } from '../TickerLink'
 import type { NightlyRow } from '../../services/nightly'
 import { DistanceBar } from './DistanceBar'
 import { RowDetail } from './RowDetail'
@@ -34,39 +36,50 @@ function CloseTag() {
   )
 }
 
-export function TriggerTable({ rows }: { rows: NightlyRow[] }) {
-  const [open, setOpen] = useState<string | null>(null)
+export function TriggerTable({ rows, compact }: { rows: NightlyRow[]; compact?: boolean }) {
+  const [open, setOpen] = useState<number | null>(null)
   if (rows.length === 0) return null
   const sorted = sortByDistance(rows)
 
   return (
-    <section aria-labelledby="waiting-heading" className="space-y-2">
-      <h2 id="waiting-heading" className="text-lg font-semibold">
-        Waiting for a trigger
-      </h2>
-      <p className="text-sm" style={muted}>
-        Closest to its trigger first. The bar fills as the price nears the trigger; the middle tick is one typical day
-        of movement away. Tap a stock for the reasoning.
-      </p>
+    <section id={compact ? undefined : 'waiting'} aria-labelledby={compact ? undefined : 'waiting-heading'} className="scroll-mt-20 space-y-2">
+      {!compact && (
+        <>
+          <h2 id="waiting-heading" className="text-lg font-semibold">
+            Waiting for a trigger
+          </h2>
+          <p className="text-sm" style={muted}>
+            Closest to its trigger first. The bar fills as the price nears the trigger; the middle tick is one typical day
+            of movement away. Tap a row for the reasoning, or a ticker for its full page.
+          </p>
+        </>
+      )}
 
       {/* Phones: one card per stock. */}
       <ul className="space-y-2 md:hidden">
-        {sorted.map((r) => {
-          const isOpen = open === r.ticker
+        {sorted.map((r, i) => {
+          const isOpen = open === i
           return (
-            <li key={r.ticker} className="rounded-lg p-3" style={card}>
-              <button
-                type="button"
-                className="flex w-full items-center justify-between text-left"
-                aria-expanded={isOpen}
-                onClick={() => setOpen(isOpen ? null : r.ticker)}
-              >
+            <li key={`${r.ticker}-${i}`} className="clickable rounded-lg p-3" style={card} onClick={() => setOpen(isOpen ? null : i)}>
+              <div className="flex w-full items-center justify-between gap-3">
                 <span>
-                  <span className="font-semibold">{r.ticker}</span>
+                  <TickerLink ticker={r.ticker} />
                   {r.inside_half_day && <CloseTag />}
                 </span>
-                <span className="font-semibold">{fmtPrice(r.price)}</span>
-              </button>
+                <button
+                  type="button"
+                  className="flex items-center gap-2 font-semibold"
+                  aria-expanded={isOpen}
+                  aria-label={`${isOpen ? 'Hide' : 'Show'} the reasoning for ${r.ticker}`}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setOpen(isOpen ? null : i)
+                  }}
+                >
+                  {fmtPrice(r.price)}
+                  <ChevronDown className="chevron h-4 w-4" data-open={isOpen} style={muted} aria-hidden="true" />
+                </button>
+              </div>
               <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                 <div>
                   <dt className="text-xs" style={muted}>Trigger</dt>
@@ -86,7 +99,11 @@ export function TriggerTable({ rows }: { rows: NightlyRow[] }) {
                   <dd><Distance r={r} /></dd>
                 </div>
               </dl>
-              {isOpen && <RowDetail row={r} />}
+              {isOpen && (
+                <div onClick={(e) => e.stopPropagation()} className="cursor-auto">
+                  <RowDetail row={r} />
+                </div>
+              )}
             </li>
           )
         })}
@@ -105,20 +122,26 @@ export function TriggerTable({ rows }: { rows: NightlyRow[] }) {
             </tr>
           </thead>
           <tbody>
-            {sorted.map((r) => {
-              const isOpen = open === r.ticker
+            {sorted.map((r, i) => {
+              const isOpen = open === i
               return (
-                <Fragment key={r.ticker}>
-                  <tr style={rule}>
+                <Fragment key={`${r.ticker}-${i}`}>
+                  <tr style={rule} className="clickable-row" onClick={() => setOpen(isOpen ? null : i)}>
                     <td className="p-3">
-                      <button
-                        type="button"
-                        className="font-semibold"
-                        aria-expanded={isOpen}
-                        onClick={() => setOpen(isOpen ? null : r.ticker)}
-                      >
-                        {r.ticker}
-                      </button>
+                      <span className="inline-flex items-center gap-2">
+                        <button
+                          type="button"
+                          aria-expanded={isOpen}
+                          aria-label={`${isOpen ? 'Hide' : 'Show'} the reasoning for ${r.ticker}`}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setOpen(isOpen ? null : i)
+                          }}
+                        >
+                          <ChevronDown className="chevron h-4 w-4" data-open={isOpen} style={muted} aria-hidden="true" />
+                        </button>
+                        <TickerLink ticker={r.ticker} />
+                      </span>
                       {r.inside_half_day && <CloseTag />}
                     </td>
                     <td className="p-3">{fmtPrice(r.price)}</td>

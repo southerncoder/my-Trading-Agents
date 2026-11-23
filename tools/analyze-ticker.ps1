@@ -47,7 +47,7 @@ $sw.Stop()
 $text = Get-Content $log -Raw
 if (-not $text -or $text -notmatch 'Final trading decision|"decision"') { throw "The analysis produced no decision (see $log)" }
 $pmd = Read-PmDecision $text
-$prof = Read-ProfessorReview $text
+$review = Read-ProfessorReview $text
 $json = $pmd.Json
 
 $price = $null; $ma50 = $null; $ma200 = $null; $target = $null
@@ -75,7 +75,7 @@ $out = [ordered]@{
   decision = $pmd.Decision; confidence = $pmd.Confidence; action_now = $pmd.Action; label = $pmd.Label
   price = $price; ma50 = $ma50; ma200 = $ma200; target = $target
   pm = $json
-  educational_review = $prof
+  educational_review = $review
   trigger_price = $trigger; trigger_type = $ttype; trigger_reason = (Cut $json.trigger_reason 140); walk_away = $walk
   seconds = [int]$sw.Elapsed.TotalSeconds
   log = $log

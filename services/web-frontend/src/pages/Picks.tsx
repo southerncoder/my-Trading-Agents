@@ -4,6 +4,7 @@ import { groupPicks, pickAction, SOURCE_HELP, SOURCE_LABEL } from '../components
 import { button, field, money, primaryButton, primaryStyle, sectionTitle, useLoad } from '../components/portfolio/ui'
 import { card, muted } from '../components/today/format'
 import { buy, fetchPicks, fetchPortfolios, fetchRequests, requestAnalysis, triggerOrder, type Pick } from '../services/portfolio'
+import { TickerLink } from '../components/TickerLink'
 
 const bad = { color: '#D4501A' }
 const good = { color: '#0A8F80' }
@@ -67,10 +68,10 @@ function PickCard({ p, portfolioId, amount, onTraded }: { p: Pick; portfolioId: 
   }
   const risks = p.key_risks.slice(0, 2)
   return (
-    <li className="space-y-1 rounded-lg p-3 text-sm" style={card}>
+    <li className="space-y-1 rounded-lg p-3 text-sm transition-shadow hover:shadow-md" style={card}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <span>
-          <Link to={`/stock/${p.ticker}`} className="font-semibold underline">{p.ticker}</Link>
+          <TickerLink ticker={p.ticker} />
           {p.company && <span className="text-xs" style={muted}> {p.company}</span>}
         </span>
         <span className="font-medium">{p.label}{p.confidence !== null && <span className="text-xs" style={muted}> &middot; confidence {p.confidence.toFixed(2)}</span>}</span>
@@ -195,7 +196,7 @@ export function Picks() {
         <ul className="space-y-1 text-sm">
           {requests.data?.slice(0, 10).map((r) => (
             <li key={r.id} className="flex flex-wrap gap-x-2">
-              <strong>{r.ticker}</strong>
+              <TickerLink ticker={r.ticker} />
               <span style={muted}>{r.reason.replace('_', ' ')}</span>
               <span style={r.status === 'failed' ? bad : r.status === 'done' ? good : muted}>{r.status}</span>
               {r.status === 'done' && r.label && <span>{r.label} ({r.decision} {r.confidence?.toFixed(2)})</span>}

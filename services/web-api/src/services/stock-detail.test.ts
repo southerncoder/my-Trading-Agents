@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { mkdtempSync, mkdirSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
-import { stockHistory, loadStages, STAGE_KEYS } from './stock-detail.js'
+import { stockHistory, loadStages, pickReview, STAGE_KEYS } from './stock-detail.js'
 import type { LedgerRow } from './nightly-derive.js'
 
 const mk = (date: string, ticker: string, price: number): LedgerRow => ({
@@ -49,5 +49,16 @@ describe('loadStages', () => {
     expect(await loadStages(join(tmpdir(), 'no-such-dir-xyz'), '2026-11-20', 'AAA')).toBeNull()
     expect(await loadStages(logs('2026-11-20', '{not json'), '2026-11-20', 'AAA')).toBeNull()
     expect(await loadStages(logs('2026-11-20', JSON.stringify({ BBB: full })), '2026-11-20', 'AAA')).toBeNull()
+  })
+})
+describe('pickReview', () => {
+  it('keeps only known non-empty text fields', () => {
+    expect(pickReview({ summary: ' Wait. ', portfolio_fit: '', risk_temperament: 5, extra: 'x' })).toEqual({ summary: 'Wait.' })
+  })
+  it('null for missing, empty or non-object reviews', () => {
+    expect(pickReview(undefined)).toBeNull()
+    expect(pickReview({})).toBeNull()
+    expect(pickReview(['summary'])).toBeNull()
+    expect(pickReview('text')).toBeNull()
   })
 })
