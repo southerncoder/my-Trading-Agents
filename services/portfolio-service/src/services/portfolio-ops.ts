@@ -204,19 +204,22 @@ export const recordSell = (pool: pg.Pool, a: Parameters<typeof closeInTx>[1]) =>
 /** A pending order that opens a position when the price reaches the trigger (checked each night on daily bars). */
 export async function placeTriggerOrder(
   pool: pg.Pool,
-  a: { portfolioId: number; ticker: string; direction: Direction; triggerPrice: number; refPrice: number; amount: number; date: string; candidateId?: number | null; source?: string | null; note?: string | null },
+  a: { portfolioId: number; ticker: string; direction: Direction; triggerPrice: number; refPrice: number; amount?: number; quantity?: number; date: string; candidateId?: number | null; source?: string | null; note?: string | null },
 ) {
   return tx(pool, async (db) => {
     const p = await getPortfolio(db, a.portfolioId, true)
     if (!(a.triggerPrice > 0) || !(a.refPrice > 0)) throw new UserError('Trigger and reference prices must be positive')
     const { rows: open } = await db.query<PositionRow>(`SELECT * FROM positions WHERE portfolio_id = $1 AND status = 'open'`, [p.id])
     const power = buyingPower(p.cash, open)
-    if (a.amount > power + 1e-6) throw new UserError(`Not enough cash: this needs $${a.amount.toFixed(2)} and the portfolio has $${power.toFixed(2)} to spend`)
+    // A share-count order costs about that many shares at the trigger; a dollar order costs its amount.
+    const needs = a.quantity ? round(a.quantity * a.triggerPrice) : (a.amount ?? 0)
+    if (!(needs > 0)) throw new UserError('Give a dollar amount or a number of shares')
+    if (needs > power + 1e-6) throw new UserError(`Not enough cash: this needs $${needs.toFixed(2)} and the portfolio has $${power.toFixed(2)} to spend`)
     const { rows } = await db.query(
-      `INSERT INTO orders (portfolio_id, candidate_id, ticker, direction, intent, kind, trigger_price, trigger_when, amount, status, created_on, expires_on, source, note)
-       VALUES ($1,$2,$3,$4,'open','trigger',$5,$6,$7,'pending',$8,$9,$10,$11) RETURNING *`,
-      [p.id, a.candidateId ?? null, a.ticker, a.direction, a.triggerPrice, triggerWhen(a.triggerPrice, a.refPrice), a.amount, a.date,
-        addTradingDays(a.date, p.rules.order_expiry_days), a.source ?? null, a.note ?? null],
+      `INSERT INTO orders (portfolio_id, candidate_id, ticker, direction, intent, kind, trigger_price, trigger_when, amount, quantity, status, created_on, expires_on, source, note)
+       VALUES ($1,$2,$3,$4,'open','trigger',$5,$6,$7,$12,'pending',$8,$9,$10,$11) RETURNING *`,
+      [p.id, a.candidateId ?? null, a.ticker, a.direction, a.triggerPrice, triggerWhen(a.triggerPrice, a.refPrice), a.quantity ? null : a.amount, a.date,
+        addTradingDays(a.date, p.rules.order_expiry_days), a.source ?? null, a.note ?? null, a.quantity ?? null],
     )
     return rows[0]
   })

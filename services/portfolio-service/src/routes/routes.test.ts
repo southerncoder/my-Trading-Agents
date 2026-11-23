@@ -79,6 +79,15 @@ describe('API routes', () => {
     expect(((await api.get(`/portfolios/${pid}/trades`)).data as unknown[]).length).toBe(2)
   })
 
+  it('buys and places trigger orders by share count when one is given', async () => {
+    const b = await api.post(`/portfolios/${pid}/buy`, { ticker: 'MSFT', quantity: 1 })
+    expect(b).toMatchObject({ status: 201, data: { position: { ticker: 'MSFT', quantity: 1, avg_cost: 100 }, trade: { quantity: 1 } } })
+    const o = await api.post(`/portfolios/${pid}/trigger-orders`, { ticker: 'AAPL', triggerPrice: 110, quantity: 1 })
+    expect(o).toMatchObject({ status: 201, data: { quantity: 1, amount: null, status: 'pending' } })
+    expect(await api.post(`/portfolios/${pid}/trigger-orders`, { ticker: 'AAPL', triggerPrice: 110, quantity: 1e6 })).toMatchObject({ status: 400, error: expect.stringContaining('Not enough cash') })
+    await api.post(`/portfolios/${pid}/orders/${(o.data as { id: number }).id}/cancel`)
+  })
+
   it('places a trigger order from a reference price, lists it and cancels it', async () => {
     const o = await api.post(`/portfolios/${pid}/trigger-orders`, { ticker: 'MSFT', triggerPrice: 105 })
     expect(o).toMatchObject({ status: 201, data: { trigger_when: 'above', amount: 500, status: 'pending' } })

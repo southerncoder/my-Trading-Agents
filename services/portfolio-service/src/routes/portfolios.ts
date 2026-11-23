@@ -115,6 +115,8 @@ export function portfoliosRouter(deps: ServiceDeps): Router {
     ticker: tickerSchema,
     direction: z.enum(['long', 'short']).default('long'),
     amount: money.optional(),
+    /** A share count instead of a dollar amount (the Picks page buys a fixed number of shares). */
+    quantity: z.number().positive().max(1e6).optional(),
     price: money.optional(),
     candidateId: z.number().int().positive().optional(),
     note: z.string().max(300).optional(),
@@ -130,7 +132,8 @@ export function portfoliosRouter(deps: ServiceDeps): Router {
     const sector = (await pool.query<{ sector: string | null }>('SELECT sector FROM tickers WHERE ticker = $1', [body.ticker])).rows[0]?.sector
       ?? (await deps.market.profile(body.ticker)).sector
     const out = await recordBuy(pool, {
-      portfolioId: id, ticker: body.ticker, direction: body.direction, amount: body.amount ?? p.rules.position_size, price, date: today(deps),
+      portfolioId: id, ticker: body.ticker, direction: body.direction, price, date: today(deps),
+      ...(body.quantity ? { quantity: body.quantity } : { amount: body.amount ?? p.rules.position_size }),
       walkAway: c?.walk_away ?? null, candidateId: c?.id ?? null, source: c?.source ?? 'manual', sector, note: body.note ?? null,
     })
     ok(res, out, 201)
@@ -145,7 +148,8 @@ export function portfoliosRouter(deps: ServiceDeps): Router {
     const ref = body.price ?? c?.price ?? (await quotePrice(deps, body.ticker))
     const o = await placeTriggerOrder(pool, {
       portfolioId: id, ticker: body.ticker, direction: body.direction, triggerPrice: body.triggerPrice, refPrice: ref,
-      amount: body.amount ?? p.rules.position_size, date: today(deps), candidateId: c?.id ?? null, source: c?.source ?? 'manual', note: body.note ?? null,
+      ...(body.quantity ? { quantity: body.quantity } : { amount: body.amount ?? p.rules.position_size }),
+      date: today(deps), candidateId: c?.id ?? null, source: c?.source ?? 'manual', note: body.note ?? null,
     })
     ok(res, o, 201)
   }))

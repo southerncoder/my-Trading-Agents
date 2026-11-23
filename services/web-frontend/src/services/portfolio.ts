@@ -220,6 +220,8 @@ export interface TradeInput {
   ticker: string
   direction?: 'long' | 'short'
   amount?: number
+  /** Number of shares; used instead of amount when given. */
+  quantity?: number
   price?: number
   candidateId?: number
   note?: string

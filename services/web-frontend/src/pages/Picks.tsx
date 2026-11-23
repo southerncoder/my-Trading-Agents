@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { groupPicks, pickAction, SOURCE_HELP, SOURCE_LABEL } from '../components/portfolio/helpers'
 import { button, field, money, primaryButton, primaryStyle, sectionTitle, useLoad } from '../components/portfolio/ui'
@@ -40,22 +40,22 @@ function ProfessorReview({ p }: { p: Pick }) {
   )
 }
 
-function PickCard({ p, portfolioId, amount, onTraded }: { p: Pick; portfolioId: number | null; amount: number; onTraded: (msg: string) => void }) {
+function PickCard({ p, portfolioId, shares, onTraded }: { p: Pick; portfolioId: number | null; shares: number; onTraded: (msg: string) => void }) {
   const action = pickAction(p)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null)
   // One recording per pick per visit: a second click would add to the same position by mistake.
   const [done, setDone] = useState(false)
   async function act() {
-    if (!action || !portfolioId || done) return
+    if (!action || !portfolioId || done || !(shares > 0)) return
     setBusy(true)
     setMsg(null)
     try {
       if (action.kind === 'market') {
-        const r = await buy(portfolioId, { ticker: p.ticker, direction: p.direction ?? 'long', amount, candidateId: p.id })
+        const r = await buy(portfolioId, { ticker: p.ticker, direction: p.direction ?? 'long', quantity: shares, candidateId: p.id })
         setMsg({ text: `Recorded.${r.warnings?.length ? ` Note: ${r.warnings.join('; ')}` : ''}`, ok: true })
       } else {
-        await triggerOrder(portfolioId, { ticker: p.ticker, direction: p.direction ?? 'long', amount, candidateId: p.id, triggerPrice: p.trigger_price as number })
+        await triggerOrder(portfolioId, { ticker: p.ticker, direction: p.direction ?? 'long', quantity: shares, candidateId: p.id, triggerPrice: p.trigger_price as number })
         setMsg({ text: 'Order placed. It fills if a later day trades through the price.', ok: true })
       }
       setDone(true)
@@ -88,8 +88,8 @@ function PickCard({ p, portfolioId, amount, onTraded }: { p: Pick; portfolioId: 
       <ProfessorReview p={p} />
       {action && (
         <div className="flex flex-wrap items-center gap-2 pt-1">
-          <button type="button" disabled={busy || done || !portfolioId} onClick={act} className={primaryButton} style={primaryStyle}>
-            {done ? 'Recorded' : busy ? 'Saving...' : `${action.text} (${money(amount, 0)})`}
+          <button type="button" disabled={busy || done || !portfolioId || !(shares > 0)} onClick={act} className={primaryButton} style={primaryStyle}>
+            {done ? 'Recorded' : busy ? 'Saving...' : `${action.text} (${shares} share${shares === 1 ? '' : 's'})`}
           </button>
           {!portfolioId && <span className="text-xs" style={muted}>Choose a portfolio above first.</span>}
           {msg && <span role={msg.ok ? 'status' : 'alert'} className="text-xs" style={msg.ok ? good : bad}>{msg.text}</span>}
@@ -108,10 +108,8 @@ export function Picks() {
   const owners = (portfolios.data ?? []).filter((p) => p.kind === 'owner')
   const [pid, setPid] = useState<number | null>(null)
   const chosen = owners.find((p) => p.id === pid) ?? owners[0] ?? null
-  const [amount, setAmount] = useState<string>('')
-  useEffect(() => {
-    if (chosen && !amount) setAmount(String(chosen.rules.position_size))
-  }, [chosen, amount])
+  // Every pick buys the same number of shares, so position changes are easy to follow.
+  const [shares, setShares] = useState<string>('1')
   const [ticker, setTicker] = useState('')
   const [askMsg, setAskMsg] = useState<{ text: string; ok: boolean } | null>(null)
   const [showAll, setShowAll] = useState(false)
@@ -138,7 +136,7 @@ export function Picks() {
       <header>
         <h1 className="text-2xl font-semibold">Picks</h1>
         <p className="text-sm" style={muted}>
-          The night&apos;s calls from three sources: your watchlist, a rule-based screen and names in the news. Recording a pick buys it in a paper
+          The night&apos;s calls from three sources: your watchlist, a rule-based screen and names in the news. Recording a pick buys the chosen number of shares in a paper
           portfolio at the latest price, or places an order that waits for the trigger price. Nothing here is advice.
         </p>
       </header>
@@ -153,7 +151,7 @@ export function Picks() {
         <label className="flex min-w-0 flex-col gap-1">
           Record into
           {owners.length ? (
-            <select value={chosen?.id ?? ''} onChange={(e) => { setPid(Number(e.target.value)); setAmount('') }} className={field} style={card}>
+            <select value={chosen?.id ?? ''} onChange={(e) => setPid(Number(e.target.value))} className={field} style={card}>
               {owners.map((p) => <option key={p.id} value={p.id}>{p.name} ({money(p.cash, 0)} cash)</option>)}
             </select>
           ) : (
@@ -161,8 +159,8 @@ export function Picks() {
           )}
         </label>
         <label className="flex min-w-0 flex-col gap-1">
-          Dollars per pick
-          <input type="number" min={1} step={10} value={amount} onChange={(e) => setAmount(e.target.value)} className={`${field} w-28`} style={card} />
+          Shares per pick
+          <input type="number" min={1} step={1} value={shares} onChange={(e) => setShares(e.target.value)} className={`${field} w-28`} style={card} />
         </label>
         <label className="flex items-center gap-2 pb-1.5">
           <input type="checkbox" checked={showAll} onChange={(e) => setShowAll(e.target.checked)} /> Show holds and exits too
@@ -178,7 +176,7 @@ export function Picks() {
           <h2 id={`src-${g.source}`} className={sectionTitle}>{SOURCE_LABEL[g.source] ?? g.source} <span className="text-sm font-normal" style={muted}>({g.picks.length})</span></h2>
           <p className="text-xs" style={muted}>{SOURCE_HELP[g.source]}</p>
           <ul className="grid grid-cols-[repeat(1,minmax(0,1fr))] gap-2 lg:grid-cols-[repeat(2,minmax(0,1fr))]">
-            {g.picks.map((p) => <PickCard key={p.id} p={p} portfolioId={chosen?.id ?? null} amount={Number(amount) || 0} onTraded={() => portfolios.reload()} />)}
+            {g.picks.map((p) => <PickCard key={p.id} p={p} portfolioId={chosen?.id ?? null} shares={Number(shares) || 0} onTraded={() => portfolios.reload()} />)}
           </ul>
         </section>
       ))}
