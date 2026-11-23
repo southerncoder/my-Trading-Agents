@@ -20,6 +20,16 @@ if (-not $Force -and (Test-Path $statusFile)) {
   $first = [string](Get-Content $statusFile -TotalCount 1)
   if ($first -notmatch 'PROBLEMS|FAILED') { Write-Host "Tonight's run already finished ($statusFile). Use -Force to run again."; exit 0 }
 }
+# ...and while the first one is still working, the second must not start a parallel run (it doubles the model
+# calls and both write the ledger and the page). A lock whose process is gone, or older than the task's 5-hour
+# limit, is stale.
+$runLock = Join-Path $outDir 'run.lock'
+if (Test-Path $runLock) {
+  $holder = [string](Get-Content $runLock -TotalCount 1)
+  $alive = $holder -match '^\d+$' -and (Get-Process -Id ([int]$holder) -ErrorAction SilentlyContinue)
+  if ($alive -and (Get-Item $runLock).LastWriteTime -gt (Get-Date).AddHours(-5)) { Write-Host "Tonight's run is already in progress (process $holder)."; exit 0 }
+}
+Set-Content -Path $runLock -Value $PID -Encoding ascii
 Start-Transcript -Path (Join-Path $nightly 'run.log') -Force | Out-Null
 Set-Location $root
 $problems = New-Object System.Collections.Generic.List[string]
@@ -57,6 +67,7 @@ if ($problems.Count -gt 0) {
   $msg = "FAILED before the run: " + ($problems -join '; ')
   Set-Content -Path (Join-Path $outDir 'status.txt') -Value $msg -Encoding utf8
   Notify 'Nightly stock brief failed' $msg
+  Remove-Item $runLock -ErrorAction SilentlyContinue
   Stop-Transcript | Out-Null
   exit 1
 }
@@ -156,5 +167,6 @@ Set-Content -Path (Join-Path $outDir 'status.txt') -Value $lines -Encoding utf8
 if ($problems.Count -eq 0 -and @($wlRun.Once).Count -gt 0) { Remove-OnceStocks -Tickers $wlRun.Once; $lines += "Removed one-time stocks: $(@($wlRun.Once) -join ', ')"; Set-Content -Path (Join-Path $outDir 'status.txt') -Value $lines -Encoding utf8 }
 $lines | ForEach-Object { Write-Host $_ }
 if ($problems.Count -gt 0) { Notify 'Nightly stock brief had problems' ($problems -join '; ') } else { Notify 'Nightly stock brief ready' $lines[0] }
+Remove-Item $runLock -ErrorAction SilentlyContinue
 Stop-Transcript | Out-Null
 exit ([int]($problems.Count -gt 0))

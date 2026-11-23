@@ -31,6 +31,12 @@ function Post([string]$path, $body) {
 if (-not $FromNightly) {
   $task = Get-ScheduledTask -TaskName 'Nightly stock brief' -ErrorAction SilentlyContinue
   if ($task -and $task.State -eq 'Running') { exit 0 }
+  # The nightly run can also be started by another launcher; its lock file says so either way.
+  $nightLock = Join-Path $root "logs\nightly\$(Get-Date -Format yyyy-MM-dd)\run.lock"
+  if (Test-Path $nightLock) {
+    $holder = [string](Get-Content $nightLock -TotalCount 1)
+    if ($holder -match '^\d+$' -and (Get-Process -Id ([int]$holder) -ErrorAction SilentlyContinue)) { exit 0 }
+  }
 }
 # One worker at a time; a lock older than 2 hours (or whose process is gone) is stale.
 if (Test-Path $lock) {
