@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { buy, fetchPicks, fetchPortfolios, requestAnalysis } from './portfolio'
+import { buy, fetchPicks, fetchPortfolios, requestAnalysis, summarySchema } from './portfolio'
 
 const reply = (status: number, body: unknown, json = true) =>
   vi.stubGlobal(
@@ -46,5 +46,12 @@ describe('portfolio API client', () => {
   it('picks: an empty night parses', async () => {
     reply(200, { success: true, data: { date: null, dates: [], picks: [] } })
     expect(await fetchPicks()).toEqual({ date: null, dates: [], picks: [] })
+  })
+})
+
+describe('portfolio summary kind', () => {
+  it('accepts a kind the frontend does not know yet instead of failing the whole list', () => {
+    expect(summarySchema.shape.kind.parse('baseline')).toBe('baseline')
+    expect(summarySchema.shape.kind.parse('something-new')).toBe('something-new')
   })
 })

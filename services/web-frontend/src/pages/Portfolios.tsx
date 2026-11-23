@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { card, fmtPct, moveColor, muted } from '../components/today/format'
 import { button, field, money, primaryButton, primaryStyle, sectionTitle, useLoad } from '../components/portfolio/ui'
-import { KIND_INFO } from '../components/portfolio/helpers'
+import { kindInfo } from '../components/portfolio/helpers'
 import { createPortfolio, fetchPortfolios, type PortfolioSummary } from '../services/portfolio'
 
 function Versus({ p }: { p: PortfolioSummary }) {
@@ -56,7 +56,7 @@ export function Portfolios() {
             <Link key={p.id} to={`/portfolios/${p.id}`} className="clickable block rounded-lg p-4 no-underline" style={card} title={`Open ${p.name}`}>
               <div className="flex items-baseline justify-between gap-2">
                 <span className="font-semibold">{p.name}</span>
-                {KIND_INFO[p.kind].tag && <span className="rounded px-1.5 text-xs" style={{ ...muted, border: '1px solid currentColor' }} title={KIND_INFO[p.kind].label}>{KIND_INFO[p.kind].tag}</span>}
+                {kindInfo(p.kind).tag && <span className="rounded px-1.5 text-xs" style={{ ...muted, border: '1px solid currentColor' }} title={kindInfo(p.kind).label}>{kindInfo(p.kind).tag}</span>}
               </div>
               <div className="mt-1 text-2xl font-semibold">{money(p.equity, 0)}</div>
               <div className="text-sm"><Versus p={p} /></div>

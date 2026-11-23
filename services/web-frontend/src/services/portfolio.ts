@@ -32,7 +32,8 @@ export type EducationalReview = z.infer<typeof educationalReviewSchema>
 export const summarySchema = z.object({
   id: n,
   name: z.string(),
-  kind: z.enum(['owner', 'shadow', 'baseline']),
+  // A plain string: a kind added on the server later must not break the whole list. Only 'owner' can be traded.
+  kind: z.string(),
   starting_cash: n,
   cash: n,
   created_on: z.string(),

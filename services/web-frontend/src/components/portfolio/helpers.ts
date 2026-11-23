@@ -130,8 +130,10 @@ export const ALERT_LABEL: Record<string, string> = {
 }
 
 /** Short tag and one-line description for each kind of portfolio. */
-export const KIND_INFO: Record<'owner' | 'shadow' | 'baseline', { tag: string | null; label: string }> = {
+const KIND_INFO: Record<string, { tag: string | null; label: string }> = {
   owner: { tag: null, label: 'Owner portfolio' },
   shadow: { tag: 'shadow', label: 'System shadow' },
   baseline: { tag: 'baseline', label: 'Follows every call' },
 }
+
+export const kindInfo = (kind: string) => KIND_INFO[kind] ?? { tag: kind, label: `${kind} portfolio (runs by itself)` }
