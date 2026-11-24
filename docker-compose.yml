@@ -160,6 +160,9 @@ services:
       - NODE_ENV=development
       - LOG_LEVEL=debug
       - PORT=3005
+      # Loaded from docker/secrets by tools/compose.ps1; empty means "not configured".
+      - FRED_API_KEY=${FRED_API_KEY:-}
+      - BLS_API_KEY=${BLS_API_KEY:-}
     ports:
       - "127.0.0.1:${GOVERNMENT_DATA_PORT:-38405}:3005"
     networks:

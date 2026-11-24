@@ -10,5 +10,8 @@ $env:NEO4J_PASSWORD  = Read-Secret 'neo4j_password.txt'
 $env:POSTGRES_USER   = Read-Secret 'postgres_user.txt'
 $env:POSTGRES_PASSWORD = Read-Secret 'postgres_password.txt'
 $env:POSTGRES_DB     = Read-Secret 'postgres_db.txt'
+# Optional macro-data keys for the government-data service (absent: FRED is skipped, BLS runs keyless).
+$env:FRED_API_KEY    = Read-Secret 'fred_api_key.txt'
+$env:BLS_API_KEY     = Read-Secret 'bls_api_key.txt'
 Push-Location $root
 try { docker compose @args } finally { Pop-Location }

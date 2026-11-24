@@ -252,6 +252,18 @@ app.get('/api/company/:ticker', async (req, res) => {
   }
 });
 
+// Market-wide macro backdrop for the analysts, as known on asOf (BLS always; FRED when a key is configured).
+app.get('/api/macro', async (req, res) => {
+  const asOf = typeof req.query.asOf === 'string' ? req.query.asOf : new Date().toISOString().slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(asOf) || Number.isNaN(Date.parse(asOf))) return res.status(400).json({ error: 'asOf must be YYYY-MM-DD' });
+  try {
+    return res.json(await govData.getMacroSummary(asOf));
+  } catch (error) {
+    logger.error('Macro summary failed', { error, asOf });
+    return res.status(502).json({ error: 'Macro data unavailable' });
+  }
+});
+
 // Compact point-in-time fundamentals for the analysts (no look-ahead: only filings made by asOf).
 app.get('/api/company/:ticker/fundamentals', async (req, res) => {
   const ticker = String(req.params.ticker).toUpperCase();

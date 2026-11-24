@@ -127,6 +127,10 @@ function Invoke-SecretsMigration {
     New-SecretFile "SIMFIN_API_KEY" (Join-Path $SECRETS_DIR "simfin_api_key.txt") "SimFin API Key"
     New-SecretFile "IEX_CLOUD_TOKEN" (Join-Path $SECRETS_DIR "iex_cloud_token.txt") "IEX Cloud Token"
 
+    # Government macro data (government-data service): FRED needs a free key; BLS works without one (25 requests/day)
+    New-SecretFile "FRED_API_KEY" (Join-Path $SECRETS_DIR "fred_api_key.txt") "FRED API Key"
+    New-SecretFile "BLS_API_KEY" (Join-Path $SECRETS_DIR "bls_api_key.txt") "BLS API Key"
+
     # Social Media API Secrets
     New-SecretFile "TWITTER_BEARER_TOKEN" (Join-Path $SECRETS_DIR "twitter_bearer_token.txt") "Twitter Bearer Token"
 

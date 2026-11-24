@@ -70,6 +70,9 @@ export class FREDClient extends BaseClient {
       sort_order?: 'asc' | 'desc';
       frequency?: string;
       aggregation_method?: 'avg' | 'sum' | 'eop';
+      /** Values as they were known in this real-time period (ALFRED vintages): no later data or revisions. */
+      realtime_start?: string;
+      realtime_end?: string;
     }
   ): Promise<FREDObservation[]> {
     logger.info(`Fetching FRED observations for series: ${seriesId}`, {
@@ -91,6 +94,8 @@ export class FREDClient extends BaseClient {
     if (options?.sort_order) params.sort_order = options.sort_order;
     if (options?.frequency) params.frequency = options.frequency;
     if (options?.aggregation_method) params.aggregation_method = options.aggregation_method;
+    if (options?.realtime_start) params.realtime_start = options.realtime_start;
+    if (options?.realtime_end) params.realtime_end = options.realtime_end;
 
     try {
       const response = await this.makeRequest<{

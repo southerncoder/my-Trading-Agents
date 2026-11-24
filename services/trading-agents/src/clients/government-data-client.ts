@@ -93,6 +93,14 @@ export class GovernmentDataClient {
   }
 
   /**
+   * Market-wide macro backdrop as known on `asOf` (BLS jobs and inflation; FRED rates and markets when configured).
+   */
+  async getMacroSummary(asOf: string): Promise<{ asOf: string; sources: { bls: boolean; fred: boolean }; notes: string[]; digest: string }> {
+    const response = await this.client.get('/api/macro', { params: { asOf } });
+    return response.data;
+  }
+
+  /**
    * Get comprehensive company profile
    */
   async getCompanyProfile(ticker: string): Promise<CompanyProfile> {

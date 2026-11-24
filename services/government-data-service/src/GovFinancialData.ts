@@ -13,8 +13,20 @@ import {
 } from './types/index.js';
 import { logger } from './utils/logger.js';
 import { summarizeFundamentals, type CompanyFactsLike, type FundamentalsSummary, type SubmissionsLike } from './fundamentals.js';
+import { BLS_SERIES, FRED_SERIES, blsAsOf, blsLines, fredLines, macroDigest, type BlsSeriesLike, type FredObs } from './macro.js';
+
+export interface MacroSummary {
+  asOf: string;
+  sources: { bls: boolean; fred: boolean };
+  notes: string[];
+  digest: string;
+}
+
+/** Macro data is market-wide: one build per date serves every stock that night (BLS allows 25 requests a day without a key). */
+const MACRO_TTL_MS = 6 * 60 * 60 * 1000;
 
 export class GovFinancialData {
+  private macroCache = new Map<string, { at: number; data: MacroSummary }>();
   public sec: SECClient;
   public fred?: FREDClient;
   public bls: BLSClient;
@@ -115,6 +127,56 @@ export class GovFinancialData {
       facts: facts as unknown as CompanyFactsLike | null,
       submissions: submissions as SubmissionsLike | null,
     });
+  }
+
+  /**
+   * Macro backdrop as known on `asOf`: BLS jobs and inflation (no key needed) and, with a FRED key, rates,
+   * the yield curve, volatility, credit spreads, oil and GDP growth. Partial data is returned with notes.
+   */
+  async getMacroSummary(asOf: string): Promise<MacroSummary> {
+    const hit = this.macroCache.get(asOf);
+    if (hit && Date.now() - hit.at < MACRO_TTL_MS) return hit.data;
+    const notes: string[] = [];
+    const year = Number(asOf.slice(0, 4));
+
+    let bls: string[] = [];
+    try {
+      const ids = Object.values(BLS_SERIES);
+      const series = (await this.bls.getSeriesData(ids, { startYear: year - 2, endYear: year })) as unknown as BlsSeriesLike[];
+      const of = (k: keyof typeof BLS_SERIES) => blsAsOf(series.find((s) => s.seriesID === BLS_SERIES[k]), k, asOf);
+      bls = blsLines({ unemployment: of('unemployment'), payrolls: of('payrolls'), cpi: of('cpi'), coreCpi: of('coreCpi') });
+    } catch (error) {
+      logger.warn('BLS data unavailable for the macro summary', { error });
+      notes.push('Bureau of Labor Statistics data could not be loaded (jobs and inflation are missing).');
+    }
+
+    let fred: string[] = [];
+    if (this.fred) {
+      // Values known on asOf: FRED refuses a real-time date in the future, so cap it at today.
+      const today = new Date().toISOString().slice(0, 10);
+      const rt = asOf < today ? asOf : today;
+      const start = new Date(Date.parse(asOf) - 400 * 86_400_000).toISOString().slice(0, 10);
+      const got: Partial<Record<keyof typeof FRED_SERIES, FredObs[]>> = {};
+      const failed: string[] = [];
+      for (const [key, meta] of Object.entries(FRED_SERIES) as [keyof typeof FRED_SERIES, { id: string }][]) {
+        try {
+          got[key] = (await this.fred.getObservations(meta.id, { startDate: start, endDate: asOf, realtime_start: rt, realtime_end: rt })) as FredObs[];
+        } catch (error) {
+          logger.warn(`FRED series ${meta.id} unavailable for the macro summary`, { error });
+          failed.push(meta.id);
+        }
+      }
+      fred = fredLines(got, asOf);
+      if (failed.length) notes.push(`FRED series unavailable: ${failed.join(', ')}.`);
+    } else {
+      notes.push('Rates, yield curve, volatility and credit spreads are missing: no FRED API key is configured.');
+    }
+
+    const data: MacroSummary = { asOf, sources: { bls: bls.length > 0, fred: fred.length > 0 }, notes, digest: macroDigest({ asOf, bls, fred, notes }) };
+    // Only a complete answer is kept for the day; a partial one is retried on the next request.
+    if (!notes.length || (!this.fred && bls.length)) this.macroCache.set(asOf, { at: Date.now(), data });
+    while (this.macroCache.size > 30) this.macroCache.delete(this.macroCache.keys().next().value as string);
+    return data;
   }
 
   /**

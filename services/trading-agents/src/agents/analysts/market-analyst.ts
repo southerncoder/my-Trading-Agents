@@ -5,6 +5,7 @@ import { AbstractAgent } from '../base/index';
 import { fetchToolData, fetchError, pickKeys } from '../base/tool-data';
 import { ENTRY_STANCE_LINE, adjustmentOn, entryCheck } from '../base/evidence';
 import { indicatorBlock, typicalMoveLine } from '../base/indicators';
+import { macroBlock } from '../base/macro-context';
 import { AgentState } from '../../types/agent-states';
 import { createLogger } from '../../utils/enhanced-logger';
 import { withLLMResilience, OPENAI_LLM_CONFIG, createResilientLLM } from '../../utils/resilient-llm';
@@ -81,7 +82,9 @@ export class MarketAnalyst extends AbstractAgent {
       const baseRequest = this.createAnalysisRequest(state);
       const indicators = adjustmentOn('indicators') ? indicatorBlock(dataBlock) : '';
       const moveLine = adjustmentOn('indicators') ? typicalMoveLine(dataBlock) : '';
-      const humanMessage = new HumanMessage(baseRequest.content.toString() + '\n\n' + dataBlock + (indicators ? '\n\n' + indicators : ''));
+      // Market-wide backdrop as known on the trade date (official BLS and FRED data); a note when unavailable.
+      const macro = await macroBlock(state.trade_date);
+      const humanMessage = new HumanMessage(baseRequest.content.toString() + '\n\n' + dataBlock + (indicators ? '\n\n' + indicators : '') + '\n\n' + macro);
       
       this.logger.debug('process', 'Prepared LLM messages for market analysis', {
         systemPromptLength: systemPrompt.length,
@@ -164,6 +167,9 @@ Your responsibilities include:
 Guidelines for analysis:
 - Use available market data tools to gather comprehensive information
 - Focus on technical analysis and price action
+- Use the MACRO BACKDROP block (official jobs, inflation, rates, yield curve, volatility and credit data) to say in a
+  sentence or two whether the market-wide environment supports or works against a position in this stock; quote its
+  figures and dates rather than recalling economic conditions from memory
 - Consider both short-term and long-term trends
 - Identify key technical levels and patterns
 - Assess market volatility and risk factors
@@ -188,6 +194,11 @@ Provide a comprehensive market analysis report in the following structure:
 - Entry and exit considerations
 - Risk factors and volatility assessment
 - Market sentiment indicators
+
+### Macro Backdrop
+- Two or three sentences from the MACRO BACKDROP block only, quoting its figures and months (jobs, inflation, and
+  rates or volatility when given): does the economy-wide environment help or hurt a position in this stock, and why
+  for this kind of business? If the block says data is missing or unavailable, say so in one line.
 
 ### Conclusion
 - Overall technical outlook (bullish/bearish/neutral)
