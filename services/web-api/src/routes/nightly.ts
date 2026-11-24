@@ -136,8 +136,15 @@ router.get('/stock/:ticker', async (req, res) => {
     if (!history.some((h) => h.date === date)) return fail(res, 404, `No data for ${ticker} on ${date}`)
 
     const stages = await loadStages(logsPath(), date, ticker)
-    const review = pickReview(stockRow(ledger.byDate, ticker, date)?.educational_review)
-    return res.json({ success: true, data: { ticker, date, history, stages, review } })
+    const row = stockRow(ledger.byDate, ticker, date)
+    const review = pickReview(row?.educational_review)
+    // Per-stage timing lean the nightly script recorded (market, rm, trader, pm: "now" or "wait").
+    const rawStance = (row as { stance?: unknown } | undefined)?.stance
+    const stance: Record<string, string> = {}
+    if (rawStance && typeof rawStance === 'object') {
+      for (const [k, v] of Object.entries(rawStance)) if (typeof v === 'string' && /^[a-z_]{1,20}$/.test(k)) stance[k] = v
+    }
+    return res.json({ success: true, data: { ticker, date, history, stages, review, stance } })
   } catch {
     return fail(res, 500, 'Failed to read nightly data')
   }

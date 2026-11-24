@@ -812,6 +812,7 @@ tr.clickable-row:hover { background: color-mix(in srgb, var(--color-primary, #25
   --viz-1: #3987e5;
   --viz-2: #d95926;
   --viz-3: #199e70;
+  --viz-4: #c98500;
   --viz-surface: #0f172a;
   --viz-grid: rgba(148, 163, 184, 0.16);
 }
@@ -819,6 +820,7 @@ tr.clickable-row:hover { background: color-mix(in srgb, var(--color-primary, #25
   --viz-1: #2a78d6;
   --viz-2: #eb6834;
   --viz-3: #1baf7a;
+  --viz-4: #eda100;
   --viz-surface: #ffffff;
   --viz-grid: rgba(15, 23, 42, 0.08);
 }

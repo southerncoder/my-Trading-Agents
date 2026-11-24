@@ -98,6 +98,7 @@ export const stockDetailSchema = z.object({
   history: z.array(historyPointSchema),
   stages: z.record(z.string(), z.string()).nullable(),
   review: educationalReviewSchema.nullable().optional(),
+  stance: z.record(z.string(), z.string()).optional(),
 })
 
 export type HistoryPoint = z.infer<typeof historyPointSchema>

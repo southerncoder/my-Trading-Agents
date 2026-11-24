@@ -219,7 +219,7 @@ export function Stock() {
 
       <Section id="trail-heading" title="Opinion trail" icon={MessagesSquare} sub="Every analyst's write-up for this night, in the order they ran.">
         {data.stages ? (
-          <StageTabs key={data.date} stages={data.stages} />
+          <StageTabs key={data.date} stages={data.stages} stance={data.stance} ctx={{ ticker: data.ticker, company: short, media: m, extras: x }} />
         ) : (
           <p style={muted}>The write-ups for this night aren&rsquo;t available.</p>
         )}
