@@ -9,7 +9,26 @@ import {
 } from '../types/index.js';
 import { logger } from '../utils/logger.js';
 
+/** The ticker list changes rarely; company files change when something is filed. Both are large, so cache them. */
+const TICKERS_TTL_MS = 24 * 60 * 60 * 1000;
+const COMPANY_TTL_MS = 6 * 60 * 60 * 1000;
+const COMPANY_CACHE_MAX = 60;
+
 export class SECClient extends BaseClient {
+    private tickers: { at: number; data: { [key: string]: SECCompany } } | null = null;
+    private companyCache = new Map<string, { at: number; data: unknown }>();
+
+    /** Cached GET of one company file (facts or submissions), keyed by URL. */
+    private async cachedCompanyFile<T>(url: string, options?: RequestOptions): Promise<T> {
+        const hit = this.companyCache.get(url);
+        if (hit && Date.now() - hit.at < COMPANY_TTL_MS) return hit.data as T;
+        const data = await this.makeRequest<T>({ method: 'GET', url }, options);
+        this.companyCache.delete(url);
+        this.companyCache.set(url, { at: Date.now(), data });
+        while (this.companyCache.size > COMPANY_CACHE_MAX) this.companyCache.delete(this.companyCache.keys().next().value as string);
+        return data;
+    }
+
     constructor(userAgent?: string) {
         // SEC rate limit: 10 requests per second
         super(
@@ -26,15 +45,18 @@ export class SECClient extends BaseClient {
      * Get all company tickers with their CIK mappings
      */
     async getCompanyTickers(options?: RequestOptions): Promise<{ [ticker: string]: SECCompany }> {
+        if (this.tickers && Date.now() - this.tickers.at < TICKERS_TTL_MS) return this.tickers.data;
         logger.info('Fetching company tickers from SEC');
 
         try {
+            // The ticker list is served from www.sec.gov, not the data.sec.gov API host.
             const response = await this.makeRequest<{ [ticker: string]: SECCompany }>({
                 method: 'GET',
-                url: '/files/company_tickers.json',
+                url: 'https://www.sec.gov/files/company_tickers.json',
             }, options);
 
             logger.info(`Retrieved ${Object.keys(response).length} company tickers`);
+            this.tickers = { at: Date.now(), data: response };
             return response;
         } catch (error) {
             logger.error('Failed to fetch company tickers', { error });
@@ -110,7 +132,7 @@ export class SECClient extends BaseClient {
         });
 
         try {
-            const response = await this.makeRequest<{
+            const response = await this.cachedCompanyFile<{
                 filings: {
                     recent: {
                         accessionNumber: string[];
@@ -129,10 +151,7 @@ export class SECClient extends BaseClient {
                         primaryDocDescription: string[];
                     };
                 };
-            }>({
-                method: 'GET',
-                url: `/api/xbrl/submissions/CIK${formattedCIK}.json`,
-            }, options);
+            }>(`/submissions/CIK${formattedCIK}.json`, options);
 
             const recent = response.filings.recent;
             const filings: SECFiling[] = [];
@@ -179,10 +198,7 @@ export class SECClient extends BaseClient {
         logger.info(`Fetching company facts for CIK: ${formattedCIK}`);
 
         try {
-            const response = await this.makeRequest<SECCompanyFacts>({
-                method: 'GET',
-                url: `/api/xbrl/companyfacts/CIK${formattedCIK}.json`,
-            }, options);
+            const response = await this.cachedCompanyFile<SECCompanyFacts>(`/api/xbrl/companyfacts/CIK${formattedCIK}.json`, options);
 
             logger.info(`Retrieved company facts for: ${response.entityName}`);
             return response;
@@ -312,10 +328,7 @@ export class SECClient extends BaseClient {
         logger.info(`Fetching company submissions for CIK: ${formattedCIK}`);
 
         try {
-            const response = await this.makeRequest({
-                method: 'GET',
-                url: `/api/xbrl/submissions/CIK${formattedCIK}.json`,
-            }, options);
+            const response = await this.cachedCompanyFile<unknown>(`/submissions/CIK${formattedCIK}.json`, options);
 
             logger.info(`Retrieved submissions data for CIK: ${formattedCIK}`);
             return response;

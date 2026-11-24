@@ -8,11 +8,11 @@ import {
   EconomicDashboard, 
   MarketIndicators, 
   SearchResults,
-  SECCompany,
   FREDSeries,
   DateRange
 } from './types/index.js';
 import { logger } from './utils/logger.js';
+import { summarizeFundamentals, type CompanyFactsLike, type FundamentalsSummary, type SubmissionsLike } from './fundamentals.js';
 
 export class GovFinancialData {
   public sec: SECClient;
@@ -90,6 +90,31 @@ export class GovFinancialData {
       logger.error(`Failed to fetch company profile for ${ticker}`, { error });
       throw error;
     }
+  }
+
+  /**
+   * Compact, point-in-time fundamentals for an analyst: figures and filings filed on or before `asOf`.
+   * Returns null when the SEC has no company for the ticker (ETFs, foreign listings without a CIK, ...).
+   */
+  async getFundamentalsSummary(ticker: string, asOf: string): Promise<FundamentalsSummary | null> {
+    const company = await this.sec.getCompanyByTicker(ticker);
+    if (!company) return null;
+    const cik = String(company.cik_str);
+    const [facts, submissions] = await Promise.all([
+      this.sec.getCompanyFacts(cik).catch((error) => {
+        logger.warn(`No XBRL company facts for ${ticker}`, { error });
+        return null;
+      }),
+      this.sec.getCompanySubmissions(cik).catch((error) => {
+        logger.warn(`No submissions for ${ticker}`, { error });
+        return null;
+      }),
+    ]);
+    return summarizeFundamentals({
+      ticker, cik, name: company.title, asOf,
+      facts: facts as unknown as CompanyFactsLike | null,
+      submissions: submissions as SubmissionsLike | null,
+    });
   }
 
   /**

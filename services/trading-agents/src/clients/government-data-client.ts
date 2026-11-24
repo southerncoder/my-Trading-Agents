@@ -16,6 +16,21 @@ export interface CompanyProfile {
   financialFacts: any;
 }
 
+/** Compact point-in-time fundamentals from SEC filings (government-data /api/company/:ticker/fundamentals). */
+export interface FundamentalsSummary {
+  ticker: string;
+  cik: string;
+  name: string;
+  industry?: string;
+  asOf: string;
+  recentFilings: { form: string; filed: string; period?: string }[];
+  annual: Record<string, unknown>[];
+  quarterly: Record<string, unknown>[];
+  balance: Record<string, unknown> | null;
+  /** Plain text for an analyst prompt. */
+  digest: string;
+}
+
 export interface EconomicDashboard {
   bls: any;
   fred: any;
@@ -65,6 +80,15 @@ export class GovernmentDataClient {
    */
   async healthCheck(): Promise<any> {
     const response = await this.client.get('/health');
+    return response.data;
+  }
+
+  /**
+   * Key figures from 10-K/10-Q filings made on or before `asOf` (YYYY-MM-DD), with a text digest.
+   * A 404 means the SEC has no filer for the ticker.
+   */
+  async getFundamentalsSummary(ticker: string, asOf: string): Promise<FundamentalsSummary> {
+    const response = await this.client.get(`/api/company/${encodeURIComponent(ticker)}/fundamentals`, { params: { asOf } });
     return response.data;
   }
 

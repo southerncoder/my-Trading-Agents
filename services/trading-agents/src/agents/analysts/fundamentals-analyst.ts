@@ -3,6 +3,7 @@ import { StructuredTool } from '@langchain/core/tools';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AbstractAgent } from '../base/index';
 import { fetchToolData, fetchError, compactFundamentals } from '../base/tool-data';
+import { secFundamentalsBlock } from '../base/sec-fundamentals';
 import { AgentState } from '../../types/agent-states';
 import { createLogger } from '../../utils/enhanced-logger';
 import { withLLMResilience, OPENAI_LLM_CONFIG, createResilientLLM } from '../../utils/resilient-llm';
@@ -57,8 +58,10 @@ export class FundamentalsAnalyst extends AbstractAgent {
           sender: this.name,
         };
       }
+      // Official figures from SEC filings, point-in-time to the trade date; a note instead when unavailable.
+      const secBlock = await secFundamentalsBlock(state.company_of_interest, state.trade_date);
       const baseRequest = this.createAnalysisRequest(state);
-      const humanMessage = new HumanMessage(baseRequest.content.toString() + '\n\n' + dataBlock);
+      const humanMessage = new HumanMessage(baseRequest.content.toString() + '\n\n' + dataBlock + '\n\n' + secBlock);
       
       this.logger.debug('process', 'Prepared LLM messages for fundamentals analysis', {
         systemPromptLength: systemPrompt.length,
@@ -140,6 +143,8 @@ Your responsibilities include:
 
 Guidelines for analysis:
 - Use available fundamental data tools comprehensively
+- The SEC EDGAR block holds official 10-K/10-Q figures: prefer them over vendor data when the two disagree, cite the
+  period and filing date, and use the growth, margin and balance-sheet figures it gives rather than estimating
 - Focus on financial health and performance trends
 - Consider both quantitative metrics and qualitative factors
 - Evaluate management effectiveness and corporate governance

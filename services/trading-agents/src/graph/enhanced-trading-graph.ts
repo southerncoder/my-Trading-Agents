@@ -375,11 +375,12 @@ export class EnhancedTradingAgentsGraph {
     // Get government data insights first (for fundamental analysis)
     if (this.governmentDataClient) {
       try {
-        governmentData = await this.governmentDataClient.getCompanyProfile(companyOfInterest);
+        // The compact point-in-time summary, not the full company file (several MB per stock).
+        governmentData = await this.governmentDataClient.getFundamentalsSummary(companyOfInterest, tradeDate);
         logger.info('analyzeAndDecide', 'Government data retrieved', {
           company: companyOfInterest,
-          hasSecFilings: !!governmentData.secFilings,
-          hasEconomicData: !!governmentData.economicIndicators
+          filings: governmentData.recentFilings?.length ?? 0,
+          annualPeriods: governmentData.annual?.length ?? 0
         });
       } catch (error) {
         logger.warn('analyzeAndDecide', 'Failed to get government data', {

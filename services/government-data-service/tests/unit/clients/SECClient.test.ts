@@ -71,7 +71,7 @@ describe('SECClient', () => {
 
       expect(mockAxiosInstance).toHaveBeenCalledWith({
         method: 'GET',
-        url: '/files/company_tickers.json',
+        url: 'https://www.sec.gov/files/company_tickers.json',
         timeout: 30000
       });
       expect(result).toEqual(mockTickers);
@@ -192,7 +192,7 @@ describe('SECClient', () => {
 
       expect(mockAxiosInstance).toHaveBeenCalledWith({
         method: 'GET',
-        url: '/api/xbrl/submissions/CIK0000320193.json',
+        url: '/submissions/CIK0000320193.json',
         timeout: 30000
       });
       expect(result).toHaveLength(2);
@@ -470,7 +470,7 @@ describe('SECClient', () => {
 
       expect(mockAxiosInstance).toHaveBeenCalledWith({
         method: 'GET',
-        url: '/api/xbrl/submissions/CIK0000320193.json',
+        url: '/submissions/CIK0000320193.json',
         timeout: 30000
       });
       expect(result.name).toBe('Apple Inc.');

@@ -252,6 +252,22 @@ app.get('/api/company/:ticker', async (req, res) => {
   }
 });
 
+// Compact point-in-time fundamentals for the analysts (no look-ahead: only filings made by asOf).
+app.get('/api/company/:ticker/fundamentals', async (req, res) => {
+  const ticker = String(req.params.ticker).toUpperCase();
+  const asOf = typeof req.query.asOf === 'string' ? req.query.asOf : new Date().toISOString().slice(0, 10);
+  if (!/^[A-Z][A-Z0-9.\-]{0,9}$/.test(ticker)) return res.status(400).json({ error: 'Invalid ticker' });
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(asOf) || Number.isNaN(Date.parse(asOf))) return res.status(400).json({ error: 'asOf must be YYYY-MM-DD' });
+  try {
+    const summary = await govData.getFundamentalsSummary(ticker, asOf);
+    if (!summary) return res.status(404).json({ error: `No SEC filer found for ${ticker}` });
+    return res.json(summary);
+  } catch (error) {
+    logger.error('Fundamentals summary failed', { error, ticker });
+    return res.status(502).json({ error: 'SEC data unavailable' });
+  }
+});
+
 app.get('/api/company/:ticker/context', async (req, res) => {
   try {
     const { ticker } = req.params;

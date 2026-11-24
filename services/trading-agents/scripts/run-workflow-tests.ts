@@ -10,6 +10,7 @@ const tests = [
   'tests/workflow/environment-validation.test.ts',
   'tests/workflow/roundtrip-memory-similarity.test.ts'
   ,'tests/workflow/langgraph-enforcement.test.ts'
+  ,'tests/workflow/sec-fundamentals.test.ts'
 ];
 
 interface RawImportResult { name: string; ok: boolean; error?: string }
