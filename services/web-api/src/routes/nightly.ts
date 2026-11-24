@@ -101,6 +101,23 @@ router.get('/scorecard', async (_req, res) => {
   }
 })
 
+const governmentDataUrl = () => process.env.GOVERNMENT_DATA_URL || 'http://government-data:3005'
+
+/** Macro backdrop (BLS jobs and inflation, FRED rates and markets) as known on a night, for the Today page. */
+router.get('/macro', async (req, res) => {
+  const date = typeof req.query.date === 'string' ? req.query.date : undefined
+  if (date !== undefined && !isRealDate(date)) return fail(res, 400, 'Date must be YYYY-MM-DD')
+  const asOf = date ?? new Date().toISOString().slice(0, 10)
+  try {
+    // The first request of a date builds the summary from BLS and FRED (a few seconds); later ones are cached.
+    const r = await fetch(`${governmentDataUrl()}/api/macro?asOf=${asOf}`, { signal: AbortSignal.timeout(60_000) })
+    if (!r.ok) return fail(res, 502, `Macro data unavailable (government-data answered ${r.status})`)
+    return res.json({ success: true, data: await r.json() })
+  } catch {
+    return fail(res, 502, 'Macro data unavailable (government-data could not be reached)')
+  }
+})
+
 router.get('/stock/:ticker', async (req, res) => {
   const { ticker } = req.params
   if (!TICKER_RE.test(ticker)) return fail(res, 400, 'Invalid ticker')

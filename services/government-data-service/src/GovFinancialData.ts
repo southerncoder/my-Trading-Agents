@@ -13,11 +13,13 @@ import {
 } from './types/index.js';
 import { logger } from './utils/logger.js';
 import { summarizeFundamentals, type CompanyFactsLike, type FundamentalsSummary, type SubmissionsLike } from './fundamentals.js';
-import { BLS_SERIES, FRED_SERIES, blsAsOf, blsLines, fredLines, macroDigest, type BlsSeriesLike, type FredObs } from './macro.js';
+import { BLS_SERIES, FRED_SERIES, blsAsOf, blsIndicators, fredIndicators, macroDigest, type BlsSeriesLike, type FredObs, type MacroIndicator } from './macro.js';
 
 export interface MacroSummary {
   asOf: string;
   sources: { bls: boolean; fred: boolean };
+  /** The figures behind the digest, for the web page. */
+  indicators: MacroIndicator[];
   notes: string[];
   digest: string;
 }
@@ -139,18 +141,18 @@ export class GovFinancialData {
     const notes: string[] = [];
     const year = Number(asOf.slice(0, 4));
 
-    let bls: string[] = [];
+    let blsItems: MacroIndicator[] = [];
     try {
       const ids = Object.values(BLS_SERIES);
       const series = (await this.bls.getSeriesData(ids, { startYear: year - 2, endYear: year })) as unknown as BlsSeriesLike[];
       const of = (k: keyof typeof BLS_SERIES) => blsAsOf(series.find((s) => s.seriesID === BLS_SERIES[k]), k, asOf);
-      bls = blsLines({ unemployment: of('unemployment'), payrolls: of('payrolls'), cpi: of('cpi'), coreCpi: of('coreCpi') });
+      blsItems = blsIndicators({ unemployment: of('unemployment'), payrolls: of('payrolls'), cpi: of('cpi'), coreCpi: of('coreCpi') });
     } catch (error) {
       logger.warn('BLS data unavailable for the macro summary', { error });
       notes.push('Bureau of Labor Statistics data could not be loaded (jobs and inflation are missing).');
     }
 
-    let fred: string[] = [];
+    let fredItems: MacroIndicator[] = [];
     if (this.fred) {
       // Values known on asOf: FRED refuses a real-time date in the future, so cap it at today.
       const today = new Date().toISOString().slice(0, 10);
@@ -166,13 +168,18 @@ export class GovFinancialData {
           failed.push(meta.id);
         }
       }
-      fred = fredLines(got, asOf);
+      fredItems = fredIndicators(got, asOf);
       if (failed.length) notes.push(`FRED series unavailable: ${failed.join(', ')}.`);
     } else {
       notes.push('Rates, yield curve, volatility and credit spreads are missing: no FRED API key is configured.');
     }
 
-    const data: MacroSummary = { asOf, sources: { bls: bls.length > 0, fred: fred.length > 0 }, notes, digest: macroDigest({ asOf, bls, fred, notes }) };
+    const bls = blsItems.map((i) => i.line).filter(Boolean);
+    const fred = fredItems.map((i) => i.line);
+    const data: MacroSummary = {
+      asOf, sources: { bls: bls.length > 0, fred: fred.length > 0 }, indicators: [...blsItems, ...fredItems], notes,
+      digest: macroDigest({ asOf, bls, fred, notes }),
+    };
     // Only a complete answer is kept for the day; a partial one is retried on the next request.
     if (!notes.length || (!this.fred && bls.length)) this.macroCache.set(asOf, { at: Date.now(), data });
     while (this.macroCache.size > 30) this.macroCache.delete(this.macroCache.keys().next().value as string);

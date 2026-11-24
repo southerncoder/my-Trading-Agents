@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { blsAsOf, blsLines, fredLines, macroDigest, type BlsSeriesLike } from '../../src/macro';
+import { blsAsOf, blsIndicators, blsLines, fredIndicators, fredLines, macroDigest, type BlsSeriesLike } from '../../src/macro';
 
 const series = (id: string, rows: Array<[string, string, string]>): BlsSeriesLike => ({
   seriesID: id,
@@ -77,6 +77,23 @@ describe('fredLines', () => {
       '- WTI crude oil: $61.50 on 2026-11-19.',
       '- Real GDP growth (annualized, latest quarter): 2.80% (quarter starting 2026-07-01).',
     ]);
+  });
+});
+
+describe('structured indicators for the web page', () => {
+  it('carry value, date, comparisons and the official source link', () => {
+    const m = (month: string, value: number) => ({ month, value });
+    const [u, , cpi, core] = blsIndicators({
+      unemployment: [m('2026-07', 4.0), m('2026-08', 4.0), m('2026-09', 4.2), m('2026-10', 4.1)],
+      payrolls: [m('2026-09', 100), m('2026-10', 160)],
+      cpi: [m('2025-09', 300), m('2026-09', 309)],
+      coreCpi: [m('2025-09', 300), m('2026-09', 306)],
+    });
+    expect(u).toMatchObject({ key: 'unemployment', group: 'Jobs', display: '4.1%', dateLabel: 'Oct 2026', url: 'https://data.bls.gov/timeseries/LNS14000000', compare: [{ display: '4.0%' }] });
+    expect(cpi).toMatchObject({ key: 'cpi', group: 'Inflation', display: '3.0%' });
+    expect(core).toMatchObject({ key: 'coreCpi', display: '2.0%', line: '' });
+    const [t10] = fredIndicators({ t10y: [{ date: '2026-10-20', value: '4.1' }, { date: '2026-11-19', value: '4.25' }] }, '2026-11-20');
+    expect(t10).toMatchObject({ key: 't10y', source: 'FRED', group: 'Rates', display: '4.25%', url: 'https://fred.stlouisfed.org/series/DGS10', compare: [{ label: 'a month earlier', display: '4.10%' }] });
   });
 });
 

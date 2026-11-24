@@ -19,6 +19,7 @@ import { fetchLatestNight, fetchNightDates, type NightlyDay } from '../services/
 import { fetchPortfolios, fetchPicks, type PortfolioSummary, type Pick } from '../services/portfolio'
 import { BuyNowList } from '../components/today/BuyNowList'
 import { TriggerTable } from '../components/today/TriggerTable'
+import { MacroPanel } from '../components/today/MacroPanel'
 import { useTheme } from '../contexts/ThemeContext'
 import { kindInfo } from '../components/portfolio/helpers'
 
@@ -384,6 +385,7 @@ export function Dashboard() {
             <StatPill label="Close to firing" value={data.day.summary.inside_half_day} hint="within half a typical day" color={theme.colors.accent} to="/#waiting" />
             <MoverTile row={biggestMover} />
           </div>
+          <MacroPanel date={data.day.date} />
         </div>
       ) : (
         <EmptyState icon={TrendingUp} title="No nightly brief yet">

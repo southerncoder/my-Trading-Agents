@@ -4,6 +4,7 @@ import { fetchLatestNight, fetchNight, fetchNightDates, type NightlyDay } from '
 import { SummaryStrip } from '../components/today/SummaryStrip'
 import { BuyNowList } from '../components/today/BuyNowList'
 import { TriggerTable } from '../components/today/TriggerTable'
+import { MacroPanel } from '../components/today/MacroPanel'
 import { neighbours, newestFirst } from '../components/today/nights'
 import { card, muted } from '../components/today/format'
 
@@ -161,6 +162,7 @@ export function Today() {
           <SummaryStrip day={day} />
           <BuyNowList rows={buyNow} />
           <TriggerTable rows={waiting} />
+          <MacroPanel date={day.date} />
         </div>
       </div>
     </div>

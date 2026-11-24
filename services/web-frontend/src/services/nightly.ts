@@ -107,6 +107,35 @@ export async function fetchStock(ticker: string, date?: string): Promise<StockDe
   const q = date ? `?date=${encodeURIComponent(date)}` : ''
   return stockDetailSchema.parse(await getJson(`stock/${encodeURIComponent(ticker)}${q}`))
 }
+export const macroIndicatorSchema = z.object({
+  key: z.string(),
+  source: z.string(),
+  group: z.string(),
+  label: z.string(),
+  value: z.number(),
+  display: z.string(),
+  date: z.string(),
+  dateLabel: z.string(),
+  compare: z.array(z.object({ label: z.string(), value: z.number(), display: z.string() })),
+  url: z.string(),
+})
+
+export const macroSchema = z.object({
+  asOf: z.string(),
+  sources: z.object({ bls: z.boolean(), fred: z.boolean() }),
+  indicators: z.array(macroIndicatorSchema).default([]),
+  notes: z.array(z.string()),
+})
+
+export type MacroIndicator = z.infer<typeof macroIndicatorSchema>
+export type Macro = z.infer<typeof macroSchema>
+
+/** Official macro figures (BLS, FRED) as known on a night: the same data the market analyst was given. */
+export async function fetchMacro(date?: string): Promise<Macro> {
+  const q = date ? `?date=${encodeURIComponent(date)}` : ''
+  return macroSchema.parse(await getJson(`macro${q}`))
+}
+
 const cadenceSchema = z.enum(['nightly', 'weekly', 'once', 'paused'])
 
 export const watchlistSchema = z.object({

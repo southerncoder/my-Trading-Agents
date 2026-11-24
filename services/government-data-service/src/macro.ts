@@ -68,33 +68,79 @@ function yoy(points: MonthValue[]): { month: string; pct: number } | null {
 
 export interface BlsDigestInput { unemployment: MonthValue[]; payrolls: MonthValue[]; cpi: MonthValue[]; coreCpi: MonthValue[] }
 
-export function blsLines(b: BlsDigestInput): string[] {
-  const lines: string[] = [];
+/** One figure for the page and the prompt: its value, when it is from, what to compare it with, and its source. */
+export interface MacroIndicator {
+  key: string;
+  source: 'BLS' | 'FRED';
+  group: 'Jobs' | 'Inflation' | 'Rates' | 'Markets' | 'Growth';
+  label: string;
+  value: number;
+  display: string;
+  /** YYYY-MM for monthly figures, YYYY-MM-DD for daily ones, the quarter's first day for GDP. */
+  date: string;
+  dateLabel: string;
+  compare: { label: string; value: number; display: string }[];
+  /** The official page for the series. */
+  url: string;
+  /** The sentence used in the analyst prompt. */
+  line: string;
+}
+
+const blsUrl = (id: string) => `https://data.bls.gov/timeseries/${id}`;
+const fredUrl = (id: string) => `https://fred.stlouisfed.org/series/${id}`;
+const signedK = (n: number) => `${n >= 0 ? '+' : ''}${Math.round(n)}k`;
+
+export function blsIndicators(b: BlsDigestInput): MacroIndicator[] {
+  const out: MacroIndicator[] = [];
   const u = b.unemployment;
   if (u.length) {
     const last = u.at(-1)!;
     const before = u.at(-4);
-    lines.push(`- Unemployment rate ${last.value.toFixed(1)}% (${monthName(last.month)})${before ? `, ${before.value.toFixed(1)}% three months earlier` : ''}.`);
+    out.push({
+      key: 'unemployment', source: 'BLS', group: 'Jobs', label: 'Unemployment rate', value: last.value, display: `${last.value.toFixed(1)}%`,
+      date: last.month, dateLabel: monthName(last.month), url: blsUrl(BLS_SERIES.unemployment),
+      compare: before ? [{ label: 'three months earlier', value: before.value, display: `${before.value.toFixed(1)}%` }] : [],
+      line: `- Unemployment rate ${last.value.toFixed(1)}% (${monthName(last.month)})${before ? `, ${before.value.toFixed(1)}% three months earlier` : ''}.`,
+    });
   }
   const p = b.payrolls;
   if (p.length >= 2) {
     const changes = p.slice(1).map((x, i) => ({ month: x.month, d: x.value - p[i].value }));
     const last = changes.at(-1)!;
     const avg3 = changes.slice(-3).reduce((t, c) => t + c.d, 0) / Math.min(3, changes.length);
-    lines.push(`- Nonfarm payrolls ${last.d >= 0 ? '+' : ''}${Math.round(last.d)}k jobs in ${monthName(last.month)}; three-month average ${avg3 >= 0 ? '+' : ''}${Math.round(avg3)}k.`);
+    out.push({
+      key: 'payrolls', source: 'BLS', group: 'Jobs', label: 'Jobs added (nonfarm payrolls)', value: last.d, display: signedK(last.d),
+      date: last.month, dateLabel: monthName(last.month), url: blsUrl(BLS_SERIES.payrolls),
+      compare: [{ label: 'three-month average', value: avg3, display: signedK(avg3) }],
+      line: `- Nonfarm payrolls ${signedK(last.d)} jobs in ${monthName(last.month)}; three-month average ${signedK(avg3)}.`,
+    });
   }
   const c = yoy(b.cpi);
   const core = yoy(b.coreCpi);
   // The reading before, so the direction (rising or easing) is stated as data, not inferred.
-  const before = c ? yoy(b.cpi.filter((p) => p.month < c.month)) : null;
+  const before = c ? yoy(b.cpi.filter((x) => x.month < c.month)) : null;
   if (c) {
-    lines.push(
-      `- Inflation (CPI, year over year) ${c.pct.toFixed(1)}% in ${monthName(c.month)}` +
+    out.push({
+      key: 'cpi', source: 'BLS', group: 'Inflation', label: 'Inflation (CPI, year over year)', value: c.pct, display: `${c.pct.toFixed(1)}%`,
+      date: c.month, dateLabel: monthName(c.month), url: blsUrl(BLS_SERIES.cpi),
+      compare: before ? [{ label: monthName(before.month), value: before.pct, display: `${before.pct.toFixed(1)}%` }] : [],
+      line: `- Inflation (CPI, year over year) ${c.pct.toFixed(1)}% in ${monthName(c.month)}` +
         (before ? ` (${before.pct.toFixed(1)}% in ${monthName(before.month)})` : '') +
         (core ? `; core (ex food and energy) ${core.pct.toFixed(1)}%` : '') + '.',
-    );
+    });
   }
-  return lines;
+  if (core) {
+    out.push({
+      key: 'coreCpi', source: 'BLS', group: 'Inflation', label: 'Core inflation (ex food and energy)', value: core.pct, display: `${core.pct.toFixed(1)}%`,
+      date: core.month, dateLabel: monthName(core.month), url: blsUrl(BLS_SERIES.coreCpi), compare: [],
+      line: '', // already part of the CPI sentence
+    });
+  }
+  return out;
+}
+
+export function blsLines(b: BlsDigestInput): string[] {
+  return blsIndicators(b).map((i) => i.line).filter(Boolean);
 }
 
 /** Latest valid observation on or before a date ('.' marks a missing day in FRED). */
@@ -110,25 +156,38 @@ function obsOnOrBefore(obs: FredObs[], date: string): { date: string; value: num
 
 const minusDays = (d: string, n: number) => new Date(Date.parse(d) - n * 86_400_000).toISOString().slice(0, 10);
 
-export function fredLines(series: Partial<Record<keyof typeof FRED_SERIES, FredObs[]>>, asOf: string): string[] {
-  const lines: string[] = [];
+const FRED_GROUP: Record<keyof typeof FRED_SERIES, MacroIndicator['group']> = {
+  fedFunds: 'Rates', t2y: 'Rates', t10y: 'Rates', curve: 'Rates', vix: 'Markets', hySpread: 'Markets', oil: 'Markets', gdp: 'Growth',
+};
+
+export function fredIndicators(series: Partial<Record<keyof typeof FRED_SERIES, FredObs[]>>, asOf: string): MacroIndicator[] {
+  const out: MacroIndicator[] = [];
   for (const [key, meta] of Object.entries(FRED_SERIES) as [keyof typeof FRED_SERIES, (typeof FRED_SERIES)[keyof typeof FRED_SERIES]][]) {
     const obs = series[key];
     if (!obs?.length) continue;
     const now = obsOnOrBefore(obs, asOf);
     if (!now) continue;
     const fmt = (v: number) => `${meta.unit === ' $/bbl' ? '$' : ''}${v.toFixed(2)}${meta.unit === ' $/bbl' ? '' : meta.unit}`;
+    const base = { key, source: 'FRED' as const, group: FRED_GROUP[key], label: meta.label, value: now.value, display: fmt(now.value), date: now.date, url: fredUrl(meta.id) };
     if (key === 'gdp') {
-      lines.push(`- ${meta.label}: ${fmt(now.value)} (quarter starting ${now.date}).`);
+      out.push({ ...base, dateLabel: `quarter starting ${now.date}`, compare: [], line: `- ${meta.label}: ${fmt(now.value)} (quarter starting ${now.date}).` });
       continue;
     }
     // "About" a month and a year: the nearest trading day on or before, allowing for weekends and holidays.
     const month = obsOnOrBefore(obs, minusDays(now.date, 28));
     const year = obsOnOrBefore(obs, minusDays(now.date, 360));
-    const ago = [month && `${fmt(month.value)} a month earlier`, year && `${fmt(year.value)} a year earlier`].filter(Boolean).join(', ');
-    lines.push(`- ${meta.label}: ${fmt(now.value)} on ${now.date}${ago ? ` (${ago})` : ''}.`);
+    const compare = [
+      ...(month ? [{ label: 'a month earlier', value: month.value, display: fmt(month.value) }] : []),
+      ...(year ? [{ label: 'a year earlier', value: year.value, display: fmt(year.value) }] : []),
+    ];
+    const ago = compare.map((x) => `${x.display} ${x.label}`).join(', ');
+    out.push({ ...base, dateLabel: now.date, compare, line: `- ${meta.label}: ${fmt(now.value)} on ${now.date}${ago ? ` (${ago})` : ''}.` });
   }
-  return lines;
+  return out;
+}
+
+export function fredLines(series: Partial<Record<keyof typeof FRED_SERIES, FredObs[]>>, asOf: string): string[] {
+  return fredIndicators(series, asOf).map((i) => i.line);
 }
 
 export function macroDigest(a: { asOf: string; bls: string[]; fred: string[]; notes: string[] }): string {

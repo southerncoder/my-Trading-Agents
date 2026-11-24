@@ -174,3 +174,32 @@ describe('stock detail route', () => {
     expect(body.data.history.length).toBeGreaterThan(0)
   })
 })
+describe('macro route', () => {
+  let fake: Server
+  let asked = ''
+  beforeAll(async () => {
+    const app = express()
+    app.get('/api/macro', (req, res) => {
+      asked = String(req.query.asOf)
+      if (asked === '2026-01-02') return res.status(500).json({ error: 'boom' })
+      res.json({ asOf: asked, sources: { bls: true, fred: false }, indicators: [], notes: [], digest: 'MACRO' })
+    })
+    await new Promise<void>((r) => {
+      fake = app.listen(0, '127.0.0.1', () => r())
+    })
+    process.env.GOVERNMENT_DATA_URL = `http://127.0.0.1:${(fake.address() as AddressInfo).port}`
+  })
+  afterAll(() => new Promise<void>((r) => fake.close(() => r())))
+
+  it('passes the night through as asOf and returns the summary', async () => {
+    const { status, body } = await get('/macro?date=2026-11-20')
+    expect(status).toBe(200)
+    expect(asked).toBe('2026-11-20')
+    expect(body.data).toMatchObject({ asOf: '2026-11-20', digest: 'MACRO' })
+  })
+
+  it('bad date -> 400; a failing government-data -> 502', async () => {
+    expect((await get('/macro?date=2026-13-45')).status).toBe(400)
+    expect((await get('/macro?date=2026-01-02')).status).toBe(502)
+  })
+})
