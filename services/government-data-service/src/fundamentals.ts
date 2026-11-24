@@ -1,3 +1,4 @@
+import { filingUrl } from './properties.js';
 /**
  * Compact, point-in-time fundamentals from SEC EDGAR data (company facts XBRL + submissions).
  * Only facts and filings filed on or before `asOf` are used, so an analysis dated in the past never sees a
@@ -23,7 +24,15 @@ export interface SubmissionsLike {
   name?: string;
   sicDescription?: string;
   fiscalYearEnd?: string;
-  filings?: { recent?: { form?: string[]; filingDate?: string[]; reportDate?: string[] } };
+  filings?: { recent?: { form?: string[]; filingDate?: string[]; reportDate?: string[]; accessionNumber?: string[]; primaryDocument?: string[]; items?: string[] } };
+  stateOfIncorporation?: string;
+  stateOfIncorporationDescription?: string;
+  exchanges?: string[];
+  category?: string;
+  formerNames?: { name?: string; from?: string; to?: string }[];
+  addresses?: { business?: { street1?: string; street2?: string | null; city?: string; stateOrCountry?: string; stateOrCountryDescription?: string; zipCode?: string } };
+  phone?: string;
+  website?: string;
 }
 
 export interface PeriodFigures {
@@ -54,7 +63,16 @@ export interface FundamentalsSummary {
   name: string;
   industry?: string;
   asOf: string;
-  recentFilings: { form: string; filed: string; period?: string }[];
+  recentFilings: { form: string; filed: string; period?: string; items?: string[]; url?: string }[];
+  /** Registration facts from the SEC submissions file. */
+  company?: {
+    incorporatedIn?: string;
+    fiscalYearEnd?: string;
+    exchanges: string[];
+    filerCategory?: string;
+    businessAddress?: string;
+    formerNames: { name: string; to?: string }[];
+  };
   annual: PeriodFigures[];
   quarterly: PeriodFigures[];
   balance: BalanceFigures | null;
@@ -170,16 +188,42 @@ function balance(cf: CompanyFactsLike, asOf: string): BalanceFigures | null {
 
 const KEY_FORMS = new Set(['10-K', '10-Q', '8-K', '10-K/A', '10-Q/A', '20-F', '6-K', '40-F']);
 
-function filings(sub: SubmissionsLike | null, asOf: string, count: number): FundamentalsSummary['recentFilings'] {
+function filings(sub: SubmissionsLike | null, asOf: string, count: number, cik?: string): FundamentalsSummary['recentFilings'] {
   const r = sub?.filings?.recent;
   if (!r?.form || !r.filingDate) return [];
   const out: FundamentalsSummary['recentFilings'] = [];
   for (let i = 0; i < r.form.length && out.length < count; i++) {
     const filed = r.filingDate[i];
     if (!KEY_FORMS.has(r.form[i]) || !filed || filed > asOf) continue;
-    out.push({ form: r.form[i], filed, period: r.reportDate?.[i] || undefined });
+    const acc = r.accessionNumber?.[i];
+    const doc = r.primaryDocument?.[i];
+    const items = r.items?.[i] ? r.items[i].split(',').map((x) => x.trim()).filter(Boolean) : undefined;
+    out.push({
+      form: r.form[i],
+      filed,
+      period: r.reportDate?.[i] || undefined,
+      items: items?.length ? items : undefined,
+      url: acc && doc && cik ? filingUrl(cik, acc, doc) : undefined,
+    });
   }
   return out;
+}
+
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+function companyFacts(sub: SubmissionsLike | null): FundamentalsSummary['company'] {
+  if (!sub) return undefined;
+  const b = sub.addresses?.business;
+  const fy = sub.fiscalYearEnd && /^\d{4}$/.test(sub.fiscalYearEnd) ? `${MONTHS[Number(sub.fiscalYearEnd.slice(0, 2)) - 1] ?? ''} ${Number(sub.fiscalYearEnd.slice(2))}`.trim() : undefined;
+  const address = b ? [b.street1, b.street2, b.city, [b.stateOrCountryDescription ?? b.stateOrCountry, b.zipCode].filter(Boolean).join(' ')].filter(Boolean).join(', ') : undefined;
+  return {
+    incorporatedIn: sub.stateOfIncorporationDescription || sub.stateOfIncorporation || undefined,
+    fiscalYearEnd: fy,
+    exchanges: (sub.exchanges ?? []).filter(Boolean),
+    filerCategory: sub.category || undefined,
+    businessAddress: address || undefined,
+    formerNames: (sub.formerNames ?? []).filter((f) => f.name).map((f) => ({ name: f.name as string, to: f.to?.slice(0, 10) })),
+  };
 }
 
 const money = (n?: number) => {
@@ -248,7 +292,8 @@ export function summarizeFundamentals(a: {
     name: a.submissions?.name || cf.entityName || a.name,
     industry: a.submissions?.sicDescription || undefined,
     asOf: a.asOf,
-    recentFilings: filings(a.submissions, a.asOf, 8),
+    recentFilings: filings(a.submissions, a.asOf, 8, a.cik),
+    company: companyFacts(a.submissions),
     annual: periods(cf, a.asOf, 'annual', 3),
     quarterly: periods(cf, a.asOf, 'quarter', 4),
     balance: balance(cf, a.asOf),

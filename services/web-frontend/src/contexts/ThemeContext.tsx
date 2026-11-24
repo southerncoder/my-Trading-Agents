@@ -45,6 +45,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     root.style.setProperty('--color-bear', theme.colors.bear);
     root.style.setProperty('--color-neutral', theme.colors.neutral);
     root.style.setProperty('--color-border', theme.colors.border);
+    // Charts pick their light or dark color steps from this (see --viz-* in index.css).
+    root.dataset.mode = theme.name === 'southerncoding' ? 'dark' : 'light';
     root.style.setProperty('--color-shadow', theme.colors.shadow);
     
     root.style.setProperty('--font-primary', theme.fonts.primary);

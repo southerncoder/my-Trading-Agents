@@ -280,6 +280,22 @@ app.get('/api/company/:ticker/fundamentals', async (req, res) => {
   }
 });
 
+// Item 2 (Properties) of the latest 10-K by asOf: plants, offices, data centers and other assets, quoted.
+app.get('/api/company/:ticker/properties', async (req, res) => {
+  const ticker = String(req.params.ticker).toUpperCase();
+  const asOf = typeof req.query.asOf === 'string' ? req.query.asOf : new Date().toISOString().slice(0, 10);
+  if (!/^[A-Z][A-Z0-9.\-]{0,9}$/.test(ticker)) return res.status(400).json({ error: 'Invalid ticker' });
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(asOf) || Number.isNaN(Date.parse(asOf))) return res.status(400).json({ error: 'asOf must be YYYY-MM-DD' });
+  try {
+    const section = await govData.getProperties(ticker, asOf);
+    if (!section) return res.status(404).json({ error: `No Properties section found for ${ticker}` });
+    return res.json(section);
+  } catch (error) {
+    logger.error('Properties section failed', { error, ticker });
+    return res.status(502).json({ error: 'SEC data unavailable' });
+  }
+});
+
 app.get('/api/company/:ticker/context', async (req, res) => {
   try {
     const { ticker } = req.params;

@@ -126,11 +126,11 @@ export function Analysis() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="app-page mx-auto max-w-6xl space-y-8 p-3 sm:p-4 md:p-8">
       {/* Header */}
       <div>
-        <h1 className="cyber-header text-3xl text-electric-blue">// Trading Analysis</h1>
-        <p className="mt-2 text-slate-200 font-fira-code">
+        <h1>Trading Analysis</h1>
+        <p className="mt-2 text-lg" style={{ color: 'var(--color-text-muted, #64748b)' }}>
           Get AI-powered insights from 12 specialized trading agents
         </p>
       </div>

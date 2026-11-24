@@ -260,3 +260,137 @@ export async function fetchScorecard(): Promise<Scorecard | null> {
   const data = z.object({ scorecard: scorecardSchema.nullable() }).parse(await getJson('scorecard'))
   return data.scorecard
 }
+
+const mentionSchema = z.object({ stage: z.string(), text: z.string(), hypothetical: z.boolean() })
+
+export const matterSchema = z.object({
+  key: z.string(),
+  title: z.string(),
+  kind: z.enum(['enforcement', 'policy']),
+  stages: z.array(z.string()),
+  stage: z.number(),
+  active: z.boolean(),
+  reported: z.boolean(),
+  agencies: z.array(z.string()),
+  about: z.array(z.string()).default([]),
+  mentions: z.array(mentionSchema),
+  usedBy: z.array(z.string()),
+  callText: z.array(z.object({ use: z.string(), text: z.string() })),
+  fineCapPct: numOpt,
+  firstSeen: z.string().nullish(),
+  sinceFirst: z.object({ from: z.string(), stockPct: z.number(), spyPct: numOpt }).nullish(),
+})
+
+const figuresSchema = z.object({
+  end: z.string(),
+  filed: z.string(),
+  derived: z.boolean().nullish(),
+  revenue: numOpt,
+  netIncome: numOpt,
+  epsDiluted: numOpt,
+})
+
+const strOpt = z.string().nullish()
+
+export const companyProfileSchema = z.object({
+  name: z.string(),
+  exchange: strOpt,
+  sector: strOpt,
+  industry: strOpt,
+  summary: strOpt,
+  address: strOpt,
+  city: strOpt,
+  state: strOpt,
+  country: strOpt,
+  phone: strOpt,
+  website: strOpt,
+  irWebsite: strOpt,
+  employees: numOpt,
+  officers: z.array(z.object({ name: z.string(), title: z.string(), age: numOpt })).default([]),
+  marketCap: numOpt,
+  trailingPE: numOpt,
+  forwardPE: numOpt,
+  dividendYield: numOpt,
+  beta: numOpt,
+  low52: numOpt,
+  high52: numOpt,
+  sharesOutstanding: numOpt,
+  institutionsPct: numOpt,
+  insidersPct: numOpt,
+  shortPctFloat: numOpt,
+  profitMargin: numOpt,
+  nextEarnings: strOpt,
+  exDividend: strOpt,
+})
+
+export type CompanyProfile = z.infer<typeof companyProfileSchema>
+
+export const stockExtrasSchema = z.object({
+  profile: companyProfileSchema.nullish(),
+  properties: z.object({ form: z.string(), filed: z.string(), url: z.string(), text: z.string(), truncated: z.boolean() }).nullish(),
+  prices: z.array(z.object({ date: z.string(), close: z.number() })),
+  pricesError: z.string().nullish(),
+  fundamentals: z
+    .object({
+      name: z.string(),
+      cik: z.string(),
+      industry: z.string().nullish(),
+      asOf: z.string(),
+      quarterly: z.array(figuresSchema),
+      annual: z.array(figuresSchema),
+      recentFilings: z.array(
+        z.object({ form: z.string(), filed: z.string(), period: z.string().nullish(), items: z.array(z.string()).nullish(), url: z.string().nullish() }),
+      ),
+      company: z
+        .object({
+          incorporatedIn: z.string().nullish(),
+          fiscalYearEnd: z.string().nullish(),
+          exchanges: z.array(z.string()).default([]),
+          filerCategory: z.string().nullish(),
+          businessAddress: z.string().nullish(),
+          formerNames: z.array(z.object({ name: z.string(), to: z.string().nullish() })).default([]),
+        })
+        .nullish(),
+    })
+    .nullable(),
+  fundamentalsError: z.string().nullish(),
+  regulatory: z.object({
+    exposure: z.enum(['none', 'watch', 'elevated', 'high']),
+    matters: z.array(matterSchema),
+    nightsChecked: z.number(),
+  }),
+})
+
+export type Matter = z.infer<typeof matterSchema>
+export type StockExtras = z.infer<typeof stockExtrasSchema>
+
+/** Daily prices, SEC quarters and the regulatory matters for a stock's night (loaded after the page itself). */
+export async function fetchStockExtras(ticker: string, date?: string): Promise<StockExtras> {
+  const q = date ? `?date=${encodeURIComponent(date)}` : ''
+  return stockExtrasSchema.parse(await getJson(`stock/${encodeURIComponent(ticker)}/extras${q}`))
+}
+
+export const stockMediaSchema = z.object({
+  articles: z.array(
+    z.object({ title: z.string(), url: z.string(), source: z.string(), published: strOpt, description: strOpt, image: strOpt }),
+  ),
+  articlesError: strOpt,
+  social: z
+    .object({
+      days: z.array(z.object({ date: z.string(), score: z.number(), bull: z.number(), bear: z.number() })),
+      avg7d: numOpt,
+      docs: z.array(
+        z.object({ url: z.string(), domain: z.string(), title: z.string(), kind: z.string(), published: strOpt, sentiment: numOpt, stance: strOpt }),
+      ),
+    })
+    .nullable(),
+  socialError: strOpt,
+  fetchedAt: z.string(),
+})
+
+export type StockMedia = z.infer<typeof stockMediaSchema>
+
+/** News articles and social sentiment with links (cached a few hours on the server). */
+export async function fetchStockMedia(ticker: string): Promise<StockMedia> {
+  return stockMediaSchema.parse(await getJson(`stock/${encodeURIComponent(ticker)}/media`))
+}

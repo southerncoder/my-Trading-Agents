@@ -1,3 +1,4 @@
+import { NightCharts } from '../components/today/NightCharts'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
@@ -290,7 +291,7 @@ export function Dashboard() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="app-page mx-auto max-w-6xl space-y-8 p-3 sm:p-4 md:p-8">
       {/* Header */}
       <div
         className="relative overflow-hidden rounded-2xl p-6"
@@ -385,6 +386,7 @@ export function Dashboard() {
             <StatPill label="Close to firing" value={data.day.summary.inside_half_day} hint="within half a typical day" color={theme.colors.accent} to="/#waiting" />
             <MoverTile row={biggestMover} />
           </div>
+          <NightCharts day={data.day} />
           <MacroPanel date={data.day.date} />
         </div>
       ) : (

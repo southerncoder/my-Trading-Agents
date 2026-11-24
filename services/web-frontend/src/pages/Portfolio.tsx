@@ -1,3 +1,5 @@
+import { useNavigate } from 'react-router-dom'
+import { Card, HBars, SectionTitle, SegmentBar } from '../components/viz'
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { IndexChart } from '../components/portfolio/IndexChart'
@@ -137,16 +139,17 @@ export function Portfolio() {
   }
   const p = summary.data
   const owner = p?.kind === 'owner'
+  const navigate = useNavigate()
 
   if (summary.error) return <div className="p-4"><p role="alert" style={bad}>{summary.error}</p><Link to="/portfolios" className="underline">Back to portfolios</Link></div>
   if (!p) return <p role="status" className="p-4 text-sm" style={muted}>Loading...</p>
 
   return (
-    <div className="space-y-4 p-2 sm:p-4 md:p-6">
-      <header>
-        <Link to="/portfolios" className="text-sm underline">&larr; Portfolios</Link>
-        <h1 className="text-2xl font-semibold">{p.name}</h1>
-        <p className="text-sm" style={muted}>
+    <div className="app-page mx-auto max-w-6xl space-y-6 p-3 sm:p-4 md:p-8">
+      <header className="space-y-2">
+        <Link to="/portfolios" className="text-base underline">&larr; Portfolios</Link>
+        <h1>{p.name}</h1>
+        <p className="max-w-3xl text-lg" style={muted}>
           {owner
             ? 'Your paper portfolio. You record trades; the nightly run checks each exit plan and the limits and raises alerts.'
             : p.kind === 'baseline'
@@ -168,6 +171,34 @@ export function Portfolio() {
         <h2 id="perf" className={sectionTitle}>Against SPY</h2>
         {perf.data ? <IndexChart series={perf.data.series} name={p.name} /> : <p className="text-sm" style={muted}>Loading...</p>}
       </section>
+
+      {open.data && open.data.length > 0 && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card className="space-y-3">
+            <SectionTitle title="Where the money is" sub="Market value of each open position, and cash." />
+            <SegmentBar
+              parts={[
+                ...[...open.data].sort((a, b) => Math.abs(b.market_value) - Math.abs(a.market_value)).map((x, i) => ({
+                  label: x.ticker,
+                  value: Math.round(Math.abs(x.market_value)),
+                  color: ['var(--viz-1, #2a78d6)', 'var(--viz-2, #eb6834)', 'var(--viz-3, #1baf7a)'][i % 3],
+                })),
+                { label: 'Cash', value: Math.round(Math.max(0, p.cash)), color: '#94a3b8' },
+              ]}
+              unit=" $"
+            />
+          </Card>
+          <Card className="space-y-3">
+            <SectionTitle title="Open positions, gain or loss" sub="Return on each open position since it was bought. Click for the stock." />
+            <HBars
+              labelWidth={70}
+              format={(v) => fmtPct(v)}
+              onRow={(t) => navigate(`/stock/${t}`)}
+              rows={[...open.data].sort((a, b) => b.returnPct - a.returnPct).map((x) => ({ key: x.ticker, label: x.ticker, value: x.returnPct, note: `${x.quantity} sh · ${money(x.unrealized)}` }))}
+            />
+          </Card>
+        </div>
+      )}
 
       <section className="space-y-2 rounded-lg p-4" style={card} aria-labelledby="alerts">
         <h2 id="alerts" className={sectionTitle}>Alerts {alerts.data?.length ? `(${alerts.data.length})` : ''}</h2>

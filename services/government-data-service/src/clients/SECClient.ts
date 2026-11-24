@@ -41,6 +41,12 @@ export class SECClient extends BaseClient {
         );
     }
 
+    /** A filing document from www.sec.gov/Archives as text (HTML), for reading a section of it. */
+    async getArchiveText(url: string, options?: RequestOptions): Promise<string> {
+        if (!url.startsWith('https://www.sec.gov/Archives/')) throw new Error('Not an EDGAR archive URL');
+        return this.makeRequest<string>({ method: 'GET', url, responseType: 'text', transformResponse: (d) => d }, options);
+    }
+
     /**
      * Get all company tickers with their CIK mappings
      */

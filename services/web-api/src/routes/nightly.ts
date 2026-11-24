@@ -5,6 +5,9 @@ import { loadLedger } from '../services/ledger-reader.js'
 import { deriveRows, summarize, expectedNightDate } from '../services/nightly-derive.js'
 import { stockHistory, loadStages, pickReview, stockRow } from '../services/stock-detail.js'
 import { loadRunStatus } from '../services/run-status.js'
+import { loadStockExtras } from '../services/stock-extras.js'
+import { loadStockMedia } from '../services/stock-media.js'
+import { loadBrands } from '../services/brands.js'
 
 const router = Router()
 
@@ -137,6 +140,73 @@ router.get('/stock/:ticker', async (req, res) => {
     return res.json({ success: true, data: { ticker, date, history, stages, review } })
   } catch {
     return fail(res, 500, 'Failed to read nightly data')
+  }
+})
+
+const yahooUrl = () => (process.env.YAHOO_URL || 'http://yahoo-finance:3002').replace(/\/$/, '')
+
+async function fetchText(url: string): Promise<string> {
+  const r = await fetch(url, { signal: AbortSignal.timeout(30_000) })
+  if (!r.ok) throw new Error(`${url} answered ${r.status}`)
+  return r.text()
+}
+
+/** Charts and regulatory watch for the stock page: daily prices, SEC quarters, regulatory matters. */
+router.get('/stock/:ticker/extras', async (req, res) => {
+  const { ticker } = req.params
+  if (!TICKER_RE.test(ticker)) return fail(res, 400, 'Invalid ticker')
+  const wanted = typeof req.query.date === 'string' ? req.query.date : undefined
+  if (wanted !== undefined && !isRealDate(wanted)) return fail(res, 400, 'Date must be YYYY-MM-DD')
+  try {
+    const ledger = await loadLedger(ledgerPath())
+    const history = stockHistory(ledger.byDate, ticker)
+    if (history.length === 0) return fail(res, 404, `No history for ${ticker}`)
+    const date = wanted ?? history[history.length - 1].date
+    const data = await loadStockExtras(
+      { yahooUrl: yahooUrl(), governmentDataUrl: governmentDataUrl(), fetchText, stagesFor: (d) => loadStages(logsPath(), d, ticker) },
+      ticker,
+      date,
+      history,
+    )
+    return res.json({ success: true, data })
+  } catch {
+    return fail(res, 500, 'Failed to build the stock extras')
+  }
+})
+
+/** News articles and social sentiment with links, for reading about a stock. */
+router.get('/stock/:ticker/media', async (req, res) => {
+  const { ticker } = req.params
+  if (!TICKER_RE.test(ticker)) return fail(res, 400, 'Invalid ticker')
+  try {
+    const data = await loadStockMedia(
+      {
+        newsUrl: (process.env.NEWS_URL || 'http://news-aggregator:3004').replace(/\/$/, ''),
+        socialUrl: (process.env.SOCIAL_URL || 'http://social-sentiment:3007').replace(/\/$/, ''),
+        // News providers are queried in parallel and can take a while on a cold cache.
+        fetchText: async (url) => {
+          const r = await fetch(url, { signal: AbortSignal.timeout(60_000) })
+          if (!r.ok) throw new Error(`${url} answered ${r.status}`)
+          return r.text()
+        },
+      },
+      ticker,
+    )
+    return res.json({ success: true, data })
+  } catch {
+    return fail(res, 500, 'Failed to load news and social data')
+  }
+})
+
+/** Company name and website domain per ticker, for brand icons. ?tickers=KO,NVDA (at most 60). */
+router.get('/brands', async (req, res) => {
+  const raw = typeof req.query.tickers === 'string' ? req.query.tickers : ''
+  const tickers = raw.split(',').map((t) => t.trim().toUpperCase()).filter((t) => TICKER_RE.test(t))
+  if (!tickers.length) return fail(res, 400, 'Give tickers=A,B,C')
+  try {
+    return res.json({ success: true, data: await loadBrands({ yahooUrl: yahooUrl(), fetchText }, tickers) })
+  } catch {
+    return fail(res, 500, 'Failed to load brands')
   }
 })
 

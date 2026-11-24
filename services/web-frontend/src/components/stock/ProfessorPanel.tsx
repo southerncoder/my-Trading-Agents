@@ -22,14 +22,14 @@ export function ProfessorPanel({ review, history, date }: { review?: Educational
   const sections = SECTIONS.filter((s) => review?.[s.key])
 
   return (
-    <section aria-labelledby="professor-heading" className="space-y-3 rounded-lg p-4" style={{ ...card, borderLeft: `4px solid ${accent}` }}>
+    <section aria-labelledby="professor-heading" className="space-y-4 rounded-2xl p-5 md:p-6" style={{ ...card, borderLeft: `4px solid ${accent}` }}>
       <div className="flex items-center gap-2">
-        <GraduationCap className="h-5 w-5" style={{ color: accent }} aria-hidden="true" />
-        <h2 id="professor-heading" className="section-title text-lg font-semibold">Professor&apos;s take</h2>
+        <GraduationCap className="h-6 w-6" style={{ color: accent }} aria-hidden="true" />
+        <h2 id="professor-heading" className="section-title text-2xl font-bold">Professor&apos;s take</h2>
       </div>
 
       {review?.summary ? (
-        <p className="text-base leading-relaxed">{review.summary}</p>
+        <p className="text-lg leading-relaxed">{review.summary}</p>
       ) : (
         <p className="text-sm" style={muted}>
           No Professor review was saved for this night (it is written for runs made after the Professor was added). The trend notes below
@@ -42,18 +42,18 @@ export function ProfessorPanel({ review, history, date }: { review?: Educational
           {sections.map((s) => {
             const on = open === s.key
             return (
-              <div key={s.key} className="rounded-lg" style={{ border: '1px solid var(--color-border, #e2e8f0)' }}>
+              <div key={s.key} className="rounded-xl" style={{ border: '1px solid var(--color-border, #e2e8f0)' }}>
                 <button
                   type="button"
                   aria-expanded={on}
                   onClick={() => setOpen(on ? null : s.key)}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium transition-colors hover:bg-[color-mix(in_srgb,var(--color-primary,#2563eb)_6%,transparent)]"
+                  className="flex w-full items-center gap-2 px-4 py-3 text-left text-base font-medium transition-colors hover:bg-[color-mix(in_srgb,var(--color-primary,#2563eb)_6%,transparent)]"
                 >
                   <s.icon className="h-4 w-4 shrink-0" style={{ color: accent }} aria-hidden="true" />
                   <span className="flex-1">{s.title}</span>
                   <span className="chevron text-xs" data-open={on} style={muted} aria-hidden="true">▼</span>
                 </button>
-                {on && <p className="px-3 pb-3 text-sm leading-relaxed">{review?.[s.key]}</p>}
+                {on && <p className="px-4 pb-4 text-base leading-relaxed">{review?.[s.key]}</p>}
               </div>
             )
           })}
@@ -62,12 +62,23 @@ export function ProfessorPanel({ review, history, date }: { review?: Educational
 
       {notes.length > 0 && (
         <div className="space-y-1.5 pt-1">
-          <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide" style={muted}>
-            <TrendingUp className="h-3.5 w-3.5" aria-hidden="true" /> What the trend says
+          <div className="flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide" style={muted}>
+            <TrendingUp className="h-4 w-4" aria-hidden="true" /> What the trend says
           </div>
-          <ul className="list-disc space-y-1 pl-5 text-sm leading-relaxed">
-            {notes.map((n) => <li key={n}>{n}</li>)}
-          </ul>
+          <div className="grid gap-3 md:grid-cols-2">
+            {notes.map((n, i) => (
+              <div key={n} className="flex gap-3 rounded-xl p-4 text-base leading-snug" style={{ border: '1px solid var(--color-border, #e2e8f0)' }}>
+                <span
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-bold"
+                  style={{ background: 'color-mix(in srgb, var(--color-primary, #2563eb) 16%, transparent)', color: accent }}
+                  aria-hidden="true"
+                >
+                  {i + 1}
+                </span>
+                <span>{n}</span>
+              </div>
+            ))}
+          </div>
           <p className="text-xs" style={muted}>Worked out from the history table below, up to the night shown.</p>
         </div>
       )}

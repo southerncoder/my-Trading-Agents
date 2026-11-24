@@ -13,6 +13,7 @@ import {
 } from './types/index.js';
 import { logger } from './utils/logger.js';
 import { summarizeFundamentals, type CompanyFactsLike, type FundamentalsSummary, type SubmissionsLike } from './fundamentals.js';
+import { extractProperties, htmlToText, latestAnnualReport, type PropertiesSection, type RecentFilingsLike } from './properties.js';
 import { BLS_SERIES, FRED_SERIES, blsAsOf, blsIndicators, fredIndicators, macroDigest, type BlsSeriesLike, type FredObs, type MacroIndicator } from './macro.js';
 
 export interface MacroSummary {
@@ -29,6 +30,8 @@ const MACRO_TTL_MS = 6 * 60 * 60 * 1000;
 
 export class GovFinancialData {
   private macroCache = new Map<string, { at: number; data: MacroSummary }>();
+  /** Item 2 text per 10-K URL: a filed document never changes. */
+  private propertiesCache = new Map<string, PropertiesSection | null>();
   public sec: SECClient;
   public fred?: FREDClient;
   public bls: BLSClient;
@@ -129,6 +132,22 @@ export class GovFinancialData {
       facts: facts as unknown as CompanyFactsLike | null,
       submissions: submissions as SubmissionsLike | null,
     });
+  }
+
+  /** Item 2 (Properties) of the newest annual report filed by `asOf`, quoted from the filing; null when absent. */
+  async getProperties(ticker: string, asOf: string): Promise<PropertiesSection | null> {
+    const company = await this.sec.getCompanyByTicker(ticker);
+    if (!company) return null;
+    const cik = String(company.cik_str);
+    const sub = (await this.sec.getCompanySubmissions(cik)) as { filings?: { recent?: RecentFilingsLike } } | null;
+    const report = latestAnnualReport(cik, sub?.filings?.recent, asOf);
+    if (!report) return null;
+    if (this.propertiesCache.has(report.url)) return this.propertiesCache.get(report.url) ?? null;
+    const found = extractProperties(htmlToText(await this.sec.getArchiveText(report.url)));
+    const out = found ? { ...report, ...found } : null;
+    this.propertiesCache.set(report.url, out);
+    while (this.propertiesCache.size > 200) this.propertiesCache.delete(this.propertiesCache.keys().next().value as string);
+    return out;
   }
 
   /**

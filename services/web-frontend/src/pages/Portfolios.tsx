@@ -1,3 +1,6 @@
+import { Briefcase } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Card, HBars, SectionTitle } from '../components/viz'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { card, fmtPct, moveColor, muted } from '../components/today/format'
@@ -15,6 +18,7 @@ function Versus({ p }: { p: PortfolioSummary }) {
 }
 
 export function Portfolios() {
+  const navigate = useNavigate()
   const { data, error, reload } = useLoad(fetchPortfolios, 'all')
   const [name, setName] = useState('')
   const [cash, setCash] = useState('10000')
@@ -38,10 +42,10 @@ export function Portfolios() {
   }
 
   return (
-    <div className="space-y-4 p-2 sm:p-4 md:p-6">
-      <header>
-        <h1 className="text-2xl font-semibold">Portfolios</h1>
-        <p className="text-sm" style={muted}>
+    <div className="app-page mx-auto max-w-6xl space-y-6 p-3 sm:p-4 md:p-8">
+      <header className="space-y-2">
+        <h1 className="flex items-center gap-3"><Briefcase className="h-9 w-9" style={{ color: 'var(--color-primary, #2563eb)' }} aria-hidden="true" />Portfolios</h1>
+        <p className="max-w-3xl text-lg" style={muted}>
           Paper money only, on real prices. You record the trades; each night the system checks the exit plan and the risk
           limits and tells you when to act. The shadow portfolio takes every pick by itself, so you can see whether your choices beat the system&apos;s.
         </p>
@@ -50,15 +54,27 @@ export function Portfolios() {
       {error && <p role="alert" className="text-sm" style={{ color: '#D4501A' }}>Could not load portfolios: {error}</p>}
       {!data && !error && <p role="status" className="text-sm" style={muted}>Loading...</p>}
 
+      {data && data.some((p) => p.spyReturnPct !== null) && (
+        <Card className="space-y-3">
+          <SectionTitle title="Return against SPY" sub="Each portfolio's return since it started (bar) and how it compares with SPY over the same days. Click a bar to open it." />
+          <HBars
+            labelWidth={200}
+            format={(v) => fmtPct(v, 2)}
+            onRow={(id) => navigate(`/portfolios/${id}`)}
+            rows={data.map((p) => ({ key: String(p.id), label: p.name, value: p.returnPct, note: p.spyReturnPct === null ? 'SPY n/a' : `SPY ${fmtPct(p.spyReturnPct, 2)} · ${p.returnPct >= p.spyReturnPct ? 'ahead' : 'behind'}` }))}
+          />
+        </Card>
+      )}
+
       {data && (
         <div className="grid grid-cols-[repeat(1,minmax(0,1fr))] gap-3 sm:grid-cols-[repeat(2,minmax(0,1fr))] lg:grid-cols-[repeat(3,minmax(0,1fr))]">
           {data.map((p) => (
-            <Link key={p.id} to={`/portfolios/${p.id}`} className="clickable block rounded-lg p-4 no-underline" style={card} title={`Open ${p.name}`}>
+            <Link key={p.id} to={`/portfolios/${p.id}`} className="clickable block rounded-2xl p-5 no-underline" style={card} title={`Open ${p.name}`}>
               <div className="flex items-baseline justify-between gap-2">
                 <span className="font-semibold">{p.name}</span>
                 {kindInfo(p.kind).tag && <span className="rounded px-1.5 text-xs" style={{ ...muted, border: '1px solid currentColor' }} title={kindInfo(p.kind).label}>{kindInfo(p.kind).tag}</span>}
               </div>
-              <div className="mt-1 text-2xl font-semibold">{money(p.equity, 0)}</div>
+              <div className="mt-1 text-3xl font-bold">{money(p.equity, 0)}</div>
               <div className="text-sm"><Versus p={p} /></div>
               <div className="mt-2 flex flex-wrap gap-x-3 text-xs" style={muted}>
                 <span>{p.openPositions} open</span>

@@ -1,3 +1,6 @@
+import { List as ListIcon } from 'lucide-react'
+import { useNavigate as useNav } from 'react-router-dom'
+import { Card, HBars, SectionTitle, SegmentBar, callColor } from '../components/viz'
 import { useCallback, useEffect, useState } from 'react'
 import { fetchWatchlist, postWatchlistRequest, type WatchStock, type Watchlist, type WatchlistRequestInput } from '../services/nightly'
 import { filterStocks, type CadenceFilter, type ListFilter } from '../components/stocks/filter'
@@ -18,6 +21,7 @@ const field = 'rounded border px-2 py-2 text-sm'
 const rule = { borderTop: '1px solid var(--color-border, #e2e8f0)' }
 
 export function Stocks() {
+  const navigate = useNav()
   const [data, setData] = useState<Watchlist | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [list, setList] = useState<ListFilter>('all')
@@ -144,15 +148,46 @@ export function Stocks() {
     )
 
   return (
-    <div className="space-y-4 p-2 sm:p-4 md:p-6">
-      <header>
-        <h1 className="text-2xl font-semibold">Stocks</h1>
-        <p className="text-sm" style={muted}>
+    <div className="app-page mx-auto max-w-6xl space-y-6 p-3 sm:p-4 md:p-8">
+      <header className="space-y-2">
+        <h1 className="flex items-center gap-3"><ListIcon className="h-9 w-9" style={{ color: 'var(--color-primary, #2563eb)' }} aria-hidden="true" />Stocks</h1>
+        <p className="max-w-3xl text-lg" style={muted}>
           {data.stocks.length} on the watchlist &middot; {data.counts.nightly} nightly, {data.counts.weekly} weekly,{' '}
           {data.counts.once} one-time, {data.counts.paused} paused. Changes you make here take effect when the next
           nightly run starts, not right away.
         </p>
       </header>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card className="space-y-3">
+          <SectionTitle title="Latest call per stock" />
+          <SegmentBar
+            unit=" stocks"
+            parts={Object.entries(
+              data.stocks.reduce<Record<string, number>>((a, x) => {
+                const k = x.latest?.label ?? 'Not analysed yet'
+                return { ...a, [k]: (a[k] ?? 0) + 1 }
+              }, {}),
+            )
+              .sort((a, b) => b[1] - a[1])
+              .map(([label, n]) => ({ label, value: n, color: label === 'Not analysed yet' ? '#cbd5e1' : callColor(label) }))}
+          />
+        </Card>
+        <Card className="space-y-3">
+          <SectionTitle title="Most confident calls" sub="Click a bar for the stock." />
+          <HBars
+            labelWidth={70}
+            max={100}
+            format={(v) => `${Math.round(v)}%`}
+            onRow={(t) => navigate(`/stock/${t}`)}
+            rows={data.stocks
+              .filter((x) => x.latest)
+              .sort((a, b) => (b.latest?.confidence ?? 0) - (a.latest?.confidence ?? 0))
+              .slice(0, 8)
+              .map((x) => ({ key: x.ticker, label: x.ticker, value: (x.latest?.confidence ?? 0) * 100, note: x.latest?.label, color: callColor(x.latest?.label ?? '') }))}
+          />
+        </Card>
+      </div>
 
       {data.skipped > 0 && (
         <p className="text-xs" style={muted}>{data.skipped} watchlist entr{data.skipped === 1 ? 'y was' : 'ies were'} skipped as invalid.</p>

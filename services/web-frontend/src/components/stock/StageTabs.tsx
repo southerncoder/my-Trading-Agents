@@ -63,7 +63,7 @@ export function StageTabs({ stages }: { stages: Record<string, string> }) {
               tabIndex={on ? 0 : -1}
               onClick={() => setSelected(s.key)}
               onKeyDown={(e) => onKey(e, i)}
-              className="shrink-0 whitespace-nowrap rounded px-3 py-2 text-sm"
+              className="shrink-0 whitespace-nowrap rounded-lg px-4 py-2 text-base"
               style={{
                 border: '1px solid var(--color-border, #cbd5e1)',
                 fontWeight: on ? 600 : 400,
@@ -75,8 +75,8 @@ export function StageTabs({ stages }: { stages: Record<string, string> }) {
           )
         })}
       </div>
-      <div id="stage-panel" role="tabpanel" aria-labelledby={`tab-${active.key}`} className="mt-3 rounded-lg p-4" style={card}>
-        <p className="pb-2 text-xs" style={muted}>
+      <div id="stage-panel" role="tabpanel" aria-labelledby={`tab-${active.key}`} className="mt-3 rounded-2xl p-5 text-base md:p-6" style={card}>
+        <p className="pb-3 text-sm" style={muted}>
           {active.hint}
         </p>
         <StageBody text={stages[active.key]} />

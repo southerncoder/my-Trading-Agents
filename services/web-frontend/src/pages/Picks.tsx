@@ -1,3 +1,6 @@
+import { AlertTriangle, Sparkles } from 'lucide-react'
+import { Card, SectionTitle, SegmentBar, callColor } from '../components/viz'
+import { newsSearches, riskQuery, shortName } from '../components/stock/research'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { groupPicks, pickAction, SOURCE_HELP, SOURCE_LABEL } from '../components/portfolio/helpers'
@@ -68,7 +71,7 @@ function PickCard({ p, portfolioId, shares, onTraded }: { p: Pick; portfolioId: 
   }
   const risks = p.key_risks.slice(0, 2)
   return (
-    <li className="space-y-1 rounded-lg p-3 text-sm transition-shadow hover:shadow-md" style={card}>
+    <li className="space-y-2 rounded-2xl p-4 text-base transition-shadow hover:shadow-md" style={card}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <span>
           <TickerLink ticker={p.ticker} />
@@ -83,7 +86,21 @@ function PickCard({ p, portfolioId, shares, onTraded }: { p: Pick; portfolioId: 
         {p.llm_seconds ? <span>{p.llm_seconds}s of analysis</span> : null}
       </div>
       {p.rationale && <p className="line-clamp-3">{p.rationale}</p>}
-      {risks.length > 0 && <p className="text-xs" style={muted}>Risks: {risks.join('; ')}</p>}
+      {risks.length > 0 && (
+        <div className="space-y-1.5 pt-1">
+          {risks.map((r) => (
+            <div key={r} className="rounded-lg px-3 py-2" style={{ border: '1px solid var(--color-border, #e2e8f0)', borderLeft: '3px solid #D4501A' }}>
+              <div className="flex items-start gap-1.5"><AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" style={{ color: '#D4501A' }} aria-hidden="true" />{r}</div>
+              <div className="mt-1 flex flex-wrap gap-x-3 text-xs" style={muted}>
+                Read up:
+                {newsSearches(riskQuery(shortName(p.company, p.ticker), r)).map((l) => (
+                  <a key={l.label} href={l.url} target="_blank" rel="noopener noreferrer" className="underline" style={{ color: 'var(--color-primary, #2563eb)' }}>{l.label}</a>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
       <Reasons p={p} />
       <ProfessorReview p={p} />
       {action && (
@@ -132,10 +149,10 @@ export function Picks() {
   const hidden = (data?.picks.length ?? 0) - shown.length
 
   return (
-    <div className="space-y-4 p-2 sm:p-4 md:p-6">
-      <header>
-        <h1 className="text-2xl font-semibold">Picks</h1>
-        <p className="text-sm" style={muted}>
+    <div className="app-page mx-auto max-w-6xl space-y-6 p-3 sm:p-4 md:p-8">
+      <header className="space-y-2">
+        <h1 className="flex items-center gap-3"><Sparkles className="h-9 w-9" style={{ color: 'var(--color-primary, #2563eb)' }} aria-hidden="true" />Picks</h1>
+        <p className="max-w-3xl text-lg" style={muted}>
           The night&apos;s calls from three sources: your watchlist, a rule-based screen and names in the news. Recording a pick buys the chosen number of shares in a paper
           portfolio at the latest price, or places an order that waits for the trigger price. Nothing here is advice.
         </p>
@@ -170,6 +187,24 @@ export function Picks() {
       {picks.error && <p role="alert" style={bad}>Could not load picks: {picks.error}</p>}
       {data && data.picks.length === 0 && <p className="text-sm" style={muted}>No picks yet. They appear after the nightly run copies its calls into the portfolio service.</p>}
       {data && hidden > 0 && <p className="text-xs" style={muted}>{hidden} calls with no trade tonight (wait, keep, exit) are hidden.</p>}
+
+      {data && data.picks.length > 0 && (
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card className="space-y-3">
+            <SectionTitle title="Where tonight's picks came from" />
+            <SegmentBar unit=" picks" parts={groupPicks(data.picks).map((g, i) => ({ label: SOURCE_LABEL[g.source] ?? g.source, value: g.picks.length, color: ['var(--viz-1, #2a78d6)', 'var(--viz-2, #eb6834)', 'var(--viz-3, #1baf7a)', '#94a3b8'][i % 4] }))} />
+          </Card>
+          <Card className="space-y-3">
+            <SectionTitle title="What they say" />
+            <SegmentBar
+              unit=" picks"
+              parts={Object.entries(data.picks.reduce<Record<string, number>>((a, p) => ({ ...a, [p.label]: (a[p.label] ?? 0) + 1 }), {}))
+                .sort((a, b) => b[1] - a[1])
+                .map(([label, n]) => ({ label, value: n, color: callColor(label) }))}
+            />
+          </Card>
+        </div>
+      )}
 
       {groupPicks(shown).map((g) => (
         <section key={g.source} className="space-y-2" aria-labelledby={`src-${g.source}`}>

@@ -4,6 +4,7 @@ import { fetchLatestNight, fetchNight, fetchNightDates, type NightlyDay } from '
 import { SummaryStrip } from '../components/today/SummaryStrip'
 import { BuyNowList } from '../components/today/BuyNowList'
 import { TriggerTable } from '../components/today/TriggerTable'
+import { NightCharts } from '../components/today/NightCharts'
 import { MacroPanel } from '../components/today/MacroPanel'
 import { neighbours, newestFirst } from '../components/today/nights'
 import { card, muted } from '../components/today/format'
@@ -73,11 +74,11 @@ export function Today() {
   const step = 'rounded border px-3 py-2 text-sm disabled:opacity-40'
 
   return (
-    <div className="space-y-6 p-2 sm:p-4 md:p-6" aria-busy={loading}>
+    <div className="app-page mx-auto max-w-6xl space-y-8 p-3 sm:p-4 md:p-8" aria-busy={loading}>
       <header className="space-y-3">
         <div>
-          <h1 className="text-2xl font-semibold">{older ? 'Past night' : 'Today'}</h1>
-          <p className="text-sm" style={muted}>
+          <h1>{older ? 'Past night' : 'Today'}</h1>
+          <p className="mt-2 text-lg" style={muted}>
             Night of {day.date} &middot;{' '}
             <Link to="/stocks" className="underline decoration-dotted underline-offset-2 hover:decoration-solid">
               {day.rows.length} stocks
@@ -160,6 +161,7 @@ export function Today() {
       <div style={{ opacity: loading ? 0.6 : 1 }}>
         <div className="space-y-6">
           <SummaryStrip day={day} />
+          <NightCharts day={day} />
           <BuyNowList rows={buyNow} />
           <TriggerTable rows={waiting} />
           <MacroPanel date={day.date} />

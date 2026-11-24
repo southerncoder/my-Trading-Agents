@@ -98,7 +98,8 @@ export function Layout({ children }: LayoutProps) {
         className="sticky top-0 z-40"
         style={{ background: 'var(--color-surface, #0b1220)', borderBottom: border }}
       >
-        <div className="container flex items-center justify-between gap-4" style={{ minHeight: '3.5rem' }}>
+        {/* overflow-x: clip (not hidden) so the Theme and More menus can hang below the header. */}
+        <div className="container flex items-center justify-between gap-4" style={{ minHeight: '3.5rem', overflowX: 'clip', overflowY: 'visible' }}>
           <Link to="/" className="flex items-center gap-2" aria-label="TradingAgents home">
             <span
               className="flex items-center justify-center rounded-lg"

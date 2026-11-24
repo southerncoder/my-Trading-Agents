@@ -5,11 +5,11 @@ export function Backtesting() {
   // const [isRunning, setIsRunning] = useState(false) // Unused for now
 
   return (
-    <div className="space-y-8">
+    <div className="app-page mx-auto max-w-6xl space-y-8 p-3 sm:p-4 md:p-8">
       {/* Header */}
       <div>
-        <h1 className="cyber-header text-3xl text-electric-blue">// Strategy Backtesting</h1>
-        <p className="mt-2 text-slate-200 font-fira-code">
+        <h1>Strategy Backtesting</h1>
+        <p className="mt-2 text-lg" style={{ color: 'var(--color-text-muted, #64748b)' }}>
           Test your trading strategies against historical market data
         </p>
       </div>
