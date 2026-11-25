@@ -1,8 +1,11 @@
 import { AlertTriangle, Sparkles } from 'lucide-react'
-import { Card, SectionTitle, SegmentBar, callColor } from '../components/viz'
+import { Card, HBars, SectionTitle, SegmentBar, callColor } from '../components/viz'
+import { ConfidenceBar, PriceSpark, useSparks, type Closes } from '../components/today/triggerViz'
+import { EntryRadar, PickLadder, entryOf, roomPct } from '../components/portfolio/picksViz'
+import { fmtPct } from '../components/today/format'
 import { newsSearches, riskQuery, shortName } from '../components/stock/research'
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { groupPicks, pickAction, SOURCE_HELP, SOURCE_LABEL } from '../components/portfolio/helpers'
 import { button, field, money, primaryButton, primaryStyle, sectionTitle, useLoad } from '../components/portfolio/ui'
 import { card, muted } from '../components/today/format'
@@ -43,7 +46,7 @@ function ProfessorReview({ p }: { p: Pick }) {
   )
 }
 
-function PickCard({ p, portfolioId, shares, onTraded }: { p: Pick; portfolioId: number | null; shares: number; onTraded: (msg: string) => void }) {
+function PickCard({ p, portfolioId, shares, onTraded, closes = [] }: { p: Pick; portfolioId: number | null; shares: number; onTraded: (msg: string) => void; closes?: Closes }) {
   const action = pickAction(p)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null)
@@ -84,6 +87,22 @@ function PickCard({ p, portfolioId, shares, onTraded }: { p: Pick; portfolioId: 
         {p.trigger_price !== null && <span>trigger {money(p.trigger_price)}{p.trigger_type ? ` (${p.trigger_type})` : ''}</span>}
         {p.walk_away !== null && <span>walk away below {money(p.walk_away)}</span>}
         {p.llm_seconds ? <span>{p.llm_seconds}s of analysis</span> : null}
+      </div>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl p-2" style={{ border: '1px solid var(--color-border, #e2e8f0)' }}>
+        <div>
+          <div className="text-xs" style={muted}>Last 30 days</div>
+          <PriceSpark closes={closes.slice(-30)} trigger={p.trigger_price} walk={p.walk_away} width={150} height={40} />
+        </div>
+        <div>
+          <div className="text-xs" style={muted}>Price · {p.trigger_price ? 'trigger' : 'buys now'} · walk away</div>
+          <PickLadder p={p} width={190} />
+        </div>
+        {p.confidence !== null && (
+          <div>
+            <div className="text-xs" style={muted}>Confidence</div>
+            <ConfidenceBar value={p.confidence} />
+          </div>
+        )}
       </div>
       {p.rationale && <p className="line-clamp-3">{p.rationale}</p>}
       {risks.length > 0 && (
@@ -147,6 +166,8 @@ export function Picks() {
   const data = picks.data
   const shown = (data?.picks ?? []).filter((p) => showAll || p.tradeable)
   const hidden = (data?.picks.length ?? 0) - shown.length
+  const sparks = useSparks(shown.map((p) => p.ticker))
+  const navigate = useNavigate()
 
   return (
     <div className="app-page mx-auto max-w-6xl space-y-6 p-3 sm:p-4 md:p-8">
@@ -206,12 +227,50 @@ export function Picks() {
         </div>
       )}
 
+      {shown.length > 0 && (
+        <Card className="space-y-3">
+          <SectionTitle title="Entry radar" sub="How far each pick's price has to move before it buys." />
+          <EntryRadar picks={shown} />
+        </Card>
+      )}
+
+      {shown.some((p) => roomPct(p) !== null) && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card className="space-y-3">
+            <SectionTitle title="Room before walking away" sub="How far the price can fall from the entry before the idea is dropped. Short bars leave little room for an ordinary bad day. Click for the stock." />
+            <HBars
+              labelWidth={70}
+              format={(v) => fmtPct(v)}
+              onRow={(k) => { const t = shown.find((x) => String(x.id) === k)?.ticker; if (t) navigate(`/stock/${t}`) }}
+              rows={shown
+                .map((p) => ({ p, r: roomPct(p) }))
+                .filter((e): e is { p: Pick; r: number } => e.r !== null)
+                .sort((a, b) => b.r - a.r)
+                .map(({ p, r }) => ({ key: String(p.id), label: p.ticker, value: r, note: `${money(entryOf(p))} → ${money(p.walk_away)}` }))}
+            />
+          </Card>
+          <Card className="space-y-3">
+            <SectionTitle title="Confidence" sub="The model's own confidence in each call. Not yet checked against results, so treat it as a ranking at most." />
+            <HBars
+              labelWidth={70}
+              max={1}
+              format={(v) => `${Math.round(v * 100)}%`}
+              onRow={(k) => { const t = shown.find((x) => String(x.id) === k)?.ticker; if (t) navigate(`/stock/${t}`) }}
+              rows={shown
+                .filter((p) => p.confidence !== null)
+                .sort((a, b) => (b.confidence ?? 0) - (a.confidence ?? 0))
+                .map((p) => ({ key: String(p.id), label: p.ticker, value: p.confidence as number, note: p.label, color: callColor(p.label) }))}
+            />
+          </Card>
+        </div>
+      )}
+
       {groupPicks(shown).map((g) => (
         <section key={g.source} className="space-y-2" aria-labelledby={`src-${g.source}`}>
           <h2 id={`src-${g.source}`} className={sectionTitle}>{SOURCE_LABEL[g.source] ?? g.source} <span className="text-sm font-normal" style={muted}>({g.picks.length})</span></h2>
           <p className="text-xs" style={muted}>{SOURCE_HELP[g.source]}</p>
           <ul className="grid grid-cols-[repeat(1,minmax(0,1fr))] gap-2 lg:grid-cols-[repeat(2,minmax(0,1fr))]">
-            {g.picks.map((p) => <PickCard key={p.id} p={p} portfolioId={chosen?.id ?? null} shares={Number(shares) || 0} onTraded={() => portfolios.reload()} />)}
+            {g.picks.map((p) => <PickCard key={p.id} p={p} closes={sparks[p.ticker]} portfolioId={chosen?.id ?? null} shares={Number(shares) || 0} onTraded={() => portfolios.reload()} />)}
           </ul>
         </section>
       ))}
