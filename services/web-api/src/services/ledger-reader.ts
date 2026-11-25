@@ -48,6 +48,7 @@ function normalizeRow(raw: unknown): LedgerRow | null {
     educational_review: r.educational_review ?? undefined,
     fast_model: optStr(r.fast_model),
     decision_model: optStr(r.decision_model),
+    seconds: num(r.seconds),
     stance,
     pm: {
       rationale: optStr(pm.rationale),

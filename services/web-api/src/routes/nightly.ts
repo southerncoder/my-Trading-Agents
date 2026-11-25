@@ -9,6 +9,7 @@ import { loadStockExtras } from '../services/stock-extras.js'
 import { loadStockMedia } from '../services/stock-media.js'
 import { loadBrands } from '../services/brands.js'
 import { loadSparks } from '../services/sparks.js'
+import { checkServices, nightStats, runMinutes } from '../services/platform.js'
 
 const router = Router()
 
@@ -90,6 +91,28 @@ router.get('/status', async (_req, res) => {
     return res.json({ success: true, data: { status, models } })
   } catch {
     return fail(res, 500, 'Failed to read run status')
+  }
+})
+
+/** Run history (calls, sources, models, run time per night), last night's per-stock timing and service health. */
+router.get('/platform', async (_req, res) => {
+  try {
+    const ledger = await loadLedger(ledgerPath())
+    const dates = [...ledger.byDate.keys()]
+    const [minutes, services] = await Promise.all([runMinutes(logsPath(), dates), checkServices()])
+    const nights = nightStats(ledger.byDate, minutes)
+    const last = dates.sort().reverse()[0]
+    const lastNight = last
+      ? {
+          date: last,
+          stocks: (ledger.byDate.get(last) ?? [])
+            .flatMap((r) => (typeof r.seconds === 'number' && r.seconds > 0 ? [{ ticker: r.ticker, group: r.group, seconds: r.seconds }] : []))
+            .sort((a, b) => b.seconds - a.seconds),
+        }
+      : null
+    return res.json({ success: true, data: { nights, lastNight, services } })
+  } catch {
+    return fail(res, 500, 'Failed to build the platform view')
   }
 })
 

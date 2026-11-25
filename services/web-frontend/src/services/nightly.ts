@@ -227,6 +227,29 @@ export async function fetchRunStatus(): Promise<RunStatus> {
   return runStatusSchema.parse(await getJson('status'))
 }
 
+const platformSchema = z.object({
+  nights: z.array(
+    z.object({
+      date: z.string(),
+      calls: z.number(),
+      bySource: z.record(z.string(), z.number()),
+      profile: z.string(),
+      fast_model: z.string().optional(),
+      decision_model: z.string().optional(),
+      seconds_total: z.number().nullable(),
+      seconds_median: z.number().nullable(),
+      minutes: z.number().nullable(),
+    }),
+  ),
+  lastNight: z.object({ date: z.string(), stocks: z.array(z.object({ ticker: z.string(), group: z.string(), seconds: z.number() })) }).nullable(),
+  services: z.array(z.object({ name: z.string(), role: z.string(), ok: z.boolean(), ms: z.number().nullable(), status: z.number().nullable() })),
+})
+export type Platform = z.infer<typeof platformSchema>
+
+export async function fetchPlatform(): Promise<Platform> {
+  return platformSchema.parse(await getJson('platform'))
+}
+
 const scoreCellSchema = z.object({
   key: z.string(),
   horizon: z.number(),

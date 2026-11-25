@@ -18,6 +18,8 @@ export interface LedgerRow {
   educational_review?: unknown
   fast_model?: string
   decision_model?: string
+  /** Wall-clock seconds the analysis of this stock took. */
+  seconds?: number
   stance: Record<string, string>
   pm: {
     rationale?: string
