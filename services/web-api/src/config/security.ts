@@ -3,10 +3,6 @@ export interface SecurityConfig {
     windowMs: number
     max: number
   }
-  analysisRateLimit: {
-    windowMs: number
-    max: number
-  }
   cors: {
     allowedOrigins: string[]
   }
@@ -33,10 +29,6 @@ export const securityConfig: SecurityConfig = {
     max: isDevelopment ? 1000 : 100 // More lenient in development
   },
   
-  analysisRateLimit: {
-    windowMs: isDevelopment ? 1 * 60 * 1000 : 5 * 60 * 1000, // 1 min in dev, 5 min in prod
-    max: isDevelopment ? 100 : 10 // More lenient in development
-  },
   
   cors: {
     allowedOrigins: [
@@ -109,39 +101,39 @@ export const securityHeaders = {
 // Input validation patterns
 export const securityPatterns = {
   xss: [
-    /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
-    /javascript:/gi,
-    /on\w+\s*=/gi,
-    /<iframe/gi,
-    /<object/gi,
-    /<embed/gi,
-    /<link/gi,
-    /<meta/gi
+    /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/i,
+    /javascript:/i,
+    /\bon[a-z]+\s*=/i, // an event handler attribute (onclick=), not words like confidence=
+    /<iframe/i,
+    /<object/i,
+    /<embed/i,
+    /<link/i,
+    /<meta/i
   ],
   
   sqlInjection: [
-    /union.*select/gi,
-    /insert.*into/gi,
-    /delete.*from/gi,
-    /update.*set/gi,
-    /drop.*table/gi,
-    /alter.*table/gi
+    /union.*select/i,
+    /insert.*into/i,
+    /delete.*from/i,
+    /update.*set/i,
+    /drop.*table/i,
+    /alter.*table/i
   ],
   
   pathTraversal: [
-    /\.\./g,
-    /\/etc\/passwd/gi,
-    /\/proc\/self\/environ/gi,
-    /\/windows\/system32/gi
+    /\.\./,
+    /\/etc\/passwd/i,
+    /\/proc\/self\/environ/i,
+    /\/windows\/system32/i
   ],
   
   codeInjection: [
-    /eval\(/gi,
-    /function\s*\(/gi,
-    /setTimeout\(/gi,
-    /setInterval\(/gi,
-    /document\.cookie/gi,
-    /window\.location/gi
+    /eval\(/i,
+    /function\s*\(/i,
+    /setTimeout\(/i,
+    /setInterval\(/i,
+    /document\.cookie/i,
+    /window\.location/i
   ]
 }
 

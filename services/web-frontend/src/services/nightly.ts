@@ -436,3 +436,67 @@ export type StockMedia = z.infer<typeof stockMediaSchema>
 export async function fetchStockMedia(ticker: string): Promise<StockMedia> {
   return stockMediaSchema.parse(await getJson(`stock/${encodeURIComponent(ticker)}/media`))
 }
+
+const historyRowSchema = z.object({
+  date: z.string(),
+  ticker: z.string(),
+  group: z.string(),
+  label: z.string(),
+  decision: z.string(),
+  confidence: z.number(),
+  price: z.number(),
+  trigger_price: z.number().nullable(),
+  walk_away: z.number().nullable(),
+  vs_spy: z.record(z.string(), z.number()),
+})
+export type HistoryRow = z.infer<typeof historyRowSchema>
+
+export async function fetchHistory(): Promise<{ rows: HistoryRow[]; dates: string[] }> {
+  return z.object({ rows: z.array(historyRowSchema), dates: z.array(z.string()) }).parse(await getJson('history'))
+}
+
+const outcomeSchema = z.enum(['closed', 'open', 'cancelled', 'expired', 'held', 'no_prices'])
+const backtestSchema = z.object({
+  rules: z.object({ calls: z.string(), source: z.string(), hold: z.number(), stop: z.boolean(), minConfidence: z.number(), triggerDays: z.number(), size: z.number() }),
+  from: z.string().nullable(),
+  to: z.string().nullable(),
+  trades: z.array(
+    z.object({
+      ticker: z.string(),
+      callDate: z.string(),
+      label: z.string(),
+      confidence: z.number(),
+      outcome: outcomeSchema,
+      entryDate: z.string().optional(),
+      entry: z.number().optional(),
+      exitDate: z.string().optional(),
+      exit: z.number().optional(),
+      exitReason: z.enum(['hold', 'stop', 'marked']).optional(),
+      retPct: z.number().optional(),
+      spyRetPct: z.number().optional(),
+      pnl: z.number().optional(),
+    }),
+  ),
+  equity: z.array(z.object({ date: z.string(), strategy: z.number(), spy: z.number() })),
+  stats: z.object({
+    calls: z.number(),
+    taken: z.number(),
+    closed: z.number(),
+    open: z.number(),
+    wins: z.number(),
+    winRatePct: z.number().nullable(),
+    pnl: z.number(),
+    spyPnl: z.number(),
+    avgRetPct: z.number().nullable(),
+    avgVsSpyPct: z.number().nullable(),
+    maxDrawdown: z.number(),
+    outcomes: z.record(outcomeSchema, z.number()),
+  }),
+})
+export type Backtest = z.infer<typeof backtestSchema>
+export type BacktestOutcome = z.infer<typeof outcomeSchema>
+
+export async function fetchBacktest(q: { calls: string; source: string; hold: number; stop: boolean; minConfidence: number; triggerDays: number }): Promise<Backtest> {
+  const p = new URLSearchParams({ calls: q.calls, source: q.source, hold: String(q.hold), stop: q.stop ? '1' : '0', minConfidence: String(Math.round(q.minConfidence * 100)), triggerDays: String(q.triggerDays) })
+  return backtestSchema.parse(await getJson(`backtest?${p}`))
+}

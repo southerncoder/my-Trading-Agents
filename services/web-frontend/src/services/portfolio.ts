@@ -164,6 +164,7 @@ export const requestSchema = z.looseObject({
   reason: z.string(),
   status: z.enum(['queued', 'running', 'done', 'failed']),
   requested_at: z.string(),
+  started_at: sn.optional(),
   finished_at: sn.optional(),
   error: sn.optional(),
   label: sn.optional(),
@@ -257,6 +258,8 @@ export const cancelOrder = (id: number, orderId: number) => post(`/portfolios/${
 
 export const fetchPicks = async (date?: string) => picksSchema.parse(await get(`/picks${date ? `?date=${encodeURIComponent(date)}` : ''}`))
 export const fetchRequests = async () => z.array(requestSchema).parse(await get('/analysis-requests'))
+export const fetchRequest = async (id: number) =>
+  z.object({ request: requestSchema, candidate: pickSchema.partial().extend({ id: n, ticker: z.string(), run_date: z.string(), label: z.string() }).passthrough().nullable() }).parse(await get(`/analysis-requests/${id}`))
 export const requestAnalysis = async (ticker: string) => requestSchema.parse(await post('/analysis-requests', { ticker }))
 export const fetchResults = async () => resultsSchema.parse(await get('/sources/results'))
 export const fetchReviews = async () => z.array(reviewSchema).parse(await get('/reviews'))

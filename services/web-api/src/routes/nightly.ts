@@ -10,6 +10,7 @@ import { loadStockMedia } from '../services/stock-media.js'
 import { loadBrands } from '../services/brands.js'
 import { loadSparks } from '../services/sparks.js'
 import { checkServices, nightStats, runMinutes } from '../services/platform.js'
+import { DEFAULT_RULES, loadBars, runBacktest, type BacktestCall, type BacktestRules } from '../services/backtest.js'
 
 const router = Router()
 
@@ -250,6 +251,73 @@ router.get('/sparks', async (req, res) => {
     return res.json({ success: true, data: await loadSparks({ yahooUrl: yahooUrl(), fetchText }, tickers) })
   } catch {
     return fail(res, 500, 'Failed to load price history')
+  }
+})
+
+/** Every call in the ledger, newest first, with its scored result after 1, 3 and 5 trading days where known. */
+router.get('/history', async (_req, res) => {
+  try {
+    const ledger = await loadLedger(ledgerPath())
+    const results = new Map<string, Record<string, number>>()
+    try {
+      const sc = JSON.parse((await readFile(join(logsPath(), 'scorecard.json'), 'utf8')).replace(/^\uFEFF/, '')) as { detail?: { date: string; ticker: string; horizon: number; excess_pct: number }[] }
+      for (const d of sc.detail ?? []) {
+        const k = `${d.date}|${d.ticker}`
+        results.set(k, { ...(results.get(k) ?? {}), [String(d.horizon)]: d.excess_pct })
+      }
+    } catch {
+      // no scorecard yet: the history still lists the calls
+    }
+    const rows = [...ledger.byDate.values()]
+      .flat()
+      .map((r) => ({
+        date: r.date,
+        ticker: r.ticker,
+        group: r.group,
+        label: r.label,
+        decision: r.decision,
+        confidence: r.confidence,
+        price: r.price,
+        trigger_price: r.trigger_price ?? null,
+        walk_away: r.walk_away ?? null,
+        vs_spy: results.get(`${r.date}|${r.ticker}`) ?? {},
+      }))
+      .sort((a, b) => b.date.localeCompare(a.date) || a.ticker.localeCompare(b.ticker))
+    return res.json({ success: true, data: { rows, dates: [...ledger.byDate.keys()].sort() } })
+  } catch {
+    return fail(res, 500, 'Failed to read the call history')
+  }
+})
+
+/** Replays past calls on real prices with the given rules (see services/backtest.ts). */
+router.get('/backtest', async (req, res) => {
+  const q = req.query
+  const pick = <T extends string>(v: unknown, allowed: readonly T[], d: T): T => (typeof v === 'string' && (allowed as readonly string[]).includes(v) ? (v as T) : d)
+  const int = (v: unknown, lo: number, hi: number, d: number) => {
+    const n = typeof v === 'string' ? Number(v) : NaN
+    return Number.isFinite(n) ? Math.min(hi, Math.max(lo, Math.round(n))) : d
+  }
+  const rules: BacktestRules = {
+    calls: pick(q.calls, ['now', 'trigger', 'both'] as const, DEFAULT_RULES.calls),
+    source: pick(q.source, ['all', 'watchlist', 'screen', 'news'] as const, 'all'),
+    hold: int(q.hold, 1, 20, DEFAULT_RULES.hold),
+    stop: q.stop !== '0',
+    minConfidence: int(q.minConfidence, 0, 100, 0) / 100,
+    triggerDays: int(q.triggerDays, 1, 15, DEFAULT_RULES.triggerDays),
+    size: 1000,
+  }
+  try {
+    const ledger = await loadLedger(ledgerPath())
+    const calls: BacktestCall[] = [...ledger.byDate.values()].flat().map((r) => ({
+      date: r.date, ticker: r.ticker, group: r.group, label: r.label, confidence: r.confidence, price: r.price, trigger_price: r.trigger_price, walk_away: r.walk_away,
+    }))
+    if (!calls.length) return fail(res, 404, 'No calls in the ledger yet')
+    const from = calls.map((c) => c.date).sort()[0]
+    const tickers = [...new Set(calls.map((c) => c.ticker))]
+    const bars = await loadBars(fetchText, yahooUrl(), ['SPY', ...tickers], from)
+    return res.json({ success: true, data: runBacktest(calls, bars, bars.get('SPY') ?? [], rules) })
+  } catch {
+    return fail(res, 500, 'Failed to run the backtest')
   }
 })
 

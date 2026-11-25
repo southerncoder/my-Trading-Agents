@@ -63,7 +63,7 @@ export function domainOf(url: string): string {
 
 /** "as-tech-stocks-crash-is-berkshire-a-safe-haven" -> "As tech stocks crash is berkshire a safe haven". */
 export function titleFromUrl(url: string): string {
-  let path = ''
+  let path: string
   try {
     path = new URL(url).pathname
   } catch {

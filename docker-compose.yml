@@ -325,11 +325,6 @@ services:
       - PORT=3001
       - CORS_ORIGIN=http://localhost:${FRONTEND_PORT:-38400}
       - FRONTEND_URL=http://localhost:${FRONTEND_PORT:-38400}
-      - TRADING_AGENTS_SERVICE_PATH=/app/trading-agents
-      - ANALYSIS_TIMEOUT=300000
-      - MAX_CONCURRENT_ANALYSES=3
-      - ENABLE_ANALYSIS_CACHING=true
-      - ANALYSIS_CACHE_TIMEOUT=300000
     depends_on:
       trading-agents:
         condition: service_healthy

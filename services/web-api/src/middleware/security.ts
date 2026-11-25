@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express'
 import rateLimit from 'express-rate-limit'
-import { securityConfig, securityHeaders, securityPatterns } from '../config/security.js'
+import { securityConfig, securityPatterns } from '../config/security.js'
 
 // Rate limiting for API endpoints
 export const apiRateLimit = rateLimit({
@@ -15,19 +15,6 @@ export const apiRateLimit = rateLimit({
   legacyHeaders: false,
   // Skip rate limiting for health checks
   skip: (req) => req.path === '/api/health'
-})
-
-// Stricter rate limiting for analysis endpoints
-export const analysisRateLimit = rateLimit({
-  windowMs: securityConfig.analysisRateLimit.windowMs,
-  limit: securityConfig.analysisRateLimit.max,
-  message: {
-    success: false,
-    error: 'Too many analysis requests. Please wait before starting another analysis.',
-    code: 'ANALYSIS_RATE_LIMIT_EXCEEDED'
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
 })
 
 // Input validation middleware
@@ -91,20 +78,6 @@ export const validateRequestSize = (req: Request, res: Response, next: NextFunct
   next()
 }
 
-// Security headers middleware for sensitive endpoints
-export const sensitiveEndpointHeaders = (_req: Request, res: Response, next: NextFunction) => {
-  // Apply standard security headers
-  Object.entries(securityHeaders.standard).forEach(([key, value]) => {
-    res.setHeader(key, value)
-  })
-  
-  // Apply sensitive data headers
-  Object.entries(securityHeaders.sensitive).forEach(([key, value]) => {
-    res.setHeader(key, value)
-  })
-  
-  next()
-}
 
 // CORS validation middleware
 export const validateOrigin = (req: Request, res: Response, next: NextFunction) => {

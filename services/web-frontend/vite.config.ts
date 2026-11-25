@@ -36,11 +36,6 @@ export default defineConfig({
         changeOrigin: true,
         secure: false, // Allow self-signed certificates in development
       },
-      '/ws': {
-        target: process.env.HTTPS_ENABLED === 'true' ? `wss://localhost:${process.env.WEB_API_PORT || '38401'}` : `ws://localhost:${process.env.WEB_API_PORT || '38401'}`,
-        ws: true,
-        secure: false, // Allow self-signed certificates in development
-      },
     },
   },
   build: {

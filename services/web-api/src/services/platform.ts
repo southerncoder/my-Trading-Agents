@@ -76,7 +76,7 @@ export async function runMinutes(logsDir: string, dates: string[]): Promise<Reco
   await Promise.all(
     dates.map(async (d) => {
       try {
-        out[d] = parseMinutes((await readFile(join(logsDir, d, 'status.txt'), 'utf8')).replace(/^﻿/, ''))
+        out[d] = parseMinutes((await readFile(join(logsDir, d, 'status.txt'), 'utf8')).replace(/^\uFEFF/, ''))
       } catch {
         out[d] = null
       }

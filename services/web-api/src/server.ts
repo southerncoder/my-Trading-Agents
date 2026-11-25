@@ -1,23 +1,17 @@
 import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
-import { WebSocketServer } from 'ws'
 import { createServer } from 'http'
 import { createServer as createHttpsServer } from 'https'
 import { readFileSync } from 'fs'
 import { join } from 'path'
-import { analysisRoutes } from './routes/analysis.js'
-import { symbolRoutes } from './routes/symbols.js'
 import { healthRoutes } from './routes/health.js'
 import { nightlyRoutes } from './routes/nightly.js'
 import { watchlistRoutes } from './routes/watchlist.js'
-import { setupWebSocket } from './websocket/index.js'
 import {
   apiRateLimit,
-  analysisRateLimit,
   validateInput,
   validateRequestSize,
-  sensitiveEndpointHeaders,
   validateOrigin,
   securityLogger
 } from './middleware/security.js'
@@ -139,8 +133,6 @@ app.use(responseCache(300000)) // 5 minutes cache
 app.use('/api/health', healthRoutes)
 app.use('/api/nightly', nightlyRoutes)
 app.use('/api/watchlist', watchlistRoutes)
-app.use('/api/symbols', sensitiveEndpointHeaders, symbolRoutes)
-app.use('/api/analysis', sensitiveEndpointHeaders, analysisRateLimit, analysisRoutes)
 
 // Error handling
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
@@ -182,17 +174,11 @@ if (HTTPS_ENABLED) {
   server = createServer(app)
 }
 
-// Setup WebSocket
-const wss = new WebSocketServer({ server, path: '/ws' })
-setupWebSocket(wss)
-
 // Start server
 server.listen(PORT, () => {
   const protocol = HTTPS_ENABLED ? 'https' : 'http'
-  const wsProtocol = HTTPS_ENABLED ? 'wss' : 'ws'
   
   console.log(`🚀 TradingAgents Web API server running on ${protocol}://localhost:${PORT}`)
-  console.log(`📡 WebSocket server available at ${wsProtocol}://localhost:${PORT}/ws`)
   console.log(`🌐 CORS enabled for: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`)
   
   if (HTTPS_ENABLED) {
@@ -207,10 +193,6 @@ async function gracefulShutdown(signal: string) {
   console.log(`${signal} received, shutting down gracefully`)
   
   try {
-    // Shutdown analysis service
-    const { shutdownAnalysisService } = await import('./services/analysis-service.js')
-    await shutdownAnalysisService()
-    
     // Close server
     server.close(() => {
       console.log('Server closed')

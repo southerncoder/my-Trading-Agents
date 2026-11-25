@@ -17,8 +17,14 @@ import {
   Target,
   BarChart3,
 } from 'lucide-react'
-import { fetchLatestNight, fetchNightDates, type NightlyDay } from '../services/nightly'
-import { fetchPortfolios, fetchPicks, type PortfolioSummary, type Pick } from '../services/portfolio'
+import { fetchLatestNight, fetchNightDates, fetchPlatform, fetchScorecard, fetchWatchlist, type NightlyDay, type Platform, type Scorecard } from '../services/nightly'
+import { HeatMap, MiniVersus, ServiceChips } from '../components/dashboard/widgets'
+import { HorizonLines } from '../components/scorecard/charts'
+import { useSparks } from '../components/today/triggerViz'
+import { PickLadder } from '../components/portfolio/picksViz'
+import { BrandIcon } from '../components/BrandIcon'
+import { Segmented } from '../components/viz'
+import { fetchPerformance, fetchPortfolios, fetchPicks, type Performance, type PortfolioSummary, type Pick } from '../services/portfolio'
 import { BuyNowList } from '../components/today/BuyNowList'
 import { TriggerTable } from '../components/today/TriggerTable'
 import { MacroPanel } from '../components/today/MacroPanel'
@@ -65,7 +71,7 @@ function rgba(hex: string, alpha: number) {
   }
 }
 
-function PortfolioCard({ p }: { p: PortfolioSummary }) {
+function PortfolioCard({ p, series }: { p: PortfolioSummary; series?: Performance['series'] }) {
   const { theme } = useTheme()
   const isPositive = p.returnPct >= 0
   const tint = isPositive ? theme.colors.bull : theme.colors.bear
@@ -90,10 +96,17 @@ function PortfolioCard({ p }: { p: PortfolioSummary }) {
           {p.returnPct.toFixed(2)}%
         </span>
       </div>
-      <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+      <div className="mt-3">
+        {series ? <MiniVersus series={series} /> : null}
+        <div className="mt-1 flex gap-3 text-[11px]" style={mutedStyle}>
+          <span><span style={{ color: 'var(--viz-1, #2a78d6)' }}>——</span> this portfolio</span>
+          <span><span style={{ color: '#8a94a6' }}>- -</span> SPY{p.spyReturnPct !== null ? ` ${p.spyReturnPct >= 0 ? '+' : ''}${p.spyReturnPct.toFixed(2)}%` : ''}</span>
+        </div>
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
         <div>
           <p className="text-xs" style={mutedStyle}>Equity</p>
-          <p className="font-semibold">${p.equity.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+          <p className="font-semibold">${p.equity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
         </div>
         <div>
           <p className="text-xs" style={mutedStyle}>Open</p>
@@ -101,7 +114,7 @@ function PortfolioCard({ p }: { p: PortfolioSummary }) {
         </div>
         <div>
           <p className="text-xs" style={mutedStyle}>Cash</p>
-          <p className="font-semibold">${p.cash.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+          <p className="font-semibold">${p.cash.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
         </div>
         <div>
           <p className="text-xs" style={mutedStyle}>Pending</p>
@@ -124,20 +137,13 @@ function RecentPickRow({ pick }: { pick: Pick }) {
       style={cardStyle}
     >
       <div className="flex items-center gap-3">
-        <span
-          className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold"
-          style={{
-            background: rgba(tint, 0.15),
-            color: tint,
-          }}
-        >
-          {pick.ticker.slice(0, 2)}
-        </span>
+        <BrandIcon ticker={pick.ticker} size={34} />
         <div>
           <p className="font-semibold">{pick.ticker}</p>
           <p className="text-xs" style={mutedStyle}>{pick.label}{pick.company ? ` · ${pick.company}` : ''}</p>
         </div>
       </div>
+      <div className="hidden sm:block"><PickLadder p={pick} width={150} /></div>
       <div className="text-right">
         <span className="block text-sm font-semibold" style={{ color: tint }}>
           {pick.confidence != null ? `${(pick.confidence * 100).toFixed(0)}%` : ''}
@@ -209,6 +215,8 @@ export function Dashboard() {
   const { theme } = useTheme()
   const [loading, setLoading] = useState(true)
   const [health, setHealth] = useState<HealthState>('checking')
+  const [extra, setExtra] = useState<{ tickers: string[]; platform: Platform | null; scorecard: Scorecard | null; perf: Record<number, Performance['series']> }>({ tickers: [], platform: null, scorecard: null, perf: {} })
+  const [heatDays, setHeatDays] = useState(1)
   const [data, setData] = useState<DashboardData>({
     day: null,
     dates: [],
@@ -257,6 +265,25 @@ export function Dashboard() {
       }
     }
     load()
+    // The extra widgets load on their own; each one simply stays hidden if its source is unavailable.
+    Promise.allSettled([fetchWatchlist(), fetchPlatform(), fetchScorecard()]).then(([w, pl, sc]) => {
+      if (cancelled) return
+      setExtra((e) => ({
+        ...e,
+        tickers: w.status === 'fulfilled' ? w.value.stocks.map((x) => x.ticker) : [],
+        platform: pl.status === 'fulfilled' ? pl.value : null,
+        scorecard: sc.status === 'fulfilled' ? sc.value : null,
+      }))
+    })
+    fetchPortfolios()
+      .then((ps) => Promise.allSettled(ps.map((p) => fetchPerformance(p.id).then((r) => [p.id, r.series] as const))))
+      .then((rs) => {
+        if (cancelled) return
+        const perf: Record<number, Performance['series']> = {}
+        for (const r of rs) if (r.status === 'fulfilled') perf[r.value[0]] = r.value[1]
+        setExtra((e) => ({ ...e, perf }))
+      })
+      .catch(() => undefined)
 
     return () => {
       cancelled = true
@@ -264,6 +291,7 @@ export function Dashboard() {
     }
   }, [])
 
+  const sparks = useSparks(extra.tickers)
   const buyNowRows = useMemo(() => data.day?.rows.filter((r) => r.label === 'Buy now') ?? [], [data.day])
   const waitingRows = useMemo(() => data.day?.rows.filter((r) => r.label !== 'Buy now') ?? [], [data.day])
   const recentPicks = useMemo(() => data.picks.slice(0, 5), [data.picks])
@@ -354,6 +382,22 @@ export function Dashboard() {
           </Link>
         ))}
       </div>
+
+      {extra.platform && <ServiceChips services={extra.platform.services} />}
+
+      {extra.tickers.length > 0 && Object.keys(sparks).length > 0 && (
+        <div className="space-y-3 rounded-xl p-4" style={cardStyle}>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Activity className="h-4 w-4" style={{ color: theme.colors.primary }} />
+              <h2 className="font-bold">Market pulse</h2>
+              <span className="text-sm" style={mutedStyle}>the watchlist, strongest first</span>
+            </div>
+            <Segmented label="Period" value={heatDays} onChange={setHeatDays} options={[{ value: 1, label: '1 day' }, { value: 5, label: '5 days' }, { value: 30, label: '30 days' }]} />
+          </div>
+          <HeatMap tickers={extra.tickers} sparks={sparks} days={heatDays} />
+        </div>
+      )}
 
       {/* Latest night */}
       {data.day ? (
@@ -452,7 +496,7 @@ export function Dashboard() {
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
                 {data.portfolios.map((p) => (
                   <Link key={p.id} to={`/portfolios/${p.id}`} className="block rounded-xl" title={`Open ${p.name}`}>
-                    <PortfolioCard p={p} />
+                    <PortfolioCard p={p} series={extra.perf[p.id]} />
                   </Link>
                 ))}
               </div>
@@ -460,6 +504,22 @@ export function Dashboard() {
               <p className="text-sm" style={mutedStyle}>No portfolios found.</p>
             )}
           </div>
+
+          {extra.scorecard && (
+            <div className="rounded-xl p-4" style={cardStyle}>
+              <div className="mb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Target className="h-4 w-4" style={{ color: theme.colors.primary }} />
+                  <h2 className="font-bold">Are the calls working?</h2>
+                </div>
+                <Link to="/scorecard" className="flex items-center gap-1 text-sm font-semibold" style={{ color: 'var(--color-primary)' }}>
+                  Scorecard <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
+              <p className="mb-2 text-sm" style={mutedStyle}>Average beat of {extra.scorecard.benchmark} after 1, 3 and 5 trading days, by kind of call ({extra.scorecard.calls} calls so far).</p>
+              <div className="max-w-2xl"><HorizonLines cells={extra.scorecard.groups.label} horizons={extra.scorecard.horizons} benchmark={extra.scorecard.benchmark} /></div>
+            </div>
+          )}
 
           {recentPicks.length > 0 && (
             <div className="rounded-xl p-4" style={cardStyle}>

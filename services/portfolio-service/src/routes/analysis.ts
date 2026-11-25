@@ -22,6 +22,15 @@ export function analysisRouter(deps: ServiceDeps): Router {
     ok(res, rows)
   }))
 
+  /** One request with the full call it produced (rationale, levels, risks, review), for the Analysis page. */
+  r.get('/analysis-requests/:id', h(async (req, res) => {
+    const id = idParam(req.params.id)
+    const request = (await pool.query('SELECT * FROM analysis_requests WHERE id = $1', [id])).rows[0]
+    if (!request) throw new UserError('Request not found', 404)
+    const candidate = request.candidate_id ? (await pool.query('SELECT * FROM candidates WHERE id = $1', [request.candidate_id])).rows[0] ?? null : null
+    ok(res, { request, candidate })
+  }))
+
   /** Ask for a fresh analysis of one ticker. Asking again while one is queued or running returns that one. */
   r.post('/analysis-requests', h(async (req, res) => {
     const { ticker } = z.object({ ticker: tickerSchema }).parse(req.body)
