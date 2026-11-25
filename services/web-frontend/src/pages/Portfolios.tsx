@@ -1,12 +1,14 @@
 import { Briefcase } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Card, HBars, SectionTitle } from '../components/viz'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { MiniVersus } from '../components/dashboard/widgets'
+import { ChartGuide } from '../components/learn/Learn'
 import { Link } from 'react-router-dom'
 import { card, fmtPct, moveColor, muted } from '../components/today/format'
 import { button, field, money, primaryButton, primaryStyle, sectionTitle, useLoad } from '../components/portfolio/ui'
 import { kindInfo } from '../components/portfolio/helpers'
-import { createPortfolio, fetchPortfolios, type PortfolioSummary } from '../services/portfolio'
+import { createPortfolio, fetchPerformance, fetchPortfolios, type Performance, type PortfolioSummary } from '../services/portfolio'
 
 function Versus({ p }: { p: PortfolioSummary }) {
   return (
@@ -25,6 +27,21 @@ export function Portfolios() {
   const [size, setSize] = useState('1000')
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
+  const [perf, setPerf] = useState<Record<number, Performance['series']>>({})
+  const ids = (data ?? []).map((p) => p.id).join(',')
+  useEffect(() => {
+    if (!ids) return
+    let live = true
+    Promise.allSettled(ids.split(',').map((id) => fetchPerformance(Number(id)).then((r) => [Number(id), r.series] as const))).then((rs) => {
+      if (!live) return
+      const out: Record<number, Performance['series']> = {}
+      for (const r of rs) if (r.status === 'fulfilled') out[r.value[0]] = r.value[1]
+      setPerf(out)
+    })
+    return () => {
+      live = false
+    }
+  }, [ids])
 
   async function onCreate(e: React.FormEvent) {
     e.preventDefault()
@@ -63,6 +80,7 @@ export function Portfolios() {
             onRow={(id) => navigate(`/portfolios/${id}`)}
             rows={data.map((p) => ({ key: String(p.id), label: p.name, value: p.returnPct, note: p.spyReturnPct === null ? 'SPY n/a' : `SPY ${fmtPct(p.spyReturnPct, 2)} · ${p.returnPct >= p.spyReturnPct ? 'ahead' : 'behind'}` }))}
           />
+          <ChartGuide shows="Each portfolio's return since it started, with SPY's return over the same days beside it." good="Ahead of SPY over many weeks, not just a few days." careful="A new portfolio is mostly cash waiting for triggers, so early returns sit near zero whatever the market does." terms={['shadow', 'baseline', 'vs-spy']} />
         </Card>
       )}
 
@@ -76,6 +94,15 @@ export function Portfolios() {
               </div>
               <div className="mt-1 text-3xl font-bold">{money(p.equity, 0)}</div>
               <div className="text-sm"><Versus p={p} /></div>
+              {perf[p.id] && (
+                <div className="mt-3">
+                  <MiniVersus series={perf[p.id]} />
+                  <div className="mt-1 flex gap-3 text-[11px]" style={muted}>
+                    <span><span style={{ color: 'var(--viz-1, #2a78d6)' }}>——</span> this portfolio</span>
+                    <span><span style={{ color: '#8a94a6' }}>- -</span> SPY, both from 100</span>
+                  </div>
+                </div>
+              )}
               <div className="mt-2 flex flex-wrap gap-x-3 text-xs" style={muted}>
                 <span>{p.openPositions} open</span>
                 <span>{p.pendingOrders} waiting orders</span>

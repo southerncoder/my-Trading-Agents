@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { ChartGuide } from '../components/learn/Learn'
 import { ZodError } from 'zod'
 import { fetchScorecard, type Scorecard as ScorecardData, type ScoreCell } from '../services/nightly'
 import { pivot } from '../components/scorecard/pivot'
@@ -86,6 +87,7 @@ function GroupChart({ id, icon, title, sub, cells, horizons, horizon }: { id: st
       ) : (
         <p style={muted}>Nothing has matured at {horizon} day{horizon === 1 ? '' : 's'} yet.</p>
       )}
+      <ChartGuide shows={"How far each group's calls beat or lagged SPY, on average, after the chosen number of trading days."} good={"Bars to the right of zero in full color: the group beat the market on enough calls to count."} careful={"Faded bars rest on fewer than 10 calls. The same stock is called night after night, so calls are not independent: read these as hints."} terms={["vs-spy", "horizon", "sample"]} />
     </Card>
   )
 }
@@ -199,10 +201,12 @@ export function Scorecard() {
         <Card className="space-y-4">
           <SectionTitle icon={TrendingUp} title="Does the edge grow with time?" sub={`Average beat of ${d.benchmark} after 1, 3 and 5 trading days, per kind of call. Fewer calls have finished the longer horizons.`} />
           <HorizonLines cells={d.groups.label} horizons={d.horizons} benchmark={d.benchmark} />
+          <ChartGuide shows={"For each kind of call, the average beat of SPY after 1, 3 and 5 trading days."} good={"A line above zero that climbs to the right: the call's edge grows as time passes instead of fading."} careful={"Later points rest on fewer calls (they need more days to finish). A lone dot means only one horizon has results yet."} terms={["vs-spy", "horizon", "call"]} />
         </Card>
         <Card className="space-y-4">
           <SectionTitle icon={CalendarDays} title="Night by night" sub={`Average beat of ${d.benchmark} after ${h} day${h === 1 ? '' : 's'} for the calls made each night. Faded: fewer than 10 calls.`} />
           <NightColumns cells={d.groups.night.filter((c) => c.horizon === h)} benchmark={d.benchmark} />
+          <ChartGuide shows={"One column per night: the average result of that night's calls against SPY."} good={"Most columns above zero, with no single night carrying the whole result."} careful={"All calls from one night share the same market days, so one sector swing can push a whole column up or down."} terms={["vs-spy", "sample"]} />
         </Card>
       </div>
 
@@ -210,6 +214,7 @@ export function Scorecard() {
         <Card className="space-y-4">
           <SectionTitle icon={Gauge} title="Confidence against the result" sub={`Every call finished at ${h} day${h === 1 ? '' : 's'}: how sure the model said it was (across) and how the stock did against ${d.benchmark} (up). If confidence meant something, the dots would climb to the right. Click a dot for the stock.`} />
           <ConfidenceScatter detail={detail} benchmark={d.benchmark} />
+          <ChartGuide shows={"Each finished call as a dot: the confidence the model gave (across) and how the stock did against SPY (up)."} good={"Dots that climb to the right: surer calls doing better. That is what 'calibrated' would look like."} careful={"Confidences sit in a narrow band (mostly 55-68%), so a real slope needs many calls before it shows."} terms={["confidence", "vs-spy"]} />
         </Card>
       )}
 
@@ -217,6 +222,7 @@ export function Scorecard() {
         <Card className="space-y-4">
           <SectionTitle icon={Trophy} title="Best and worst calls" sub={`Against ${d.benchmark} after ${h} day${h === 1 ? '' : 's'}. Opens the stock on the night of the call.`} />
           <BestWorst detail={detail} benchmark={d.benchmark} />
+          <ChartGuide shows={"The six best and six worst calls against SPY at this horizon."} good={"Open a few of each: the lesson is in why the reasoning held or failed, not in the numbers."} careful={"Extremes are mostly luck. Watch for a stock or a kind of call that keeps showing up on one side."} terms={["vs-spy"]} />
         </Card>
       )}
 
@@ -229,6 +235,7 @@ export function Scorecard() {
             onRow={(t) => navigate(`/stock/${t}`)}
             rows={byStock.map((c) => ({ key: c.key, label: c.key, ticker: c.key, value: c.avg_excess_pct, faint: c.n < 3, note: `${c.n} call${c.n === 1 ? '' : 's'} · ${Math.round(c.up_share * 100)}% beat` }))}
           />
+          <ChartGuide shows={"Each stock's average result against SPY across all its calls."} good={"Results spread across many stocks, not one or two big winners."} careful={"Faded bars rest on fewer than 3 calls. Nightly repeats of the same view count as several calls but are really one opinion."} terms={["sample", "vs-spy"]} />
         </Card>
       )}
 
@@ -256,6 +263,7 @@ export function Scorecard() {
             <summary className="cursor-pointer text-sm underline">All horizons as a table</summary>
             <WaitingTable cells={d.groups.label} />
           </details>
+          <ChartGuide shows={"For 'wait for the trigger' calls: the return from waiting minus the return from buying at the call's price."} good={"Above zero: waiting for the trigger bought cheaper or avoided losses."} careful={"A call that never triggered counts as 0%; one cancelled at the walk-away dodged the fall, which helps this number."} terms={["trigger", "walk-away"]} />
         </Card>
       )}
     </div>

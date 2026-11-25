@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { ChartGuide } from '../components/learn/Learn'
 import { Activity, AlertOctagon, AlertTriangle, BarChart3, CalendarClock, CheckCircle2, Cpu, History, Layers, ListChecks, Server, Timer, Zap } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { CallsPerNight, ModelTimeline, RunMinutes, ServiceGrid } from '../components/platform/charts'
@@ -72,6 +73,7 @@ export function Platform() {
         <Card className="space-y-4">
           <SectionTitle icon={Activity} title="Data services right now" sub={`${plat.services.filter((x) => x.ok).length} of ${plat.services.length} answering their health check. Checked when this page loaded.`} />
           <ServiceGrid services={plat.services} />
+          <ChartGuide shows={"Whether each data service answered its health check when this page loaded, and how fast."} good={"All up, each answering within a second."} careful={"A health check proves the service answers, not that every data provider behind it returns data."} terms={["pipeline"]} />
         </Card>
       )}
 
@@ -80,10 +82,12 @@ export function Platform() {
           <Card className="space-y-4">
             <SectionTitle icon={BarChart3} title="Calls per night" sub="How many stocks each night analysed, by where they came from." />
             <CallsPerNight nights={plat.nights} />
+            <ChartGuide shows={"How many stocks each night analysed, by where they came from."} careful={"More stocks means a longer run; the screen and news sources add picks beyond the watchlist."} terms={["call"]} />
           </Card>
           <Card className="space-y-4">
             <SectionTitle icon={Timer} title="Run time per night" sub="Minutes from start to finish of the whole nightly run, as the run itself recorded. A dash: not recorded that night." />
             <RunMinutes nights={plat.nights} />
+            <ChartGuide shows={"Minutes from start to finish of each nightly run."} good={"Steady times: a sudden jump usually means a slow model or a provider timing out."} careful={"Cloud model speed varies by time of day."} terms={["pipeline"]} />
           </Card>
         </div>
       )}
@@ -106,6 +110,7 @@ export function Platform() {
               onRow={(t) => navigate(`/stock/${t}`)}
               rows={st.map((x) => ({ key: x.ticker, label: x.ticker, ticker: x.ticker, value: x.seconds, note: x.group }))}
             />
+            <ChartGuide shows={"Seconds the full pipeline took for each stock last night."} careful={"Longer does not mean better analysis; it usually means more data or a slower model reply."} terms={["pipeline"]} />
           </Card>
         )
       })()}
@@ -165,6 +170,7 @@ export function Platform() {
             <Card className="space-y-4">
               <SectionTitle icon={History} title="Models by night" sub="Quick-look model → decision model. Results before and after a change are not directly comparable." />
               <ModelTimeline nights={plat.nights} />
+              <ChartGuide shows={"Which model setup ran each night."} careful={"Results before and after a model change come from different 'analysts': do not pool them when judging the calls."} terms={["pipeline", "sample"]} />
             </Card>
           )}
 

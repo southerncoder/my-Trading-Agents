@@ -13,6 +13,7 @@ import { History } from './pages/History'
 import { Picks } from './pages/Picks'
 import { Portfolios } from './pages/Portfolios'
 import { Portfolio } from './pages/Portfolio'
+import { Glossary } from './pages/Glossary'
 import { Results } from './pages/Results'
 import { Reviews } from './pages/Reviews'
 
@@ -37,6 +38,7 @@ function App() {
           <Route path="/results" element={<Results />} />
           <Route path="/reviews" element={<Reviews />} />
           <Route path="/reviews/:week" element={<Reviews />} />
+          <Route path="/glossary" element={<Glossary />} />
         </Routes>
       </Layout>
     </ThemeProvider>

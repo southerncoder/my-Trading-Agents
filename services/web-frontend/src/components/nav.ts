@@ -1,4 +1,4 @@
-import { Activity, BarChart3, BookOpen, Briefcase, History, List, Server, Sparkles, Sun, Target, TrendingUp, Trophy, type LucideIcon } from 'lucide-react'
+import { Activity, BarChart3, BookMarked, BookOpen, Briefcase, History, List, Server, Sparkles, Sun, Target, TrendingUp, Trophy, type LucideIcon } from 'lucide-react'
 
 export interface NavItem {
   name: string
@@ -20,6 +20,7 @@ export const MORE: NavItem[] = [
   { name: 'Weekly review', href: '/reviews', icon: BookOpen },
   { name: 'Scorecard', href: '/scorecard', icon: Target },
   { name: 'Platform', href: '/platform', icon: Server },
+  { name: 'Glossary', href: '/glossary', icon: BookMarked },
   { name: 'Dashboard', href: '/dashboard', icon: BarChart3 },
   { name: 'Analysis', href: '/analysis', icon: TrendingUp },
   { name: 'Backtesting', href: '/backtesting', icon: Activity },

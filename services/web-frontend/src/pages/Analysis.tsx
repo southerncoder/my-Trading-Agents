@@ -9,6 +9,7 @@ import { ConfidenceBar, PriceSpark, useSparks } from '../components/today/trigge
 import { PickLadder } from '../components/portfolio/picksViz'
 import { newsSearches, riskQuery } from '../components/stock/research'
 import { useName } from '../components/brandStore'
+import { ProfessorNote } from '../components/today/ProfessorNote'
 
 const STATUS = {
   queued: { icon: Clock, color: '#64748b', word: 'Waiting for the worker' },
@@ -87,6 +88,7 @@ function Result({ id }: { id: number }) {
         </div>
       </div>
       {c.rationale && <p className="text-lg leading-relaxed">{String(c.rationale)}</p>}
+      <ProfessorNote review={(c.educational_review as Record<string, unknown> | null | undefined) ?? null} />
       {risks.length > 0 && (
         <div className="grid gap-2 md:grid-cols-2">
           {risks.map((r) => (

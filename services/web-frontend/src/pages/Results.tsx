@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { ChartGuide } from '../components/learn/Learn'
 import { Link, useNavigate } from 'react-router-dom'
 import { Condition, PortfolioLines, SourceDots, excessOf } from '../components/results/charts'
 import { Briefcase, CircleDot, FlaskConical, LineChart, ListOrdered, Trophy, Users } from 'lucide-react'
@@ -96,6 +97,7 @@ export function Results() {
             </>
           )}
           <p className="text-xs" style={muted}>Open positions count at their latest nightly close.</p>
+          <ChartGuide shows={"For each pick source, the shadow portfolio's average return minus SPY's over the same days."} good={"A source consistently above zero once it has 20 or more closed positions."} careful={"Faded bars have fewer than 20 closed positions; open ones are valued at the last close and can still change."} terms={["shadow", "vs-spy", "sample"]} />
         </Card>
       )}
 
@@ -103,6 +105,7 @@ export function Results() {
         <Card className="space-y-4">
           <SectionTitle icon={CircleDot} title="Every shadow position" sub="Each dot is one position: its return minus SPY's over the same days. Rows are the sources. Hover for the stock, click to open it." />
           <SourceDots positions={data.positions} />
+          <ChartGuide shows={"Every shadow position as a dot, by source, placed by how far it beat or lagged SPY."} good={"Dots spread to the right with few far to the left."} careful={"Rings are still open. One far-left dot (a stop hit) can outweigh several small winners."} terms={["shadow", "vs-spy", "stop"]} />
         </Card>
       )}
 
@@ -110,6 +113,7 @@ export function Results() {
         <Card className="space-y-4">
           <SectionTitle icon={LineChart} title="Portfolios against SPY" sub={`Each portfolio's value set to 100 on its own first day; SPY set to 100 on ${perf.map((p) => p.points[0]?.date ?? '').filter(Boolean).sort()[0] ?? 'the first day'}, when the first portfolio started.`} />
           <PortfolioLines series={perf} />
+          <ChartGuide shows={"Each portfolio's value and SPY, both set to 100 at the start."} good={"Portfolio lines above the dashed SPY line."} careful={"Early on most of the money is still cash waiting for triggers, so the portfolios move far less than SPY in either direction."} terms={["shadow", "baseline"]} />
         </Card>
       )}
 
@@ -122,6 +126,7 @@ export function Results() {
             onRow={(k) => navigate(`/stock/${k.split('|')[0]}`)}
             rows={ranked.map(({ p, v }, i) => ({ key: `${p.ticker}|${i}`, label: p.ticker, ticker: p.ticker, value: v, faint: !p.closed, note: `${SOURCE_LABEL[p.source] ?? p.source} · ${fmtPct(p.returnPct)} vs SPY ${fmtPct(p.spyReturnPct)}` }))}
           />
+          <ChartGuide shows={"Every shadow position ranked by its result against SPY."} good={"The top is not just one lucky stock."} careful={"Faded bars are open positions; short holding periods are mostly noise."} terms={["shadow", "vs-spy"]} />
         </Card>
       )}
 
@@ -142,6 +147,7 @@ export function Results() {
               }))
               .sort((a, b) => b.value - a.value)}
           />
+          <ChartGuide shows={"Each of your portfolios' return minus SPY's since it started."} good={"Your portfolio above the shadow: your choices added something to the system's picks."} careful={"Portfolios that started on different days faced different markets; compare the shape, not just the end."} terms={["shadow", "baseline", "drawdown"]} />
         </Card>
       )}
 
@@ -182,6 +188,7 @@ export function Results() {
           </div>
           <SegmentBar unit=" positions" parts={[{ label: 'Beat SPY', value: ft.beatSpy, color: '#0A8F80' }, { label: 'Did not', value: Math.max(0, ft.closedPositions - ft.beatSpy), color: '#D4501A' }]} />
           <p className="text-xs" style={muted}>The bar was written down before any results existed, so it cannot be bent to fit them.</p>
+          <ChartGuide shows={"The forward test written down before any results: the shadow portfolio must match SPY and at least half its closed positions must beat SPY over 40 trading days."} good={"Both conditions passing when the 40 days are up."} careful={"'So far' readings swing a lot in the first weeks. The bar cannot be moved to fit the results."} terms={["shadow", "vs-spy"]} />
         </Card>
       )}
     </div>

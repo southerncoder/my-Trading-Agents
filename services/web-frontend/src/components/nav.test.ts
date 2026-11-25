@@ -4,7 +4,7 @@ import { PRIMARY, MORE, isActive } from './nav'
 describe('navigation model', () => {
   it('has the four everyday pages up front and everything else under More', () => {
     expect(PRIMARY.map((n) => n.href)).toEqual(['/', '/picks', '/portfolios', '/stocks'])
-    expect(MORE.map((n) => n.href)).toEqual(['/results', '/reviews', '/scorecard', '/platform', '/dashboard', '/analysis', '/backtesting', '/history'])
+    expect(MORE.map((n) => n.href)).toEqual(['/results', '/reviews', '/scorecard', '/platform', '/glossary', '/dashboard', '/analysis', '/backtesting', '/history'])
   })
 
   it('never lists a page twice', () => {

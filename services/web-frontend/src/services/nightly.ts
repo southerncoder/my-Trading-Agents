@@ -20,6 +20,8 @@ export const nightlyRowSchema = z.object({
   trigger_reason: z.string().nullish(),
   walk_away: numOpt,
   atr: numOpt,
+  // The Professor's plain-English review of the call (runs since it was added); malformed reviews are dropped.
+  educational_review: z.record(z.string(), z.unknown()).nullish().catch(null),
   stance: z.record(z.string(), z.string()),
   pm: z.object({
     rationale: z.string().nullish(),

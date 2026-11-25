@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { ChartGuide } from '../components/learn/Learn'
 import { useNavigate } from 'react-router-dom'
 import { Activity, FlaskConical, LineChart, ListChecks, PieChart } from 'lucide-react'
 import { fetchBacktest, type Backtest, type BacktestOutcome } from '../services/nightly'
@@ -146,6 +147,7 @@ export function Backtesting() {
             <SectionTitle icon={LineChart} title="Profit over time" sub={`${bt.from ?? '?'} to ${bt.to ?? '?'}: closed trades at their result, open ones at each day's close. Hover for a day.`} />
             <EquityChart bt={bt} />
             <p className="text-xs" style={muted}>The ledger only starts on {bt.from}, so this is a short stretch of calls in one market mood: read it as a first look, not proof.</p>
+            <ChartGuide shows={"Profit in dollars from following the calls with these rules (solid), against the same dollars in SPY over the same days (dashed)."} good={"The solid line above the dashed one and rising, without deep dips."} careful={"This is a short history in one market mood, with no fees, and with rules picked after seeing the data. The worst dip (drawdown) matters as much as the end."} terms={["backtest", "vs-spy", "drawdown"]} />
           </Card>
 
           <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
@@ -157,6 +159,7 @@ export function Backtesting() {
                   <li key={k}><strong>{OUTCOME[k].name}</strong> <span style={muted}>— {OUTCOME[k].help}</span></li>
                 ))}
               </ul>
+              <ChartGuide shows={"What became of every call the rules looked at: bought, never triggered, cancelled at the walk-away, skipped and so on."} good={"Cancelled calls are not failures: the walk-away kept money out of a falling stock."} careful={"'Already holding' calls are repeats on a stock already bought; 'too recent' calls have no trading day after them yet."} terms={["trigger", "walk-away"]} />
             </Card>
             <Card className="space-y-4">
               <SectionTitle icon={ListChecks} title="Each trade" sub="Return from buy to sale (or to the last close if still held). Click for the stock." />
@@ -173,6 +176,7 @@ export function Backtesting() {
                   note: `${t.entryDate?.slice(5)} → ${t.exitDate?.slice(5)}${t.exitReason === 'stop' ? ' · walk-away' : t.outcome === 'open' ? ' · still held' : ''}`,
                 }))}
               />
+              <ChartGuide shows={"Each trade's return from buying to selling (or to the last close if still held)."} good={"Winners bigger than losers, not just more numerous."} careful={"Faded bars are still open and can change; a trade sold at the walk-away shows the loss the stop allowed."} terms={["backtest", "walk-away"]} />
             </Card>
           </div>
 

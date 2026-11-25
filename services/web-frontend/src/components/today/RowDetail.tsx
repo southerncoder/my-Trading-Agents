@@ -6,6 +6,7 @@ import { fmtPct, fmtPrice, muted } from './format'
 import { PriceSpark, typicalDays, type Closes } from './triggerViz'
 import { newsSearches, riskQuery } from '../stock/research'
 import { useName } from '../brandStore'
+import { ProfessorNote } from './ProfessorNote'
 
 const STAGES: Array<[string, string]> = [
   ['market', 'Market'],
@@ -67,6 +68,8 @@ export function RowDetail({ row, closes = [] }: { row: NightlyRow; closes?: Clos
           <Fig icon={Flag} label="Confidence" value={`${Math.round(row.confidence * 100)}%`} hint="not yet calibrated" />
         </div>
       </div>
+
+      <ProfessorNote review={row.educational_review} />
 
       {row.trigger_reason && (
         <p>
