@@ -1,9 +1,11 @@
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Briefcase, FlaskConical, Trophy, Users } from 'lucide-react'
+import { Condition, PortfolioLines, SourceDots, excessOf } from '../components/results/charts'
+import { Briefcase, CircleDot, FlaskConical, LineChart, ListOrdered, Trophy, Users } from 'lucide-react'
 import { kindInfo, SOURCE_LABEL } from '../components/portfolio/helpers'
 import { useLoad } from '../components/portfolio/ui'
 import { fmtPct, moveColor } from '../components/today/format'
-import { fetchResults } from '../services/portfolio'
+import { fetchPerformance, fetchResults, type Performance } from '../services/portfolio'
 import { Card, HBars, PageHeader, SectionTitle, SegmentBar, StatTile, muted } from '../components/viz'
 
 export function Results() {
@@ -13,6 +15,21 @@ export function Results() {
   const src = data?.bySource ?? []
   const closed = src.reduce((a, s) => a + s.closed, 0)
   const positions = src.reduce((a, s) => a + s.positions, 0)
+  const [perf, setPerf] = useState<{ id: number; name: string; points: Performance['series'] }[]>([])
+  const ids = (data?.portfolios ?? []).map((p) => p.id).join(',')
+  useEffect(() => {
+    if (!data) return
+    let live = true
+    Promise.allSettled(data.portfolios.map((p) => fetchPerformance(p.id).then((r) => ({ id: p.id, name: p.name, points: r.series })))).then((rs) => {
+      if (live) setPerf(rs.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : [])))
+    })
+    return () => {
+      live = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ids])
+  const shadow = data?.portfolios.find((p) => p.kind === 'shadow')
+  const ranked = (data?.positions ?? []).map((p) => ({ p, v: excessOf(p) })).filter((e): e is { p: (typeof e)['p']; v: number } => e.v !== null).sort((a, b) => b.v - a.v)
   const best = [...src].filter((s) => s.avgExcessPct !== null).sort((a, b) => (b.avgExcessPct ?? 0) - (a.avgExcessPct ?? 0))[0]
 
   return (
@@ -82,6 +99,32 @@ export function Results() {
         </Card>
       )}
 
+      {data && data.positions.length > 0 && (
+        <Card className="space-y-4">
+          <SectionTitle icon={CircleDot} title="Every shadow position" sub="Each dot is one position: its return minus SPY's over the same days. Rows are the sources. Hover for the stock, click to open it." />
+          <SourceDots positions={data.positions} />
+        </Card>
+      )}
+
+      {perf.length > 0 && (
+        <Card className="space-y-4">
+          <SectionTitle icon={LineChart} title="Portfolios against SPY" sub={`Each portfolio's value set to 100 on its own first day; SPY set to 100 on ${perf.map((p) => p.points[0]?.date ?? '').filter(Boolean).sort()[0] ?? 'the first day'}, when the first portfolio started.`} />
+          <PortfolioLines series={perf} />
+        </Card>
+      )}
+
+      {ranked.length > 0 && (
+        <Card className="space-y-4">
+          <SectionTitle icon={ListOrdered} title="Best and worst positions" sub="Return minus SPY over each position's own days, best first. Faded: still open. Click for the stock." />
+          <HBars
+            labelWidth={150}
+            format={(v) => fmtPct(v, 2)}
+            onRow={(k) => navigate(`/stock/${k.split('|')[0]}`)}
+            rows={ranked.map(({ p, v }, i) => ({ key: `${p.ticker}|${i}`, label: p.ticker, ticker: p.ticker, value: v, faint: !p.closed, note: `${SOURCE_LABEL[p.source] ?? p.source} · ${fmtPct(p.returnPct)} vs SPY ${fmtPct(p.spyReturnPct)}` }))}
+          />
+        </Card>
+      )}
+
       {data && data.portfolios.length > 0 && (
         <Card className="space-y-4">
           <SectionTitle id="yours" icon={Briefcase} title="Your choices against the system's" sub="Each portfolio's return minus SPY's since it started. Click a bar to open the portfolio." />
@@ -93,7 +136,7 @@ export function Results() {
               .filter((p) => p.spyReturnPct !== null)
               .map((p) => ({
                 key: String(p.id),
-                label: `${p.name}${kindInfo(p.kind).tag ? ` (${kindInfo(p.kind).tag})` : ''}`,
+                label: ((tag) => `${p.name}${tag && !p.name.toLowerCase().includes(tag.toLowerCase()) ? ` (${tag})` : ''}`)(kindInfo(p.kind).tag),
                 value: Math.round((p.returnPct - (p.spyReturnPct ?? 0)) * 100) / 100,
                 note: `return ${fmtPct(p.returnPct, 2)} · worst drop ${p.maxDrawdownPct ? `−${p.maxDrawdownPct}%` : '0%'}`,
               }))
@@ -116,6 +159,26 @@ export function Results() {
               <div className="h-full rounded-full" style={{ width: `${Math.min(100, (ft.elapsed / Math.max(1, ft.tradingDays)) * 100)}%`, background: 'var(--viz-1, #2a78d6)' }} />
             </div>
             <div className="text-sm">{ft.elapsed} of {ft.tradingDays} trading days</div>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <Condition
+              title="Shadow return at least SPY's"
+              value={shadow && shadow.spyReturnPct !== null ? Math.round((shadow.returnPct - shadow.spyReturnPct) * 100) / 100 : null}
+              target={0}
+              unit=" pts"
+              met={shadow && shadow.spyReturnPct !== null ? shadow.returnPct >= shadow.spyReturnPct : null}
+              done={ft.status !== 'in progress'}
+              detail={shadow ? `Shadow ${fmtPct(shadow.returnPct, 2)} against SPY ${fmtPct(shadow.spyReturnPct, 2)} since it started.` : 'No shadow portfolio yet.'}
+            />
+            <Condition
+              title="At least half of closed positions beat SPY"
+              value={ft.closedPositions ? (ft.beatSpy / ft.closedPositions) * 100 : null}
+              target={50}
+              unit="%"
+              met={ft.closedPositions ? ft.beatSpy * 2 >= ft.closedPositions : null}
+              done={ft.status !== 'in progress'}
+              detail={`${ft.beatSpy} of ${ft.closedPositions} closed positions beat SPY over their own holding days.`}
+            />
           </div>
           <SegmentBar unit=" positions" parts={[{ label: 'Beat SPY', value: ft.beatSpy, color: '#0A8F80' }, { label: 'Did not', value: Math.max(0, ft.closedPositions - ft.beatSpy), color: '#D4501A' }]} />
           <p className="text-xs" style={muted}>The bar was written down before any results existed, so it cannot be bent to fit them.</p>
