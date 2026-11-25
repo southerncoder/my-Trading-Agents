@@ -34,10 +34,38 @@ export function keywords(text: string, max = 6): string[] {
   return out
 }
 
-/** A news search for this company and this risk. */
+/** Words that describe almost any risk, so they narrow a news search without making it more relevant. */
+const VAGUE = new Set(
+  'stock stocks share shares price prices company companies market markets continued continuing ongoing increased increasing rising higher lower could downside upside volatility volatile concerns concern pressure pressures weak weaker weakness decline declines declining negative positive significant sustained persistent broader overall near-term long-term short-term near long sharp sharply further impact impacts affect affecting heightened elevated reduced slowing'.split(' '),
+)
+
+/** Chart-reading terms: a risk built from these is about the price pattern, which news stories do not discuss. */
+const TECHNICAL = /\b(macd|rsi|moving averages?|sma|ema|support|resistance|overbought|oversold|breakdown|breakout|crossover|bollinger|momentum|50-day|200-day|death cross|golden cross|bearish|bullish|technicals?|trend ?line|downtrend|uptrend)\b/i
+
+export function isTechnicalRisk(risk: string): boolean {
+  if (!TECHNICAL.test(risk)) return false
+  const left = keywords(risk.replace(new RegExp(TECHNICAL.source, 'gi'), ' '), 8).filter((w) => !VAGUE.has(w.toLowerCase()))
+  return left.length < 2
+}
+
+/**
+ * A news search for this company and this risk. Requiring every word of the risk finds almost nothing, so the
+ * company name is required and any one of the risk's two or three most specific words may match:
+ * "AT&T" (copper OR landlines OR FCC). A chart-pattern risk ("bearish MACD") searches the company's stock news.
+ */
 export function riskQuery(company: string, risk: string): string {
-  const words = keywords(risk, 5).filter((w) => w.toLowerCase() !== company.toLowerCase())
-  return `"${company}" ${words.join(' ')}`.trim()
+  if (isTechnicalRisk(risk)) return `"${company}" stock`
+  const name = company.toLowerCase()
+  const words = keywords(risk, 10)
+    .filter((w) => !VAGUE.has(w.toLowerCase()) && !name.includes(w.toLowerCase()))
+    // Acronyms and longer words are the specific ones ("FCC", "antitrust"); keep the risk's own order among them.
+    .map((w, i) => ({ w, i, s: (/^[A-Z]{2,}$/.test(w) ? 20 : 0) + w.length }))
+    .sort((a, b) => b.s - a.s)
+    .slice(0, 3)
+    .sort((a, b) => a.i - b.i)
+    .map((x) => x.w)
+  if (!words.length) return `"${company}" stock`
+  return words.length === 1 ? `"${company}" ${words[0]}` : `"${company}" (${words.join(' OR ')})`
 }
 
 export interface SearchLink {
@@ -45,12 +73,13 @@ export interface SearchLink {
   url: string
 }
 
+/** The query as Google News, Bing News and Reuters take it. Google is limited to the last 30 days; Reuters' own search has no OR, so it gets the name and the first word. */
 export function newsSearches(query: string): SearchLink[] {
-  const q = encodeURIComponent(query)
+  const simple = query.replace(/\(([^)]*)\)/, (_m, inner: string) => inner.split(' OR ')[0])
   return [
-    { label: 'Google News', url: `https://news.google.com/search?q=${q}` },
-    { label: 'Bing News', url: `https://www.bing.com/news/search?q=${q}` },
-    { label: 'Reuters', url: `https://www.reuters.com/site-search/?query=${q}` },
+    { label: 'Google News', url: `https://news.google.com/search?q=${encodeURIComponent(`${query} when:30d`)}` },
+    { label: 'Bing News', url: `https://www.bing.com/news/search?q=${encodeURIComponent(query)}` },
+    { label: 'Reuters', url: `https://www.reuters.com/site-search/?query=${encodeURIComponent(simple)}` },
   ]
 }
 

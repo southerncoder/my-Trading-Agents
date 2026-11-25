@@ -20,7 +20,7 @@ import { loadSecrets } from "./utils/secrets.js";
 loadSecrets();
 
 import { mergeArticles } from "./utils/merge-articles.js";
-import { filterRelevant, lookupCompanyName } from "./utils/relevance.js";
+import { filterRelevant, financialQuery, lookupCompanyName } from "./utils/relevance.js";
 
 // Dynamically import provider modules AFTER environment and secrets are loaded
 const { default: BraveNewsProvider } = await import("./providers/brave-news.js");
@@ -500,7 +500,9 @@ app.get("/api/financial-news/:symbol", async (req, res) => {
       .split(",")
       .map((x) => x.trim())
       .filter(Boolean);
-    const params = { symbol, lookBackDays, pageSize };
+    // The company name drives both the search ("AT&T" stock, not "T stock") and the relevance filter.
+    const company = await lookupCompanyName(symbol, process.env.YAHOO_FINANCE_URL);
+    const params = { symbol, company, lookBackDays, pageSize };
     const outcomes = await Promise.all(
       wanted.map(async (provider) => {
         try {
@@ -526,7 +528,6 @@ app.get("/api/financial-news/:symbol", async (req, res) => {
     const wantCount = Math.max(1, parseInt(pageSize) || 20);
     // Merge wide first, then drop off-topic and stale items, then trim: filtering after the trim would
     // leave short pages whenever the newest items are junk.
-    const company = await lookupCompanyName(symbol, process.env.YAHOO_FINANCE_URL);
     const widened = mergeArticles(outcomes.filter((o) => o.articles?.length), 200);
     const { articles: merged0, stats: filterStats } = filterRelevant(widened, {
       symbol,
@@ -601,8 +602,7 @@ async function fetchFromProvider(providerName, operation, params) {
       return await provider.searchNews(params);
 
     case "financial-news": {
-      const financialQuery = `${params.symbol} stock OR ${params.symbol} shares OR ${params.symbol} market OR ${params.symbol} trading`;
-      return await provider.searchNews({ ...params, query: financialQuery });
+      return await provider.searchNews({ ...params, query: financialQuery(params.symbol, params.company) });
     }
 
     case "top-headlines":

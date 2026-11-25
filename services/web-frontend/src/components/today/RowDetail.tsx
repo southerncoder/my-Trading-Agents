@@ -5,6 +5,7 @@ import type { NightlyRow } from '../../services/nightly'
 import { fmtPct, fmtPrice, muted } from './format'
 import { PriceSpark, typicalDays, type Closes } from './triggerViz'
 import { newsSearches, riskQuery } from '../stock/research'
+import { useName } from '../brandStore'
 
 const STAGES: Array<[string, string]> = [
   ['market', 'Market'],
@@ -38,6 +39,8 @@ function Fig({ icon: Icon, label, value, hint, color }: { icon: React.ElementTyp
 export function RowDetail({ row, closes = [] }: { row: NightlyRow; closes?: Closes }) {
   const risks = row.pm.key_risks ?? []
   const days = typicalDays(row)
+  // Searches use the company's name: a bare ticker like "T" matches T-Mobile, T-bills and T. Rowe Price.
+  const company = useName(row.ticker) ?? row.ticker
   return (
     <div className="space-y-4 py-3 text-base">
       {row.pm.rationale && <p className="text-lg leading-relaxed">{row.pm.rationale}</p>}
@@ -83,7 +86,7 @@ export function RowDetail({ row, closes = [] }: { row: NightlyRow; closes?: Clos
                 <div>{r}</div>
                 <div className="mt-1 flex flex-wrap gap-x-3 text-xs" style={muted}>
                   Read up:
-                  {newsSearches(riskQuery(row.ticker, r)).map((l) => (
+                  {newsSearches(riskQuery(company, r)).map((l) => (
                     <a key={l.label} href={l.url} target="_blank" rel="noopener noreferrer" className="underline" style={{ color: 'var(--color-primary, #2563eb)' }}>{l.label}</a>
                   ))}
                 </div>

@@ -1,5 +1,5 @@
 import { describe, it, expect } from '@jest/globals';
-import { filterRelevant, coreCompanyName } from '../../src/utils/relevance.js';
+import { filterRelevant, coreCompanyName, financialQuery, tickerRegex } from '../../src/utils/relevance.js';
 
 const NOW = Date.parse('2026-11-16T12:00:00Z');
 const day = (n) => new Date(NOW - n * 86400000).toISOString();
@@ -99,3 +99,42 @@ describe('filterRelevant', () => {
     expect(stats.undatedDropped).toBe(1);
   });
 });
+
+describe('short tickers and names glued to other words', () => {
+  const att = { symbol: 'T', company: 'AT&T Inc.', lookBackDays: 7, now: NOW }
+  it('drops T-Mobile, L&T, T-bills and T. Rowe Price for AT&T, keeps AT&T itself and unmistakable ticker forms', () => {
+    const titles = [
+      'What Could Send T-Mobile Stock Higher?',
+      'L&T Technology Services clarifies cyber incident reports',
+      'CBN raises T-bills offer in Q4',
+      'T. Rowe Price crypto ETF put 38% in Bitcoin',
+      'Buy or Sell AT&T Stock - T Stock Price Quote',
+      'Telecom stocks rally; shares of (T) up 2%',
+      'NYSE: T hits a 52-week high',
+      'Verizon and $T add subscribers',
+    ]
+    const { articles } = filterRelevant(titles.map((title) => ({ title, publishedAt: day(1) })), att)
+    expect(articles.map((a) => a.title)).toEqual(titles.slice(4))
+  })
+  it('keeps "F" stories only when they name Ford or use a clear ticker form', () => {
+    const { articles } = filterRelevant(
+      [{ title: 'F-150 recall widens', publishedAt: day(1) }, { title: 'Grade F for the economy', publishedAt: day(1) }, { title: 'Ford raises its outlook', publishedAt: day(1) }],
+      { symbol: 'F', company: 'Ford Motor Company', lookBackDays: 7, now: NOW },
+    )
+    expect(articles.map((a) => a.title)).toEqual(['Ford raises its outlook'])
+  })
+  it('still matches longer tickers in plain text but not inside another name', () => {
+    const re = tickerRegex('MSFT')
+    expect(re.test('MSFT jumps')).toBe(true)
+    expect(re.test('Shares of MSFT, AAPL fall')).toBe(true)
+    expect(re.test('MSFT-backed startup')).toBe(false)
+  })
+})
+
+describe('financialQuery', () => {
+  it('searches by company name when known, adding the ticker only when it is long enough to be specific', () => {
+    expect(financialQuery('T', 'AT&T Inc.')).toBe('"AT&T" stock OR "AT&T" shares')
+    expect(financialQuery('MSFT', 'Microsoft Corporation')).toBe('"Microsoft" stock OR "Microsoft" shares OR MSFT stock')
+    expect(financialQuery('XYZW', '')).toBe('XYZW stock OR XYZW shares OR XYZW market OR XYZW trading')
+  })
+})
