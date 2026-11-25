@@ -2,7 +2,7 @@ import { Fragment, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { TickerLink } from '../TickerLink'
 import type { NightlyRow } from '../../services/nightly'
-import { DistanceBar } from './DistanceBar'
+import { ConfidenceBar, Ladder, PriceSpark, TriggerRadar, useSparks } from './triggerViz'
 import { RowDetail } from './RowDetail'
 import { arrow, card, fmtPct, fmtPrice, moveColor, muted } from './format'
 
@@ -18,12 +18,11 @@ const DASH = '—'
 const rule = { borderTop: '1px solid var(--color-border, #e2e8f0)' }
 
 function Distance({ r }: { r: NightlyRow }) {
-  const atrPct = r.atr && r.price ? (r.atr / r.price) * 100 : 0
   if (r.distance_to_trigger_pct === null) return <span style={muted}>{DASH}</span>
   return (
     <span className="inline-flex items-center gap-2">
-      <DistanceBar distancePct={r.distance_to_trigger_pct} atrPct={atrPct} />
-      {fmtPct(r.distance_to_trigger_pct)}
+      <Ladder r={r} />
+      <span className="tabular-nums font-semibold">{fmtPct(r.distance_to_trigger_pct)}</span>
     </span>
   )
 }
@@ -38,20 +37,27 @@ function CloseTag() {
 
 export function TriggerTable({ rows, compact }: { rows: NightlyRow[]; compact?: boolean }) {
   const [open, setOpen] = useState<number | null>(null)
+  const sparks = useSparks(rows.map((r) => r.ticker))
   if (rows.length === 0) return null
   const sorted = sortByDistance(rows)
+  const spark = (r: NightlyRow, days = 30) => (sparks[r.ticker] ?? []).slice(-days)
 
   return (
     <section id={compact ? undefined : 'waiting'} aria-labelledby={compact ? undefined : 'waiting-heading'} className="scroll-mt-20 space-y-2">
       {!compact && (
         <>
-          <h2 id="waiting-heading" className="text-lg font-semibold">
+          <h2 id="waiting-heading" className="text-2xl font-bold">
             Waiting for a trigger
           </h2>
-          <p className="text-sm" style={muted}>
-            Closest to its trigger first. The bar fills as the price nears the trigger; the middle tick is one typical day
-            of movement away. Tap a row for the reasoning, or a ticker for its full page.
+          <p className="text-base" style={muted}>
+            Closest to its trigger first. In each row: the last 30 days with the trigger (green dashes) and walk-away (red dashes), then the price
+            ladder: the dot is the price, the shaded band one typical day either way, the flag the trigger and the red tick the walk-away. Tap a row
+            for the reasoning, or a ticker for its full page.
           </p>
+          <div className="rounded-2xl p-4 md:p-5" style={card}>
+            <div className="text-lg font-semibold">Trigger radar</div>
+            <TriggerRadar rows={sorted} />
+          </div>
         </>
       )}
 
@@ -80,6 +86,7 @@ export function TriggerTable({ rows, compact }: { rows: NightlyRow[]; compact?: 
                   <ChevronDown className="chevron h-4 w-4" data-open={isOpen} style={muted} aria-hidden="true" />
                 </button>
               </div>
+              <div className="mt-2"><PriceSpark closes={spark(r)} trigger={r.trigger_price} walk={r.walk_away} width={300} height={44} /></div>
               <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                 <div>
                   <dt className="text-xs" style={muted}>Trigger</dt>
@@ -101,7 +108,7 @@ export function TriggerTable({ rows, compact }: { rows: NightlyRow[]; compact?: 
               </dl>
               {isOpen && (
                 <div onClick={(e) => e.stopPropagation()} className="cursor-auto">
-                  <RowDetail row={r} />
+                  <RowDetail row={r} closes={spark(r, 90)} />
                 </div>
               )}
             </li>
@@ -111,14 +118,16 @@ export function TriggerTable({ rows, compact }: { rows: NightlyRow[]; compact?: 
 
       {/* Tablets and desktops: the table. */}
       <div className="hidden overflow-x-auto rounded-lg md:block" style={card}>
-        <table className="w-full text-sm">
+        <table className="w-full text-base">
           <thead>
             <tr className="text-left" style={muted}>
               <th className="p-3 font-normal">Stock</th>
+              <th className="p-3 font-normal">Last 30 days</th>
               <th className="p-3 font-normal">Price</th>
               <th className="p-3 font-normal">Trigger</th>
               <th className="p-3 font-normal">Distance</th>
               <th className="p-3 font-normal">Since last night</th>
+              <th className="p-3 font-normal">Confidence</th>
             </tr>
           </thead>
           <tbody>
@@ -144,7 +153,8 @@ export function TriggerTable({ rows, compact }: { rows: NightlyRow[]; compact?: 
                       </span>
                       {r.inside_half_day && <CloseTag />}
                     </td>
-                    <td className="p-3">{fmtPrice(r.price)}</td>
+                    <td className="p-2"><PriceSpark closes={spark(r)} trigger={r.trigger_price} walk={r.walk_away} /></td>
+                    <td className="p-3 font-semibold tabular-nums">{fmtPrice(r.price)}</td>
                     <td className="p-3">
                       {fmtPrice(r.trigger_price)}
                       <span className="ml-1 text-xs" style={muted}>
@@ -157,11 +167,12 @@ export function TriggerTable({ rows, compact }: { rows: NightlyRow[]; compact?: 
                     <td className="p-3" style={{ color: moveColor(r.change_pct) ?? muted.color }}>
                       {arrow(r.change_pct)} {fmtPct(r.change_pct)}
                     </td>
+                    <td className="p-3"><ConfidenceBar value={r.confidence} /></td>
                   </tr>
                   {isOpen && (
                     <tr>
-                      <td colSpan={5} className="px-3">
-                        <RowDetail row={r} />
+                      <td colSpan={7} className="px-3">
+                        <RowDetail row={r} closes={spark(r, 90)} />
                       </td>
                     </tr>
                   )}

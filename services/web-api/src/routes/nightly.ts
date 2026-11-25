@@ -8,6 +8,7 @@ import { loadRunStatus } from '../services/run-status.js'
 import { loadStockExtras } from '../services/stock-extras.js'
 import { loadStockMedia } from '../services/stock-media.js'
 import { loadBrands } from '../services/brands.js'
+import { loadSparks } from '../services/sparks.js'
 
 const router = Router()
 
@@ -214,6 +215,18 @@ router.get('/brands', async (req, res) => {
     return res.json({ success: true, data: await loadBrands({ yahooUrl: yahooUrl(), fetchText }, tickers) })
   } catch {
     return fail(res, 500, 'Failed to load brands')
+  }
+})
+
+/** About 90 recent daily closes per ticker, for sparklines. ?tickers=KO,NVDA (at most 60). */
+router.get('/sparks', async (req, res) => {
+  const raw = typeof req.query.tickers === 'string' ? req.query.tickers : ''
+  const tickers = raw.split(',').map((t) => t.trim().toUpperCase()).filter((t) => TICKER_RE.test(t))
+  if (!tickers.length) return fail(res, 400, 'Give tickers=A,B,C')
+  try {
+    return res.json({ success: true, data: await loadSparks({ yahooUrl: yahooUrl(), fetchText }, tickers) })
+  } catch {
+    return fail(res, 500, 'Failed to load price history')
   }
 })
 
