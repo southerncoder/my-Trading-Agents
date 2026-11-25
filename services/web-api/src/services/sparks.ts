@@ -18,12 +18,22 @@ const cache = new Map<string, { at: number; ttl: number; data: Closes }>()
 const DAY = 86_400_000
 const iso = (t: number) => new Date(t).toISOString().slice(0, 10)
 
+/** The most recent weekday US close (21:15 UTC, after the 4pm New York close in either season) at or before `now`. */
+export function lastCloseBefore(now: number): number {
+  const d = new Date(now)
+  let t = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 21, 15)
+  if (t > now) t -= DAY
+  while ([0, 6].includes(new Date(t).getUTCDay())) t -= DAY
+  return t
+}
+
 export async function loadSparks(d: SparkDeps, tickers: string[], now = Date.now()): Promise<Record<string, Closes>> {
   const out: Record<string, Closes> = {}
   const todo: string[] = []
   for (const t of [...new Set(tickers)].slice(0, 60)) {
     const hit = cache.get(t)
-    if (hit && now - hit.at < hit.ttl) out[t] = hit.data
+    // A copy fetched before the latest close lacks that day's bar, however young it is.
+    if (hit && now - hit.at < hit.ttl && hit.at >= lastCloseBefore(now)) out[t] = hit.data
     else todo.push(t)
   }
   const start = iso(now - 140 * DAY)

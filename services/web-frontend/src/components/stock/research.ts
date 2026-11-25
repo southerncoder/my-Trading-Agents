@@ -9,11 +9,17 @@ export function shortName(name: string | undefined | null, ticker: string): stri
   if (!name) return ticker
   const n = name
     .replace(/^the\s+/i, '')
-    .replace(/[,.]?\s+(inc|incorporated|corp|corporation|co|company|plc|ltd|limited|holdings?|group|n\.?v|s\.?a|ag|class [a-c])\.?$/i, '')
+    .replace(/[,.]?\s+(inc|incorporated|corp|corporation|co|company|plc|ltd|limited|holdings?|group|n\.?v|s\.?a|ag|pbc|class [a-c])\.?$/i, '')
     .replace(/[,.]?\s+(inc|corp|co|company|holdings?)\.?$/i, '')
+    // "JPMorgan Chase & Co." loses "Co." above: drop the "&" left dangling.
+    .replace(/[\s,&]+$/, '')
     .trim()
-  // SEC names are upper case ("COCA COLA CO"): title-case them.
-  return n === n.toUpperCase() ? n.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()) : n
+  // SEC names are upper case ("COCA COLA CO"): title-case them, but keep initialisms like "AT&T".
+  if (n !== n.toUpperCase()) return n
+  return n
+    .split(' ')
+    .map((w) => (w.includes('&') ? w : w.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())))
+    .join(' ')
 }
 
 /** The meaningful words of a risk, at most `max`. */

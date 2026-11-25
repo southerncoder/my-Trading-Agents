@@ -1,4 +1,5 @@
 import { NightCharts } from '../components/today/NightCharts'
+import { useName } from '../components/brandStore'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
@@ -184,6 +185,7 @@ function MoverTile({ row }: { row: Mover | null }) {
       </div>
       <div className="mt-1 flex items-baseline gap-2">
         <span className="text-2xl font-bold" style={{ color }}>{row.ticker}</span>
+        <CompanyName ticker={row.ticker} />
         <span className="text-lg font-semibold" style={{ color }}>
           {sign}{row.change_pct.toFixed(1)}%
         </span>
@@ -481,4 +483,9 @@ export function Dashboard() {
       </div>
     </div>
   )
+}
+
+function CompanyName({ ticker }: { ticker: string }) {
+  const name = useName(ticker)
+  return name ? <span className="truncate text-sm" style={{ color: 'var(--color-text-muted, #64748b)' }}>{name}</span> : null
 }

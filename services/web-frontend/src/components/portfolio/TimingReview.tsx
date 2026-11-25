@@ -125,12 +125,16 @@ export function TimingReview({ portfolioId, positionId }: { portfolioId: number;
 }
 
 /** A button that opens the timing review under a position. */
-export function TimingToggle({ portfolioId, positionId, closed, label }: { portfolioId: number; positionId: number; closed: boolean; label?: string }) {
+export function TimingToggle({ portfolioId, positionId, closed, label }: { portfolioId: number; positionId: number; closed: boolean; label?: React.ReactNode }) {
   const [open, setOpen] = useState(false)
   return (
     <div className="w-full rounded-lg border border-dashed p-2 text-sm" style={{ borderColor: 'var(--color-border, #e2e8f0)' }}>
       <button type="button" className="font-medium underline" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
-        {label ? `${label}: ` : ''}{open ? 'hide the timing review' : closed ? 'was it bought and sold at the right time?' : 'how is the timing so far?'}
+        {label ? <>{label}: </> : null}
+        {(() => {
+          const t = open ? 'hide the timing review' : closed ? 'was it bought and sold at the right time?' : 'how is the timing so far?'
+          return label ? t : t[0].toUpperCase() + t.slice(1)
+        })()}
       </button>
       {open && <div className="mt-2"><TimingReview portfolioId={portfolioId} positionId={positionId} /></div>}
     </div>

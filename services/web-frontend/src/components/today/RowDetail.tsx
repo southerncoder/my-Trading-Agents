@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { TickerName } from '../TickerLink'
 import { AlertTriangle, ArrowRight, Flag, LogOut, RefreshCw, Target } from 'lucide-react'
 import type { NightlyRow } from '../../services/nightly'
 import { fmtPct, fmtPrice, muted } from './format'
@@ -115,7 +116,7 @@ export function RowDetail({ row, closes = [] }: { row: NightlyRow; closes?: Clos
       </div>
 
       <Link to={`/stock/${row.ticker}`} className="inline-flex items-center gap-1 font-semibold underline">
-        Full opinion trail and history for {row.ticker} <ArrowRight className="h-4 w-4" aria-hidden="true" />
+        Full opinion trail and history for <TickerName ticker={row.ticker} /> <ArrowRight className="h-4 w-4" aria-hidden="true" />
       </Link>
     </div>
   )

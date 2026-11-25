@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import type { NightlyRow } from '../../services/nightly'
 import { fmtPct, fmtPrice } from './format'
 import { scale, useWidth, viz } from '../stock/charts'
+import { useNames } from '../brandStore'
+import { TickerTag, tagWidth } from '../viz'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
 const TRIGGER = '#0A8F80'
@@ -36,7 +38,7 @@ export function typicalDays(r: Pick<NightlyRow, 'distance_to_trigger_pct' | 'atr
 }
 
 /** Recent closes with the trigger (green dashes) and walk-away (red dashes) drawn across. */
-export function PriceSpark({ closes, trigger, walk, width = 150, height = 40, axis = false }: { closes: Closes; trigger?: number | null; walk?: number | null; width?: number; height?: number; axis?: boolean }) {
+export function PriceSpark({ closes, trigger, walk, width = 150, height = 40, axis = false, fluid = false }: { closes: Closes; trigger?: number | null; walk?: number | null; width?: number; height?: number; axis?: boolean; fluid?: boolean }) {
   if (closes.length < 2) return <span className="inline-block" style={{ width, height }} />
   const vals = closes.map((c) => c.close)
   const levels = [trigger, walk].filter((v): v is number => typeof v === 'number' && v > 0)
@@ -52,7 +54,7 @@ export function PriceSpark({ closes, trigger, walk, width = 150, height = 40, ax
   const up = last.close >= first.close
   const label = `${closes.length} days: ${fmtPrice(first.close)} to ${fmtPrice(last.close)}${trigger ? `, trigger ${fmtPrice(trigger)}` : ''}${walk ? `, walk away ${fmtPrice(walk)}` : ''}`
   return (
-    <svg width={axis ? undefined : width} height={axis ? undefined : height} viewBox={`0 0 ${width} ${height}`} role="img" aria-label={label} className={axis ? 'block h-auto w-full' : undefined}>
+    <svg width={axis || fluid ? undefined : width} height={axis || fluid ? undefined : height} viewBox={`0 0 ${width} ${height}`} role="img" aria-label={label} className={axis || fluid ? 'block h-auto w-full' : undefined}>
       <title>{label}</title>
       {axis && (
         <>
@@ -127,6 +129,7 @@ export function ConfidenceBar({ value }: { value: number }) {
 export function TriggerRadar({ rows }: { rows: NightlyRow[] }) {
   const go = useNavigate()
   const [box, W] = useWidth<HTMLDivElement>(300, 1100, 900)
+  const names = useNames(rows.map((x) => x.ticker))
   const pts = rows
     .map((r) => ({ r, d: typicalDays(r) }))
     .filter((p): p is { r: NightlyRow; d: number } => p.d !== null)
@@ -139,7 +142,7 @@ export function TriggerRadar({ rows }: { rows: NightlyRow[] }) {
   const laneEnd: number[] = []
   const placed = pts.map((p) => {
     const cx = x(Math.max(-LIM, Math.min(LIM, p.d)))
-    const w = p.r.ticker.length * 8 + 18
+    const w = tagWidth(p.r.ticker, names[p.r.ticker])
     let lane = laneEnd.findIndex((end) => cx - w / 2 > end + 4)
     if (lane < 0) {
       lane = laneEnd.length
@@ -181,9 +184,7 @@ export function TriggerRadar({ rows }: { rows: NightlyRow[] }) {
             >
               <title>{`${r.ticker}: trigger ${fmtPrice(r.trigger_price)} is ${fmtPct(r.distance_to_trigger_pct)} away, about ${Math.abs(d).toFixed(1)} typical days`}</title>
               <line x1={cx} x2={cx} y1={cy + 9} y2={axisY} stroke={color} strokeOpacity="0.35" strokeDasharray="2 3" />
-              <rect x={cx - w / 2} y={cy - 9} width={w} height={18} rx="9" fill="var(--color-surface, #fff)" stroke={color} strokeWidth="1.5" />
-              <circle cx={cx - w / 2 + 9} cy={cy} r="3.5" fill={color} />
-              <text x={cx + 5} y={cy + 4} fontSize="12" fontWeight="600" textAnchor="middle" fill="var(--color-text-primary, #0f172a)">{r.ticker}</text>
+              <TickerTag cx={cx} cy={cy} w={w} color={color} ticker={r.ticker} name={names[r.ticker]} />
             </g>
           )
         })}

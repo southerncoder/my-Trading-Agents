@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { scale, useWidth, viz } from '../stock/charts'
+import { clip, useNames } from '../brandStore'
 
 /**
  * Shared page and chart pieces so every page reads the same way: a big header, stat tiles, horizontal bars
@@ -81,6 +82,8 @@ export interface BarRow {
   faint?: boolean
   href?: string
   color?: string
+  /** A stock ticker: its company name is shown under the label. */
+  ticker?: string
 }
 
 /**
@@ -89,6 +92,7 @@ export interface BarRow {
  */
 export function HBars({ rows, format, max: fixedMax, labelWidth = 140, onRow }: { rows: BarRow[]; format: (v: number) => string; max?: number; labelWidth?: number; onRow?: (key: string) => void }) {
   const [box, W] = useWidth<HTMLDivElement>(280, 900, 600)
+  const names = useNames(rows.flatMap((r) => (r.ticker ? [r.ticker] : [])))
   if (!rows.length) return null
   const narrow = W < 560
   const hasNote = rows.some((r) => r.note)
@@ -103,7 +107,9 @@ export function HBars({ rows, format, max: fixedMax, labelWidth = 140, onRow }: 
   const total = negMax + posMax || 1
   const zero = a + ((b - a) * negMax) / total
   const px = (b - a) / total
-  const rowH = narrow && hasNote ? 46 : 34
+  const hasName = rows.some((r) => r.ticker && names[r.ticker])
+  const sub = (r: BarRow) => [r.ticker ? names[r.ticker] : undefined, narrow ? r.note : undefined].filter(Boolean).join(' · ')
+  const rowH = (narrow && hasNote) || hasName ? 46 : 34
   const H = rows.length * rowH + 6
   const name = (r: BarRow) => (typeof r.label === 'string' ? r.label : r.key)
   return (
@@ -124,10 +130,10 @@ export function HBars({ rows, format, max: fixedMax, labelWidth = 140, onRow }: 
               tabIndex={onRow ? 0 : undefined}
               onKeyDown={(e) => onRow && e.key === 'Enter' && onRow(r.key)}
             >
-              <title>{`${name(r)}: ${format(r.value)}${r.note ? ` (${r.note})` : ''}`}</title>
+              <title>{`${name(r)}${r.ticker && names[r.ticker] ? ` (${names[r.ticker]})` : ''}: ${format(r.value)}${r.note ? ` (${r.note})` : ''}`}</title>
               <rect x={0} y={y} width={W} height={rowH - 4} fill="transparent" />
               <text x={0} y={y + 17} fontSize="13" fontWeight={onRow ? 600 : 400} fill="var(--color-text-primary, #0f172a)" textDecoration={onRow ? 'underline' : undefined}>{name(r)}</text>
-              {narrow && r.note && <text x={0} y={y + 34} fontSize="11" fill={viz.muted}>{r.note}</text>}
+              {sub(r) && <text x={0} y={y + 34} fontSize="11" fill={viz.muted}>{clip(sub(r), Math.max(12, Math.floor((narrow ? W * 0.9 : labelW) / 6.2)))}</text>}
               <rect x={left} y={y + 5} width={w} height={18} rx="4" fill={color} opacity={r.faint ? 0.35 : 1} />
               <text x={r.value < 0 ? left - 6 : left + w + 6} y={y + 18} fontSize="13" fontWeight="600" textAnchor={r.value < 0 ? 'end' : 'start'} fill="var(--color-text-primary, #0f172a)" opacity={r.faint ? 0.6 : 1}>
                 {format(r.value)}
@@ -235,4 +241,23 @@ export function callColor(label: string): string {
   if (l.includes('buy') && (l.includes('trigger') || l.includes('if') || l.includes('wait'))) return 'var(--viz-1, #2a78d6)'
   if (l.includes('buy')) return '#0A8F80'
   return '#B7791F'
+}
+
+/** Width of a radar name tag for a ticker and its (clipped) company name. */
+export function tagWidth(ticker: string, name?: string): number {
+  return ticker.length * 8 + (name ? clip(name, 12).length * 6.7 + 6 : 0) + 20
+}
+
+/** A pill on a radar chart: colored dot, bold ticker, then the short company name in muted ink. */
+export function TickerTag({ cx, cy, w, color, ticker, name }: { cx: number; cy: number; w: number; color: string; ticker: string; name?: string }) {
+  return (
+    <>
+      <rect x={cx - w / 2} y={cy - 9} width={w} height={18} rx="9" fill="var(--color-surface, #fff)" stroke={color} strokeWidth="1.5" />
+      <circle cx={cx - w / 2 + 9} cy={cy} r="3.5" fill={color} />
+      <text x={cx - w / 2 + 16} y={cy + 4} fontSize="12" fill="var(--color-text-primary, #0f172a)">
+        <tspan fontWeight="600">{ticker}</tspan>
+        {name && <tspan dx="5" fontSize="11" fill={viz.muted}>{clip(name, 12)}</tspan>}
+      </text>
+    </>
+  )
 }

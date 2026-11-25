@@ -1,6 +1,8 @@
 import { useNavigate } from 'react-router-dom'
 import type { Pick } from '../../services/portfolio'
 import { scale, useWidth, viz } from '../stock/charts'
+import { useNames } from '../brandStore'
+import { TickerTag, tagWidth } from '../viz'
 import { fmtPct } from '../today/format'
 import { money } from './ui'
 
@@ -61,6 +63,7 @@ export function PickLadder({ p, width = 200 }: { p: Pick; width?: number }) {
 export function EntryRadar({ picks }: { picks: Pick[] }) {
   const go = useNavigate()
   const [box, W] = useWidth<HTMLDivElement>(300, 1100, 900)
+  const names = useNames(picks.map((x) => x.ticker))
   const pts = picks
     .map((p) => ({ p, d: toEntryPct(p) }))
     .filter((e): e is { p: Pick; d: number } => e.d !== null)
@@ -72,7 +75,7 @@ export function EntryRadar({ picks }: { picks: Pick[] }) {
   const laneEnd: number[] = []
   const placed = pts.map((e) => {
     const cx = x(Math.max(-LIM, Math.min(LIM, e.d)))
-    const w = e.p.ticker.length * 8 + 18
+    const w = tagWidth(e.p.ticker, names[e.p.ticker])
     let lane = laneEnd.findIndex((end) => cx - w / 2 > end + 4)
     if (lane < 0) {
       lane = laneEnd.length
@@ -108,9 +111,7 @@ export function EntryRadar({ picks }: { picks: Pick[] }) {
             <g key={p.id} role="link" tabIndex={0} className="cursor-pointer outline-none" onClick={() => go(`/stock/${p.ticker}`)} onKeyDown={(e) => e.key === 'Enter' && go(`/stock/${p.ticker}`)}>
               <title>{`${p.ticker}: ${p.label} at ${money(entryOf(p))}${d ? ` (${fmtPct(d)} from ${money(p.price)})` : ''}${p.walk_away ? `; walk away below ${money(p.walk_away)}` : ''}`}</title>
               <line x1={cx} x2={cx} y1={cy + 9} y2={axisY} stroke={color} strokeOpacity="0.35" strokeDasharray="2 3" />
-              <rect x={cx - w / 2} y={cy - 9} width={w} height={18} rx="9" fill="var(--color-surface, #fff)" stroke={color} strokeWidth="1.5" />
-              <circle cx={cx - w / 2 + 9} cy={cy} r="3.5" fill={color} />
-              <text x={cx + 5} y={cy + 4} fontSize="12" fontWeight="600" textAnchor="middle" fill="var(--color-text-primary, #0f172a)">{p.ticker}</text>
+              <TickerTag cx={cx} cy={cy} w={w} color={color} ticker={p.ticker} name={names[p.ticker]} />
             </g>
           )
         })}

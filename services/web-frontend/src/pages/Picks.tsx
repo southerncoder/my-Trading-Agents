@@ -246,7 +246,7 @@ export function Picks() {
                 .map((p) => ({ p, r: roomPct(p) }))
                 .filter((e): e is { p: Pick; r: number } => e.r !== null)
                 .sort((a, b) => b.r - a.r)
-                .map(({ p, r }) => ({ key: String(p.id), label: p.ticker, value: r, note: `${money(entryOf(p))} → ${money(p.walk_away)}` }))}
+                .map(({ p, r }) => ({ key: String(p.id), label: p.ticker, ticker: p.ticker, value: r, note: `${money(entryOf(p))} → ${money(p.walk_away)}` }))}
             />
           </Card>
           <Card className="space-y-3">
@@ -259,7 +259,7 @@ export function Picks() {
               rows={shown
                 .filter((p) => p.confidence !== null)
                 .sort((a, b) => (b.confidence ?? 0) - (a.confidence ?? 0))
-                .map((p) => ({ key: String(p.id), label: p.ticker, value: p.confidence as number, note: p.label, color: callColor(p.label) }))}
+                .map((p) => ({ key: String(p.id), label: p.ticker, ticker: p.ticker, value: p.confidence as number, note: p.label, color: callColor(p.label) }))}
             />
           </Card>
         </div>

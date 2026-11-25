@@ -32,7 +32,7 @@ export function NightCharts({ day }: { day: NightlyDay }) {
             labelWidth={70}
             format={(v) => fmtPct(v)}
             onRow={(t) => go(`/stock/${t}`)}
-            rows={waiting.map((r) => ({ key: r.ticker, label: r.ticker, value: r.distance_to_trigger_pct!, note: r.trigger_type ?? '', color: callColor(r.label) }))}
+            rows={waiting.map((r) => ({ key: r.ticker, label: r.ticker, ticker: r.ticker, value: r.distance_to_trigger_pct!, note: r.trigger_type ?? '', color: callColor(r.label) }))}
           />
           <p className="text-xs" style={muted}>Negative: the price must fall to the trigger (pullback); positive: it must rise (breakout).</p>
         </Card>
@@ -41,7 +41,7 @@ export function NightCharts({ day }: { day: NightlyDay }) {
       {movers.length > 0 && (
         <Card className="space-y-3">
           <SectionTitle icon={Activity} title="Biggest movers" sub="Price change since each stock was last analysed (a weekly stock spans several days). Click a bar for the stock." />
-          <HBars labelWidth={70} format={(v) => fmtPct(v)} onRow={(t) => go(`/stock/${t}`)} rows={movers.map((r) => ({ key: r.ticker, label: r.ticker, value: r.change_pct!, note: r.label }))} />
+          <HBars labelWidth={70} format={(v) => fmtPct(v)} onRow={(t) => go(`/stock/${t}`)} rows={movers.map((r) => ({ key: r.ticker, label: r.ticker, ticker: r.ticker, value: r.change_pct!, note: r.label }))} />
         </Card>
       )}
     </div>

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { TickerName } from '../TickerLink'
 import { ArrowRight } from 'lucide-react'
 import type { NightlyDay } from '../../services/nightly'
 import { arrow, card, fmtPct, moveColor, muted } from './format'
@@ -37,7 +38,7 @@ export function SummaryStrip({ day }: { day: NightlyDay }) {
       <Tile title="Biggest mover" hint="since the previous night" to={mover ? `/stock/${encodeURIComponent(mover.ticker)}` : '/stocks'}>
         {mover ? (
           <span style={{ color: moveColor(mover.change_pct) }}>
-            {mover.ticker} {arrow(mover.change_pct)} {fmtPct(mover.change_pct)}
+            <TickerName ticker={mover.ticker} /> {arrow(mover.change_pct)} {fmtPct(mover.change_pct)}
           </span>
         ) : (
           <span style={muted}>{'—'}</span>

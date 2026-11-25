@@ -7,6 +7,9 @@ describe('shortName', () => {
     expect(shortName('Microsoft Corporation', 'MSFT')).toBe('Microsoft')
     expect(shortName('COCA COLA CO', 'KO')).toBe('Coca Cola')
     expect(shortName(undefined, 'KO')).toBe('KO')
+    expect(shortName('JPMorgan Chase & Co.', 'JPM')).toBe('JPMorgan Chase')
+    expect(shortName('AT&T INC', 'T')).toBe('AT&T')
+    expect(shortName('Anthropic, PBC', 'ANT')).toBe('Anthropic')
   })
 })
 

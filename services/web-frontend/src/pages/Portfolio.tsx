@@ -9,7 +9,7 @@ import { OpenPositions } from '../components/portfolio/OpenPositions'
 import { ALERT_LABEL, SOURCE_LABEL } from '../components/portfolio/helpers'
 import { button, field, money, sectionTitle, signedMoney, useLoad } from '../components/portfolio/ui'
 import { card, fmtPct, moveColor, muted } from '../components/today/format'
-import { TickerLink } from '../components/TickerLink'
+import { TickerLink, TickerName } from '../components/TickerLink'
 import {
   ackAlert, cancelOrder, fetchAlerts, fetchOrders, fetchPerformance, fetchPortfolio, fetchPositions, fetchTrades, patchRules, sell,
   type Order, type Position, type Rules,
@@ -58,7 +58,7 @@ function SellForm({ pid, pos, onDone }: { pid: number; pos: Position; onDone: ()
     <form onSubmit={submit} className="mt-2 flex flex-wrap items-end gap-2 text-sm">
       <label className="flex flex-col gap-1">Shares<input type="number" step="any" min="0" max={pos.quantity} value={qty} onChange={(e) => setQty(e.target.value)} className={`${field} w-28`} style={card} /></label>
       <label className="flex flex-col gap-1">Price (blank = latest)<input type="number" step="any" min="0" value={price} onChange={(e) => setPrice(e.target.value)} className={`${field} w-32`} style={card} /></label>
-      <button type="submit" disabled={busy} className={button} style={card}>{busy ? 'Saving...' : `${verb} ${pos.ticker}`}</button>
+      <button type="submit" disabled={busy} className={button} style={card}>{busy ? 'Saving...' : <>{verb} <TickerName ticker={pos.ticker} /></>}</button>
       {msg && <span role="alert" style={bad}>{msg}</span>}
     </form>
   )
@@ -145,7 +145,7 @@ function OrderDistances({ orders, sparks, onStock }: { orders: Order[]; sparks: 
         }}
         rows={rows.map(({ o, d }) => ({
           key: String(o.id),
-          label: o.ticker,
+          label: o.ticker, ticker: o.ticker,
           value: d,
           color: d < 0 ? '#D4501A' : '#0A8F80',
           note: `${o.intent === 'close' ? 'sell' : o.direction === 'long' ? 'buy' : 'short'} at ${money(o.trigger_price)} · expires ${o.expires_on ?? '-'}`,
@@ -174,12 +174,12 @@ function ClosedResults({ closed, onStock, portfolioId }: { closed: Position[]; o
           const x = closed.find((c) => String(c.id) === k)
           if (x) onStock(x.ticker)
         }}
-        rows={[...closed].sort((a, b) => b.realized_pnl - a.realized_pnl).map((x) => ({ key: String(x.id), label: x.ticker, value: x.realized_pnl, note: `${fmtPct(x.returnPct)} · ${x.opened_on} to ${x.closed_on ?? '-'}` }))}
+        rows={[...closed].sort((a, b) => b.realized_pnl - a.realized_pnl).map((x) => ({ key: String(x.id), label: x.ticker, ticker: x.ticker, value: x.realized_pnl, note: `${fmtPct(x.returnPct)} · ${x.opened_on} to ${x.closed_on ?? '-'}` }))}
       />
       <div className="space-y-2">
         <div className="text-sm font-semibold">Timing reviews</div>
         {[...closed].sort((a, b) => (b.closed_on ?? '').localeCompare(a.closed_on ?? '')).map((x) => (
-          <TimingToggle key={x.id} portfolioId={portfolioId} positionId={x.id} closed label={`${x.ticker} (sold ${x.closed_on ?? '-'})`} />
+          <TimingToggle key={x.id} portfolioId={portfolioId} positionId={x.id} closed label={<><TickerName ticker={x.ticker} /> sold {x.closed_on ?? '-'}</>} />
         ))}
       </div>
     </Card>
@@ -293,7 +293,7 @@ export function Portfolio() {
               labelWidth={70}
               format={(v) => fmtPct(v)}
               onRow={(t) => navigate(`/stock/${t}`)}
-              rows={[...open.data].sort((a, b) => b.returnPct - a.returnPct).map((x) => ({ key: x.ticker, label: x.ticker, value: x.returnPct, note: `${x.quantity} sh · ${money(x.unrealized)}` }))}
+              rows={[...open.data].sort((a, b) => b.returnPct - a.returnPct).map((x) => ({ key: x.ticker, label: x.ticker, ticker: x.ticker, value: x.returnPct, note: `${x.quantity} sh · ${money(x.unrealized)}` }))}
             />
           </Card>
         </div>

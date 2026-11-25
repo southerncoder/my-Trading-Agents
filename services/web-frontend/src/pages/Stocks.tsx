@@ -5,8 +5,10 @@ import { useCallback, useEffect, useState } from 'react'
 import { fetchWatchlist, postWatchlistRequest, type WatchStock, type Watchlist, type WatchlistRequestInput } from '../services/nightly'
 import { filterStocks, type CadenceFilter, type ListFilter } from '../components/stocks/filter'
 import { buildAddRequest, CADENCE_HELP, describePending, pendingFor, shownCadence } from '../components/stocks/request-form'
-import { card, fmtPrice, muted } from '../components/today/format'
-import { TickerLink } from '../components/TickerLink'
+import { card, fmtPct, fmtPrice, moveColor, muted } from '../components/today/format'
+import { PriceSpark, useSparks } from '../components/today/triggerViz'
+import { StockBoard, changeOver, rangePosition } from '../components/stocks/board'
+import { TickerLink, TickerName } from '../components/TickerLink'
 
 const CADENCES: { value: WatchlistRequestInput['cadence']; label: string }[] = [
   { value: 'nightly', label: 'Every night' },
@@ -33,6 +35,7 @@ export function Stocks() {
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState<Notice | null>(null)
+  const sparks = useSparks((data?.stocks ?? []).map((s) => s.ticker))
 
   const load = useCallback(async () => {
     try {
@@ -136,7 +139,7 @@ export function Stocks() {
   }
 
   const tickerCell = (s: WatchStock) =>
-    s.latest ? <TickerLink ticker={s.ticker} /> : <span title="No call yet: it gets a page after its first nightly run">{s.ticker}</span>
+    s.latest ? <TickerLink ticker={s.ticker} /> : <span title="No call yet: it gets a page after its first nightly run"><TickerName ticker={s.ticker} /></span>
 
   const latestCell = (s: WatchStock) =>
     s.latest ? (
@@ -184,10 +187,42 @@ export function Stocks() {
               .filter((x) => x.latest)
               .sort((a, b) => (b.latest?.confidence ?? 0) - (a.latest?.confidence ?? 0))
               .slice(0, 8)
-              .map((x) => ({ key: x.ticker, label: x.ticker, value: (x.latest?.confidence ?? 0) * 100, note: x.latest?.label, color: callColor(x.latest?.label ?? '') }))}
+              .map((x) => ({ key: x.ticker, label: x.ticker, ticker: x.ticker, value: (x.latest?.confidence ?? 0) * 100, note: x.latest?.label, color: callColor(x.latest?.label ?? '') }))}
           />
         </Card>
       </div>
+
+      {Object.keys(sparks).length > 0 && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card className="space-y-3">
+            <SectionTitle title="Last 30 trading days" sub="Price change of every stock on the list, best to worst. Click a bar for the stock." />
+            <HBars
+              labelWidth={80}
+              format={(v) => fmtPct(v)}
+              onRow={(t) => navigate(`/stock/${t}`)}
+              rows={data.stocks
+                .map((x) => ({ x, c: changeOver(sparks[x.ticker], 30) }))
+                .filter((e): e is { x: WatchStock; c: number } => e.c !== null)
+                .sort((a, b) => b.c - a.c)
+                .map(({ x, c }) => ({ key: x.ticker, label: x.ticker, ticker: x.ticker, value: c, note: x.latest?.label ?? 'not analysed' }))}
+            />
+          </Card>
+          <Card className="space-y-3">
+            <SectionTitle title="Where each sits in its 90-day range" sub="0% = at the lowest close of the last 90 trading days, 100% = at the highest. Near the low can mean a bargain or a falling knife; read the call." />
+            <HBars
+              labelWidth={80}
+              max={100}
+              format={(v) => `${Math.round(v)}%`}
+              onRow={(t) => navigate(`/stock/${t}`)}
+              rows={data.stocks
+                .map((x) => ({ x, r: rangePosition(sparks[x.ticker]) }))
+                .filter((e): e is { x: WatchStock; r: number } => e.r !== null)
+                .sort((a, b) => b.r - a.r)
+                .map(({ x, r }) => ({ key: x.ticker, label: x.ticker, ticker: x.ticker, value: r, note: `${fmtPrice(sparks[x.ticker][sparks[x.ticker].length - 1].close)}` }))}
+            />
+          </Card>
+        </div>
+      )}
 
       {data.skipped > 0 && (
         <p className="text-xs" style={muted}>{data.skipped} watchlist entr{data.skipped === 1 ? 'y was' : 'ies were'} skipped as invalid.</p>
@@ -289,6 +324,11 @@ export function Stocks() {
         <p style={muted}>No stocks match these filters.</p>
       ) : (
         <>
+          <section className="space-y-2" aria-label="Stock board">
+            <StockBoard stocks={shown} sparks={sparks} />
+            <p className="text-xs" style={muted}>Each tile: the last 30 trading days of closes (green dashes: the trigger price of the latest call), the change over those days, and the latest call with its confidence and date. Colored top edge = the call.</p>
+          </section>
+
           {/* Phones: one card per stock. */}
           <ul className="space-y-2 md:hidden" aria-label="Watchlist stocks">
             {shown.map((s, i) => (
@@ -314,6 +354,7 @@ export function Stocks() {
                   <th scope="col" className="p-3">Stock</th>
                   <th scope="col" className="p-3">List</th>
                   <th scope="col" className="p-3">Schedule</th>
+                  <th scope="col" className="p-3">Last 90 days</th>
                   <th scope="col" className="p-3">Latest call</th>
                   <th scope="col" className="p-3 text-right">Price</th>
                 </tr>
@@ -324,6 +365,12 @@ export function Stocks() {
                     <th scope="row" className="p-3 font-semibold">{tickerCell(s)}</th>
                     <td className="p-3">{s.list}</td>
                     <td className="p-3">{scheduleControl(s)}</td>
+                    <td className="p-3">
+                      <PriceSpark closes={sparks[s.ticker] ?? []} trigger={s.latest?.trigger_price ?? null} width={140} height={36} />
+                      {changeOver(sparks[s.ticker], 30) !== null && (
+                        <div className="text-xs tabular-nums" style={{ color: moveColor(changeOver(sparks[s.ticker], 30) as number) }}>{fmtPct(changeOver(sparks[s.ticker], 30))} in 30 days</div>
+                      )}
+                    </td>
                     <td className="p-3">{latestCell(s)}</td>
                     <td className="p-3 text-right">{s.latest ? fmtPrice(s.latest.price) : <span style={muted}>-</span>}</td>
                   </tr>
