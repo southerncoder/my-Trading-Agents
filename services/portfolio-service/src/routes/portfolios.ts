@@ -3,6 +3,9 @@ import { z } from 'zod'
 import { indexSeries, summarize } from '../domain/performance.js'
 import { rulesSchema } from '../domain/risk.js'
 import { addDays } from '../domain/calendar.js'
+import { timingReview, type TimingCall, type TimingTrade } from '../domain/timing.js'
+import type { Bar } from '../domain/types.js'
+import { PICK_SOURCES } from '../jobs/nightly.js'
 import { ackAlert, cancelOrder, createPortfolio, getPortfolio, placeTriggerOrder, recordBuy, recordSell, updateRules } from '../services/portfolio-ops.js'
 import { portfolioSummary, portfolioSummaryById, positionsView, snapshots } from '../services/queries.js'
 import type { Candidate } from '../store/candidates.js'
@@ -88,6 +91,40 @@ export function portfoliosRouter(deps: ServiceDeps): Router {
     const id = idParam(req.params.id)
     await getPortfolio(pool, id)
     ok(res, (await pool.query(`SELECT * FROM trades WHERE portfolio_id = $1 ORDER BY traded_on DESC, id DESC LIMIT 500`, [id])).rows)
+  }))
+
+  /** Hindsight review of a position's timing: entry against the buy calls, exit against the best close, the price after the sale. */
+  r.get('/portfolios/:id/positions/:positionId/timing', h(async (req, res) => {
+    const id = idParam(req.params.id)
+    await getPortfolio(pool, id)
+    const pos = (await pool.query<{ id: number; ticker: string; direction: 'long' | 'short'; status: 'open' | 'closed'; opened_on: string; closed_on: string | null }>(
+      `SELECT id, ticker, direction, status, opened_on::text, closed_on::text FROM positions WHERE id = $1 AND portfolio_id = $2`,
+      [idParam(req.params.positionId), id],
+    )).rows[0]
+    if (!pos) throw new UserError('Position not found', 404)
+    const trades = (await pool.query<TimingTrade>(
+      `SELECT action, quantity::float8 quantity, price::float8 price, traded_on::text FROM trades WHERE position_id = $1 ORDER BY traded_on, id`,
+      [pos.id],
+    )).rows
+    const from = addDays(pos.opened_on, -30)
+    const calls = (await pool.query<TimingCall>(
+      `SELECT run_date::text, label, decision, price::float8 price, trigger_price::float8 trigger_price FROM candidates
+       WHERE ticker = $1 AND source = ANY($2) AND run_date >= $3 ORDER BY run_date, id`,
+      [pos.ticker, PICK_SOURCES, from],
+    )).rows
+    const bars = (await pool.query<Bar>(
+      `SELECT date::text, open::float8 open, high::float8 high, low::float8 low, close::float8 close FROM bars WHERE ticker = $1 AND date >= $2 ORDER BY date`,
+      [pos.ticker, from],
+    )).rows
+    const review = timingReview({ direction: pos.direction, status: pos.status, trades, calls, bars })
+    const start = review?.firstBuyCall?.date ?? pos.opened_on
+    ok(res, {
+      ticker: pos.ticker,
+      review,
+      calls: calls.filter((c) => c.run_date >= start),
+      trades,
+      closes: bars.filter((x) => x.date >= addDays(start, -5)).map((x) => ({ date: x.date, close: x.close })),
+    })
   }))
 
   r.get('/portfolios/:id/alerts', h(async (req, res) => {

@@ -23,7 +23,9 @@ export interface NightlyDeps {
 
 export const SHADOW_NAME = 'System picks (shadow)'
 const SHADOW_RULES: Partial<Rules> = { position_size: 2000, max_position_pct: 100, max_sector_pct: 100, max_open_positions: 500 }
-const PICK_SOURCES = ['watchlist', 'screen', 'news']
+export const PICK_SOURCES = ['watchlist', 'screen', 'news']
+/** Closed positions keep getting prices this long, so the timing review can see what happened after the sale. */
+const AFTER_SALE_DAYS = 40
 const STALE_DAYS = 10
 const HISTORY_DAYS = 45
 
@@ -208,10 +210,12 @@ async function baselineOrders(db: Db, p: PortfolioRow, date: string, summary: Su
       // A sell call also withdraws any buy still waiting for its trigger.
       await db.query(`UPDATE orders SET status = 'cancelled', note = 'replaced by a sell call' WHERE portfolio_id = $1 AND ticker = $2 AND status = 'pending' AND intent = 'open'`, [p.id, c.ticker])
       if (!pos) continue
+      // "Trim" sells the follow size; "Exit" (or a short call) sells everything the repeated buy calls added up to.
+      const qty = c.label === 'Trim' ? Math.min(shares, pos.quantity) : pos.quantity
       await db.query(
         `INSERT INTO orders (portfolio_id, candidate_id, position_id, ticker, direction, intent, kind, quantity, status, created_on, expires_on, source, note)
          VALUES ($1,$2,$3,$4,'long','close','market',$5,'pending',$6,$7,$8,$9)`,
-        [p.id, c.id, pos.id, c.ticker, Math.min(shares, pos.quantity), date, expiry(3), c.source, `baseline: ${c.label} call, sell ${shares}`],
+        [p.id, c.id, pos.id, c.ticker, qty, date, expiry(3), c.source, `baseline: ${c.label} call, sell ${qty === pos.quantity ? 'all' : qty}`],
       )
     } else if (intent?.direction === 'long') {
       if (intent.kind === 'trigger' && !c.trigger_price) continue
@@ -365,8 +369,9 @@ export async function runNightly(deps: NightlyDeps, date: string) {
     const { rows: tick } = await pool.query<{ ticker: string }>(
       `SELECT ticker FROM positions WHERE status = 'open'
        UNION SELECT ticker FROM orders WHERE status = 'pending'
-       UNION SELECT ticker FROM candidates WHERE run_date = $1`,
-      [date],
+       UNION SELECT ticker FROM candidates WHERE run_date = $1
+       UNION SELECT ticker FROM positions WHERE status = 'closed' AND closed_on >= $2`,
+      [date, addDays(date, -AFTER_SALE_DAYS)],
     )
     const tickers = [...new Set(['SPY', ...tick.map((r) => r.ticker)])]
     // Enough history for ATR and every bar since the last successful night, whichever reaches further back.

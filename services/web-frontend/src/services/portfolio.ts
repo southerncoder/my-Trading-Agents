@@ -216,6 +216,30 @@ export const fetchAlerts = async (id: number, openOnly = true) => z.array(alertS
 export const ackAlert = (id: number, alertId: number) => post(`/portfolios/${id}/alerts/${alertId}/ack`)
 export const fetchPerformance = async (id: number) => performanceSchema.parse(await get(`/portfolios/${id}/performance`))
 
+const point = z.object({ date: z.string(), price: n })
+const timingSchema = z.object({
+  ticker: z.string(),
+  review: z
+    .looseObject({
+      status: z.enum(['open', 'closed']),
+      firstBuyCall: point.extend({ label: z.string() }).nullable(),
+      sellCall: point.extend({ label: z.string() }).nullable(),
+      entry: z.object({ avgPrice: n, firstDate: z.string(), shares: n }),
+      bestEntry: point.nullable(),
+      bestWhileHeld: point.nullable(),
+      worstWhileHeld: point.nullable(),
+      exit: z.object({ avgPrice: n, lastDate: z.string(), shares: n }).nullable(),
+      after: z.array(point.extend({ days: n, pctFromSale: n })),
+      lines: z.array(z.object({ topic: z.string(), tone: z.enum(['good', 'bad', 'neutral']), text: z.string() })),
+    })
+    .nullable(),
+  calls: z.array(z.looseObject({ run_date: z.string(), label: z.string(), decision: z.string(), price: nn })),
+  trades: z.array(z.looseObject({ action: z.string(), quantity: n, price: n, traded_on: z.string() })),
+  closes: z.array(z.object({ date: z.string(), close: n })),
+})
+export type Timing = z.infer<typeof timingSchema>
+export const fetchTiming = async (id: number, positionId: number) => timingSchema.parse(await get(`/portfolios/${id}/positions/${positionId}/timing`))
+
 export interface TradeInput {
   ticker: string
   direction?: 'long' | 'short'

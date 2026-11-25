@@ -1,5 +1,7 @@
 import { useNavigate } from 'react-router-dom'
-import { Card, HBars, SectionTitle, SegmentBar } from '../components/viz'
+import { Card, HBars, SectionTitle, SegmentBar, Sparkline } from '../components/viz'
+import { useSparks } from '../components/today/triggerViz'
+import { PlanMap, orderDistancePct, planProgress, sectorShares } from '../components/portfolio/portfolioViz'
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { IndexChart } from '../components/portfolio/IndexChart'
@@ -10,21 +12,28 @@ import { card, fmtPct, moveColor, muted } from '../components/today/format'
 import { TickerLink } from '../components/TickerLink'
 import {
   ackAlert, cancelOrder, fetchAlerts, fetchOrders, fetchPerformance, fetchPortfolio, fetchPositions, fetchTrades, patchRules, sell,
-  type Position, type Rules,
+  type Order, type Position, type Rules,
 } from '../services/portfolio'
+import type { Closes } from '../components/today/triggerViz'
+import { TimingToggle } from '../components/portfolio/TimingReview'
 
 const EXIT_KINDS = new Set(['stop_hit', 'target_hit', 'max_hold', 'sell_call', 'reanalysis', 'big_move'])
 const bad = { color: '#D4501A' }
 
-function Tile({ title, children, hint }: { title: string; children: React.ReactNode; hint?: string }) {
+function Tile({ title, children, hint, chart }: { title: string; children: React.ReactNode; hint?: string; chart?: React.ReactNode }) {
   return (
-    <div className="min-w-0 rounded-lg p-3" style={card}>
-      <div className="text-xs" style={muted}>{title}</div>
-      <div className="text-lg font-semibold">{children}</div>
+    <div className="min-w-0 rounded-xl p-4" style={card}>
+      <div className="text-sm" style={muted}>{title}</div>
+      <div className="flex items-end justify-between gap-2">
+        <div className="text-2xl font-bold tabular-nums">{children}</div>
+        {chart}
+      </div>
       {hint && <div className="text-xs" style={muted}>{hint}</div>}
     </div>
   )
 }
+
+const SECTOR_COLORS = ['var(--viz-1, #2a78d6)', 'var(--viz-2, #eb6834)', 'var(--viz-3, #1baf7a)', 'var(--viz-4, #eda100)']
 
 function SellForm({ pid, pos, onDone }: { pid: number; pos: Position; onDone: () => void }) {
   const [qty, setQty] = useState(String(pos.quantity))
@@ -113,6 +122,70 @@ function RulesForm({ id, rules, onDone }: { id: number; rules: Rules; onDone: ()
   )
 }
 
+/** How far each price-triggered order is from the last close (left: must fall; right: must rise). */
+function OrderDistances({ orders, sparks, onStock }: { orders: Order[]; sparks: Record<string, Closes>; onStock: (t: string) => void }) {
+  const rows = orders
+    .map((o) => ({ o, d: orderDistancePct(o, sparks[o.ticker]?.[sparks[o.ticker].length - 1]?.close) }))
+    .filter((e): e is { o: Order; d: number } => e.d !== null)
+    .sort((a, b) => a.d - b.d)
+  if (!rows.length) return null
+  const market = orders.filter((o) => o.trigger_price === null || o.trigger_price === undefined).length
+  return (
+    <div className="space-y-2 pb-2">
+      <p className="text-sm" style={muted}>
+        Distance from the last close to each order&apos;s price. Left: the price must fall to fill it; right: it must rise.
+        {market > 0 && ` ${market} more fill${market === 1 ? 's' : ''} at the next market open.`}
+      </p>
+      <HBars
+        labelWidth={70}
+        format={(v) => fmtPct(v)}
+        onRow={(k) => {
+          const o = orders.find((x) => String(x.id) === k)
+          if (o) onStock(o.ticker)
+        }}
+        rows={rows.map(({ o, d }) => ({
+          key: String(o.id),
+          label: o.ticker,
+          value: d,
+          color: d < 0 ? '#D4501A' : '#0A8F80',
+          note: `${o.intent === 'close' ? 'sell' : o.direction === 'long' ? 'buy' : 'short'} at ${money(o.trigger_price)} · expires ${o.expires_on ?? '-'}`,
+        }))}
+      />
+    </div>
+  )
+}
+
+/** Tiles and a bar per closed position: what each one made or lost. */
+function ClosedResults({ closed, onStock, portfolioId }: { closed: Position[]; onStock: (t: string) => void; portfolioId: number }) {
+  const wins = closed.filter((x) => x.realized_pnl > 0).length
+  const total = closed.reduce((a, x) => a + x.realized_pnl, 0)
+  return (
+    <Card className="space-y-3">
+      <SectionTitle title="Closed positions" sub="Profit or loss taken on each closed position. Click for the stock." />
+      <div className="grid grid-cols-[repeat(3,minmax(0,1fr))] gap-3">
+        <Tile title="Closed">{closed.length}</Tile>
+        <Tile title="Won" hint="closed at a profit">{wins} of {closed.length}</Tile>
+        <Tile title="Taken in total"><span style={{ color: moveColor(total) }}>{signedMoney(total)}</span></Tile>
+      </div>
+      <HBars
+        labelWidth={70}
+        format={(v) => signedMoney(v)}
+        onRow={(k) => {
+          const x = closed.find((c) => String(c.id) === k)
+          if (x) onStock(x.ticker)
+        }}
+        rows={[...closed].sort((a, b) => b.realized_pnl - a.realized_pnl).map((x) => ({ key: String(x.id), label: x.ticker, value: x.realized_pnl, note: `${fmtPct(x.returnPct)} · ${x.opened_on} to ${x.closed_on ?? '-'}` }))}
+      />
+      <div className="space-y-2">
+        <div className="text-sm font-semibold">Timing reviews</div>
+        {[...closed].sort((a, b) => (b.closed_on ?? '').localeCompare(a.closed_on ?? '')).map((x) => (
+          <TimingToggle key={x.id} portfolioId={portfolioId} positionId={x.id} closed label={`${x.ticker} (sold ${x.closed_on ?? '-'})`} />
+        ))}
+      </div>
+    </Card>
+  )
+}
+
 export function Portfolio() {
   const id = Number(useParams().id)
   const [tick, setTick] = useState(0)
@@ -140,6 +213,7 @@ export function Portfolio() {
   const p = summary.data
   const owner = p?.kind === 'owner'
   const navigate = useNavigate()
+  const sparks = useSparks([...(open.data ?? []).map((x) => x.ticker), ...(orders.data ?? []).map((o) => o.ticker)])
 
   if (summary.error) return <div className="p-4"><p role="alert" style={bad}>{summary.error}</p><Link to="/portfolios" className="underline">Back to portfolios</Link></div>
   if (!p) return <p role="status" className="p-4 text-sm" style={muted}>Loading...</p>
@@ -161,9 +235,9 @@ export function Portfolio() {
 
       {actionError && <p role="alert" className="text-sm" style={bad}>{actionError}</p>}
       <div className="grid grid-cols-[repeat(2,minmax(0,1fr))] gap-3 md:grid-cols-[repeat(4,minmax(0,1fr))]">
-        <Tile title="Value" hint={`cash ${money(p.cash, 0)}`}>{money(p.equity, 0)}</Tile>
-        <Tile title="Return" hint="since it started"><span style={{ color: moveColor(p.returnPct) }}>{fmtPct(p.returnPct)}</span></Tile>
-        <Tile title="SPY over the same days" hint="the yardstick">{p.spyReturnPct === null ? 'n/a' : fmtPct(p.spyReturnPct)}</Tile>
+        <Tile title="Value" hint={`cash ${money(p.cash, 0)} · invested ${money(p.longValue + p.shortValue, 0)}`} chart={perf.data && perf.data.series.length > 1 ? <Sparkline values={perf.data.series.map((s) => s.portfolio)} width={90} height={30} label="value since it started, indexed to 100" /> : undefined}>{money(p.equity, 0)}</Tile>
+        <Tile title="Return" hint={p.spyReturnPct === null ? 'since it started' : `${p.returnPct >= p.spyReturnPct ? 'ahead of' : 'behind'} SPY by ${Math.abs(p.returnPct - p.spyReturnPct).toFixed(2)} points`}><span style={{ color: moveColor(p.returnPct) }}>{fmtPct(p.returnPct)}</span></Tile>
+        <Tile title="SPY over the same days" hint="the yardstick" chart={perf.data && perf.data.series.filter((s) => s.spy !== null).length > 1 ? <Sparkline values={perf.data.series.flatMap((s) => (s.spy === null ? [] : [s.spy]))} width={90} height={30} color="#8a94a6" label="SPY over the same days, indexed to 100" /> : undefined}>{p.spyReturnPct === null ? 'n/a' : fmtPct(p.spyReturnPct)}</Tile>
         <Tile title="Worst drop from a peak" hint="at nightly closes">{p.maxDrawdownPct ? `-${p.maxDrawdownPct}%` : '0%'}</Tile>
       </div>
 
@@ -172,21 +246,46 @@ export function Portfolio() {
         {perf.data ? <IndexChart series={perf.data.series} name={p.name} /> : <p className="text-sm" style={muted}>Loading...</p>}
       </section>
 
+      {p.kind !== 'baseline' && open.data && open.data.some((x) => planProgress(x) !== null) && (
+        <Card className="space-y-3">
+          <SectionTitle title="Exit plan map" sub="Where every open position sits between the price that closes it at a loss (stop) and the one that takes the profit (target)." />
+          <PlanMap positions={open.data} />
+        </Card>
+      )}
+
       {open.data && open.data.length > 0 && (
         <div className="grid gap-4 lg:grid-cols-2">
           <Card className="space-y-3">
-            <SectionTitle title="Where the money is" sub="Market value of each open position, and cash." />
+            <SectionTitle title="Where the money is" sub="Market value by sector (the four largest named, the rest together), and cash." />
             <SegmentBar
-              parts={[
-                ...[...open.data].sort((a, b) => Math.abs(b.market_value) - Math.abs(a.market_value)).map((x, i) => ({
-                  label: x.ticker,
-                  value: Math.round(Math.abs(x.market_value)),
-                  color: ['var(--viz-1, #2a78d6)', 'var(--viz-2, #eb6834)', 'var(--viz-3, #1baf7a)'][i % 3],
-                })),
-                { label: 'Cash', value: Math.round(Math.max(0, p.cash)), color: '#94a3b8' },
-              ]}
+              parts={(() => {
+                const secs = sectorShares(open.data, p.equity)
+                const rest = secs.slice(4).reduce((a, x) => a + x.value, 0)
+                return [
+                  ...secs.slice(0, 4).map((x, i) => ({ label: x.sector, value: Math.round(x.value), color: SECTOR_COLORS[i] })),
+                  ...(rest > 0 ? [{ label: `Other sectors (${secs.length - 4})`, value: Math.round(rest), color: '#64748b' }] : []),
+                  { label: 'Cash', value: Math.round(Math.max(0, p.cash)), color: '#cbd5e1' },
+                ]
+              })()}
               unit=" $"
             />
+            {p.rules.max_sector_pct < 100 && (
+              <>
+                <div className="pt-2 text-sm font-semibold">Each sector against the {p.rules.max_sector_pct}% limit</div>
+                <HBars
+                  labelWidth={160}
+                  max={p.rules.max_sector_pct}
+                  format={(v) => `${v.toFixed(1)}%`}
+                  rows={sectorShares(open.data, p.equity).map((x) => ({
+                    key: x.sector,
+                    label: x.sector,
+                    value: x.pct,
+                    color: x.pct > p.rules.max_sector_pct ? '#e34948' : undefined,
+                    note: `${x.count} position${x.count === 1 ? '' : 's'}${x.pct > p.rules.max_sector_pct ? ' · over the limit' : ''}`,
+                  }))}
+                />
+              </>
+            )}
           </Card>
           <Card className="space-y-3">
             <SectionTitle title="Open positions, gain or loss" sub="Return on each open position since it was bought. Click for the stock." />
@@ -229,13 +328,19 @@ export function Portfolio() {
         {open.data && open.data.length > 0 && (
           <OpenPositions
             positions={open.data}
+            sparks={sparks}
             trades={trades.data ?? []}
             showPlan={p.kind !== 'baseline'}
             canSell={owner}
             selling={selling}
             onSell={setSelling}
             renderSellForm={(x) => <SellForm pid={id} pos={x} onDone={() => { setSelling(null); refresh() }} />}
-            renderReview={(x) => <PositionReview p={x} />}
+            renderReview={(x) => (
+              <>
+                <PositionReview p={x} />
+                <TimingToggle portfolioId={id} positionId={x.id} closed={false} />
+              </>
+            )}
           />
         )}
       </section>
@@ -243,6 +348,7 @@ export function Portfolio() {
       <section className="space-y-2 rounded-lg p-4" style={card} aria-labelledby="orders">
         <h2 id="orders" className={sectionTitle}>Waiting orders</h2>
         {orders.data?.length === 0 && <p className="text-sm" style={muted}>No orders waiting for a price.</p>}
+        <OrderDistances orders={orders.data ?? []} sparks={sparks} onStock={(t) => navigate(`/stock/${t}`)} />
         <ul className="space-y-1 text-sm">
           {orders.data?.map((o) => (
             <li key={o.id} className="flex flex-wrap items-center justify-between gap-2">
@@ -255,6 +361,8 @@ export function Portfolio() {
           ))}
         </ul>
       </section>
+
+      {closed.data && closed.data.length > 0 && <ClosedResults closed={closed.data} portfolioId={id} onStock={(t) => navigate(`/stock/${t}`)} />}
 
       <details className="rounded-lg p-4" style={card}>
         <summary className="cursor-pointer font-semibold">Closed positions ({closed.data?.length ?? 0}) and trade history</summary>
