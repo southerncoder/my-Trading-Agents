@@ -251,10 +251,28 @@ export const scorecardSchema = z.object({
     label: z.array(scoreCellSchema),
     band: z.array(scoreCellSchema),
     profile: z.array(scoreCellSchema),
+    ticker: z.array(scoreCellSchema).default([]),
+    night: z.array(scoreCellSchema).default([]),
   }),
+  detail: z
+    .array(
+      z.object({
+        date: z.string(),
+        ticker: z.string(),
+        label: z.string(),
+        confidence: z.number(),
+        horizon: z.number(),
+        ret_pct: z.number(),
+        excess_pct: z.number(),
+        fill: z.enum(['filled', 'not_filled', 'cancelled']).optional(),
+        wait_ret_pct: z.number().optional(),
+      }),
+    )
+    .default([]),
 })
 
 export type ScoreCell = z.infer<typeof scoreCellSchema>
+export type ScoreDetail = z.infer<typeof scorecardSchema>['detail'][number]
 export type Scorecard = z.infer<typeof scorecardSchema>
 
 export async function fetchScorecard(): Promise<Scorecard | null> {

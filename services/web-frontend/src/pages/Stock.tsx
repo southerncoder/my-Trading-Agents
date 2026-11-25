@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { BarChart3, Building2, CandlestickChart, Crosshair, Gavel, Landmark, ListChecks, MessagesSquare } from 'lucide-react'
 import { fetchStock, fetchStockExtras, fetchStockMedia, type StockDetail, type StockExtras, type StockMedia } from '../services/nightly'
 import { SocialDesk } from '../components/stock/SocialDesk'
@@ -48,7 +48,12 @@ type Media = { ticker: string; data?: StockMedia; error?: string }
 
 export function Stock() {
   const { ticker = '' } = useParams()
-  const [date, setDate] = useState<string | undefined>(undefined)
+  // A link may open a given night (?date=YYYY-MM-DD), e.g. from the scorecard's best and worst calls.
+  const [params] = useSearchParams()
+  const [date, setDate] = useState<string | undefined>(() => {
+    const d = params.get('date')
+    return d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : undefined
+  })
   const [result, setResult] = useState<Result | null>(null)
   const [extras, setExtras] = useState<Extras | null>(null)
   const [media, setMedia] = useState<Media | null>(null)

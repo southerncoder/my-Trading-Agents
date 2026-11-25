@@ -3,7 +3,9 @@ import { ZodError } from 'zod'
 import { fetchScorecard, type Scorecard as ScorecardData, type ScoreCell } from '../services/nightly'
 import { pivot } from '../components/scorecard/pivot'
 import { card, fmtPct, moveColor, muted } from '../components/today/format'
-import { Award, CheckCircle2, Clock, Gauge, Layers, ListChecks, Target, Timer } from 'lucide-react'
+import { Award, Building2, CalendarDays, CheckCircle2, Clock, Gauge, Layers, ListChecks, Target, Timer, TrendingUp, Trophy } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { BestWorst, ConfidenceScatter, HorizonLines, NightColumns } from '../components/scorecard/charts'
 import { Card, HBars, PageHeader, SectionTitle, Segmented, StatTile } from '../components/viz'
 
 type State = { kind: 'loading' } | { kind: 'error'; message: string } | { kind: 'ready'; data: ScorecardData | null }
@@ -130,6 +132,7 @@ function WaitingTable({ cells }: { cells: ScoreCell[] }) {
 export function Scorecard() {
   const [state, setState] = useState<State>({ kind: 'loading' })
   const [horizon, setHorizon] = useState(5)
+  const navigate = useNavigate()
 
   useEffect(() => {
     let cancelled = false
@@ -170,6 +173,8 @@ export function Scorecard() {
   const m = (h: number) => d.matured[String(h)] ?? 0
   const h = d.horizons.includes(horizon) ? horizon : d.horizons[0]
   const waiting = d.groups.label.filter((c) => c.trigger && c.horizon === h)
+  const detail = d.detail.filter((x) => x.horizon === h)
+  const byStock = d.groups.ticker.filter((c) => c.horizon === h).sort((a, b) => b.avg_excess_pct - a.avg_excess_pct)
 
   return (
     <div className="app-page mx-auto max-w-6xl space-y-8 p-4 md:p-8">
@@ -189,6 +194,43 @@ export function Scorecard() {
         calls. Calls repeat the same stock on different nights, so read every number as a hint, not a verdict. Updated{' '}
         {d.generated_at.slice(0, 16).replace('T', ' ')} UTC.
       </p>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="space-y-4">
+          <SectionTitle icon={TrendingUp} title="Does the edge grow with time?" sub={`Average beat of ${d.benchmark} after 1, 3 and 5 trading days, per kind of call. Fewer calls have finished the longer horizons.`} />
+          <HorizonLines cells={d.groups.label} horizons={d.horizons} benchmark={d.benchmark} />
+        </Card>
+        <Card className="space-y-4">
+          <SectionTitle icon={CalendarDays} title="Night by night" sub={`Average beat of ${d.benchmark} after ${h} day${h === 1 ? '' : 's'} for the calls made each night. Faded: fewer than 10 calls.`} />
+          <NightColumns cells={d.groups.night.filter((c) => c.horizon === h)} benchmark={d.benchmark} />
+        </Card>
+      </div>
+
+      {detail.length > 0 && (
+        <Card className="space-y-4">
+          <SectionTitle icon={Gauge} title="Confidence against the result" sub={`Every call finished at ${h} day${h === 1 ? '' : 's'}: how sure the model said it was (across) and how the stock did against ${d.benchmark} (up). If confidence meant something, the dots would climb to the right. Click a dot for the stock.`} />
+          <ConfidenceScatter detail={detail} benchmark={d.benchmark} />
+        </Card>
+      )}
+
+      {detail.length > 0 && (
+        <Card className="space-y-4">
+          <SectionTitle icon={Trophy} title="Best and worst calls" sub={`Against ${d.benchmark} after ${h} day${h === 1 ? '' : 's'}. Opens the stock on the night of the call.`} />
+          <BestWorst detail={detail} benchmark={d.benchmark} />
+        </Card>
+      )}
+
+      {byStock.length > 0 && (
+        <Card className="space-y-4">
+          <SectionTitle icon={Building2} title="By stock" sub={`Average beat of ${d.benchmark} after ${h} day${h === 1 ? '' : 's'}, across every call on each stock. Faded: fewer than 3 calls. Click for the stock.`} />
+          <HBars
+            labelWidth={90}
+            format={(v) => fmtPct(v, 2)}
+            onRow={(t) => navigate(`/stock/${t}`)}
+            rows={byStock.map((c) => ({ key: c.key, label: c.key, ticker: c.key, value: c.avg_excess_pct, faint: c.n < 3, note: `${c.n} call${c.n === 1 ? '' : 's'} · ${Math.round(c.up_share * 100)}% beat` }))}
+          />
+        </Card>
+      )}
 
       <GroupChart id="by-call" icon={Award} title="By call" sub={`Average beat of ${d.benchmark} after ${h} day${h === 1 ? '' : 's'}, by what the system said.`} cells={d.groups.label} horizons={d.horizons} horizon={h} />
       <div className="grid gap-6 lg:grid-cols-2">

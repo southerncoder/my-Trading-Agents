@@ -51,7 +51,22 @@ export interface Scorecard {
   calls: number
   unscored: number
   matured: Record<string, number>
-  groups: { label: Cell[]; band: Cell[]; profile: Cell[] }
+  groups: { label: Cell[]; band: Cell[]; profile: Cell[]; ticker: Cell[]; night: Cell[] }
+  /** Every scored call at every horizon it has finished, for per-call charts. */
+  detail: CallDetail[]
+}
+
+export interface CallDetail {
+  date: string
+  ticker: string
+  label: string
+  confidence: number
+  horizon: number
+  ret_pct: number
+  excess_pct: number
+  /** For "wait for the trigger" calls: whether it filled, and the return if it had. */
+  fill?: FillStatus
+  wait_ret_pct?: number
 }
 
 export const HORIZONS = [1, 3, 5]
@@ -197,6 +212,20 @@ export function buildScorecard(calls: ScoreInput[], barsByTicker: Map<string, Ba
       label: cells(scored, (c) => c.label),
       band: cells(scored, (c) => confidenceBand(c.confidence)),
       profile: cells(scored, (c) => c.profile || 'unknown'),
+      ticker: cells(scored, (c) => c.ticker),
+      night: cells(scored, (c) => c.date),
     },
+    detail: scored
+      .map((s) => ({
+        date: s.call.date,
+        ticker: s.call.ticker,
+        label: s.call.label,
+        confidence: s.call.confidence,
+        horizon: s.horizon,
+        ret_pct: r2(s.res.now_ret_pct),
+        excess_pct: r2(s.res.excess_pct),
+        ...(s.res.trigger ? { fill: s.res.trigger.status, wait_ret_pct: r2(s.res.trigger.wait_ret_pct) } : {}),
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date) || a.ticker.localeCompare(b.ticker) || a.horizon - b.horizon),
   }
 }

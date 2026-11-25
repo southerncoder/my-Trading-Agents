@@ -149,6 +149,17 @@ describe('buildScorecard', () => {
     expect(trig?.trigger).toEqual({ n: 1, fill_rate: 0, cancelled_rate: 0, wait_minus_now_pct: -3 })
   })
 
+  it('groups by stock and by night, and lists every scored call with its trigger outcome', () => {
+    expect(sc.groups.ticker.find((c) => c.key === 'AAA' && c.horizon === 1)?.n).toBe(3)
+    expect(sc.groups.ticker.some((c) => c.key === 'NOHIST')).toBe(false)
+    expect(sc.groups.night.every((c) => /^\d{4}-\d{2}-\d{2}$/.test(c.key))).toBe(true)
+    expect(sc.detail).toHaveLength(6) // 3 scorable calls x horizons 1 and 3
+    const first = sc.detail.find((x) => x.horizon === 1 && x.label === 'Buy now')
+    expect(first).toMatchObject({ ticker: 'AAA', excess_pct: 2 })
+    expect(first?.fill).toBeUndefined()
+    expect(sc.detail.find((x) => x.horizon === 1 && x.label === 'Buy if price reaches trigger')?.fill).toBe('not_filled')
+  })
+
   it('flags a cell with 10 or more calls as enough', () => {
     const many = Array.from({ length: 10 }, () => call())
     const big = buildScorecard(many, bars, spy, new Date('2026-11-26T00:00:00Z'))
