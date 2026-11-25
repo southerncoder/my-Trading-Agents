@@ -14,7 +14,7 @@ import {
 import { logger } from './utils/logger.js';
 import { summarizeFundamentals, type CompanyFactsLike, type FundamentalsSummary, type SubmissionsLike } from './fundamentals.js';
 import { extractProperties, htmlToText, latestAnnualReport, type PropertiesSection, type RecentFilingsLike } from './properties.js';
-import { BLS_SERIES, FRED_SERIES, blsAsOf, blsIndicators, fredIndicators, macroDigest, type BlsSeriesLike, type FredObs, type MacroIndicator } from './macro.js';
+import { BLS_SERIES, FRED_SERIES, blsAsOf, blsIndicators, fredIndicators, macroDigest, usDate, type BlsSeriesLike, type FredObs, type MacroIndicator } from './macro.js';
 
 export interface MacroSummary {
   asOf: string;
@@ -173,8 +173,9 @@ export class GovFinancialData {
 
     let fredItems: MacroIndicator[] = [];
     if (this.fred) {
-      // Values known on asOf: FRED refuses a real-time date in the future, so cap it at today.
-      const today = new Date().toISOString().slice(0, 10);
+      // Values known on asOf: FRED refuses a real-time date in the future, so cap it at today in the US. In the
+      // US evening the UTC date is already tomorrow, which FRED rejects for every series.
+      const today = usDate();
       const rt = asOf < today ? asOf : today;
       const start = new Date(Date.parse(asOf) - 400 * 86_400_000).toISOString().slice(0, 10);
       const got: Partial<Record<keyof typeof FRED_SERIES, FredObs[]>> = {};

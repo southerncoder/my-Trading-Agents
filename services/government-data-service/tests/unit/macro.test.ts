@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { blsAsOf, blsIndicators, blsLines, fredIndicators, fredLines, macroDigest, type BlsSeriesLike } from '../../src/macro';
+import { blsAsOf, blsIndicators, blsLines, fredIndicators, fredLines, macroDigest, usDate, type BlsSeriesLike } from '../../src/macro';
 
 const series = (id: string, rows: Array<[string, string, string]>): BlsSeriesLike => ({
   seriesID: id,
@@ -107,3 +107,10 @@ describe('macroDigest', () => {
     expect(macroDigest({ asOf: 'x', bls: [], fred: [], notes: [] })).toContain('No macro data could be loaded.');
   });
 });
+
+describe('usDate', () => {
+  it('is the New York date, which lags UTC in the US evening', () => {
+    expect(usDate(new Date('2026-11-25T04:30:00Z'))).toBe('2026-11-24')
+    expect(usDate(new Date('2026-11-25T15:00:00Z'))).toBe('2026-11-25')
+  })
+})

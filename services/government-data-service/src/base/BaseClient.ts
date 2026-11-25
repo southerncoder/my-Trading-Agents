@@ -3,6 +3,12 @@ import { RateLimiter } from 'limiter';
 import { ApiError, RequestOptions } from '../types/index.js';
 import { logger } from '../utils/logger.js';
 
+/** Request parameters with API keys masked, for logging (FRED's api_key, BLS's registrationkey, Census's key). */
+export function redactKeys(params: unknown): unknown {
+  if (!params || typeof params !== 'object') return params
+  return Object.fromEntries(Object.entries(params as Record<string, unknown>).map(([k, v]) => [k, /key|token|secret/i.test(k) ? '[redacted]' : v]))
+}
+
 export abstract class BaseClient {
   protected client: AxiosInstance;
   protected baseURL: string;
@@ -63,7 +69,7 @@ export abstract class BaseClient {
 
         logger.debug(`Making request to: ${config.method?.toUpperCase()} ${config.url}`, {
           baseURL: this.baseURL,
-          params: config.params
+          params: redactKeys(config.params)
         });
         return config;
       },
@@ -180,13 +186,15 @@ export abstract class BaseClient {
     }
   }
 
+  /**
+   * Network errors, server errors and rate limits are worth another try; a 4xx answer will not change. Errors
+   * arrive as the ApiError the interceptor made ({ code, status }), not as raw Axios errors with `.response`,
+   * so both shapes are read (before, every 400 was retried four times, slowing each failure by seconds).
+   */
   private shouldRetry(error: any): boolean {
-    if (!error.response) {
-      return true; // Retry network errors
-    }
-
-    const status = error.response.status;
-    return status >= 500 || status === 429; // Retry server errors and rate limits
+    const status: number | undefined = error?.response?.status ?? error?.status
+    if (status === undefined) return error?.code !== 'REQUEST_ERROR' // network errors: retry; a malformed request: do not
+    return status >= 500 || status === 429
   }
 
   protected delay(ms: number): Promise<void> {

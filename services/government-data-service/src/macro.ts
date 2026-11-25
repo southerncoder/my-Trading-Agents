@@ -198,3 +198,8 @@ export function macroDigest(a: { asOf: string; bls: string[]; fred: string[]; no
   for (const n of a.notes) lines.push(`Note: ${n}`);
   return lines.join('\n');
 }
+
+/** Today's date in New York (YYYY-MM-DD): FRED's calendar, which is behind UTC every US evening. */
+export function usDate(now: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now)
+}
