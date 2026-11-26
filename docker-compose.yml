@@ -197,19 +197,10 @@ services:
       - NODE_ENV=development
       - LOG_LEVEL=debug
       - PORT=3007
-      - REDDIT_CLIENT_ID_FILE=/run/secrets/reddit_client_id
-      - REDDIT_CLIENT_SECRET_FILE=/run/secrets/reddit_client_secret
-      - REDDIT_USERNAME_FILE=/run/secrets/reddit_username
-      - REDDIT_PASSWORD_FILE=/run/secrets/reddit_password
-      - REDDIT_USER_AGENT_FILE=/run/secrets/reddit_user_agent
+      # Reddit is no longer supported: no credentials are passed, so its client stays unconfigured.
       - TWITTER_BEARER_TOKEN_FILE=/run/secrets/twitter_bearer_token
     secrets:
       - sentisense_api_key
-      - reddit_client_id
-      - reddit_client_secret
-      - reddit_username
-      - reddit_password
-      - reddit_user_agent
       - twitter_bearer_token
     ports:
       - "127.0.0.1:${SOCIAL_PORT:-38407}:3007"
@@ -458,15 +449,5 @@ secrets:
   # Social Media API Secrets
   sentisense_api_key:
     file: ./docker/secrets/sentisense_api_key.txt
-  reddit_client_id:
-    file: ./docker/secrets/reddit_client_id.txt
-  reddit_client_secret:
-    file: ./docker/secrets/reddit_client_secret.txt
-  reddit_username:
-    file: ./docker/secrets/reddit_username.txt
-  reddit_password:
-    file: ./docker/secrets/reddit_password.txt
-  reddit_user_agent:
-    file: ./docker/secrets/reddit_user_agent.txt
   twitter_bearer_token:
     file: ./docker/secrets/twitter_bearer_token.txt

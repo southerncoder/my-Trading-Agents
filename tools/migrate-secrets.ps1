@@ -1,4 +1,4 @@
-# =====================================================================================
+﻿# =====================================================================================
 # Trading Agents - Docker Secrets Migration Script (PowerShell)
 # =====================================================================================
 # This script migrates environment variables from .env.local to Docker secrets files
@@ -124,6 +124,7 @@ function Invoke-SecretsMigration {
     New-SecretFile "FINNHUB_API_KEY" (Join-Path $SECRETS_DIR "finnhub_api_key.txt") "Finnhub API Key"
     New-SecretFile "ALPHA_VANTAGE_API_KEY" (Join-Path $SECRETS_DIR "alpha_vantage_api_key.txt") "Alpha Vantage API Key"
     New-SecretFile "MARKETSTACK_API_KEY" (Join-Path $SECRETS_DIR "marketstack_api_key.txt") "Marketstack API Key"
+    New-SecretFile "TIINGO_API_KEY" (Join-Path $SECRETS_DIR "tiingo_api_key.txt") "Tiingo API Key"
     New-SecretFile "SIMFIN_API_KEY" (Join-Path $SECRETS_DIR "simfin_api_key.txt") "SimFin API Key"
     New-SecretFile "IEX_CLOUD_TOKEN" (Join-Path $SECRETS_DIR "iex_cloud_token.txt") "IEX Cloud Token"
 
@@ -135,13 +136,7 @@ function Invoke-SecretsMigration {
     # Social Media API Secrets
     New-SecretFile "TWITTER_BEARER_TOKEN" (Join-Path $SECRETS_DIR "twitter_bearer_token.txt") "Twitter Bearer Token"
 
-    # Reddit API Secrets
-    New-SecretFile "REDDIT_CLIENT_ID" (Join-Path $SECRETS_DIR "reddit_client_id.txt") "Reddit Client ID"
-    New-SecretFile "REDDIT_CLIENT_SECRET" (Join-Path $SECRETS_DIR "reddit_client_secret.txt") "Reddit Client Secret"
-    New-SecretFile "REDDIT_REFRESH_TOKEN" (Join-Path $SECRETS_DIR "reddit_refresh_token.txt") "Reddit Refresh Token"
-    New-SecretFile "REDDIT_USERNAME" (Join-Path $SECRETS_DIR "reddit_username.txt") "Reddit Username"
-    New-SecretFile "REDDIT_PASSWORD" (Join-Path $SECRETS_DIR "reddit_password.txt") "Reddit Password"
-    New-SecretFile "REDDIT_USER_AGENT" (Join-Path $SECRETS_DIR "reddit_user_agent.txt") "Reddit User Agent"
+    # Reddit is no longer supported; only the social-sentiment service key remains.
     New-SecretFile "REDDIT_SERVICE_API_KEY" (Join-Path $SECRETS_DIR "reddit_service_api_key.txt") "Reddit Service API Key"
 
     # Database Secrets
@@ -215,13 +210,7 @@ function Show-SecretsList {
     Write-Host "Social Media API Secrets:" -ForegroundColor $YELLOW
     Write-Host "  - twitter_bearer_token.txt"
     Write-Host ""
-    Write-Host "Reddit API Secrets:" -ForegroundColor $YELLOW
-    Write-Host "  - reddit_client_id.txt"
-    Write-Host "  - reddit_client_secret.txt"
-    Write-Host "  - reddit_refresh_token.txt"
-    Write-Host "  - reddit_username.txt"
-    Write-Host "  - reddit_password.txt"
-    Write-Host "  - reddit_user_agent.txt"
+    Write-Host "Social service key:" -ForegroundColor $YELLOW
     Write-Host "  - reddit_service_api_key.txt"
     Write-Host ""
     Write-Host "Database Secrets:" -ForegroundColor $YELLOW

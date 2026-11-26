@@ -139,7 +139,6 @@ export const AGENT_ROLES: Record<AgentType, AgentRole> = {
     description: 'Analyzes social media sentiment and public opinion',
     responsibilities: [
       'Social media sentiment analysis',
-      'Reddit discussion analysis',
       'Public opinion tracking',
       'Sentiment trend identification'
     ],

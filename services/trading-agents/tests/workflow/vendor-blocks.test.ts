@@ -3,7 +3,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { VendorStore } from '../../src/dataflows/vendor-store';
-import { alphaVantageBlock, finnhubBlock, marketstackCheck, realKey, GetJson } from '../../src/agents/base/vendor-blocks';
+import { alphaVantageBlock, finnhubBlock, marketstackCheck, priceCrossCheck, tiingoCheck, realKey, GetJson } from '../../src/agents/base/vendor-blocks';
 import { assessDataQuality, buildEvidenceBlock } from '../../src/agents/base/evidence';
 
 const failures: string[] = [];
@@ -117,6 +117,34 @@ async function main() {
     const a = await marketstackCheck('KO', today, bars([70, 70]), d2);
     const b = await marketstackCheck('NVDA', today, bars([150, 152]), d2);
     check('marketstack monthly limit pauses', a.line.includes('monthly plan limit reached') && b.line.includes('monthly plan limit reached') && lim.calls.length === 1, { a, b, calls: lim.calls.length });
+  }
+
+  // Tiingo: per-ticker closes, cached; Marketstack only when Tiingo has no answer.
+  {
+    const bars = (closes: number[]) => closes.map((c, i) => ({ date: ['2026-11-24', '2026-11-25'][i] as string, open: c, high: c, low: c, close: c }));
+    const store = fresh();
+    const f = fake([
+      [/tiingo\/daily\/BRK-B\//, 200, [{ date: '2026-11-24T00:00:00.000Z', close: 480 }, { date: '2026-11-25T00:00:00.000Z', close: 482 }]],
+      [/tiingo\/daily\/KO\//, 200, [{ date: '2026-11-24T00:00:00.000Z', close: 70.1 }, { date: '2026-11-25T00:00:00.000Z', close: 74 }]],
+      [/tiingo\/daily\/ZZZZ\//, 404, { detail: "Error: Ticker 'ZZZZ' not found" }],
+      [/marketstack/, 200, { data: [{ symbol: 'ZZZZ', date: '2026-11-24T00:00:00+0000', close: 10 }, { symbol: 'ZZZZ', date: '2026-11-25T00:00:00+0000', close: 10 }] }],
+    ]);
+    const deps = { getJson: f.getJson, store, now, env: { ...env, TIINGO_API_KEY: 'k4' } };
+    const brk = await priceCrossCheck('BRK.B', today, bars([480, 482]), deps);
+    check('tiingo match, share class as BRK-B', brk.status === 'match' && brk.line.includes('(Tiingo)') && /daily\/BRK-B\//.test(f.calls[0] ?? ''), { brk, url: f.calls[0] });
+    const ko = await priceCrossCheck('KO', today, bars([70.1, 70.5]), deps);
+    check('tiingo mismatch', ko.status === 'mismatch' && ko.line.includes("Tiingo's was 74"), ko);
+    await priceCrossCheck('KO', today, bars([70.1, 70.5]), deps);
+    check('tiingo cached', f.calls.filter((u) => /tiingo\/daily\/KO/.test(u)).length === 1, f.calls);
+    const z = await priceCrossCheck('ZZZZ', today, bars([10, 10]), deps);
+    check('marketstack when tiingo lacks the ticker', z.status === 'match' && z.line.includes('(Marketstack)'), z);
+
+    const s2 = fresh();
+    const lim = fake([[/tiingo/, 429, 'You have run over your hourly request allocation.']]);
+    const d2 = { getJson: lim.getJson, store: s2, now, env: { TIINGO_API_KEY: 'k4' } };
+    const a = await tiingoCheck('KO', today, bars([70, 70]), d2);
+    await tiingoCheck('PG', today, bars([70, 70]), d2);
+    check('tiingo limit pauses', a.line.includes('request limit reached') && lim.calls.length === 1, { a, calls: lim.calls.length });
   }
 
   if (failures.length) {

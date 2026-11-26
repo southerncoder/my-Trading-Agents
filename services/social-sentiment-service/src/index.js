@@ -132,18 +132,15 @@ const authenticateAPI = (req, res, next) => {
 app.use(rateLimitMiddleware);
 
 // Health check endpoint (before authentication middleware)
-// Platforms report whether they work, not just whether a credential is set: Reddit's login is tried (at most
-// every 30 minutes). Twitter is not listed: nothing in this service calls it.
-app.get('/health', async (req, res) => {
-  const reddit = await redditClient.loginStatus();
-  res.json({ 
+// Reddit is no longer supported (not checked, not called by the pipeline). Twitter is not listed: nothing calls it.
+app.get('/health', (req, res) => {
+  res.json({
     status: 'healthy',
     service: 'social-sentiment-service',
     timestamp: new Date().toISOString(),
     version: '1.0.0',
     uptime: process.uptime(),
     platforms: {
-      reddit,
       sentisense: { configured: sentiSense.configured, ok: sentiSense.configured }
     }
   });

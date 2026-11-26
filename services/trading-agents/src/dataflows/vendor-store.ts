@@ -3,7 +3,7 @@ import path from 'path';
 
 /**
  * Disk-backed quota counters, response cache and status for the metered vendors (Finnhub, Alpha Vantage,
- * Marketstack). Each analysis is a separate `node cli.js analyze` process, so the counts must live on disk to
+ * Marketstack, Tiingo). Each analysis is a separate `node cli.js analyze` process, so the counts must live on disk to
  * hold across a night's runs. In the container the directory is under the mounted /app/logs, where the web API
  * reads status.json for the Platform page.
  *
@@ -11,7 +11,7 @@ import path from 'path';
  * below those so a stray manual run cannot push a provider over.
  */
 
-export type Vendor = 'finnhub' | 'alpha-vantage' | 'marketstack';
+export type Vendor = 'finnhub' | 'alpha-vantage' | 'marketstack' | 'tiingo';
 
 export interface QuotaRule {
   perDay?: number;
@@ -22,6 +22,8 @@ export const VENDOR_QUOTAS: Record<Vendor, QuotaRule> = {
   finnhub: { perDay: 1500 },
   'alpha-vantage': { perDay: 20 },
   marketstack: { perDay: 6, perMonth: 90 },
+  // Free plan: 1,000 requests a day, 50 an hour, 500 distinct symbols a month.
+  tiingo: { perDay: 400 },
 };
 
 interface Counter {

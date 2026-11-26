@@ -113,9 +113,6 @@ async function fetchSentiSenseDigest(symbol: string): Promise<string> {
 
 // SentiSense is the primary social source; Reddit is kept as a fallback only.
 export async function fetchSocialDigest(symbol: string): Promise<string> {
-  const primary = await fetchSentiSenseDigest(symbol);
-  if (!primary.startsWith('SOCIAL DATA UNAVAILABLE')) return primary;
-  const fallback = await fetchRedditDigest(symbol);
-  if (!fallback.startsWith('SOCIAL DATA UNAVAILABLE')) return fallback;
-  return `${primary} | Reddit fallback: ${fallback.replace('SOCIAL DATA UNAVAILABLE: ', '')}`.replace('SOCIAL DATA UNAVAILABLE: ', 'SOCIAL DATA UNAVAILABLE: ');
+  // SentiSense only: Reddit is no longer supported, so there is no fallback.
+  return fetchSentiSenseDigest(symbol);
 }

@@ -18,7 +18,7 @@ export class SocialAnalyst extends AbstractAgent {
   constructor(llm: BaseChatModel, tools: StructuredTool[]) {
     super(
       'Social Analyst',
-      'Analyzes social media sentiment, Reddit discussions, and public opinion for market insights',
+      'Analyzes social media sentiment and public opinion for market insights',
       llm,
       tools
     );
@@ -127,7 +127,7 @@ export class SocialAnalyst extends AbstractAgent {
 
 Your responsibilities include:
 1. Analyzing social media sentiment and discussions
-2. Evaluating Reddit conversations and community opinions
+2. Evaluating community opinions in the supplied social data
 3. Tracking public perception and sentiment trends
 4. Identifying social media-driven market movements
 5. Assessing the impact of social sentiment on stock performance
@@ -151,8 +151,7 @@ Provide a comprehensive social sentiment analysis report in the following struct
 - Sentiment momentum and volatility
 
 ### Social Media Analysis
-- Reddit discussions and community sentiment
-- Twitter/X mentions and engagement levels
+- Community sentiment and mention volume in the supplied data
 - Platform-specific sentiment patterns
 
 ### Opinion Leaders & Influencers
@@ -198,7 +197,7 @@ Keep your analysis balanced, fact-based, and focused on actionable social sentim
     const prompt = `Perform a comprehensive social sentiment analysis for ${company_of_interest} as of ${trade_date}.
 
 Using ONLY the fetched data supplied below (never invent figures; write "not available" when a figure is missing), cover the following social media data:
-1. Reddit discussions and community sentiment
+1. Community sentiment and its trend
 2. Social media mentions and engagement
 3. Sentiment trends and opinion shifts
 4. Key influencer opinions and discussions

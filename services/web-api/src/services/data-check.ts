@@ -119,7 +119,7 @@ export interface ProviderDeps {
   getJson: (url: string) => Promise<{ status: number; body: unknown }>
   /**
    * logs/provider-cache/status.json, written by the analysis runs. The metered vendors (Finnhub, Alpha Vantage,
-   * Marketstack) are reported from it rather than called here: a status check must not spend their small quotas.
+   * Tiingo, Marketstack) are reported from it rather than called here: a status check must not spend their small quotas.
    */
   readVendorStatus?: () => Promise<unknown>
 }
@@ -127,7 +127,8 @@ export interface ProviderDeps {
 const VENDORS: Array<{ key: string; group: string; name: string; use: string }> = [
   { key: 'finnhub', group: 'Fundamentals', name: 'Finnhub', use: 'analyst ratings, earnings record, insider trades' },
   { key: 'alpha-vantage', group: 'Fundamentals', name: 'Alpha Vantage', use: 'company overview' },
-  { key: 'marketstack', group: 'Prices', name: 'Marketstack', use: 'second source for closes' },
+  { key: 'tiingo', group: 'Prices', name: 'Tiingo', use: 'second source for closes' },
+  { key: 'marketstack', group: 'Prices', name: 'Marketstack', use: 'second source for closes when Tiingo has none' },
 ]
 
 /** One row per metered vendor from the runs' status file; never throws. */
@@ -155,13 +156,12 @@ export async function providerStatus(d: ProviderDeps): Promise<ProviderItem[]> {
       return { status: 0, body: { error: (e as Error).message } }
     }
   }
-  const [news, macro, sec, census, senti, reddit, quote] = await Promise.all([
+  const [news, macro, sec, census, senti, quote] = await Promise.all([
     safe(`${d.newsUrl}/api/financial-news/KO?lookBackDays=3&pageSize=5`),
     safe(`${d.governmentDataUrl}/api/macro`),
     safe(`${d.governmentDataUrl}/api/company/KO/fundamentals`),
     safe(`${d.governmentDataUrl}/api/census/states/2022`),
     safe(`${d.socialUrl}/api/sentisense/SPY`),
-    safe(`${d.socialUrl}/health`),
     safe(`${d.yahooUrl}/api/quote/SPY`),
   ])
   const items: ProviderItem[] = []
@@ -190,12 +190,6 @@ export async function providerStatus(d: ProviderDeps): Promise<ProviderItem[]> {
 
   const sd = o(o(senti.body).data)
   items.push({ group: 'Social', name: 'SentiSense', ok: !!sd.score, detail: sd.score ? `score and ${Array.isArray(sd.documents) ? sd.documents.length : 0} documents for SPY` : `answered ${senti.status}` })
-  const r = o(o(o(reddit.body).platforms).reddit)
-  items.push(
-    r.configured === false
-      ? { group: 'Social', name: 'Reddit', ok: false, off: true, detail: 'no credentials configured' }
-      : { group: 'Social', name: 'Reddit', ok: r.ok === true, detail: r.ok === true ? 'login works' : String(r.error ?? 'login not checked') },
-  )
 
   const q = o(o(quote.body).data)
   items.push({ group: 'Prices', name: 'Yahoo Finance', ok: quote.status === 200 && Number(q.regularMarketPrice) > 0, detail: quote.status === 200 && q.regularMarketPrice ? `SPY ${q.regularMarketPrice}` : `answered ${quote.status}` })

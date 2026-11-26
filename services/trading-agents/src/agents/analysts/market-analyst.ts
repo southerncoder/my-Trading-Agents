@@ -5,7 +5,7 @@ import { AbstractAgent } from '../base/index';
 import { fetchToolData, fetchError, pickKeys } from '../base/tool-data';
 import { ENTRY_STANCE_LINE, adjustmentOn, entryCheck } from '../base/evidence';
 import { indicatorBlock, typicalMoveLine, parseBars } from '../base/indicators';
-import { marketstackCheck } from '../base/vendor-blocks';
+import { priceCrossCheck } from '../base/vendor-blocks';
 import { macroBlock } from '../base/macro-context';
 import { AgentState } from '../../types/agent-states';
 import { createLogger } from '../../utils/enhanced-logger';
@@ -84,10 +84,10 @@ export class MarketAnalyst extends AbstractAgent {
       const indicators = adjustmentOn('indicators') ? indicatorBlock(dataBlock) : '';
       const moveLine = adjustmentOn('indicators') ? typicalMoveLine(dataBlock) : '';
       // Market-wide backdrop as known on the trade date (official BLS and FRED data); a note when unavailable.
-      // Second source for the closes (Marketstack); a mismatch is carried into the report for the later stages.
+      // Second source for the closes (Tiingo, then Marketstack); a mismatch is carried into the report for the later stages.
       const [macro, priceCheck] = await Promise.all([
         macroBlock(state.trade_date),
-        marketstackCheck(state.company_of_interest, state.trade_date, parseBars(dataBlock)),
+        priceCrossCheck(state.company_of_interest, state.trade_date, parseBars(dataBlock)),
       ]);
       const humanMessage = new HumanMessage(baseRequest.content.toString() + '\n\n' + dataBlock + (indicators ? '\n\n' + indicators : '') + '\n\n' + priceCheck.line + '\n\n' + macro);
       

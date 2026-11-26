@@ -6,7 +6,8 @@ import { Bar } from './indicators';
  * Data the Yahoo service does not give, from the metered vendors, as short prompt blocks:
  *   Finnhub        analyst recommendation trend, earnings against estimates, insider sentiment (fundamentals)
  *   Alpha Vantage  company overview: valuation, margins, growth, analyst target (fundamentals)
- *   Marketstack    a second source for recent closes, to catch a wrong Yahoo price (market)
+ *   Tiingo         a second source for recent closes, to catch a wrong Yahoo price (market)
+ *   Marketstack    the same check when Tiingo has no answer
  *
  * Each block never throws and stays inside the free-plan budgets in vendor-store.ts: answers are cached on
  * disk, Marketstack fetches the whole night's list in one request (MARKETSTACK_BATCH), and a vendor that
@@ -80,6 +81,11 @@ function refusalOf(vendor: Vendor, status: number, body: any): { until: 'day' | 
     if (/premium/i.test(info)) return { until: 'day', reason: 'answered that this data needs a paid plan' };
     if (/rate limit|requests per day|call frequency/i.test(info)) return { until: 'day', reason: 'daily request limit reached' };
     if (/apikey is invalid|invalid api key/i.test(info + String(body?.['Error Message'] ?? ''))) return { until: 'day', reason: 'key rejected' };
+  }
+  if (vendor === 'tiingo') {
+    const text = typeof body === 'string' ? body : String(body?.detail ?? '');
+    if (/request allocation|run over/i.test(text)) return { until: 'day', reason: 'hourly or daily request limit reached' };
+    if (/invalid token/i.test(text)) return { until: 'day', reason: 'key rejected' };
   }
   if (status === 429) return { until: 'day', reason: 'rate limited (429)' };
   return undefined;
@@ -231,9 +237,9 @@ export interface CloseCheck {
 }
 
 /** Compare the last few closes both sources have. */
-export function compareWithMarketstack(ticker: string, yahoo: Bar[], ms: Record<string, number>, days = 5): CloseCheck {
+export function compareCloses(ticker: string, yahoo: Bar[], ms: Record<string, number>, source = 'Marketstack', days = 5): CloseCheck {
   const dates = yahoo.map((b) => b.date).filter((dt) => ms[dt] !== undefined).slice(-days);
-  if (!dates.length) return { status: 'unavailable', line: `PRICE CROSS-CHECK (Marketstack) for ${ticker}: unavailable (no common trading days).` };
+  if (!dates.length) return { status: 'unavailable', line: `PRICE CROSS-CHECK (${source}) for ${ticker}: unavailable (no common trading days).` };
   let worst = { date: '', yahoo: 0, ms: 0, diff: -1 };
   for (const dt of dates) {
     const y = (yahoo.find((b) => b.date === dt) as Bar).close;
@@ -244,10 +250,10 @@ export function compareWithMarketstack(ticker: string, yahoo: Bar[], ms: Record<
   if (worst.diff > TOLERANCE_PCT) {
     return {
       status: 'mismatch',
-      line: `PRICE CROSS-CHECK: MISMATCH for ${ticker}. On ${worst.date} Yahoo's close was ${fmt(worst.yahoo)} but Marketstack's was ${fmt(worst.ms)} (${worst.diff.toFixed(2)}% apart). The price history may be wrong: use wider levels and lower confidence.`,
+      line: `PRICE CROSS-CHECK: MISMATCH for ${ticker}. On ${worst.date} Yahoo's close was ${fmt(worst.yahoo)} but ${source}'s was ${fmt(worst.ms)} (${worst.diff.toFixed(2)}% apart). The price history may be wrong: use wider levels and lower confidence.`,
     };
   }
-  return { status: 'match', line: `PRICE CROSS-CHECK (Marketstack) for ${ticker}: the last ${dates.length} closes agree with Yahoo (largest difference ${worst.diff.toFixed(2)}%).` };
+  return { status: 'match', line: `PRICE CROSS-CHECK (${source}) for ${ticker}: the last ${dates.length} closes agree with Yahoo (largest difference ${worst.diff.toFixed(2)}%).` };
 }
 
 /** symbol -> date -> close, from a Marketstack v2 /eod answer. */
@@ -292,9 +298,65 @@ export async function marketstackCheck(ticker: string, tradeDate: string, yahoo:
     d.store.setCached('marketstack', cacheKey, cached);
     d.store.setStatus('marketstack', true, `closes for ${Object.keys(got).length} of ${symbols.length} symbols in one request`);
   }
-  const check = compareWithMarketstack(ticker, yahoo, cached[sym] ?? {});
+  const check = compareCloses(ticker, yahoo, cached[sym] ?? {}, 'Marketstack');
   if (check.status === 'mismatch') logger.warn('marketstackCheck', 'Yahoo and Marketstack closes disagree', { ticker, line: check.line });
   return check;
+}
+
+// ---------------------------------------------------------------- Tiingo
+
+/** date -> close from a Tiingo /tiingo/daily/<ticker>/prices answer (unadjusted closes, like Yahoo's). */
+export function tiingoCloses(body: any): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const r of Array.isArray(body) ? body : []) {
+    const date = String(r?.date ?? '').slice(0, 10);
+    const close = num(r?.close);
+    if (/^\d{4}-\d\d-\d\d$/.test(date) && close !== undefined && close > 0) out[date] = close;
+  }
+  return out;
+}
+
+/** Yahoo's recent closes against Tiingo's: one request per ticker, cached for the day. */
+export async function tiingoCheck(ticker: string, tradeDate: string, yahoo: Bar[], over: Partial<VendorDeps> = {}): Promise<CloseCheck> {
+  const d = defaults(over);
+  const head = `PRICE CROSS-CHECK (Tiingo) for ${ticker}:`;
+  const key = realKey(d.env.TIINGO_API_KEY);
+  if (!key) {
+    d.store.setStatus('tiingo', false, 'no API key configured');
+    return { status: 'unavailable', line: `${head} not configured.` };
+  }
+  if (!yahoo.length) return { status: 'unavailable', line: `${head} skipped (no Yahoo prices to compare).` };
+  const cacheKey = `${ticker}-${tradeDate}`;
+  let closes = d.store.getCached<Record<string, number>>('tiingo', cacheKey, 20 * 3600_000);
+  if (!closes) {
+    const from = isoDay(new Date(new Date(tradeDate + 'T00:00:00Z').getTime() - 10 * DAY));
+    // Tiingo writes share classes with a dash (BRK-B), Yahoo with a dash too; dots are converted for safety.
+    const sym = encodeURIComponent(ticker.toUpperCase().replace(/\./g, '-'));
+    const res = await call('tiingo', `https://api.tiingo.com/tiingo/daily/${sym}/prices?startDate=${from}&endDate=${tradeDate}&token=${key}`, d);
+    if (!res.ok) {
+      // 404 is "this ticker is not covered", not a fault of the provider.
+      if (res.reason === 'answered 404') {
+        d.store.setCached('tiingo', cacheKey, {});
+        return { status: 'unavailable', line: `${head} not covered by Tiingo.` };
+      }
+      d.store.setStatus('tiingo', false, res.reason);
+      return { status: 'unavailable', line: `${head} unavailable (${res.reason}).` };
+    }
+    closes = tiingoCloses(res.body);
+    d.store.setCached('tiingo', cacheKey, closes);
+    d.store.setStatus('tiingo', true, `${ticker}: ${Object.keys(closes).length} closes`);
+  }
+  const check = compareCloses(ticker, yahoo, closes, 'Tiingo');
+  if (check.status === 'mismatch') logger.warn('tiingoCheck', 'Yahoo and Tiingo closes disagree', { ticker, line: check.line });
+  return check;
+}
+
+/** The price cross-check for the market analyst: Tiingo first (generous free plan), Marketstack when Tiingo has no answer. */
+export async function priceCrossCheck(ticker: string, tradeDate: string, yahoo: Bar[], over: Partial<VendorDeps> = {}): Promise<CloseCheck> {
+  const first = await tiingoCheck(ticker, tradeDate, yahoo, over);
+  if (first.status !== 'unavailable') return first;
+  const second = await marketstackCheck(ticker, tradeDate, yahoo, over);
+  return second.status !== 'unavailable' ? second : { status: 'unavailable', line: `${first.line} ${second.line}` };
 }
 
 /** Finnhub and Alpha Vantage together, for the fundamentals analyst. */
