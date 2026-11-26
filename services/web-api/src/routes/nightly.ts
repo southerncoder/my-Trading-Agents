@@ -135,6 +135,7 @@ router.get('/providers', async (_req, res) => {
           const r = await fetch(url, { signal: AbortSignal.timeout(60_000) })
           return { status: r.status, body: await r.json().catch(() => ({})) }
         },
+        readVendorStatus: async () => JSON.parse(await readFile(join(logsPath(), '..', 'provider-cache', 'status.json'), 'utf8')),
       })
       providerCache = { at: Date.now(), items }
     }

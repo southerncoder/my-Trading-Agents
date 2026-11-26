@@ -34,12 +34,14 @@ $stamp = Get-Date -Format yyyyMMdd-HHmmss
 $outDir = Join-Path $root "logs/eval/$stamp"
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 $rows = @()
+# Marketstack's free plan is 100 requests a month: the first analysis fetches closes for every ticker in one request.
+$batch = (@($Tickers) | Select-Object -Unique) -join ','
 
 foreach ($t in $Tickers) {
   for ($i = 1; $i -le $Repeats; $i++) {
     $log = Join-Path $outDir "$t-$i.log"
     $sw = [Diagnostics.Stopwatch]::StartNew()
-    & (Join-Path $PSScriptRoot 'compose.ps1') exec -T trading-agents sh -c "cd /app && node cli.js analyze $t $Date" *>&1 |
+    & (Join-Path $PSScriptRoot 'compose.ps1') exec -T -e "MARKETSTACK_BATCH=$batch" trading-agents sh -c "cd /app && node cli.js analyze $t $Date" *>&1 |
       Out-File -Encoding utf8 $log
     $sw.Stop()
     $text = Get-Content $log -Raw

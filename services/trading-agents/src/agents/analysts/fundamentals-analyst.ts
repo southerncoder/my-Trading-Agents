@@ -4,6 +4,7 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AbstractAgent } from '../base/index';
 import { fetchToolData, fetchError, compactFundamentals } from '../base/tool-data';
 import { secFundamentalsBlock } from '../base/sec-fundamentals';
+import { vendorFundamentalsBlock } from '../base/vendor-blocks';
 import { AgentState } from '../../types/agent-states';
 import { createLogger } from '../../utils/enhanced-logger';
 import { withLLMResilience, OPENAI_LLM_CONFIG, createResilientLLM } from '../../utils/resilient-llm';
@@ -59,9 +60,13 @@ export class FundamentalsAnalyst extends AbstractAgent {
         };
       }
       // Official figures from SEC filings, point-in-time to the trade date; a note instead when unavailable.
-      const secBlock = await secFundamentalsBlock(state.company_of_interest, state.trade_date);
+      // Analyst consensus, earnings record and insider trades (Finnhub) and a valuation overview (Alpha Vantage).
+      const [secBlock, vendorBlock] = await Promise.all([
+        secFundamentalsBlock(state.company_of_interest, state.trade_date),
+        vendorFundamentalsBlock(state.company_of_interest, state.trade_date),
+      ]);
       const baseRequest = this.createAnalysisRequest(state);
-      const humanMessage = new HumanMessage(baseRequest.content.toString() + '\n\n' + dataBlock + '\n\n' + secBlock);
+      const humanMessage = new HumanMessage(baseRequest.content.toString() + '\n\n' + dataBlock + '\n\n' + secBlock + '\n\n' + vendorBlock);
       
       this.logger.debug('process', 'Prepared LLM messages for fundamentals analysis', {
         systemPromptLength: systemPrompt.length,

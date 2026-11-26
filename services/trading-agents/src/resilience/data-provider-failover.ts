@@ -198,17 +198,8 @@ export class DataProviderFailover {
       priority: 2,
       enabled: !!process.env.NEWSAPI_KEY,
       config: NEWS_PROVIDER_CONFIG,
-      healthCheck: async () => {
-        if (!process.env.NEWSAPI_KEY) return false;
-        try {
-          const response = await fetch('https://newsapi.org/v2/top-headlines?country=us&pageSize=1&apiKey=' + process.env.NEWSAPI_KEY, {
-            signal: AbortSignal.timeout(5000)
-          });
-          return response.ok;
-        } catch {
-          return false;
-        }
-      },
+      // Metered (100 calls a day on the free plan): check the key only, never spend a call on health.
+      healthCheck: async () => !!process.env.NEWSAPI_KEY,
       execute: async (operation: string, params: any) => {
         if (operation !== 'getNews') {
           throw new Error(`Unknown operation: ${operation}`);
@@ -238,16 +229,8 @@ export class DataProviderFailover {
       priority: 3,
       enabled: true,
       config: NEWS_PROVIDER_CONFIG,
-      healthCheck: async () => {
-        try {
-          const response = await fetch('https://search.brave.com/news', {
-            signal: AbortSignal.timeout(5000)
-          });
-          return response.ok;
-        } catch {
-          return false;
-        }
-      },
+      // Not probed: loading Brave's public search page every minute from an always-on process invites a block.
+      healthCheck: async () => true,
       execute: async (operation: string, params: any) => {
         if (operation !== 'getNews') {
           throw new Error(`Unknown operation: ${operation}`);
@@ -406,17 +389,8 @@ export class DataProviderFailover {
       priority: 2,
       enabled: !!process.env.ALPHA_VANTAGE_API_KEY,
       config: FINANCIAL_PROVIDER_CONFIG,
-      healthCheck: async () => {
-        if (!process.env.ALPHA_VANTAGE_API_KEY) return false;
-        try {
-          const response = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=AAPL&apikey=${process.env.ALPHA_VANTAGE_API_KEY}`, {
-            signal: AbortSignal.timeout(5000)
-          });
-          return response.ok;
-        } catch {
-          return false;
-        }
-      },
+      // Metered (25 calls a day): a health check that calls the API used up the whole quota within minutes.
+      healthCheck: async () => !!process.env.ALPHA_VANTAGE_API_KEY,
       execute: async (operation: string, params: any) => {
         const { AlphaVantageDataProvider } = await import('../dataflows/alpha-vantage');
         const api = new AlphaVantageDataProvider(params.config);
@@ -444,17 +418,8 @@ export class DataProviderFailover {
       priority: 3,
       enabled: !!process.env.MARKETSTACK_API_KEY,
       config: FINANCIAL_PROVIDER_CONFIG,
-      healthCheck: async () => {
-        if (!process.env.MARKETSTACK_API_KEY) return false;
-        try {
-          const response = await fetch(`http://api.marketstack.com/v1/eod/latest?access_key=${process.env.MARKETSTACK_API_KEY}&symbols=AAPL&limit=1`, {
-            signal: AbortSignal.timeout(5000)
-          });
-          return response.ok;
-        } catch {
-          return false;
-        }
-      },
+      // Metered (100 calls a month): a health check that calls the API used up the month's quota in under an hour.
+      healthCheck: async () => !!process.env.MARKETSTACK_API_KEY,
       execute: async (operation: string, params: any) => {
         const { MarketStackDataProvider } = await import('../dataflows/marketstack');
         const api = new MarketStackDataProvider(params.config);
@@ -739,6 +704,8 @@ export class DataProviderFailover {
     this.healthCheckInterval = setInterval(async () => {
       await this.performHealthChecks();
     }, 60000); // Check every minute
+    // A timer alone must not keep a finished CLI run (or a test) alive.
+    this.healthCheckInterval.unref?.();
 
     logger.info('health-monitoring-started', 'Provider health monitoring started', {
       interval: 60000,

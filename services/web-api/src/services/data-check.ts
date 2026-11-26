@@ -117,6 +117,30 @@ export interface ProviderDeps {
   socialUrl: string
   yahooUrl: string
   getJson: (url: string) => Promise<{ status: number; body: unknown }>
+  /**
+   * logs/provider-cache/status.json, written by the analysis runs. The metered vendors (Finnhub, Alpha Vantage,
+   * Marketstack) are reported from it rather than called here: a status check must not spend their small quotas.
+   */
+  readVendorStatus?: () => Promise<unknown>
+}
+
+const VENDORS: Array<{ key: string; group: string; name: string; use: string }> = [
+  { key: 'finnhub', group: 'Fundamentals', name: 'Finnhub', use: 'analyst ratings, earnings record, insider trades' },
+  { key: 'alpha-vantage', group: 'Fundamentals', name: 'Alpha Vantage', use: 'company overview' },
+  { key: 'marketstack', group: 'Prices', name: 'Marketstack', use: 'second source for closes' },
+]
+
+/** One row per metered vendor from the runs' status file; never throws. */
+export function vendorItems(status: unknown): ProviderItem[] {
+  const all = o(status)
+  return VENDORS.map((v) => {
+    const s = o(all[v.key])
+    if (!Object.keys(s).length) return { group: v.group, name: v.name, ok: false, off: true, detail: `${v.use}; not used by a run yet` }
+    const limits = o(s.limits)
+    const used = limits.perMonth !== undefined ? `${s.usedThisMonth}/${limits.perMonth} this month` : `${s.usedToday}/${limits.perDay} today`
+    const when = String(s.at ?? '').slice(0, 16).replace('T', ' ')
+    return { group: v.group, name: v.name, ok: s.ok === true, detail: `${String(s.detail ?? '')} (${used}; ${when} UTC)` }
+  })
 }
 
 type Obj = Record<string, unknown>
@@ -175,5 +199,12 @@ export async function providerStatus(d: ProviderDeps): Promise<ProviderItem[]> {
 
   const q = o(o(quote.body).data)
   items.push({ group: 'Prices', name: 'Yahoo Finance', ok: quote.status === 200 && Number(q.regularMarketPrice) > 0, detail: quote.status === 200 && q.regularMarketPrice ? `SPY ${q.regularMarketPrice}` : `answered ${quote.status}` })
+  let vendorStatus: unknown = null
+  try {
+    vendorStatus = d.readVendorStatus ? await d.readVendorStatus() : null
+  } catch {
+    // no runs yet, or the file is mid-write: shown as not used yet
+  }
+  items.push(...vendorItems(vendorStatus))
   return items
 }

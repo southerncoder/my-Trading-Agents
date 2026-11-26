@@ -24,6 +24,8 @@ export interface DataQuality {
   /** true when any of market/news/fundamentals is unavailable */
   criticalMissing: boolean;
   missing: string[];
+  /** Yahoo's closes disagree with Marketstack's (the market report starts with the cross-check line). */
+  priceMismatch: boolean;
 }
 
 export function assessDataQuality(state: Partial<AgentState>): DataQuality {
@@ -37,7 +39,8 @@ export function assessDataQuality(state: Partial<AgentState>): DataQuality {
     !fundamentals && 'fundamentals',
     !social && 'social',
   ].filter(Boolean) as string[];
-  return { market, news, fundamentals, social, criticalMissing: !(market && news && fundamentals), missing };
+  const priceMismatch = /PRICE CROSS-CHECK: MISMATCH/.test(state.market_report ?? '');
+  return { market, news, fundamentals, social, criticalMissing: !(market && news && fundamentals), missing, priceMismatch };
 }
 
 /** Evidence appended to risk / PM / trader prompts. Kept short for the 16k context. */
@@ -51,7 +54,8 @@ export function buildEvidenceBlock(state: Partial<AgentState>, maxPerReport = 18
     section('News report', state.news_report) + '\n' +
     section('Fundamentals report', state.fundamentals_report) + '\n' +
     section('Social sentiment report', state.sentiment_report) + '\n' +
-    `DATA QUALITY: ${q.missing.length ? 'UNAVAILABLE -> ' + q.missing.join(', ') + '. Do not claim conclusions that depend on missing data; lower confidence accordingly.' : 'all reports available'}\n`
+    `DATA QUALITY: ${q.missing.length ? 'UNAVAILABLE -> ' + q.missing.join(', ') + '. Do not claim conclusions that depend on missing data; lower confidence accordingly.' : 'all reports available'}\n` +
+    (q.priceMismatch ? 'PRICE WARNING: two price sources disagree on recent closes (see the market report). Treat every price level as uncertain and lower confidence.\n' : '')
   );
 }
 

@@ -227,6 +227,10 @@ services:
       dockerfile: Dockerfile
     container_name: trading-agents-main
     restart: unless-stopped
+    # The idle menu waits on an open terminal; analyses run through `exec`. Without a TTY the menu exits at once
+    # (it used to be kept alive only by a provider health-check timer that spent the metered APIs' quotas).
+    stdin_open: true
+    tty: true
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:

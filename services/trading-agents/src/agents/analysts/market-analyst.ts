@@ -4,7 +4,8 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AbstractAgent } from '../base/index';
 import { fetchToolData, fetchError, pickKeys } from '../base/tool-data';
 import { ENTRY_STANCE_LINE, adjustmentOn, entryCheck } from '../base/evidence';
-import { indicatorBlock, typicalMoveLine } from '../base/indicators';
+import { indicatorBlock, typicalMoveLine, parseBars } from '../base/indicators';
+import { marketstackCheck } from '../base/vendor-blocks';
 import { macroBlock } from '../base/macro-context';
 import { AgentState } from '../../types/agent-states';
 import { createLogger } from '../../utils/enhanced-logger';
@@ -83,8 +84,12 @@ export class MarketAnalyst extends AbstractAgent {
       const indicators = adjustmentOn('indicators') ? indicatorBlock(dataBlock) : '';
       const moveLine = adjustmentOn('indicators') ? typicalMoveLine(dataBlock) : '';
       // Market-wide backdrop as known on the trade date (official BLS and FRED data); a note when unavailable.
-      const macro = await macroBlock(state.trade_date);
-      const humanMessage = new HumanMessage(baseRequest.content.toString() + '\n\n' + dataBlock + (indicators ? '\n\n' + indicators : '') + '\n\n' + macro);
+      // Second source for the closes (Marketstack); a mismatch is carried into the report for the later stages.
+      const [macro, priceCheck] = await Promise.all([
+        macroBlock(state.trade_date),
+        marketstackCheck(state.company_of_interest, state.trade_date, parseBars(dataBlock)),
+      ]);
+      const humanMessage = new HumanMessage(baseRequest.content.toString() + '\n\n' + dataBlock + (indicators ? '\n\n' + indicators : '') + '\n\n' + priceCheck.line + '\n\n' + macro);
       
       this.logger.debug('process', 'Prepared LLM messages for market analysis', {
         systemPromptLength: systemPrompt.length,
@@ -137,7 +142,7 @@ export class MarketAnalyst extends AbstractAgent {
 
       return {
         messages: updatedMessages,
-        market_report: (moveLine ? moveLine + '\n\n' : '') + marketReport,
+        market_report: (priceCheck.status === 'mismatch' ? priceCheck.line + '\n\n' : '') + (moveLine ? moveLine + '\n\n' : '') + marketReport,
         sender: this.name,
       };
     } catch (error) {

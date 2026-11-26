@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { compareCloses, nasdaqCloses, providerStatus } from './data-check.js'
+import { compareCloses, nasdaqCloses, providerStatus, vendorItems } from './data-check.js'
 
 describe('nasdaqCloses', () => {
   it('reads US dates and dollar strings', () => {
@@ -51,5 +51,19 @@ describe('providerStatus', () => {
     expect(by.Census.off).toBe(true)
     expect(by.Reddit).toMatchObject({ ok: false, detail: 'Reddit authentication failed: 401' })
     expect(by['Yahoo Finance']).toMatchObject({ ok: true, detail: 'SPY 718.78' })
+  })
+})
+
+describe('vendorItems', () => {
+  it('reports each metered vendor from the runs status file, never by calling it', () => {
+    const items = vendorItems({
+      finnhub: { ok: false, detail: 'key rejected (401)', at: '2026-11-25T22:00:00.000Z', usedToday: 1, usedThisMonth: 1, limits: { perDay: 1500 } },
+      marketstack: { ok: true, detail: 'closes for 30 of 30 symbols in one request', at: '2026-11-25T22:01:00.000Z', usedToday: 1, usedThisMonth: 4, limits: { perDay: 6, perMonth: 90 } },
+    })
+    expect(items.map((i) => i.name)).toEqual(['Finnhub', 'Alpha Vantage', 'Marketstack'])
+    expect(items[0]).toMatchObject({ group: 'Fundamentals', ok: false, detail: 'key rejected (401) (1/1500 today; 2026-11-25 22:00 UTC)' })
+    expect(items[1]).toMatchObject({ ok: false, off: true })
+    expect(items[2]).toMatchObject({ group: 'Prices', ok: true, detail: 'closes for 30 of 30 symbols in one request (4/90 this month; 2026-11-25 22:01 UTC)' })
+    expect(vendorItems(null).every((i) => i.off)).toBe(true)
   })
 })
