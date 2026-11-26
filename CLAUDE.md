@@ -9,10 +9,10 @@ TradingAgents: a multi-agent LLM trading-analysis framework (fork of Tauric Rese
 ## Layout
 
 - `services/trading-agents/` — the core (TypeScript, Vite/vite-node, LangGraph). Everything else feeds it.
-- `services/{yahoo-finance,news-aggregator,finance-aggregator,government-data,social-sentiment}-service/` — data microservices the core calls over HTTP (mostly plain JS/Express; `government-data` is TS).
+- `services/{yahoo-finance,news-aggregator,government-data,social-sentiment}-service/` — data microservices the core calls over HTTP (mostly plain JS/Express; `government-data` is TS).
 - `services/web-api` (Express/TS) + `services/web-frontend` (React/Vite/Tailwind) — optional web UI.
 - `tools/` — PowerShell/Python operational scripts (nightly brief, eval, ledger scoring, secrets, compose wrapper). `scripts/` is dependency-automation tooling. Several files exist in both; `tools/` is the live one for the nightly pipeline.
-- `docker-compose.yml` — all services bound to `127.0.0.1` on `384xx` ports (frontend 38400, web-api 38401, yahoo-finance 38402, news 38404, government-data 38405, finance 38406, social 38407, graphiti 38410, postgres/redis/neo4j 38420-38423).
+- `docker-compose.yml` — all services bound to `127.0.0.1` on `384xx` ports (frontend 38400, web-api 38401, yahoo-finance 38402, news 38404, government-data 38405, social 38407, graphiti 38410, postgres/redis/neo4j 38420-38423).
 
 There is no root `package.json`: each service has its own `package.json`, `node_modules` and `eslint.config.js`. Run npm commands from inside the service directory.
 
@@ -33,7 +33,7 @@ node cli.js analyze NVDA 2026-11-17                 # run CLI from built dist/
 ```
 
 - `test` is not a jest run: `scripts/run-workflow-tests.ts` imports a hard-coded list of `tests/workflow/*.test.ts` files and exits 0 unless one is critical. A new workflow test must be added to that list. Many files under `tests/` are standalone vite-node scripts, not picked up by any runner; jest only matches `*.test.ts`/`*.spec.ts` (`jest.config.json`).
-- Other services: `news-aggregator` and `finance-aggregator` use jest (`npm test`, `npm run test:unit`); `government-data` uses vitest (`npm run test:unit`, `type-check`); `social-sentiment` uses `node --test`; `yahoo-finance` has no tests.
+- Other services: `news-aggregator` uses jest (`npm test`, `npm run test:unit`); `government-data` uses vitest (`npm run test:unit`, `type-check`); `social-sentiment` uses `node --test`; `yahoo-finance` has no tests.
 - Compose must go through `tools/compose.ps1` (loads credentials from `docker/secrets/*.txt` into env): `.\tools\compose.ps1 up -d`, `.\tools\compose.ps1 ps`. Plain `docker compose` lacks the Neo4j/Postgres credentials.
 - Shell is PowerShell on Windows; most `tools/*.ps1` are PowerShell-only.
 

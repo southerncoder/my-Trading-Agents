@@ -12,9 +12,6 @@ docker compose -f docker-compose.local.yml up -d
 Build and push a service image (Windows cmd):
 
 ```cmd
-cd services\finance-aggregator-service
-scripts\build-and-push-local.cmd
-
 cd services\news-aggregator-service
 scripts\build-and-push-local.cmd
 ```

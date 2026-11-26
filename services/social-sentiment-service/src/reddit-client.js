@@ -15,6 +15,30 @@ export class RedditAPIClient {
     this.tokenExpiry = null;
     this.baseUrl = 'https://www.reddit.com';
     this.oauthUrl = 'https://oauth.reddit.com';
+    /** Outcome of the latest login attempt: { ok, at, error }; null until one has been tried. */
+    this.lastLogin = null;
+  }
+
+  get configured() {
+    return !!(this.clientId && this.clientSecret && this.username && this.password);
+  }
+
+  /**
+   * Whether logging in works, re-checked at most every `maxAgeMs` so health checks do not hammer Reddit.
+   * Never throws: a failure is reported, not raised.
+   */
+  async loginStatus(maxAgeMs = 30 * 60 * 1000) {
+    if (!this.configured) return { configured: false, ok: false, error: 'no Reddit credentials configured' };
+    if (!this.lastLogin || Date.now() - this.lastLogin.at > maxAgeMs) {
+      try {
+        // Five seconds at most: this runs inside the health check.
+        await Promise.race([this.authenticate(), new Promise((_, no) => setTimeout(() => no(new Error('Reddit login timed out')), 5000))]);
+      } catch (e) {
+        // authenticate() records its own failures; a timeout is recorded here
+        if (!this.lastLogin || Date.now() - this.lastLogin.at > maxAgeMs) this.lastLogin = { ok: false, at: Date.now(), error: e.message };
+      }
+    }
+    return { configured: true, ok: !!this.lastLogin?.ok, error: this.lastLogin?.error ?? null, checkedAt: new Date(this.lastLogin?.at ?? Date.now()).toISOString() };
   }
 
   /**
@@ -42,10 +66,13 @@ export class RedditAPIClient {
     });
 
     if (!response.ok) {
-      throw new Error(`Reddit authentication failed: ${response.status} ${response.statusText}`);
+      const error = `Reddit authentication failed: ${response.status} ${response.statusText}`;
+      this.lastLogin = { ok: false, at: Date.now(), error };
+      throw new Error(error);
     }
 
     const data = await response.json();
+    this.lastLogin = { ok: true, at: Date.now(), error: null };
     this.accessToken = data.access_token;
     this.tokenExpiry = Date.now() + (data.expires_in * 1000) - 60000; // 1 minute buffer
 

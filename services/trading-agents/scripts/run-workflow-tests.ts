@@ -4,6 +4,7 @@
 
 const tests = [
   'tests/workflow/basic-config.test.ts',
+  'tests/workflow/professor-timing.test.ts',
   'tests/workflow/agent-memory.test.ts',
   'tests/workflow/trading-graph-memory.test.ts',
   'tests/workflow/client-memory-integration.test.ts',

@@ -61,7 +61,7 @@ $MaintenanceConfig = @{
     }
 }
 
-$Services = @("trading-agents", "social-sentiment-service", "yahoo-finance-service", "news-aggregator-service", "finance-aggregator-service")
+$Services = @("trading-agents", "social-sentiment-service", "yahoo-finance-service", "news-aggregator-service")
 
 function Write-MaintenanceLog {
     param($Message, $Level = "INFO")

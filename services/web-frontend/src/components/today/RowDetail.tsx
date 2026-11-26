@@ -69,7 +69,7 @@ export function RowDetail({ row, closes = [] }: { row: NightlyRow; closes?: Clos
         </div>
       </div>
 
-      <ProfessorNote review={row.educational_review} />
+      <ProfessorNote review={row.educational_review} label={row.label} />
 
       {row.trigger_reason && (
         <p>

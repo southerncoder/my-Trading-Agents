@@ -119,18 +119,6 @@
         "npm run type-check",
         "npm test"
       ]
-    },
-    "finance-aggregator-service": {
-      "enabled": true,
-      "priority": "medium",
-      "critical_packages": [
-        "axios",
-        "winston"
-      ],
-      "test_commands": [
-        "npm run type-check",
-        "npm test"
-      ]
     }
   },
   "thresholds": {

@@ -88,7 +88,7 @@ function Result({ id }: { id: number }) {
         </div>
       </div>
       {c.rationale && <p className="text-lg leading-relaxed">{String(c.rationale)}</p>}
-      <ProfessorNote review={(c.educational_review as Record<string, unknown> | null | undefined) ?? null} />
+      <ProfessorNote review={(c.educational_review as Record<string, unknown> | null | undefined) ?? null} label={c.label} />
       {risks.length > 0 && (
         <div className="grid gap-2 md:grid-cols-2">
           {risks.map((r) => (

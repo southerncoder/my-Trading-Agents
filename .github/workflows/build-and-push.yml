@@ -33,17 +33,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push finance image (to GHCR if token provided)
-        uses: docker/build-push-action@v7
-        with:
-          context: ./services/finance-aggregator-service
-          push: true
-          tags: ${{ secrets.GHCR_REGISTRY || 'localhost:5000' }}/${{ github.repository_owner }}/finance-aggregator:${{ github.sha }}
-          cache-from: type=registry,ref=${{ secrets.GHCR_REGISTRY || 'localhost:5000' }}/${{ github.repository_owner }}/finance-aggregator:cache
-          cache-to: type=inline
-        env:
-          DOCKER_BUILDKIT: 1
-
       - name: Build and push news image
         uses: docker/build-push-action@v7
         with:
@@ -58,5 +47,4 @@ jobs:
       - name: Output images
         run: |
           echo "Built images:"
-          echo "${{ secrets.GHCR_REGISTRY || 'localhost:5000' }}/${{ github.repository_owner }}/finance-aggregator:${{ github.sha }}"
           echo "${{ secrets.GHCR_REGISTRY || 'localhost:5000' }}/${{ github.repository_owner }}/news-aggregator:${{ github.sha }}"

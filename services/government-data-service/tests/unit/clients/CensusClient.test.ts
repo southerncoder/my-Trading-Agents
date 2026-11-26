@@ -34,7 +34,7 @@ describe('CensusClient', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    censusClient = new CensusClient(globalThis.testConfig.userAgent);
+    censusClient = new CensusClient(globalThis.testConfig.userAgent, 'test-census-key');
     mockAxiosInstance = (censusClient as any).client;
   });
 
@@ -73,7 +73,7 @@ describe('CensusClient', () => {
         expect.objectContaining({
           method: 'GET',
           url: '/2022/acs/acs5',
-          params: { get: 'NAME,B01001_001E', for: 'state:*' }
+          params: { get: 'NAME,B01001_001E', for: 'state:*', key: 'test-census-key' }
         })
       );
       // 'state' codes such as "06" are numeric strings, so they are converted too
@@ -173,7 +173,7 @@ describe('CensusClient', () => {
       expect(mockAxiosInstance).toHaveBeenCalledWith(
         expect.objectContaining({
           url: '/2022/pep/population',
-          params: { get: 'NAME,POP,BIRTHS,DEATHS,NETMIG', for: 'state:*' }
+          params: { get: 'NAME,POP,BIRTHS,DEATHS,NETMIG', for: 'state:*', key: 'test-census-key' }
         })
       );
       expect(result).toEqual([{ NAME: 'California', POP: 39000000 }]);
@@ -340,4 +340,12 @@ describe('CensusClient', () => {
       await expect(censusClient.getACSData(2022, ['NAME'], 'state:*')).rejects.toBeDefined();
     });
   });
+
+  describe('without an API key', () => {
+    it('refuses to ask Census (which redirects keyless requests) and says why', async () => {
+      const keyless = new CensusClient(globalThis.testConfig.userAgent)
+      expect(keyless.hasKey).toBe(false)
+      await expect(keyless.getACSData(2022, ['NAME'], 'state:*')).rejects.toThrow(/API key/)
+    })
+  })
 });

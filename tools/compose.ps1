@@ -13,5 +13,7 @@ $env:POSTGRES_DB     = Read-Secret 'postgres_db.txt'
 # Optional macro-data keys for the government-data service (absent: FRED is skipped, BLS runs keyless).
 $env:FRED_API_KEY    = Read-Secret 'fred_api_key.txt'
 $env:BLS_API_KEY     = Read-Secret 'bls_api_key.txt'
+# Optional: Census now refuses keyless requests (free key: https://api.census.gov/data/key_signup.html).
+$env:CENSUS_API_KEY  = Read-Secret 'census_api_key.txt'
 Push-Location $root
 try { docker compose @args } finally { Pop-Location }

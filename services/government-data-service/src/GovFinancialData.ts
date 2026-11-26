@@ -55,7 +55,7 @@ export class GovFinancialData {
     // Initialize clients
     this.sec = new SECClient(defaultConfig.userAgent);
     this.bls = new BLSClient(config.blsApiKey, defaultConfig.userAgent);
-    this.census = new CensusClient(defaultConfig.userAgent);
+    this.census = new CensusClient(defaultConfig.userAgent, config.censusApiKey);
 
     // FRED client requires API key
     if (config.fredApiKey) {

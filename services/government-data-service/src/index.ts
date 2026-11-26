@@ -13,6 +13,7 @@ app.use(express.urlencoded({ extended: true }));
 const govData = new GovFinancialData({
   fredApiKey: process.env.FRED_API_KEY,
   blsApiKey: process.env.BLS_API_KEY,
+  censusApiKey: process.env.CENSUS_API_KEY,
   userAgent: process.env.USER_AGENT || 'TradingAgents/1.0.0 (trading-agents@example.com)',
 });
 
@@ -205,6 +206,7 @@ app.get('/api/bls/indicators', async (req, res) => {
 
 // Census endpoints
 app.get('/api/census/states/:year', async (req, res) => {
+  if (!govData.census.hasKey) return res.status(503).json({ error: 'Census needs a free API key (CENSUS_API_KEY in docker/secrets/census_api_key.txt); none is configured.' });
   try {
     const { year } = req.params;
     const { variables } = req.query;
@@ -214,14 +216,15 @@ app.get('/api/census/states/:year', async (req, res) => {
     const variableList = variables ? (variables as string).split(',') : [];
     const data = await govData.census.getStateEconomicData(parseInt(year), variableList);
     
-    res.json(data);
+    return res.json(data);
   } catch (error) {
     logger.error('Census state data request failed', { error, year: req.params.year });
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 app.get('/api/census/counties/:year/:state', async (req, res) => {
+  if (!govData.census.hasKey) return res.status(503).json({ error: 'Census needs a free API key (CENSUS_API_KEY in docker/secrets/census_api_key.txt); none is configured.' });
   try {
     const { year, state } = req.params;
     const { variables } = req.query;
@@ -231,10 +234,10 @@ app.get('/api/census/counties/:year/:state', async (req, res) => {
     const variableList = variables ? (variables as string).split(',') : [];
     const data = await govData.census.getCountyEconomicData(parseInt(year), variableList, state);
     
-    res.json(data);
+    return res.json(data);
   } catch (error) {
     logger.error('Census county data request failed', { error, year: req.params.year, state: req.params.state });
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 

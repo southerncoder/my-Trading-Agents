@@ -204,7 +204,7 @@ export function Stock() {
 
       <SocialDesk media={m} loading={media?.ticker !== ticker} ticker={data.ticker} company={short} social={data.stages?.social} date={data.date} />
 
-      <ProfessorPanel review={data.review} history={data.history} date={data.date} />
+      <ProfessorPanel review={data.review} history={data.history} date={data.date} label={point.label} />
 
       <div style={{ opacity: xLoading && x ? 0.6 : 1 }}>
         <RegulatoryWatch data={x} date={data.date} loading={xLoading} />

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { BarChart3, Briefcase, Clock, GraduationCap, Scale, Shield } from 'lucide-react'
 import { muted } from './format'
+import { timingTitle } from '../learn/glossary'
 
 const PARTS: Array<{ key: string; title: string; icon: React.ElementType }> = [
   { key: 'why_not_before_flag', title: 'Why not buy before the trigger?', icon: Clock },
@@ -14,8 +15,8 @@ const accent = 'var(--color-primary, #2563eb)'
 const text = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : null)
 
 /** The Professor's review of one call, compact: the summary, then each part as a tab. Nothing when there is no review. */
-export function ProfessorNote({ review }: { review?: Record<string, unknown> | null }) {
-  const parts = PARTS.filter((p) => text(review?.[p.key]))
+export function ProfessorNote({ review, label }: { review?: Record<string, unknown> | null; label?: string }) {
+  const parts = PARTS.filter((p) => text(review?.[p.key])).map((p) => (p.key === 'why_not_before_flag' ? { ...p, title: timingTitle(label) } : p))
   const [open, setOpen] = useState<string | null>(parts[0]?.key ?? null)
   const summary = text(review?.summary)
   if (!summary && !parts.length) return null

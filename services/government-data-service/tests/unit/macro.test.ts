@@ -109,8 +109,9 @@ describe('macroDigest', () => {
 });
 
 describe('usDate', () => {
-  it('is the New York date, which lags UTC in the US evening', () => {
+  it('is the St. Louis (Central) date, which lags UTC in the US evening and New York just after midnight', () => {
     expect(usDate(new Date('2026-11-25T04:30:00Z'))).toBe('2026-11-24')
+    expect(usDate(new Date('2026-11-25T05:47:00Z'))).toBe('2026-11-24') // 00:47 in New York, 23:47 in St. Louis
     expect(usDate(new Date('2026-11-25T15:00:00Z'))).toBe('2026-11-25')
   })
 })

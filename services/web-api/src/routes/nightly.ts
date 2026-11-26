@@ -11,6 +11,7 @@ import { loadBrands } from '../services/brands.js'
 import { loadSparks } from '../services/sparks.js'
 import { checkServices, nightStats, runMinutes } from '../services/platform.js'
 import { DEFAULT_RULES, loadBars, runBacktest, type BacktestCall, type BacktestRules } from '../services/backtest.js'
+import { crossCheckPrices, providerStatus, type ProviderItem } from '../services/data-check.js'
 
 const router = Router()
 
@@ -114,6 +115,56 @@ router.get('/platform', async (_req, res) => {
     return res.json({ success: true, data: { nights, lastNight, services } })
   } catch {
     return fail(res, 500, 'Failed to build the platform view')
+  }
+})
+
+const newsUrl = () => (process.env.NEWS_URL || 'http://news-aggregator:3004').replace(/\/$/, '')
+const socialUrl = () => (process.env.SOCIAL_URL || 'http://social-sentiment:3007').replace(/\/$/, '')
+let providerCache: { at: number; items: ProviderItem[] } | null = null
+
+/** Whether each data provider behind the services actually returns data. Cached ten minutes (news quotas). */
+router.get('/providers', async (_req, res) => {
+  try {
+    if (!providerCache || Date.now() - providerCache.at > 10 * 60_000) {
+      const items = await providerStatus({
+        newsUrl: newsUrl(),
+        governmentDataUrl: governmentDataUrl(),
+        socialUrl: socialUrl(),
+        yahooUrl: yahooUrl(),
+        getJson: async (url) => {
+          const r = await fetch(url, { signal: AbortSignal.timeout(60_000) })
+          return { status: r.status, body: await r.json().catch(() => ({})) }
+        },
+      })
+      providerCache = { at: Date.now(), items }
+    }
+    return res.json({ success: true, data: { checkedAt: new Date(providerCache.at).toISOString(), items: providerCache.items } })
+  } catch {
+    return fail(res, 500, 'Failed to check the providers')
+  }
+})
+
+/** Last week's closes from the Yahoo service against Nasdaq's, for the watchlist and SPY. */
+router.get('/price-check', async (_req, res) => {
+  try {
+    const ledger = await loadLedger(ledgerPath())
+    const last = [...ledger.byDate.keys()].sort().reverse()[0]
+    const tickers = ['SPY', ...new Set((last ? ledger.byDate.get(last) ?? [] : []).map((r) => r.ticker))].slice(0, 40)
+    const checks = await crossCheckPrices(
+      {
+        yahooUrl: yahooUrl(),
+        fetchText,
+        fetchJson: async (url, headers) => {
+          const r = await fetch(url, { headers, signal: AbortSignal.timeout(15_000) })
+          if (!r.ok) throw new Error(`${r.status}`)
+          return r.json()
+        },
+      },
+      tickers,
+    )
+    return res.json({ success: true, data: { checks } })
+  } catch {
+    return fail(res, 500, 'Failed to cross-check prices')
   }
 })
 

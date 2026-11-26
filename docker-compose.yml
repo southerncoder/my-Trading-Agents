@@ -163,25 +163,9 @@ services:
       # Loaded from docker/secrets by tools/compose.ps1; empty means "not configured".
       - FRED_API_KEY=${FRED_API_KEY:-}
       - BLS_API_KEY=${BLS_API_KEY:-}
+      - CENSUS_API_KEY=${CENSUS_API_KEY:-}
     ports:
       - "127.0.0.1:${GOVERNMENT_DATA_PORT:-38405}:3005"
-    networks:
-      - my-Trading-Agents
-
-  # Finance Aggregator Service
-  finance-aggregator:
-    build:
-      context: ./services/finance-aggregator-service
-      dockerfile: Dockerfile
-    image: finance-aggregator-service:latest
-    container_name: trading-finance-aggregator
-    restart: unless-stopped
-    environment:
-      - NODE_ENV=development
-      - LOG_LEVEL=debug
-      - PORT=3006
-    ports:
-      - "127.0.0.1:${FINANCE_PORT:-38406}:3006"
     networks:
       - my-Trading-Agents
 

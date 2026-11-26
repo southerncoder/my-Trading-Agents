@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ChartGuide } from '../components/learn/Learn'
+import { CalibrationChart } from '../components/scorecard/calibration'
 import { ZodError } from 'zod'
 import { fetchScorecard, type Scorecard as ScorecardData, type ScoreCell } from '../services/nightly'
 import { pivot } from '../components/scorecard/pivot'
@@ -215,6 +216,14 @@ export function Scorecard() {
           <SectionTitle icon={Gauge} title="Confidence against the result" sub={`Every call finished at ${h} day${h === 1 ? '' : 's'}: how sure the model said it was (across) and how the stock did against ${d.benchmark} (up). If confidence meant something, the dots would climb to the right. Click a dot for the stock.`} />
           <ConfidenceScatter detail={detail} benchmark={d.benchmark} />
           <ChartGuide shows={"Each finished call as a dot: the confidence the model gave (across) and how the stock did against SPY (up)."} good={"Dots that climb to the right: surer calls doing better. That is what 'calibrated' would look like."} careful={"Confidences sit in a narrow band (mostly 55-68%), so a real slope needs many calls before it shows."} terms={["confidence", "vs-spy"]} />
+        </Card>
+      )}
+
+      {detail.length > 0 && (
+        <Card className="space-y-4">
+          <SectionTitle icon={Gauge} title="Does confidence mean anything?" sub={`For each confidence band, the share of calls that beat SPY after ${h} day${h === 1 ? '' : 's'}, with the range the true share probably lies in.`} />
+          <CalibrationChart detail={detail} />
+          <ChartGuide shows="Whether calls the model was surer about beat SPY more often than the rest." good="Dots rising from left to right, with the ranges of the low and high bands apart: then the confidence number can be used to size or rank ideas." careful="With few calls the ranges are wide and overlap; that is 'not known yet', not 'no difference'. The verdict waits for about 200 finished calls." terms={['confidence', 'sample', 'vs-spy']} />
         </Card>
       )}
 

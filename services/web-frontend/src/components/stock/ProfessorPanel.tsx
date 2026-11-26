@@ -4,6 +4,7 @@ import type { EducationalReview } from '../../services/portfolio'
 import type { HistoryPoint } from '../../services/nightly'
 import { card, muted } from '../today/format'
 import { trendNotes } from './trend'
+import { timingTitle } from '../learn/glossary'
 
 const SECTIONS: Array<{ key: keyof EducationalReview; title: string; icon: React.ElementType }> = [
   { key: 'why_not_before_flag', title: 'Why not buy before the trigger?', icon: Clock },
@@ -16,10 +17,10 @@ const SECTIONS: Array<{ key: keyof EducationalReview; title: string; icon: React
 const accent = 'var(--color-primary, #2563eb)'
 
 /** The Professor's plain-English review of the night's call, plus notes on how the call has trended. */
-export function ProfessorPanel({ review, history, date }: { review?: EducationalReview | null; history: HistoryPoint[]; date: string }) {
+export function ProfessorPanel({ review, history, date, label }: { review?: EducationalReview | null; history: HistoryPoint[]; date: string; label?: string }) {
   const [open, setOpen] = useState<string | null>('why_not_before_flag')
   const notes = trendNotes(history, date)
-  const sections = SECTIONS.filter((s) => review?.[s.key])
+  const sections = SECTIONS.filter((s) => review?.[s.key]).map((s) => (s.key === 'why_not_before_flag' ? { ...s, title: timingTitle(label) } : s))
 
   return (
     <section aria-labelledby="professor-heading" className="space-y-4 rounded-2xl p-5 md:p-6" style={{ ...card, borderLeft: `4px solid ${accent}` }}>

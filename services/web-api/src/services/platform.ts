@@ -89,7 +89,6 @@ export const SERVICES: { name: string; role: string; url: string }[] = [
   { name: 'Yahoo Finance', role: 'prices, quotes, company profiles', url: 'http://yahoo-finance:3002/health' },
   { name: 'News', role: 'merged news from several providers', url: 'http://news-aggregator:3004/health' },
   { name: 'Government data', role: 'SEC filings, BLS and FRED macro', url: 'http://government-data:3005/health' },
-  { name: 'Finance aggregator', role: 'extra market data providers', url: 'http://finance-aggregator:3006/health' },
   { name: 'Social sentiment', role: 'social chatter and sentiment', url: 'http://social-sentiment:3007/health' },
   { name: 'Portfolios', role: 'paper portfolios, orders, picks', url: 'http://portfolio-service:3008/api/portfolio/health' },
 ]

@@ -502,3 +502,21 @@ export async function fetchBacktest(q: { calls: string; source: string; hold: nu
   const p = new URLSearchParams({ calls: q.calls, source: q.source, hold: String(q.hold), stop: q.stop ? '1' : '0', minConfidence: String(Math.round(q.minConfidence * 100)), triggerDays: String(q.triggerDays) })
   return backtestSchema.parse(await getJson(`backtest?${p}`))
 }
+
+const providerItemSchema = z.object({ group: z.string(), name: z.string(), ok: z.boolean(), off: z.boolean().optional(), detail: z.string() })
+export type ProviderItem = z.infer<typeof providerItemSchema>
+export async function fetchProviders(): Promise<{ checkedAt: string; items: ProviderItem[] }> {
+  return z.object({ checkedAt: z.string(), items: z.array(providerItemSchema) }).parse(await getJson('providers'))
+}
+
+const priceCheckSchema = z.object({
+  ticker: z.string(),
+  status: z.enum(['match', 'mismatch', 'no_second_source', 'no_prices']),
+  compared: z.number(),
+  maxDiffPct: z.number().nullable(),
+  worst: z.object({ date: z.string(), yahoo: z.number(), nasdaq: z.number() }).optional(),
+})
+export type PriceCheck = z.infer<typeof priceCheckSchema>
+export async function fetchPriceCheck(): Promise<PriceCheck[]> {
+  return z.object({ checks: z.array(priceCheckSchema) }).parse(await getJson('price-check')).checks
+}

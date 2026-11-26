@@ -113,3 +113,15 @@ export const GLOSSARY: Entry[] = [
 ]
 
 export const ENTRY = Object.fromEntries(GLOSSARY.map((e) => [e.id, e])) as Record<string, Entry>
+
+/**
+ * The Professor's first question depends on the call: why buy now, why wait for the trigger, why sell, or
+ * why do nothing yet. (The stored key stays why_not_before_flag for every call.)
+ */
+export function timingTitle(label: string | null | undefined): string {
+  const l = (label ?? '').toLowerCase()
+  if (/trigger/.test(l)) return 'Why wait for the trigger?'
+  if (/exit|trim|sell|reduce/.test(l)) return 'Why sell now?'
+  if (/buy now|short \(/.test(l)) return 'Why act now?'
+  return 'Why not act yet?'
+}

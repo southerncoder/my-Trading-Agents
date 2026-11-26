@@ -1,5 +1,5 @@
-import { CheckCircle2, XCircle } from 'lucide-react'
-import type { Platform } from '../../services/nightly'
+import { CheckCircle2, MinusCircle, XCircle } from 'lucide-react'
+import type { Platform, PriceCheck, ProviderItem } from '../../services/nightly'
 import { niceTicks, scale, useWidth, viz } from '../stock/charts'
 import { muted } from '../viz'
 
@@ -174,5 +174,68 @@ export function ModelTimeline({ nights }: { nights: Platform['nights'] }) {
         )
       })}
     </ol>
+  )
+}
+
+const STATE = {
+  ok: { icon: CheckCircle2, color: '#0A8F80', word: 'Working' },
+  bad: { icon: XCircle, color: '#b91c1c', word: 'Not working' },
+  off: { icon: MinusCircle, color: '#64748b', word: 'Off' },
+} as const
+
+/** Every data provider behind the services, grouped, each with what it actually returned just now. */
+export function ProviderList({ items }: { items: ProviderItem[] }) {
+  const groups = [...new Set(items.map((i) => i.group))]
+  return (
+    <div className="grid gap-4 md:grid-cols-2">
+      {groups.map((g) => (
+        <div key={g} className="space-y-2">
+          <div className="text-sm font-semibold uppercase tracking-wide" style={muted}>{g}</div>
+          <ul className="space-y-1.5">
+            {items.filter((i) => i.group === g).map((i) => {
+              const s = i.off ? STATE.off : i.ok ? STATE.ok : STATE.bad
+              return (
+                <li key={i.name} className="flex items-start gap-2 rounded-lg px-3 py-2 text-sm" style={{ border: '1px solid var(--color-border, #e2e8f0)', borderLeft: `4px solid ${s.color}` }}>
+                  <s.icon className="mt-0.5 h-4 w-4 shrink-0" style={{ color: s.color }} aria-label={s.word} />
+                  <span className="min-w-0">
+                    <span className="font-semibold">{i.name}</span>
+                    <span className="block text-xs" style={muted}>{i.detail}</span>
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/** The price cross-check: one chip per stock, with the largest daily close difference between the two sources. */
+export function PriceChecks({ checks }: { checks: PriceCheck[] }) {
+  const matched = checks.filter((c) => c.status === 'match').length
+  const bad = checks.filter((c) => c.status === 'mismatch')
+  const unknown = checks.filter((c) => c.status === 'no_second_source' || c.status === 'no_prices')
+  const summary = bad.length
+    ? `${bad.length} of ${checks.length} stocks disagree with Nasdaq by more than half a percent on some day: their charts and scores may be off.`
+    : `${matched} of ${checks.length} stocks match Nasdaq's closes${unknown.length ? ` (${unknown.length} could not be compared)` : ''}.`
+  return (
+    <div className="space-y-3">
+      <p className="rounded-lg px-3 py-2 font-semibold" style={{ border: `1px solid ${bad.length ? '#b91c1c' : '#0A8F80'}`, color: bad.length ? '#b91c1c' : '#0A8F80' }}>{summary}</p>
+      <ul className="flex flex-wrap gap-1.5">
+        {checks.map((c) => {
+          const color = c.status === 'match' ? '#0A8F80' : c.status === 'mismatch' ? '#b91c1c' : '#64748b'
+          const tip = c.worst
+            ? `${c.ticker}: largest difference ${c.maxDiffPct}% on ${c.worst.date} (Yahoo ${c.worst.yahoo}, Nasdaq ${c.worst.nasdaq}), ${c.compared} days compared`
+            : `${c.ticker}: ${c.status === 'no_prices' ? 'no Yahoo prices' : 'Nasdaq had no data'}`
+          const note = c.status === 'match' || c.status === 'mismatch' ? `${c.maxDiffPct}%` : c.status === 'no_prices' ? 'no prices' : 'not compared'
+          return (
+            <li key={c.ticker} className="rounded-full px-2.5 py-0.5 text-xs font-semibold tabular-nums" style={{ border: `1.5px solid ${color}` }} title={tip}>
+              {c.ticker} <span className="font-normal" style={muted}>{note}</span>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
   )
 }

@@ -1,3 +1,4 @@
+import type { AxiosRequestConfig } from 'axios';
 import { BaseClient } from '../base/BaseClient.js';
 import { 
   CensusVariable, 
@@ -7,7 +8,11 @@ import {
 import { logger } from '../utils/logger.js';
 
 export class CensusClient extends BaseClient {
-  constructor(userAgent?: string) {
+  /** Census refuses keyless requests (it redirects to a 'missing key' page), so a key is needed for any data. */
+  readonly hasKey: boolean
+  private readonly apiKey?: string
+
+  constructor(userAgent?: string, apiKey?: string) {
     // Census API has no official rate limits, but we'll be respectful
     super(
       'https://api.census.gov/data', 
@@ -17,6 +22,14 @@ export class CensusClient extends BaseClient {
       1000, // 1 second retry delay
       { tokensPerInterval: 5, interval: 'second' } // 5 requests per second
     );
+    this.apiKey = apiKey || undefined
+    this.hasKey = !!this.apiKey
+  }
+
+  /** Every Census request carries the key; without one, fail fast with the reason instead of a redirect page. */
+  protected override async makeRequest<T>(config: AxiosRequestConfig, options?: RequestOptions): Promise<T> {
+    if (!this.apiKey) throw new Error('Census needs a free API key (CENSUS_API_KEY); none is configured')
+    return super.makeRequest<T>({ ...config, params: { ...(config.params ?? {}), key: this.apiKey } }, options)
   }
 
   /**

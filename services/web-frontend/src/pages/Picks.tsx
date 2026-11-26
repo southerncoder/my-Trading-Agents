@@ -11,6 +11,7 @@ import { button, field, money, primaryButton, primaryStyle, sectionTitle, useLoa
 import { card, muted } from '../components/today/format'
 import { buy, fetchPicks, fetchPortfolios, fetchRequests, requestAnalysis, triggerOrder, type Pick } from '../services/portfolio'
 import { TickerLink } from '../components/TickerLink'
+import { timingTitle } from '../components/learn/glossary'
 
 const bad = { color: '#D4501A' }
 const good = { color: '#0A8F80' }
@@ -35,7 +36,7 @@ function ProfessorReview({ p }: { p: Pick }) {
       {open && (
         <div className="mt-2 space-y-1" style={muted}>
           {r.summary && <p><strong>Summary:</strong> {r.summary}</p>}
-          {r.why_not_before_flag && <p><strong>Why not before the flag?</strong> {r.why_not_before_flag}</p>}
+          {r.why_not_before_flag && <p><strong>{timingTitle(p.label)}</strong> {r.why_not_before_flag}</p>}
           {r.figures_explained && <p><strong>Figures explained:</strong> {r.figures_explained}</p>}
           {r.buy_low_sell_high && <p><strong>Buy low, sell high?</strong> {r.buy_low_sell_high}</p>}
           {r.risk_temperament && <p><strong>Risk temperament:</strong> {r.risk_temperament}</p>}

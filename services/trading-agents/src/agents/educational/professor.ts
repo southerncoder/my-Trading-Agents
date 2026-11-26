@@ -25,6 +25,29 @@ export interface EducationalReview {
   portfolio_fit: string;
 }
 
+export type CallTiming = 'now' | 'trigger' | 'exit' | 'wait';
+
+/**
+ * What the final decision asks the investor to do about timing, read from the Portfolio Manager's JSON
+ * (action_now, then decision). The Professor's first question depends on it: "why wait for the trigger"
+ * makes no sense for a buy-now call.
+ */
+export function callTiming(pmText: string): CallTiming {
+  const action = /"action_now"\s*:\s*"([a-z_]+)"/i.exec(pmText)?.[1]?.toLowerCase() ?? '';
+  const decision = /"decision"\s*:\s*"([a-z]+)"/i.exec(pmText)?.[1]?.toUpperCase() ?? '';
+  if (/trigger/.test(action)) return 'trigger';
+  if (/exit|trim|sell|reduce/.test(action) || decision === 'SELL') return 'exit';
+  if (/enter|now|buy/.test(action)) return 'now';
+  return decision === 'BUY' ? 'now' : 'wait';
+}
+
+const TIMING_QUESTION: Record<CallTiming, string> = {
+  now: 'The call is to BUY NOW, with no trigger. In why_not_before_flag, explain why acting now rather than waiting for a lower price is the advice: what makes this the moment, and what waiting could cost or save. Do not describe a trigger or a wait.',
+  trigger: 'The call is to WAIT FOR THE TRIGGER price before buying. In why_not_before_flag, explain why waiting for that price is better than buying right away, and what reaching it would show.',
+  exit: 'The call is to SELL, TRIM or EXIT. In why_not_before_flag, explain why getting out now is the advice rather than holding for a rebound.',
+  wait: 'The call is to WAIT or KEEP: do nothing new now. In why_not_before_flag, explain why acting now is not advised and what would change that.',
+};
+
 /** The raw shape the model is asked to emit inside its fenced JSON block. */
 interface ProfessorJson {
   summary: string;
@@ -124,7 +147,7 @@ export class Professor extends AbstractAgent {
 You have the final decision (BUY, HOLD, or SELL), the price, the trigger (if any), the stop/walk-away price, the analyst figures, and the reasons. Do NOT second-guess the decision. Do translate it into plain English and explain *why* the advice is structured the way it is.
 
 Explain these ideas simply, but accurately:
-1. Why the advice says to act *after* a flag/trigger rather than immediately.
+1. The timing of THIS call, as stated under CALL TIMING in the request (buy now, wait for a trigger, exit, or wait). Explain only that timing; never invent a trigger or a wait the call does not have.
 2. What each figure means in this stock's context (MA50, MA200, target price, range position, ATR, confidence, etc.).
 3. Why "buy low, sell high" is not the whole story here.
 4. Whether this idea is aggressive, moderate, or conservative and why.
@@ -157,7 +180,10 @@ Each value should be one to three sentences, except figures_explained which may 
     const news = state.news_report || 'Not available';
     const fundamentals = state.fundamentals_report || 'Not available';
 
+    const timing = callTiming(pmText);
     const prompt = `The analysis is for ${state.company_of_interest} on ${state.trade_date}.
+
+CALL TIMING: ${TIMING_QUESTION[timing]}
 
 PORTFOLIO MANAGER FINAL DECISION:
 ${pmText}

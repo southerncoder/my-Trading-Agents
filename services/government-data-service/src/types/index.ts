@@ -166,6 +166,7 @@ export interface DateRange {
 export interface LibraryConfig {
   fredApiKey?: string;
   blsApiKey?: string;
+  censusApiKey?: string;
   userAgent: string;
   defaultTimeout: number;
   maxRetries: number;

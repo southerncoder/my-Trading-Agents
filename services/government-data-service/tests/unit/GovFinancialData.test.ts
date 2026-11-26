@@ -92,7 +92,7 @@ describe('GovFinancialData', () => {
     it('should initialize all clients with correct parameters', () => {
       expect(SECClient).toHaveBeenCalledWith(globalThis.testConfig.userAgent);
       expect(BLSClient).toHaveBeenCalledWith('test-bls-key', globalThis.testConfig.userAgent);
-      expect(CensusClient).toHaveBeenCalledWith(globalThis.testConfig.userAgent);
+      expect(CensusClient).toHaveBeenCalledWith(globalThis.testConfig.userAgent, undefined);
     });
   });
 

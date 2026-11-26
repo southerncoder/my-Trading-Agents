@@ -130,6 +130,7 @@ function Invoke-SecretsMigration {
     # Government macro data (government-data service): FRED needs a free key; BLS works without one (25 requests/day)
     New-SecretFile "FRED_API_KEY" (Join-Path $SECRETS_DIR "fred_api_key.txt") "FRED API Key"
     New-SecretFile "BLS_API_KEY" (Join-Path $SECRETS_DIR "bls_api_key.txt") "BLS API Key"
+    New-SecretFile "CENSUS_API_KEY" (Join-Path $SECRETS_DIR "census_api_key.txt") "Census API Key"
 
     # Social Media API Secrets
     New-SecretFile "TWITTER_BEARER_TOKEN" (Join-Path $SECRETS_DIR "twitter_bearer_token.txt") "Twitter Bearer Token"

@@ -146,7 +146,7 @@ flowchart TD
   Decision["Decision Maker / Aggregator\n(consolidates agent outputs)"]
   Trader["Trader / Execution Adapter\n(send orders / signals)"]
   DataSources["Data Sources\n(market data, news, social, fundamentals)"]
-  NewServices["Branch: data providers\nnews-aggregator-service\nfinance-aggregator-service"]
+  NewServices["Branch: data providers\nnews-aggregator-service"]
   RefSrc["ref_src/SEC_government_data_service\n(reference datasets)"]
 
   CLI --> Orchestrator
@@ -172,5 +172,5 @@ Notes:
 - Analysts may call the LLM for reasoning or summarization and also read/write memory episodes; memory supports search and retrieval across past episodes.
 - The Decision Maker aggregates analyst outputs (structured summaries + confidences) into a single recommendation the Trader can act upon.
 - The Decision Maker aggregates analyst outputs (structured summaries + confidences) into a single recommendation the Trader can act upon.
-- Data sources feed the analysts (market ticks, news articles, social streams, fundamentals). The branch adds local data providers (`news-aggregator-service`, `finance-aggregator-service`) and reference datasets in `ref_src/` which are treated as additional data sources during analysis runs.
+- Data sources feed the analysts (market ticks, news articles, social streams, fundamentals). The branch adds local data providers (`news-aggregator-service`) and reference datasets in `ref_src/` which are treated as additional data sources during analysis runs.
 

@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react'
 import { ChartGuide } from '../components/learn/Learn'
 import { Activity, AlertOctagon, AlertTriangle, BarChart3, CalendarClock, CheckCircle2, Cpu, History, Layers, ListChecks, Server, Timer, Zap } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { CallsPerNight, ModelTimeline, RunMinutes, ServiceGrid } from '../components/platform/charts'
+import { CallsPerNight, ModelTimeline, PriceChecks, ProviderList, RunMinutes, ServiceGrid } from '../components/platform/charts'
 import { lineSeverity } from '../components/platform/status'
-import { fetchLatestNight, fetchPlatform, fetchRunStatus, fetchWatchlist, type NightlyDay, type Platform as PlatformData, type RunStatus, type Watchlist } from '../services/nightly'
+import { fetchLatestNight, fetchPlatform, fetchPriceCheck, fetchProviders, type PriceCheck, type ProviderItem, fetchRunStatus, fetchWatchlist, type NightlyDay, type Platform as PlatformData, type RunStatus, type Watchlist } from '../services/nightly'
 import { Card, HBars, PageHeader, SectionTitle, SegmentBar, StatTile, callColor, muted } from '../components/viz'
 
 const SEVERITY = {
@@ -21,6 +21,8 @@ export function Platform() {
   const [night, setNight] = useState<NightlyDay | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [plat, setPlat] = useState<PlatformData | null>(null)
+  const [providers, setProviders] = useState<{ checkedAt: string; items: ProviderItem[] } | null>(null)
+  const [prices, setPrices] = useState<PriceCheck[] | null>(null)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -37,6 +39,12 @@ export function Platform() {
       .catch(() => undefined)
     fetchPlatform()
       .then((p) => !cancelled && setPlat(p))
+      .catch(() => undefined)
+    fetchProviders()
+      .then((p) => !cancelled && setProviders(p))
+      .catch(() => undefined)
+    fetchPriceCheck()
+      .then((p) => !cancelled && setPrices(p))
       .catch(() => undefined)
     return () => {
       cancelled = true
@@ -76,6 +84,18 @@ export function Platform() {
           <ChartGuide shows={"Whether each data service answered its health check when this page loaded, and how fast."} good={"All up, each answering within a second."} careful={"A health check proves the service answers, not that every data provider behind it returns data."} terms={["pipeline"]} />
         </Card>
       )}
+
+      <Card className="space-y-4">
+        <SectionTitle icon={Activity} title="Data providers" sub={providers ? `What each provider returned when asked a small real question at ${providers.checkedAt.slice(11, 16)} UTC (re-checked every 10 minutes).` : 'Asking each provider a small real question...'} />
+        {providers ? <ProviderList items={providers.items} /> : <p style={muted}>Checking...</p>}
+        <ChartGuide shows="Each provider behind the data services, and what it gave back just now: articles, macro series, filings, sentiment, a price." good="Everything green except what is switched off on purpose (grey)." careful="A red provider means the analysis runs without that data; the nightly run still completes, so this list is where an outage shows." terms={['pipeline']} />
+      </Card>
+
+      <Card className="space-y-4">
+        <SectionTitle icon={Activity} title="Price check against a second source" sub="The last week of daily closes for tonight's stocks and SPY, from the Yahoo service the whole site uses, compared with Nasdaq's." />
+        {prices ? <PriceChecks checks={prices} /> : <p style={muted}>Comparing closes (the first check of the day takes a few seconds)...</p>}
+        <ChartGuide shows="Whether the prices behind every chart, score and backtest agree with an independent source." good="Every stock within a few hundredths of a percent." careful="A mismatch means one source has a bad or late close; scores for that stock on that day are suspect until it is fixed." terms={['vs-spy']} />
+      </Card>
 
       {plat && plat.nights.length > 0 && (
         <div className="grid gap-6 lg:grid-cols-2">
